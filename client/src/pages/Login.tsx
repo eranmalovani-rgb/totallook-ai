@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useLocation } from "wouter";
 import { Loader2, Sparkles } from "lucide-react";
 
@@ -30,7 +30,6 @@ type AuthProviders = {
   google: boolean;
   apple: boolean;
   googleClientId: string | null;
-  googleOAuthRedirectConfigured?: boolean;
   appleClientId: string | null;
 };
 
@@ -66,10 +65,63 @@ export default function Login() {
     if (urlError === "user_creation_failed") setError("שגיאה ביצירת המשתמש. נסה שוב.");
   }, [urlError]);
 
+  // Initialize Google Sign-In
+  useEffect(() => {
+    if (!providers?.google || !providers.googleClientId) return;
+
+    const script = document.createElement("script");
+    script.src = "https://accounts.google.com/gsi/client";
+    script.async = true;
+    script.defer = true;
+    script.onload = () => {
+      (window as any).google?.accounts.id.initialize({
+        client_id: providers.googleClientId,
+        callback: handleGoogleCredentialResponse,
+        auto_select: false,
+      });
+    };
+    document.head.appendChild(script);
+
+    return () => {
+      document.head.removeChild(script);
+    };
+  }, [providers?.google, providers?.googleClientId]);
+
+  // Google credential response handler
+  const handleGoogleCredentialResponse = useCallback(async (response: any) => {
+    setGoogleLoading(true);
+    setError("");
+    try {
+      const res = await fetch("/api/auth/google/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ credential: response.credential, returnPath }),
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "ההתחברות עם Google נכשלה");
+        return;
+      }
+      window.location.href = returnPath;
+    } catch {
+      setError("שגיאת רשת. נסה שוב.");
+    } finally {
+      setGoogleLoading(false);
+    }
+  }, [returnPath]);
+
   // Google Sign-In button click
   const handleGoogleLogin = () => {
-    setGoogleLoading(true);
-    window.location.href = `/api/auth/google?returnPath=${encodeURIComponent(returnPath)}&origin=${encodeURIComponent(window.location.origin)}`;
+    if ((window as any).google?.accounts?.id) {
+      (window as any).google.accounts.id.prompt((notification: any) => {
+        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+          window.location.href = `/api/auth/google?returnPath=${encodeURIComponent(returnPath)}&origin=${encodeURIComponent(window.location.origin)}`;
+        }
+      });
+    } else {
+      window.location.href = `/api/auth/google?returnPath=${encodeURIComponent(returnPath)}&origin=${encodeURIComponent(window.location.origin)}`;
+    }
   };
 
   // Apple Sign-In handler
@@ -229,7 +281,7 @@ export default function Login() {
             {/* OAuth Buttons */}
             <div className="space-y-3 mb-5">
               {/* Google Sign In */}
-              {providers?.google && (providers.googleOAuthRedirectConfigured ?? true) && (
+              {providers?.google && (
                 <button
                   onClick={handleGoogleLogin}
                   disabled={googleLoading}
