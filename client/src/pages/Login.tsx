@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { Loader2, Sparkles } from "lucide-react";
 
@@ -45,6 +45,7 @@ export default function Login() {
   const [providers, setProviders] = useState<AuthProviders | null>(null);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
+  const googleTokenClientRef = useRef<any>(null);
 
   // Get return path from URL params
   const params = new URLSearchParams(window.location.search);
@@ -71,10 +72,95 @@ export default function Login() {
     window.location.href = redirectUrl;
   };
 
+  useEffect(() => {
+    if (!providers?.googleClientId) return;
+
+    const initTokenClient = () => {
+      const google = (window as any).google;
+      if (!google?.accounts?.oauth2) return false;
+
+      googleTokenClientRef.current = google.accounts.oauth2.initTokenClient({
+        client_id: providers.googleClientId,
+        scope: "openid email profile",
+        callback: async (response: any) => {
+          if (response?.error || !response?.access_token) {
+            const msg =
+              response?.error === "popup_closed_by_user"
+                ? "חלון ההתחברות נסגר לפני סיום. נסה שוב."
+                : "ההתחברות עם Google נכשלה. נסה שוב.";
+            setError(msg);
+            setGoogleLoading(false);
+            return;
+          }
+
+          try {
+            const res = await fetch("/api/auth/google/access-token", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              credentials: "include",
+              body: JSON.stringify({
+                accessToken: response.access_token,
+                returnPath,
+              }),
+            });
+            const data = await res.json();
+            if (!res.ok) {
+              setError(data.error || "ההתחברות עם Google נכשלה. נסה שוב.");
+              setGoogleLoading(false);
+              return;
+            }
+            window.location.href = returnPath;
+          } catch {
+            setError("שגיאת רשת. נסה שוב.");
+            setGoogleLoading(false);
+          }
+        },
+      });
+      return true;
+    };
+
+    if (initTokenClient()) return;
+
+    const existingScript = document.getElementById("google-gsi-script") as HTMLScriptElement | null;
+    if (existingScript) {
+      const onLoad = () => {
+        initTokenClient();
+      };
+      existingScript.addEventListener("load", onLoad, { once: true });
+      return () => {
+        existingScript.removeEventListener("load", onLoad);
+      };
+    }
+
+    const script = document.createElement("script");
+    script.id = "google-gsi-script";
+    script.src = "https://accounts.google.com/gsi/client";
+    script.async = true;
+    script.defer = true;
+    script.onload = () => {
+      initTokenClient();
+    };
+    document.head.appendChild(script);
+
+    return () => {
+      script.remove();
+    };
+  }, [providers?.googleClientId, returnPath]);
+
   // Google Sign-In button click
   const handleGoogleLogin = () => {
     setGoogleLoading(true);
     setError("");
+    if (googleTokenClientRef.current?.requestAccessToken) {
+      try {
+        googleTokenClientRef.current.requestAccessToken({
+          prompt: "consent",
+        });
+        return;
+      } catch {
+        // Ignore and use redirect fallback below.
+      }
+    }
     startGoogleRedirectAuth();
   };
 
