@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
-import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
-import { Loader2 } from "lucide-react";
+import { Loader2, Sparkles } from "lucide-react";
 
 /**
- * Login / Register page — Multi-provider authentication
- * Supports: Google OAuth, Apple Sign In, Email + Password
+ * Login / Register page — Editorial Noir Design
+ * Matches the app's dark editorial magazine aesthetic with gold accents,
+ * Heebo/Playfair Display fonts, and glass-morphism elements.
  */
 
 // Google icon SVG
@@ -69,7 +69,6 @@ export default function Login() {
   useEffect(() => {
     if (!providers?.google || !providers.googleClientId) return;
 
-    // Load Google Identity Services script
     const script = document.createElement("script");
     script.src = "https://accounts.google.com/gsi/client";
     script.async = true;
@@ -117,12 +116,10 @@ export default function Login() {
     if ((window as any).google?.accounts?.id) {
       (window as any).google.accounts.id.prompt((notification: any) => {
         if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-          // Fallback: redirect to server-side OAuth flow
           window.location.href = `/api/auth/google?returnPath=${encodeURIComponent(returnPath)}&origin=${encodeURIComponent(window.location.origin)}`;
         }
       });
     } else {
-      // Fallback: redirect to server-side OAuth flow
       window.location.href = `/api/auth/google?returnPath=${encodeURIComponent(returnPath)}&origin=${encodeURIComponent(window.location.origin)}`;
     }
   };
@@ -133,7 +130,6 @@ export default function Login() {
     setError("");
     
     try {
-      // Load Apple JS SDK if not loaded
       if (!(window as any).AppleID) {
         const script = document.createElement("script");
         script.src = "https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js";
@@ -154,7 +150,6 @@ export default function Login() {
 
       const response = await (window as any).AppleID.auth.signIn();
       
-      // Send token to our server
       const res = await fetch("/api/auth/apple/token", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -204,7 +199,6 @@ export default function Login() {
 
       if (!res.ok) {
         setError(data.error || "שגיאה בהתחברות");
-        // If user registered via OAuth, suggest that method
         if (data.loginMethod === "google") {
           setError("המשתמש נרשם דרך Google. לחץ על כפתור Google למטה.");
         } else if (data.loginMethod === "apple") {
@@ -213,7 +207,6 @@ export default function Login() {
         return;
       }
 
-      // Success — redirect to return path
       window.location.href = returnPath;
     } catch (err) {
       setError("שגיאת רשת. נסה שוב.");
@@ -223,158 +216,316 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-4" dir="rtl">
-      <div className="w-full max-w-md">
-        {/* Logo / Title */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold bg-gradient-to-l from-purple-400 to-blue-400 bg-clip-text text-transparent">
-            TotalLook.ai
-          </h1>
-          <p className="text-muted-foreground mt-2">
-            {mode === "login" ? "התחברות לחשבון" : "יצירת חשבון חדש"}
-          </p>
-        </div>
+    <div className="min-h-screen bg-background text-foreground flex flex-col" dir="rtl">
+      {/* Background decorative elements */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        {/* Subtle gold radial glow top-right */}
+        <div
+          className="absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full opacity-[0.04]"
+          style={{ background: "radial-gradient(circle, oklch(0.75 0.14 75), transparent 70%)" }}
+        />
+        {/* Subtle glow bottom-left */}
+        <div
+          className="absolute -bottom-48 -right-48 w-[600px] h-[600px] rounded-full opacity-[0.03]"
+          style={{ background: "radial-gradient(circle, oklch(0.75 0.14 75), transparent 70%)" }}
+        />
+      </div>
 
-        {/* OAuth Buttons */}
-        <div className="space-y-3 mb-6">
-          {/* Google Sign In */}
-          {providers?.google && (
-            <button
-              onClick={handleGoogleLogin}
-              disabled={googleLoading}
-              className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-lg bg-white text-gray-800 font-medium hover:bg-gray-50 transition-colors border border-gray-200 disabled:opacity-50"
-              dir="ltr"
-            >
-              {googleLoading ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : (
-                <GoogleIcon />
-              )}
-              Continue with Google
-            </button>
-          )}
+      {/* Main content */}
+      <div className="flex-1 flex items-center justify-center px-4 py-12 relative z-10">
+        <div className="w-full max-w-[420px]">
 
-          {/* Apple Sign In */}
-          {providers?.apple && (
-            <button
-              onClick={handleAppleLogin}
-              disabled={appleLoading}
-              className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-lg bg-black text-white font-medium hover:bg-gray-900 transition-colors border border-gray-700 disabled:opacity-50"
-              dir="ltr"
-            >
-              {appleLoading ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : (
-                <AppleIcon />
-              )}
-              Continue with Apple
-            </button>
-          )}
-        </div>
-
-        {/* Divider */}
-        {(providers?.google || providers?.apple) && (
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-white/10"></div>
+          {/* ===== BRAND HEADER ===== */}
+          <div className="text-center mb-10">
+            {/* Sparkle icon */}
+            <div className="flex justify-center mb-5">
+              <div className="w-14 h-14 rounded-2xl flex items-center justify-center"
+                style={{ 
+                  background: "oklch(0.75 0.14 75 / 10%)",
+                  border: "1px solid oklch(0.75 0.14 75 / 20%)"
+                }}
+              >
+                <Sparkles className="w-7 h-7" style={{ color: "oklch(0.75 0.14 75)" }} />
+              </div>
             </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-background text-muted-foreground">או</span>
-            </div>
-          </div>
-        )}
 
-        {/* Email + Password Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {mode === "register" && (
-            <div>
-              <label className="block text-sm font-medium mb-1">שם</label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-purple-500/50"
-                placeholder="השם שלך"
-              />
+            {/* Brand wordmark — matching Navbar */}
+            <div className="flex items-center justify-center gap-0 mb-3" dir="ltr">
+              <span className="text-3xl font-bold bg-gradient-to-r from-amber-300 to-primary bg-clip-text text-transparent">
+                TotalLook
+              </span>
+              <span className="text-lg text-muted-foreground/70 font-medium">
+                .ai
+              </span>
             </div>
-          )}
 
-          <div>
-            <label className="block text-sm font-medium mb-1">אימייל</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-purple-500/50"
-              placeholder="your@email.com"
-              dir="ltr"
-            />
+            {/* Editorial accent rule */}
+            <div className="editorial-rule-accent mx-auto mb-4" />
+
+            {/* Tagline */}
+            <p className="text-muted-foreground text-sm font-light">
+              {mode === "login" ? "ברוכים השבים — התחברו לחשבון" : "הצטרפו לחוויית האופנה החכמה"}
+            </p>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">סיסמה</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              minLength={6}
-              className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-purple-500/50"
-              placeholder={mode === "register" ? "לפחות 6 תווים" : "הסיסמה שלך"}
-              dir="ltr"
-            />
-          </div>
-
-          {error && (
-            <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
-              {error}
-            </div>
-          )}
-
-          <Button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3 bg-gradient-to-l from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-medium rounded-lg"
-          >
-            {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : mode === "login" ? "התחבר" : "הירשם"}
-          </Button>
-        </form>
-
-        {/* Toggle mode */}
-        <div className="text-center mt-6">
-          <button
-            onClick={() => {
-              setMode(mode === "login" ? "register" : "login");
-              setError("");
+          {/* ===== AUTH CARD ===== */}
+          <div
+            className="p-6 sm:p-8"
+            style={{
+              background: "oklch(0.10 0.005 75 / 80%)",
+              border: "1px solid oklch(1 0 0 / 6%)",
+              borderRadius: "var(--radius-lg)",
+              backdropFilter: "blur(20px)",
             }}
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
-            {mode === "login" ? (
-              <>אין לך חשבון? <span className="text-purple-400">הירשם כאן</span></>
-            ) : (
-              <>יש לך חשבון? <span className="text-purple-400">התחבר כאן</span></>
+            {/* OAuth Buttons */}
+            <div className="space-y-3 mb-5">
+              {/* Google Sign In */}
+              {providers?.google && (
+                <button
+                  onClick={handleGoogleLogin}
+                  disabled={googleLoading}
+                  className="w-full flex items-center justify-center gap-3 px-4 py-3.5 font-medium transition-all duration-300 disabled:opacity-50"
+                  style={{
+                    background: "white",
+                    color: "#374151",
+                    borderRadius: "var(--radius)",
+                    fontSize: "0.9rem",
+                  }}
+                  dir="ltr"
+                >
+                  {googleLoading ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <GoogleIcon />
+                  )}
+                  המשך עם Google
+                </button>
+              )}
+
+              {/* Apple Sign In */}
+              {providers?.apple && (
+                <button
+                  onClick={handleAppleLogin}
+                  disabled={appleLoading}
+                  className="w-full flex items-center justify-center gap-3 px-4 py-3.5 font-medium transition-all duration-300 disabled:opacity-50"
+                  style={{
+                    background: "#000",
+                    color: "#fff",
+                    border: "1px solid oklch(1 0 0 / 12%)",
+                    borderRadius: "var(--radius)",
+                    fontSize: "0.9rem",
+                  }}
+                  dir="ltr"
+                >
+                  {appleLoading ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <AppleIcon />
+                  )}
+                  המשך עם Apple
+                </button>
+              )}
+            </div>
+
+            {/* Divider */}
+            {(providers?.google || providers?.apple) && (
+              <div className="relative my-6">
+                <div className="editorial-rule" />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span
+                    className="px-4 text-xs tracking-widest uppercase"
+                    style={{
+                      background: "oklch(0.10 0.005 75)",
+                      color: "oklch(0.55 0.01 75)",
+                      fontFamily: "'Heebo', sans-serif",
+                    }}
+                  >
+                    או
+                  </span>
+                </div>
+              </div>
             )}
-          </button>
-        </div>
 
-        {/* Guest option */}
-        <div className="text-center mt-4">
-          <button
-            onClick={() => navigate("/")}
-            className="text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors"
-          >
-            המשך כאורח →
-          </button>
-        </div>
+            {/* Email + Password Form */}
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {mode === "register" && (
+                <div>
+                  <label className="block text-xs font-medium mb-1.5 tracking-wide uppercase" style={{ color: "oklch(0.55 0.01 75)" }}>
+                    שם
+                  </label>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full px-4 py-3 text-foreground placeholder:text-muted-foreground/50 focus:outline-none transition-all duration-300"
+                    style={{
+                      background: "oklch(1 0 0 / 4%)",
+                      border: "1px solid oklch(1 0 0 / 8%)",
+                      borderRadius: "var(--radius)",
+                    }}
+                    onFocus={(e) => e.target.style.borderColor = "oklch(0.75 0.14 75 / 40%)"}
+                    onBlur={(e) => e.target.style.borderColor = "oklch(1 0 0 / 8%)"}
+                    placeholder="השם שלך"
+                  />
+                </div>
+              )}
 
-        {/* Privacy note */}
-        <p className="text-center text-xs text-muted-foreground/40 mt-6">
-          בהתחברות אתה מסכים ל
-          <a href="/privacy" className="underline hover:text-muted-foreground/60">מדיניות הפרטיות</a>
-          {" "}ול
-          <a href="/terms" className="underline hover:text-muted-foreground/60">תנאי השימוש</a>
-        </p>
+              <div>
+                <label className="block text-xs font-medium mb-1.5 tracking-wide uppercase" style={{ color: "oklch(0.55 0.01 75)" }}>
+                  אימייל
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="w-full px-4 py-3 text-foreground placeholder:text-muted-foreground/50 focus:outline-none transition-all duration-300"
+                  style={{
+                    background: "oklch(1 0 0 / 4%)",
+                    border: "1px solid oklch(1 0 0 / 8%)",
+                    borderRadius: "var(--radius)",
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = "oklch(0.75 0.14 75 / 40%)"}
+                  onBlur={(e) => e.target.style.borderColor = "oklch(1 0 0 / 8%)"}
+                  placeholder="your@email.com"
+                  dir="ltr"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium mb-1.5 tracking-wide uppercase" style={{ color: "oklch(0.55 0.01 75)" }}>
+                  סיסמה
+                </label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  className="w-full px-4 py-3 text-foreground placeholder:text-muted-foreground/50 focus:outline-none transition-all duration-300"
+                  style={{
+                    background: "oklch(1 0 0 / 4%)",
+                    border: "1px solid oklch(1 0 0 / 8%)",
+                    borderRadius: "var(--radius)",
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = "oklch(0.75 0.14 75 / 40%)"}
+                  onBlur={(e) => e.target.style.borderColor = "oklch(1 0 0 / 8%)"}
+                  placeholder={mode === "register" ? "לפחות 6 תווים" : "הסיסמה שלך"}
+                  dir="ltr"
+                />
+              </div>
+
+              {error && (
+                <div
+                  className="p-3 text-sm"
+                  style={{
+                    background: "oklch(0.65 0.25 25 / 8%)",
+                    border: "1px solid oklch(0.65 0.25 25 / 20%)",
+                    borderRadius: "var(--radius)",
+                    color: "oklch(0.75 0.18 25)",
+                  }}
+                >
+                  {error}
+                </div>
+              )}
+
+              {/* Submit button — editorial gold filled */}
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-3.5 font-medium transition-all duration-300 disabled:opacity-50 mt-2"
+                style={{
+                  background: "oklch(0.75 0.14 75)",
+                  color: "oklch(0.07 0.003 75)",
+                  borderRadius: "var(--radius)",
+                  border: "1px solid oklch(0.75 0.14 75)",
+                  fontSize: "0.9rem",
+                  letterSpacing: "0.03em",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "oklch(0.80 0.16 75)";
+                  e.currentTarget.style.borderColor = "oklch(0.80 0.16 75)";
+                  e.currentTarget.style.boxShadow = "0 0 25px oklch(0.75 0.14 75 / 20%)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "oklch(0.75 0.14 75)";
+                  e.currentTarget.style.borderColor = "oklch(0.75 0.14 75)";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
+              >
+                {loading ? (
+                  <Loader2 className="w-5 h-5 animate-spin mx-auto" />
+                ) : mode === "login" ? (
+                  "התחבר"
+                ) : (
+                  "צור חשבון"
+                )}
+              </button>
+            </form>
+
+            {/* Toggle mode */}
+            <div className="text-center mt-6">
+              <button
+                onClick={() => {
+                  setMode(mode === "login" ? "register" : "login");
+                  setError("");
+                }}
+                className="text-sm transition-colors duration-300"
+                style={{ color: "oklch(0.55 0.01 75)" }}
+                onMouseEnter={(e) => e.currentTarget.style.color = "oklch(0.80 0.005 75)"}
+                onMouseLeave={(e) => e.currentTarget.style.color = "oklch(0.55 0.01 75)"}
+              >
+                {mode === "login" ? (
+                  <>אין לך חשבון? <span style={{ color: "oklch(0.75 0.14 75)" }}>הירשם כאן</span></>
+                ) : (
+                  <>יש לך חשבון? <span style={{ color: "oklch(0.75 0.14 75)" }}>התחבר כאן</span></>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* ===== FOOTER SECTION ===== */}
+          <div className="mt-8 text-center space-y-4">
+            {/* Guest option */}
+            <button
+              onClick={() => navigate("/")}
+              className="text-sm transition-all duration-300 group"
+              style={{ color: "oklch(0.45 0.01 75)" }}
+              onMouseEnter={(e) => e.currentTarget.style.color = "oklch(0.65 0.01 75)"}
+              onMouseLeave={(e) => e.currentTarget.style.color = "oklch(0.45 0.01 75)"}
+            >
+              רוצה רק לנסות? <span style={{ color: "oklch(0.75 0.14 75 / 70%)" }}>המשך כאורח →</span>
+            </button>
+
+            {/* Editorial rule */}
+            <div className="editorial-rule mx-auto max-w-[200px]" />
+
+            {/* Privacy note */}
+            <p className="text-xs leading-relaxed" style={{ color: "oklch(0.40 0.005 75)" }}>
+              בהתחברות אתה מסכים ל
+              <a
+                href="/privacy"
+                className="underline underline-offset-2 transition-colors duration-300"
+                style={{ color: "oklch(0.50 0.01 75)" }}
+                onMouseEnter={(e) => e.currentTarget.style.color = "oklch(0.75 0.14 75)"}
+                onMouseLeave={(e) => e.currentTarget.style.color = "oklch(0.50 0.01 75)"}
+              >
+                מדיניות הפרטיות
+              </a>
+              {" "}ול
+              <a
+                href="/terms"
+                className="underline underline-offset-2 transition-colors duration-300"
+                style={{ color: "oklch(0.50 0.01 75)" }}
+                onMouseEnter={(e) => e.currentTarget.style.color = "oklch(0.75 0.14 75)"}
+                onMouseLeave={(e) => e.currentTarget.style.color = "oklch(0.50 0.01 75)"}
+              >
+                תנאי השימוש
+              </a>
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );
