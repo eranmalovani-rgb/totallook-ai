@@ -314,22 +314,63 @@ export function registerOAuthRoutes(app: Express) {
       }
 
       const { tokens } = await client.getToken(code as string);
-      const ticket = await client.verifyIdToken({
-        idToken: tokens.id_token!,
-        audience: process.env.GOOGLE_CLIENT_ID,
-      });
 
-      const payload = ticket.getPayload();
-      if (!payload) {
+      let googleSub: string | undefined;
+      let googleEmail: string | undefined;
+      let googleName: string | undefined;
+
+      if (tokens.id_token) {
+        try {
+          const ticket = await client.verifyIdToken({
+            idToken: tokens.id_token,
+            audience: process.env.GOOGLE_CLIENT_ID,
+          });
+          const payload = ticket.getPayload();
+          if (payload) {
+            googleSub = payload.sub;
+            googleEmail = payload.email;
+            googleName = payload.name;
+          }
+        } catch (error) {
+          console.warn("[Auth/Google] id_token verification failed, attempting userinfo fallback:", error);
+        }
+      }
+
+      if (!googleSub && tokens.access_token) {
+        try {
+          const profileRes = await fetch("https://openidconnect.googleapis.com/v1/userinfo", {
+            headers: {
+              Authorization: `Bearer ${tokens.access_token}`,
+            },
+          });
+          if (profileRes.ok) {
+            const profile = await profileRes.json() as {
+              sub?: string;
+              email?: string;
+              name?: string;
+            };
+            googleSub = profile.sub;
+            googleEmail = profile.email;
+            googleName = profile.name;
+          } else {
+            const text = await profileRes.text().catch(() => "");
+            console.error("[Auth/Google] userinfo fallback failed:", profileRes.status, text);
+          }
+        } catch (error) {
+          console.error("[Auth/Google] userinfo fallback request failed:", error);
+        }
+      }
+
+      if (!googleSub) {
         res.redirect(`${origin}/login?error=google_failed`);
         return;
       }
 
       const user = await findOrCreateOAuthUser({
         provider: "google",
-        providerId: payload.sub,
-        email: payload.email,
-        name: payload.name,
+        providerId: googleSub,
+        email: googleEmail,
+        name: googleName,
       });
 
       if (!user) {
@@ -340,7 +381,7 @@ export function registerOAuthRoutes(app: Express) {
       await handleGuestMigration(req, user.id);
       await createSessionAndSetCookie(req, res, user.openId, user.name || "");
 
-      console.log(`[Auth/Google] User logged in: ${payload.email}`);
+      console.log(`[Auth/Google] User logged in: ${googleEmail || googleSub}`);
       res.redirect(`${origin}${returnPath}`);
     } catch (error) {
       console.error("[Auth/Google] Callback failed:", error);
