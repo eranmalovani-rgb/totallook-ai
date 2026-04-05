@@ -11,4 +11,8 @@ export const ENV = {
   forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? "",
   // Site URL for deep links
   siteUrl: process.env.SITE_URL ?? process.env.VITE_APP_URL ?? "https://totallook.ai",
+  // OAuth providers
+  googleClientId: process.env.GOOGLE_CLIENT_ID ?? "",
+  googleClientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
+  appleClientId: process.env.APPLE_CLIENT_ID ?? "",
 };
