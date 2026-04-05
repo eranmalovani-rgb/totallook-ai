@@ -1,5 +1,7 @@
 # מדריך פריסה ב-Railway — TotalLook.ai
 
+_Deploy verification marker: 2026-04-05_
+
 ## סיכום השינויים שבוצעו
 
 ### מה הוסר / הוחלף
