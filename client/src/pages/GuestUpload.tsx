@@ -23,6 +23,7 @@ import { toast } from "sonner";
 
 /* ─── Quick Onboarding Steps (inline, before upload) ─── */
 const ONBOARDING_STEPS = 4; // 1: gender+age, 2: occupation+budget, 3: style+stores, 4: influencers
+const GUEST_ONBOARDING_SKIPPED_KEY = "guest_upload_onboarding_skipped";
 
 export default function GuestUpload() {
   const [, navigate] = useLocation();
@@ -39,7 +40,8 @@ export default function GuestUpload() {
   const hasAdminToken = !!adminToken;
 
   /* ─── Onboarding state ─── */
-  const [onboardingDone, setOnboardingDone] = useState(false);
+  // Keep onboarding data optional for guests so upload can happen immediately.
+  const [onboardingDone, setOnboardingDone] = useState(true);
   const [onboardingStep, setOnboardingStep] = useState(1);
   const [gender, setGender] = useState("");
   const [ageRange, setAgeRange] = useState("");
@@ -154,21 +156,18 @@ export default function GuestUpload() {
   // Pre-fill from existing profile
   useEffect(() => {
     if (existingProfile) {
-      if (existingProfile.onboardingCompleted) {
-        setOnboardingDone(true);
-        if (existingProfile.gender) setGender(existingProfile.gender);
-        if (existingProfile.ageRange) setAgeRange(existingProfile.ageRange);
-        if (existingProfile.occupation) setOccupation(existingProfile.occupation);
-        if (existingProfile.budgetLevel) setBudgetLevel(existingProfile.budgetLevel);
-        if (existingProfile.stylePreference) {
-          setStylePreferences(existingProfile.stylePreference.split(", ").filter(Boolean));
-        }
-        if (existingProfile.preferredStores) {
-          setSelectedStores(existingProfile.preferredStores.split(", ").filter(Boolean));
-        }
-        if (existingProfile.favoriteInfluencers) {
-          setSelectedInfluencers(existingProfile.favoriteInfluencers.split(", ").filter(Boolean));
-        }
+      if (existingProfile.gender) setGender(existingProfile.gender);
+      if (existingProfile.ageRange) setAgeRange(existingProfile.ageRange);
+      if (existingProfile.occupation) setOccupation(existingProfile.occupation);
+      if (existingProfile.budgetLevel) setBudgetLevel(existingProfile.budgetLevel);
+      if (existingProfile.stylePreference) {
+        setStylePreferences(existingProfile.stylePreference.split(", ").filter(Boolean));
+      }
+      if (existingProfile.preferredStores) {
+        setSelectedStores(existingProfile.preferredStores.split(", ").filter(Boolean));
+      }
+      if (existingProfile.favoriteInfluencers) {
+        setSelectedInfluencers(existingProfile.favoriteInfluencers.split(", ").filter(Boolean));
       }
     }
   }, [existingProfile]);
@@ -180,7 +179,6 @@ export default function GuestUpload() {
     }
     if (limitCheck) {
       if (limitCheck.used) setLimitReached(true);
-      if (limitCheck.onboardingCompleted) setOnboardingDone(true);
       // Show email CTA after 2 analyses
       if (limitCheck.count >= 2 && !limitCheck.hasEmail) setShowEmailCta(true);
     }
@@ -436,7 +434,7 @@ export default function GuestUpload() {
               {lang === "he" ? "כל הניתוחים והארון הווירטואלי שלך יישמרו בחשבון החדש" : "All your analyses and virtual wardrobe will be saved to your new account"}
             </p>
           </div>
-        ) : !onboardingDone ? (
+        ) : false ? (
           /* ─── QUICK ONBOARDING ─── */
           <div className="max-w-lg mx-auto">
             {/* Progress */}
@@ -605,7 +603,7 @@ export default function GuestUpload() {
                   <div>
                     <p className="text-sm text-primary/80 mb-2 flex items-center gap-1.5">
                       <MapPin className="w-3.5 h-3.5" />
-                      {getCountryFlag(detectedCountry)} {t("onboarding", "storesPopularInCountry")}{getCountryName(detectedCountry, lang as "he" | "en")}
+                      {getCountryFlag(detectedCountry || "")} {t("onboarding", "storesPopularInCountry")}{getCountryName(detectedCountry || "", lang as "he" | "en")}
                     </p>
                     <div className="grid grid-cols-3 gap-2">
                       {filteredLocalStores.map(store => {
