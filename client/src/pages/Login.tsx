@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Loader2, Sparkles } from "lucide-react";
 
@@ -45,7 +45,6 @@ export default function Login() {
   const [providers, setProviders] = useState<AuthProviders | null>(null);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
-  const googleTokenClientRef = useRef<any>(null);
 
   // Get return path from URL params
   const params = new URLSearchParams(window.location.search);
@@ -67,73 +66,9 @@ export default function Login() {
     if (urlError === "user_creation_failed") setError("שגיאה ביצירת המשתמש. נסה שוב.");
   }, [urlError]);
 
-  // Initialize Google OAuth token client for robust fallback login.
-  useEffect(() => {
-    if (!providers?.googleClientId) return;
-
-    const existing = document.getElementById("google-gsi-script");
-    if (existing) return;
-
-    const script = document.createElement("script");
-    script.id = "google-gsi-script";
-    script.src = "https://accounts.google.com/gsi/client";
-    script.async = true;
-    script.defer = true;
-    script.onload = () => {
-      const google = (window as any).google;
-      if (!google?.accounts?.oauth2) return;
-      googleTokenClientRef.current = google.accounts.oauth2.initTokenClient({
-        client_id: providers.googleClientId,
-        scope: "openid email profile",
-        callback: async (response: any) => {
-          if (!response?.access_token) {
-            setError("ההתחברות עם Google נכשלה. נסה שוב.");
-            setGoogleLoading(false);
-            return;
-          }
-
-          try {
-            const res = await fetch("/api/auth/google/access-token", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              credentials: "include",
-              body: JSON.stringify({
-                accessToken: response.access_token,
-                returnPath,
-              }),
-            });
-            const data = await res.json();
-            if (!res.ok) {
-              setError(data.error || "ההתחברות עם Google נכשלה. נסה שוב.");
-              setGoogleLoading(false);
-              return;
-            }
-            window.location.href = returnPath;
-          } catch {
-            setError("שגיאת רשת. נסה שוב.");
-            setGoogleLoading(false);
-          }
-        },
-      });
-    };
-
-    document.head.appendChild(script);
-    return () => {
-      script.remove();
-    };
-  }, [providers?.googleClientId, returnPath]);
-
   // Google Sign-In button click
   const handleGoogleLogin = () => {
     setGoogleLoading(true);
-    setError("");
-    const tokenClient = googleTokenClientRef.current;
-    if (tokenClient?.requestAccessToken) {
-      tokenClient.requestAccessToken({
-        prompt: "consent",
-      });
-      return;
-    }
     window.location.href = `/api/auth/google?returnPath=${encodeURIComponent(returnPath)}&origin=${encodeURIComponent(window.location.origin)}`;
   };
 
@@ -294,7 +229,7 @@ export default function Login() {
             {/* OAuth Buttons */}
             <div className="space-y-3 mb-5">
               {/* Google Sign In */}
-              {providers?.google && !!providers.googleClientId && (
+              {providers?.google && (providers.googleOAuthRedirectConfigured ?? true) && (
                 <button
                   onClick={handleGoogleLogin}
                   disabled={googleLoading}
