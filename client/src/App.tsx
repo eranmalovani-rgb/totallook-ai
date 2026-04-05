@@ -28,6 +28,7 @@ import StyleDiary from "./pages/StyleDiary";
 import BackgroundWatermark from "./components/BackgroundWatermark";
 import CookieConsent from "./components/CookieConsent";
 import GlobalWhatsAppPopup from "./components/GlobalWhatsAppPopup";
+import VersionBadge from "./components/VersionBadge";
 import WhatsAppReview from "./pages/WhatsAppReview";
 import About from "./pages/About";
 import Login from "./pages/Login";
@@ -77,6 +78,7 @@ function App() {
             <Router />
             <GlobalWhatsAppPopup />
             <CookieConsent />
+            <VersionBadge />
           </TooltipProvider>
         </ThemeProvider>
       </LanguageProvider>
