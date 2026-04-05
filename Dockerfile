@@ -17,7 +17,7 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml* ./
 COPY patches/ ./patches/
 
-# Install dependencies
+# Install ALL dependencies (needed because esbuild uses --packages=external)
 RUN pnpm install --frozen-lockfile || pnpm install
 
 # Copy source code
@@ -38,10 +38,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-# Copy package files and install production deps
+# Copy package files and install ALL deps (esbuild --packages=external needs them at runtime)
 COPY package.json pnpm-lock.yaml* ./
 COPY patches/ ./patches/
-RUN pnpm install --prod --frozen-lockfile || pnpm install --prod
+RUN pnpm install --frozen-lockfile || pnpm install
 
 # Copy built files
 COPY --from=base /app/dist ./dist
