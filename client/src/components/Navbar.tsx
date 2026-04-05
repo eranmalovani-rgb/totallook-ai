@@ -32,9 +32,171 @@ import {
   Fingerprint,
   BookOpen,
 } from "lucide-react";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, type ComponentType, type RefObject } from "react";
 import { toast } from "sonner";
 import { useLanguage } from "@/i18n";
+import type { inferRouterOutputs } from "@trpc/server";
+import type { AppRouter } from "../../../server/routers";
+
+interface NavLinkItem {
+  href: string;
+  label: string;
+  icon: ComponentType<{ className?: string }>;
+}
+
+interface NotificationTranslations {
+  title: string;
+  empty: string;
+  newPost: (name: string) => string;
+  comment: (name: string) => string;
+  reply: (name: string) => string;
+  like: (name: string) => string;
+  viewPost: string;
+}
+
+type NotificationsOutput = inferRouterOutputs<AppRouter>["feed"]["notifications"];
+
+function NotificationContent({
+  notifQuery,
+  notifTranslations,
+  lang,
+  onNotificationClick,
+}: {
+  notifQuery: {
+    isLoading: boolean;
+    data: NotificationsOutput | undefined;
+  };
+  notifTranslations: NotificationTranslations;
+  lang: "he" | "en";
+  onNotificationClick: (postId?: number | null) => void;
+}) {
+  if (notifQuery.isLoading) {
+    return (
+      <div className="p-4 text-center text-sm text-muted-foreground">
+        ...
+      </div>
+    );
+  }
+
+  if (!notifQuery.data?.notifications?.length) {
+    return (
+      <div className="p-6 text-center text-sm text-muted-foreground">
+        {notifTranslations.empty}
+      </div>
+    );
+  }
+
+  return (
+    <div className="divide-y divide-white/5">
+      {notifQuery.data.notifications.map((notif) => (
+        <button
+          key={notif.id}
+          className={`w-full text-start p-3 hover:bg-white/5 transition-colors flex items-start gap-3 ${
+            !notif.isRead ? "bg-primary/5" : ""
+          }`}
+          onClick={() => onNotificationClick(notif.postId)}
+        >
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-400 to-primary flex items-center justify-center text-white text-xs font-bold shrink-0 mt-0.5">
+            {(notif.actorName || "?")[0].toUpperCase()}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm text-foreground/90 leading-snug">
+              {notif.type === "new_post"
+                ? notifTranslations.newPost(
+                    notif.actorName || (lang === "he" ? "משתמש" : "User")
+                  )
+                : notif.type === "comment"
+                ? notifTranslations.comment(
+                    notif.actorName || (lang === "he" ? "משתמש" : "User")
+                  )
+                : notif.type === "reply"
+                ? notifTranslations.reply(
+                    notif.actorName || (lang === "he" ? "משתמש" : "User")
+                  )
+                : notif.type === "like"
+                ? notifTranslations.like(
+                    notif.actorName || (lang === "he" ? "משתמש" : "User")
+                  )
+                : notif.actorName || ""}
+            </p>
+            <p className="text-[10px] text-muted-foreground mt-1">
+              {getTimeAgo(notif.createdAt, lang)}
+            </p>
+          </div>
+          {notif.postId && (
+            <Eye className="w-4 h-4 text-muted-foreground shrink-0 mt-1" />
+          )}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function NotificationBell({
+  isAuthenticated,
+  unreadCount,
+  notifOpen,
+  notifRef,
+  handleNotifToggle,
+  dir,
+  notifTranslations,
+  notifQuery,
+  lang,
+  onNotificationClick,
+  dropdownWidthClass,
+}: {
+  isAuthenticated: boolean;
+  unreadCount: number;
+  notifOpen: boolean;
+  notifRef: RefObject<HTMLDivElement | null>;
+  handleNotifToggle: () => void;
+  dir: "rtl" | "ltr";
+  notifTranslations: NotificationTranslations;
+  notifQuery: {
+    isLoading: boolean;
+    data: NotificationsOutput | undefined;
+  };
+  lang: "he" | "en";
+  onNotificationClick: (postId?: number | null) => void;
+  dropdownWidthClass: string;
+}) {
+  if (!isAuthenticated) return null;
+
+  return (
+    <div className="relative" ref={notifRef}>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="relative text-muted-foreground hover:text-foreground"
+        onClick={handleNotifToggle}
+      >
+        <Bell className="w-4 h-4" />
+        {unreadCount > 0 && (
+          <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 rounded-full text-[10px] text-white flex items-center justify-center font-bold">
+            {unreadCount > 9 ? "9+" : unreadCount}
+          </span>
+        )}
+      </Button>
+
+      {notifOpen && (
+        <div
+          className={`absolute top-full mt-2 bg-card border border-white/10 rounded-xl shadow-xl ${dropdownWidthClass} max-h-96 overflow-y-auto z-50`}
+          style={{ [dir === "rtl" ? "left" : "right"]: 0 }}
+        >
+          <div className="p-3 border-b border-white/5">
+            <h3 className="text-sm font-semibold">{notifTranslations.title}</h3>
+          </div>
+          <NotificationContent
+            notifQuery={notifQuery}
+            notifTranslations={notifTranslations}
+            lang={lang}
+            onNotificationClick={onNotificationClick}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
@@ -105,6 +267,13 @@ export default function Navbar() {
       markReadMutation.mutate();
       utils.feed.unreadCount.invalidate();
     }
+  };
+
+  const handleNotificationClick = (postId?: number | null) => {
+    if (!postId) return;
+    navigate("/feed");
+    setNotifOpen(false);
+    setMobileOpen(false);
   };
 
   const navLinks = [
@@ -198,96 +367,19 @@ export default function Navbar() {
             </span>
           </Button>
 
-          {/* Notification Bell */}
-          {isAuthenticated && (
-            <div className="relative" ref={notifRef}>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="relative text-muted-foreground hover:text-foreground"
-                onClick={handleNotifToggle}
-              >
-                <Bell className="w-4 h-4" />
-                {unreadCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 rounded-full text-[10px] text-white flex items-center justify-center font-bold">
-                    {unreadCount > 9 ? "9+" : unreadCount}
-                  </span>
-                )}
-              </Button>
-
-              {/* Notification Dropdown */}
-              {notifOpen && (
-                <div
-                  className="absolute top-full mt-2 bg-card border border-white/10 rounded-xl shadow-xl w-80 max-h-96 overflow-y-auto z-50"
-                  style={{ [dir === "rtl" ? "left" : "right"]: 0 }}
-                >
-                  <div className="p-3 border-b border-white/5">
-                    <h3 className="text-sm font-semibold">
-                      {notifTranslations.title}
-                    </h3>
-                  </div>
-                  {notifQuery.isLoading ? (
-                    <div className="p-4 text-center text-sm text-muted-foreground">
-                      ...
-                    </div>
-                  ) : !notifQuery.data?.notifications?.length ? (
-                    <div className="p-6 text-center text-sm text-muted-foreground">
-                      {notifTranslations.empty}
-                    </div>
-                  ) : (
-                    <div className="divide-y divide-white/5">
-                      {notifQuery.data.notifications.map((notif) => (
-                        <button
-                          key={notif.id}
-                          className={`w-full text-start p-3 hover:bg-white/5 transition-colors flex items-start gap-3 ${
-                            !notif.isRead ? "bg-primary/5" : ""
-                          }`}
-                          onClick={() => {
-                            if (notif.postId) {
-                              // Navigate to feed (or we could navigate to the review)
-                              navigate("/feed");
-                              setNotifOpen(false);
-                            }
-                          }}
-                        >
-                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-400 to-primary flex items-center justify-center text-white text-xs font-bold shrink-0 mt-0.5">
-                            {(notif.actorName || "?")[0].toUpperCase()}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm text-foreground/90 leading-snug">
-                              {notif.type === "new_post"
-                                ? notifTranslations.newPost(
-                                    notif.actorName || (lang === "he" ? "משתמש" : "User")
-                                  )
-                                : notif.type === "comment"
-                                ? notifTranslations.comment(
-                                    notif.actorName || (lang === "he" ? "משתמש" : "User")
-                                  )
-                                : notif.type === "reply"
-                                ? notifTranslations.reply(
-                                    notif.actorName || (lang === "he" ? "משתמש" : "User")
-                                  )
-                                : notif.type === "like"
-                                ? notifTranslations.like(
-                                    notif.actorName || (lang === "he" ? "משתמש" : "User")
-                                  )
-                                : notif.actorName || ""}
-                            </p>
-                            <p className="text-[10px] text-muted-foreground mt-1">
-                              {getTimeAgo(notif.createdAt, lang)}
-                            </p>
-                          </div>
-                          {notif.postId && (
-                            <Eye className="w-4 h-4 text-muted-foreground shrink-0 mt-1" />
-                          )}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
+          <NotificationBell
+            isAuthenticated={isAuthenticated}
+            unreadCount={unreadCount}
+            notifOpen={notifOpen}
+            notifRef={notifRef}
+            handleNotifToggle={handleNotifToggle}
+            dir={dir}
+            notifTranslations={notifTranslations}
+            notifQuery={notifQuery}
+            lang={lang}
+            onNotificationClick={handleNotificationClick}
+            dropdownWidthClass="w-80"
+          />
 
           {isAuthenticated ? (
             <div className="flex items-center gap-3">
@@ -360,93 +452,19 @@ export default function Navbar() {
 
         {/* Mobile hamburger */}
         <div className="flex md:hidden items-center gap-1">
-          {/* Notification Bell - Mobile */}
-          {isAuthenticated && (
-            <div className="relative" ref={notifRef}>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="relative text-muted-foreground"
-                onClick={handleNotifToggle}
-              >
-                <Bell className="w-4 h-4" />
-                {unreadCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 rounded-full text-[10px] text-white flex items-center justify-center font-bold">
-                    {unreadCount > 9 ? "9+" : unreadCount}
-                  </span>
-                )}
-              </Button>
-
-              {/* Mobile Notification Dropdown */}
-              {notifOpen && (
-                <div
-                  className="absolute top-full mt-2 bg-card border border-white/10 rounded-xl shadow-xl w-72 max-h-80 overflow-y-auto z-50"
-                  style={{ [dir === "rtl" ? "left" : "right"]: 0 }}
-                >
-                  <div className="p-3 border-b border-white/5">
-                    <h3 className="text-sm font-semibold">
-                      {notifTranslations.title}
-                    </h3>
-                  </div>
-                  {notifQuery.isLoading ? (
-                    <div className="p-4 text-center text-sm text-muted-foreground">
-                      ...
-                    </div>
-                  ) : !notifQuery.data?.notifications?.length ? (
-                    <div className="p-6 text-center text-sm text-muted-foreground">
-                      {notifTranslations.empty}
-                    </div>
-                  ) : (
-                    <div className="divide-y divide-white/5">
-                      {notifQuery.data.notifications.map((notif) => (
-                        <button
-                          key={notif.id}
-                          className={`w-full text-start p-3 hover:bg-white/5 transition-colors flex items-start gap-3 ${
-                            !notif.isRead ? "bg-primary/5" : ""
-                          }`}
-                          onClick={() => {
-                            if (notif.postId) {
-                              navigate("/feed");
-                              setNotifOpen(false);
-                              setMobileOpen(false);
-                            }
-                          }}
-                        >
-                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-400 to-primary flex items-center justify-center text-white text-xs font-bold shrink-0 mt-0.5">
-                            {(notif.actorName || "?")[0].toUpperCase()}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm text-foreground/90 leading-snug">
-                              {notif.type === "new_post"
-                                ? notifTranslations.newPost(
-                                    notif.actorName || (lang === "he" ? "משתמש" : "User")
-                                  )
-                                : notif.type === "comment"
-                                ? notifTranslations.comment(
-                                    notif.actorName || (lang === "he" ? "משתמש" : "User")
-                                  )
-                                : notif.type === "reply"
-                                ? notifTranslations.reply(
-                                    notif.actorName || (lang === "he" ? "משתמש" : "User")
-                                  )
-                                : notif.type === "like"
-                                ? notifTranslations.like(
-                                    notif.actorName || (lang === "he" ? "משתמש" : "User")
-                                  )
-                                : notif.actorName || ""}
-                            </p>
-                            <p className="text-[10px] text-muted-foreground mt-1">
-                              {getTimeAgo(notif.createdAt, lang)}
-                            </p>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
+          <NotificationBell
+            isAuthenticated={isAuthenticated}
+            unreadCount={unreadCount}
+            notifOpen={notifOpen}
+            notifRef={notifRef}
+            handleNotifToggle={handleNotifToggle}
+            dir={dir}
+            notifTranslations={notifTranslations}
+            notifQuery={notifQuery}
+            lang={lang}
+            onNotificationClick={handleNotificationClick}
+            dropdownWidthClass="w-72"
+          />
 
           {/* Language Toggle - Mobile */}
           <Button
