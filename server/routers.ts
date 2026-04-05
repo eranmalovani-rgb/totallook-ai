@@ -4614,6 +4614,7 @@ The original photo is ${imageOrientation} orientation (${imageDimensions.width}x
               dayNameEn: dayNamesEn[dayIdx],
               overallScore: analysis?.overallScore ?? r.overallScore ?? 0,
               imageUrl: r.imageUrl,
+              imageKey: r.imageKey || null,
               summary: analysis?.summary?.slice(0, 100) || "",
               relevantImprovements: relevantImprovements.slice(0, 2).map(imp => ({
                 title: imp.title,
@@ -4759,12 +4760,16 @@ Style: High-end fashion editorial flat lay for a ${genderWord}. Items arranged a
         productCategory: z.string(),
         productColors: z.array(z.string()),
         originalImageUrl: z.string(),
+        originalImageKey: z.string().optional(),
         existingItemNames: z.array(z.string()),
         gender: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const genderWord = input.gender === "male" ? "man" : "woman";
         const existingItems = input.existingItemNames.join(", ");
+
+        // Get accessible URL for R2 images (presigned URL)
+        const accessibleImageUrl = await getAccessibleImageUrl(input.originalImageUrl, input.originalImageKey || null);
 
         // Use the user's original photo as reference to generate the "after" image
         // The prompt instructs the AI to keep the SAME person, pose, and background
@@ -4776,7 +4781,7 @@ Style: High-end fashion editorial flat lay for a ${genderWord}. Items arranged a
           const { url } = await generateImage({
             prompt,
             originalImages: [{
-              url: input.originalImageUrl,
+              url: accessibleImageUrl,
               mimeType: "image/jpeg",
             }],
           });
