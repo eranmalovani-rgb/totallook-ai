@@ -75,15 +75,19 @@ export async function storagePut(
     ContentType: contentType,
   }));
 
-  // If we have a public URL, use it directly
-  const url = config.publicUrl
+  // Always use presigned URL since R2 public access may be disabled
+  // Also store the public URL for reference (used in DB records)
+  const publicUrl = config.publicUrl
     ? `${config.publicUrl.replace(/\/+$/, "")}/${key}`
-    : await getSignedUrl(client, new GetObjectCommand({
-        Bucket: config.bucketName,
-        Key: key,
-      }), { expiresIn: 86400 * 7 }); // 7 day signed URL
+    : null;
+  const signedUrl = await getSignedUrl(client, new GetObjectCommand({
+    Bucket: config.bucketName,
+    Key: key,
+  }), { expiresIn: 86400 * 7 }); // 7 day signed URL
 
-  return { key, url };
+  // Return signed URL as the primary URL for immediate use
+  // The key is stored in DB so we can always generate new presigned URLs later
+  return { key, url: signedUrl };
 }
 
 export async function storageGet(
@@ -109,4 +113,66 @@ export async function storageGet(
   }), { expiresIn });
 
   return { key, url };
+}
+
+/**
+ * Always returns a presigned URL, bypassing public URL config.
+ * Use this when the public URL is not accessible (e.g., R2 public access disabled).
+ */
+export async function storageGetSignedUrl(
+  relKey: string,
+  expiresIn = 3600
+): Promise<string> {
+  const config = getStorageConfig();
+  const key = normalizeKey(relKey);
+  const client = getS3Client();
+  const url = await getSignedUrl(client, new GetObjectCommand({
+    Bucket: config.bucketName,
+    Key: key,
+  }), { expiresIn });
+  return url;
+}
+
+/**
+ * Download a file from S3/R2 and return it as a base64 data URL.
+ * Useful for passing images to LLM APIs that need to download the image.
+ */
+export async function storageGetAsBase64(
+  relKey: string
+): Promise<{ base64Url: string; contentType: string }> {
+  const config = getStorageConfig();
+  const key = normalizeKey(relKey);
+  const client = getS3Client();
+
+  const response = await client.send(new GetObjectCommand({
+    Bucket: config.bucketName,
+    Key: key,
+  }));
+
+  const bodyBytes = await response.Body?.transformToByteArray();
+  if (!bodyBytes) throw new Error(`Failed to download ${key} from storage`);
+
+  const contentType = response.ContentType || "image/jpeg";
+  const base64 = Buffer.from(bodyBytes).toString("base64");
+  const base64Url = `data:${contentType};base64,${base64}`;
+
+  return { base64Url, contentType };
+}
+
+/**
+ * Get an accessible URL for an image. If the imageKey points to our R2 bucket,
+ * returns a presigned URL. Otherwise returns the original URL as-is.
+ */
+export async function getAccessibleImageUrl(
+  originalUrl: string,
+  imageKey?: string | null
+): Promise<string> {
+  // If it's an R2 URL (pub-xxx.r2.dev), use presigned URL
+  const isR2Url = originalUrl.includes(".r2.dev/");
+  if (isR2Url && imageKey) {
+    console.log(`[Storage] R2 public URL detected, generating presigned URL for key: ${imageKey}`);
+    return storageGetSignedUrl(imageKey, 3600);
+  }
+  // For CloudFront or other URLs, return as-is
+  return originalUrl;
 }
