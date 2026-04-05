@@ -16,7 +16,7 @@ describe("oauthOrigin", () => {
 
   it("accepts safe return origins and canonicalizes www", () => {
     expect(resolveReturnOrigin("https://www.totallook.ai", siteUrl)).toBe("https://totallook.ai");
-    expect(resolveReturnOrigin("https://preview-123.manus.space", siteUrl)).toBe("https://preview-123.manus.space");
+    expect(resolveReturnOrigin("https://preview-123.manus.space", siteUrl)).toBe("https://totallook.ai");
   });
 
   it("rejects malicious return origin and falls back", () => {

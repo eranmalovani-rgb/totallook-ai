@@ -1,5 +1,5 @@
 const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
-const PREVIEW_HOST_SUFFIXES = [".manus.space", ".manus.computer"];
+const LEGACY_MANUS_SUFFIXES = [".manus.space", ".manus.computer"];
 
 function parseUrl(value: string): URL | null {
   try {
@@ -39,13 +39,18 @@ function normalizeOrigin(origin: string): string | null {
   return `${normalizedProtocol}//${host}${normalizedPort}`;
 }
 
+export function isLegacyManusHost(host: string): boolean {
+  const normalizedHost = host.trim().toLowerCase();
+  if (!normalizedHost) return false;
+  return LEGACY_MANUS_SUFFIXES.some((suffix) =>
+    normalizedHost === suffix.slice(1) || normalizedHost.endsWith(suffix)
+  );
+}
+
 function isAllowedReturnHost(host: string, siteHost: string) {
   if (host === siteHost) return true;
   if (LOCAL_HOSTS.has(host)) return true;
   if (host === "totallook.ai") return true;
-  if (PREVIEW_HOST_SUFFIXES.some((suffix) => host === suffix.slice(1) || host.endsWith(suffix))) {
-    return true;
-  }
   return false;
 }
 
