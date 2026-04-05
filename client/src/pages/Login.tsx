@@ -67,6 +67,11 @@ export default function Login() {
     if (urlError === "user_creation_failed") setError("שגיאה ביצירת המשתמש. נסה שוב.");
   }, [urlError]);
 
+  const startGoogleRedirectAuth = () => {
+    const redirectUrl = `/api/auth/google?returnPath=${encodeURIComponent(returnPath)}&origin=${encodeURIComponent(window.location.origin)}`;
+    window.location.href = redirectUrl;
+  };
+
   // Initialize Google OAuth token client for robust fallback login.
   useEffect(() => {
     if (!providers?.googleClientId) return;
@@ -86,9 +91,20 @@ export default function Login() {
         client_id: providers.googleClientId,
         scope: "openid email profile",
         callback: async (response: any) => {
+          if (response?.error) {
+            // Popup/token flows can fail in some browsers or blocked environments.
+            // Fall back to full redirect OAuth flow for better reliability.
+            if (response.error === "popup_closed_by_user") {
+              setError("חלון ההתחברות נסגר לפני סיום. נסה שוב.");
+              setGoogleLoading(false);
+              return;
+            }
+            startGoogleRedirectAuth();
+            return;
+          }
+
           if (!response?.access_token) {
-            setError("ההתחברות עם Google נכשלה. נסה שוב.");
-            setGoogleLoading(false);
+            startGoogleRedirectAuth();
             return;
           }
 
@@ -110,8 +126,7 @@ export default function Login() {
             }
             window.location.href = returnPath;
           } catch {
-            setError("שגיאת רשת. נסה שוב.");
-            setGoogleLoading(false);
+            startGoogleRedirectAuth();
           }
         },
       });
@@ -129,12 +144,16 @@ export default function Login() {
     setError("");
     const tokenClient = googleTokenClientRef.current;
     if (tokenClient?.requestAccessToken) {
-      tokenClient.requestAccessToken({
-        prompt: "consent",
-      });
+      try {
+        tokenClient.requestAccessToken({
+          prompt: "consent",
+        });
+      } catch {
+        startGoogleRedirectAuth();
+      }
       return;
     }
-    window.location.href = `/api/auth/google?returnPath=${encodeURIComponent(returnPath)}&origin=${encodeURIComponent(window.location.origin)}`;
+    startGoogleRedirectAuth();
   };
 
   // Apple Sign-In handler
