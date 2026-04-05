@@ -1812,6 +1812,16 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
           console.error("[Fashion Analysis] Error stack:", error?.stack?.substring(0, 500));
           await updateReviewStatus(input.reviewId, "failed");
           const msg = error?.message || "";
+          const isInvalidImage =
+            msg.includes("INVALID_IMAGE_INPUT") ||
+            msg.toLowerCase().includes("unsupported image");
+          if (isInvalidImage) {
+            throw new Error(
+              input.lang === "en"
+                ? "The uploaded image is not supported for analysis. Please upload a clearer JPG/PNG/WebP photo."
+                : "התמונה שהועלתה לא נתמכת לניתוח. נסה/י להעלות צילום ברור בפורמט JPG/PNG/WebP ובגודל גדול יותר."
+            );
+          }
           if (msg.includes("exhausted") || msg.includes("412") || msg.includes("quota") || msg.includes("rate limit") || msg.includes("rate_limit") || msg.includes("429")) {
             throw new Error(`שירות הניתוח עמוס כרגע. שגיאה: ${msg.substring(0, 200)}`);
           }
@@ -3543,6 +3553,16 @@ Return ONLY a JSON object with these exact fields:
           console.error("[Guest Analysis] Error status:", error?.status || error?.statusCode);
           await updateGuestSessionStatus(input.sessionId, "failed");
           const msg = error?.message || "";
+          const isInvalidImage =
+            msg.includes("INVALID_IMAGE_INPUT") ||
+            msg.toLowerCase().includes("unsupported image");
+          if (isInvalidImage) {
+            throw new Error(
+              input.lang === "en"
+                ? "The uploaded image is not supported for analysis. Please upload a clearer JPG/PNG/WebP photo."
+                : "התמונה שהועלתה לא נתמכת לניתוח. נסה/י להעלות צילום ברור בפורמט JPG/PNG/WebP ובגודל גדול יותר."
+            );
+          }
           throw new Error(`הניתוח נכשל. שגיאה: ${msg.substring(0, 200)}`);
         }
       }),

@@ -1,4 +1,5 @@
 import { ENV } from "./env";
+import sharp from "sharp";
 
 export type Role = "system" | "user" | "assistant" | "tool" | "function";
 
@@ -114,6 +115,104 @@ const ensureArray = (
   value: MessageContent | MessageContent[]
 ): MessageContent[] => (Array.isArray(value) ? value : [value]);
 
+const MIN_IMAGE_DIMENSION = 32;
+const MIN_IMAGE_BYTES_FOR_SMALL_IMAGES = 2 * 1024;
+const SMALL_IMAGE_DIMENSION_THRESHOLD = 128;
+const SUPPORTED_IMAGE_MIME_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+]);
+const FORMAT_TO_MIME: Record<string, string> = {
+  jpeg: "image/jpeg",
+  jpg: "image/jpeg",
+  png: "image/png",
+  webp: "image/webp",
+};
+
+function invalidImageError(message: string): Error {
+  return new Error(`INVALID_IMAGE_INPUT: ${message}`);
+}
+
+async function normalizeImageForOpenAI(
+  rawBuffer: Buffer,
+  sourceContentType: string | null
+): Promise<{
+  buffer: Buffer;
+  mimeType: string;
+  width: number;
+  height: number;
+  reencoded: boolean;
+}> {
+  let metadata: sharp.Metadata;
+  try {
+    metadata = await sharp(rawBuffer, { failOn: "error" }).metadata();
+  } catch {
+    throw invalidImageError(
+      "The uploaded image could not be decoded. Please upload a clear JPG/PNG/WebP photo."
+    );
+  }
+
+  const width = metadata.width ?? 0;
+  const height = metadata.height ?? 0;
+  if (width < MIN_IMAGE_DIMENSION || height < MIN_IMAGE_DIMENSION) {
+    throw invalidImageError(
+      `Image resolution is too small (${width}x${height}). Minimum supported size is ${MIN_IMAGE_DIMENSION}x${MIN_IMAGE_DIMENSION}.`
+    );
+  }
+
+  const rawMimeType = (sourceContentType ?? "")
+    .split(";")[0]
+    .trim()
+    .toLowerCase();
+  const detectedMimeType = metadata.format
+    ? FORMAT_TO_MIME[metadata.format.toLowerCase()]
+    : undefined;
+
+  let buffer = rawBuffer;
+  let mimeType =
+    (rawMimeType && SUPPORTED_IMAGE_MIME_TYPES.has(rawMimeType) && rawMimeType) ||
+    (detectedMimeType && SUPPORTED_IMAGE_MIME_TYPES.has(detectedMimeType)
+      ? detectedMimeType
+      : "image/jpeg");
+  let reencoded = false;
+
+  // Harden image handling for OpenAI:
+  // - re-encode unsupported/ambiguous formats
+  // - re-encode tiny images that often fail model-side validation
+  const shouldReencode =
+    !SUPPORTED_IMAGE_MIME_TYPES.has(rawMimeType) ||
+    !detectedMimeType ||
+    !SUPPORTED_IMAGE_MIME_TYPES.has(detectedMimeType) ||
+    rawBuffer.byteLength < MIN_IMAGE_BYTES_FOR_SMALL_IMAGES;
+
+  if (shouldReencode) {
+    try {
+      buffer = await sharp(rawBuffer)
+        .jpeg({ quality: 90, mozjpeg: true })
+        .toBuffer();
+      mimeType = "image/jpeg";
+      reencoded = true;
+    } catch {
+      throw invalidImageError(
+        "Image preprocessing failed. Please upload a standard JPG/PNG/WebP image."
+      );
+    }
+  }
+
+  if (
+    buffer.byteLength < MIN_IMAGE_BYTES_FOR_SMALL_IMAGES &&
+    (width < SMALL_IMAGE_DIMENSION_THRESHOLD ||
+      height < SMALL_IMAGE_DIMENSION_THRESHOLD)
+  ) {
+    throw invalidImageError(
+      `Image file is too small (${buffer.byteLength} bytes). Upload a clearer JPG/PNG/WebP photo.`
+    );
+  }
+
+  return { buffer, mimeType, width, height, reencoded };
+}
+
 /**
  * Convert an image URL to a base64 data URI.
  * OpenAI cannot access S3/CloudFront URLs from the production environment,
@@ -126,17 +225,29 @@ async function imageUrlToBase64(url: string): Promise<string> {
   try {
     const response = await fetch(url);
     if (!response.ok) {
-      console.warn(`[LLM] Failed to fetch image for base64 conversion: ${response.status} ${url.substring(0, 100)}`);
-      return url; // fallback to original URL
+      throw invalidImageError(
+        `Failed to download image (${response.status}). Please upload a new image and try again.`
+      );
     }
-    const buffer = await response.arrayBuffer();
-    const contentType = response.headers.get("content-type") || "image/jpeg";
-    const base64 = Buffer.from(buffer).toString("base64");
-    console.log(`[LLM] Converted image to base64 (${Math.round(buffer.byteLength / 1024)}KB, ${contentType})`);
-    return `data:${contentType};base64,${base64}`;
+
+    const rawBuffer = Buffer.from(await response.arrayBuffer());
+    const normalized = await normalizeImageForOpenAI(
+      rawBuffer,
+      response.headers.get("content-type")
+    );
+    const base64 = normalized.buffer.toString("base64");
+    console.log(
+      `[LLM] Converted image to base64 (${Math.round(normalized.buffer.byteLength / 1024)}KB, ${normalized.mimeType}, ${normalized.width}x${normalized.height}, reencoded=${normalized.reencoded})`
+    );
+    return `data:${normalized.mimeType};base64,${base64}`;
   } catch (err: any) {
+    if (String(err?.message || "").includes("INVALID_IMAGE_INPUT")) {
+      throw err;
+    }
     console.warn(`[LLM] Error converting image to base64: ${err.message}`);
-    return url; // fallback to original URL
+    throw invalidImageError(
+      "Unable to preprocess image for AI analysis. Please upload a clear JPG/PNG/WebP photo."
+    );
   }
 }
 
