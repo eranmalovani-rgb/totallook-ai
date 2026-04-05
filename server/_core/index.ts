@@ -9,9 +9,6 @@ import { registerWhatsAppWebhook } from "../whatsapp";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
-import { ENV } from "./env";
-
-const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -40,23 +37,15 @@ async function startServer() {
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
-  // Force canonical production host so old Manus/preview domains never become
-  // user-facing entry points again.
+  // Redirect www to non-www
   app.use((req, res, next) => {
-    if (!ENV.isProduction || req.path === "/api/health") {
-      return next();
+    const host = req.headers.host || "";
+    if (host.startsWith("www.")) {
+      const nonWwwHost = host.replace(/^www\./, "");
+      const protocol = req.headers["x-forwarded-proto"] || req.protocol || "https";
+      return res.redirect(301, `${protocol}://${nonWwwHost}${req.originalUrl}`);
     }
-
-    const canonical = new URL(ENV.siteUrl);
-    const canonicalHost = canonical.hostname.toLowerCase().replace(/^www\./, "");
-    const hostHeader = (req.headers.host || "").split(":")[0].toLowerCase();
-    const normalizedHost = hostHeader.replace(/^www\./, "");
-
-    if (!hostHeader || LOCAL_HOSTS.has(normalizedHost) || normalizedHost === canonicalHost) {
-      return next();
-    }
-
-    return res.redirect(301, `${canonical.origin}${req.originalUrl}`);
+    next();
   });
 
   // Health check endpoint for Railway
