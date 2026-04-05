@@ -1,0 +1,50 @@
+{
+  "query": "SELECT id, status, DATE(createdAt) as date FROM guestSessions ORDER BY createdAt DESC;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user RfxnZb4sKQE9yA3.root --database SGdPHKr3xPrRPbHA9C9esB --execute SELECT id, status, DATE(createdAt) as date FROM guestSessions ORDER BY createdAt DESC;",
+  "rows": [
+    {
+      "id": "150001",
+      "status": "completed",
+      "date": "2026-03-29"
+    },
+    {
+      "id": "120001",
+      "status": "completed",
+      "date": "2026-03-28"
+    },
+    {
+      "id": "90001",
+      "status": "completed",
+      "date": "2026-03-28"
+    },
+    {
+      "id": "60001",
+      "status": "completed",
+      "date": "2026-03-27"
+    },
+    {
+      "id": "30003",
+      "status": "completed",
+      "date": "2026-03-27"
+    },
+    {
+      "id": "30002",
+      "status": "completed",
+      "date": "2026-03-27"
+    },
+    {
+      "id": "30001",
+      "status": "completed",
+      "date": "2026-03-27"
+    },
+    {
+      "id": "1",
+      "status": "completed",
+      "date": "2026-03-27"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tstatus\tdate\n150001\tcompleted\t2026-03-29\n120001\tcompleted\t2026-03-28\n90001\tcompleted\t2026-03-28\n60001\tcompleted\t2026-03-27\n30003\tcompleted\t2026-03-27\n30002\tcompleted\t2026-03-27\n30001\tcompleted\t2026-03-27\n1\tcompleted\t2026-03-27\n",
+  "stderr": "",
+  "execution_time_ms": 1565
+}

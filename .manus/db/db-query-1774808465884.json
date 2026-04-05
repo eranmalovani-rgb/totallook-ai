@@ -1,0 +1,22 @@
+{
+  "query": "SELECT id, fingerprint, status, overallScore FROM guestSessions WHERE fingerprint = 'cd9b99c8e0806610b54a07039651ba77' ORDER BY id DESC LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user RfxnZb4sKQE9yA3.root --database SGdPHKr3xPrRPbHA9C9esB --execute SELECT id, fingerprint, status, overallScore FROM guestSessions WHERE fingerprint = 'cd9b99c8e0806610b54a07039651ba77' ORDER BY id DESC LIMIT 5;",
+  "rows": [
+    {
+      "id": "210001",
+      "fingerprint": "cd9b99c8e0806610b54a07039651ba77",
+      "status": "completed",
+      "overallScore": "9"
+    },
+    {
+      "id": "30002",
+      "fingerprint": "cd9b99c8e0806610b54a07039651ba77",
+      "status": "completed",
+      "overallScore": "9"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tfingerprint\tstatus\toverallScore\n210001\tcd9b99c8e0806610b54a07039651ba77\tcompleted\t9\n30002\tcd9b99c8e0806610b54a07039651ba77\tcompleted\t9\n",
+  "stderr": "",
+  "execution_time_ms": 1500
+}

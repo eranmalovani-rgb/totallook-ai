@@ -1,0 +1,60 @@
+{
+  "query": "SELECT u.id, u.name, up.gender, up.ageRange, up.occupation, up.budgetLevel, up.stylePreference, up.onboardingCompleted FROM users u LEFT JOIN userProfiles up ON u.id = up.userId ORDER BY u.id DESC LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user RfxnZb4sKQE9yA3.root --database SGdPHKr3xPrRPbHA9C9esB --execute SELECT u.id, u.name, up.gender, up.ageRange, up.occupation, up.budgetLevel, up.stylePreference, up.onboardingCompleted FROM users u LEFT JOIN userProfiles up ON u.id = up.userId ORDER BY u.id DESC LIMIT 5;",
+  "rows": [
+    {
+      "id": "60133",
+      "name": "Eran Malovani",
+      "gender": "male",
+      "ageRange": "25-34",
+      "occupation": "tech",
+      "budgetLevel": "mid-range",
+      "stylePreference": "smart-casual",
+      "onboardingCompleted": "1"
+    },
+    {
+      "id": "60078",
+      "name": "Eran Malovani",
+      "gender": "NULL",
+      "ageRange": "NULL",
+      "occupation": "NULL",
+      "budgetLevel": "NULL",
+      "stylePreference": "NULL",
+      "onboardingCompleted": "NULL"
+    },
+    {
+      "id": "30067",
+      "name": "Ron Malovani",
+      "gender": "male",
+      "ageRange": "18-24",
+      "occupation": "student",
+      "budgetLevel": "premium",
+      "stylePreference": "classic",
+      "onboardingCompleted": "1"
+    },
+    {
+      "id": "30054",
+      "name": "Dana Malovani",
+      "gender": "female",
+      "ageRange": "18-24",
+      "occupation": "other",
+      "budgetLevel": "mid-range",
+      "stylePreference": "classic",
+      "onboardingCompleted": "1"
+    },
+    {
+      "id": "22",
+      "name": "Neta nufar Malovani",
+      "gender": "NULL",
+      "ageRange": "NULL",
+      "occupation": "NULL",
+      "budgetLevel": "NULL",
+      "stylePreference": "NULL",
+      "onboardingCompleted": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tgender\tageRange\toccupation\tbudgetLevel\tstylePreference\tonboardingCompleted\n60133\tEran Malovani\tmale\t25-34\ttech\tmid-range\tsmart-casual\t1\n60078\tEran Malovani\tNULL\tNULL\tNULL\tNULL\tNULL\tNULL\n30067\tRon Malovani\tmale\t18-24\tstudent\tpremium\tclassic\t1\n30054\tDana Malovani\tfemale\t18-24\tother\tmid-range\tclassic\t1\n22\tNeta nufar Malovani\tNULL\tNULL\tNULL\tNULL\tNULL\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 123
+}

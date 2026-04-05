@@ -1,0 +1,9 @@
+{
+  "query": "UPDATE feedPosts fp JOIN reviews r ON fp.reviewId = r.id SET fp.occasion = r.occasion WHERE fp.occasion IS NULL AND r.occasion IS NOT NULL;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user RfxnZb4sKQE9yA3.root --database SGdPHKr3xPrRPbHA9C9esB --execute UPDATE feedPosts fp JOIN reviews r ON fp.reviewId = r.id SET fp.occasion = r.occasion WHERE fp.occasion IS NULL AND r.occasion IS NOT NULL;",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 150
+}

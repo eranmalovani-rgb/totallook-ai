@@ -1,0 +1,8 @@
+{
+  "query": "SELECT * FROM wardrobe_items WHERE guest_session_id = 210005;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user RfxnZb4sKQE9yA3.root --database SGdPHKr3xPrRPbHA9C9esB --execute SELECT * FROM wardrobe_items WHERE guest_session_id = 210005;",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1146 (42S02) at line 1: Table 'sgdphkr3xprrpbha9c9esb.wardrobe_items' doesn't exist"
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "query": "SELECT COUNT(*) as registered_no_review \nFROM users u \nWHERE NOT EXISTS (SELECT 1 FROM reviews r WHERE r.userId = u.id);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user RfxnZb4sKQE9yA3.root --database SGdPHKr3xPrRPbHA9C9esB --execute SELECT COUNT(*) as registered_no_review \nFROM users u \nWHERE NOT EXISTS (SELECT 1 FROM reviews r WHERE r.userId = u.id);",
+  "rows": [
+    {
+      "registered_no_review": "5"
+    }
+  ],
+  "messages": [],
+  "stdout": "registered_no_review\n5\n",
+  "stderr": "",
+  "execution_time_ms": 1565
+}

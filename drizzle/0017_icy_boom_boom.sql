@@ -1,0 +1,1 @@
+ALTER TABLE `userProfiles` ADD `country` varchar(8);

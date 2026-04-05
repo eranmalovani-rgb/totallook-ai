@@ -1,0 +1,55 @@
+{
+  "query": "SELECT u.id, u.name, u.email, up.id as profile_id, up.onboardingCompleted, up.ageRange, up.gender FROM users u LEFT JOIN userProfiles up ON u.id = up.userId ORDER BY u.id DESC LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user RfxnZb4sKQE9yA3.root --database SGdPHKr3xPrRPbHA9C9esB --execute SELECT u.id, u.name, u.email, up.id as profile_id, up.onboardingCompleted, up.ageRange, up.gender FROM users u LEFT JOIN userProfiles up ON u.id = up.userId ORDER BY u.id DESC LIMIT 5;",
+  "rows": [
+    {
+      "id": "60133",
+      "name": "Eran Malovani",
+      "email": "eranmalovani@gmail.com",
+      "profile_id": "NULL",
+      "onboardingCompleted": "NULL",
+      "ageRange": "NULL",
+      "gender": "NULL"
+    },
+    {
+      "id": "60078",
+      "name": "Eran Malovani",
+      "email": "49trhg8kt6@privaterelay.appleid.com",
+      "profile_id": "NULL",
+      "onboardingCompleted": "NULL",
+      "ageRange": "NULL",
+      "gender": "NULL"
+    },
+    {
+      "id": "30067",
+      "name": "Ron Malovani",
+      "email": "rgh56msxz5@privaterelay.appleid.com",
+      "profile_id": "30002",
+      "onboardingCompleted": "1",
+      "ageRange": "18-24",
+      "gender": "male"
+    },
+    {
+      "id": "30054",
+      "name": "Dana Malovani",
+      "email": "danamalovani10@gmail.com",
+      "profile_id": "30001",
+      "onboardingCompleted": "1",
+      "ageRange": "18-24",
+      "gender": "female"
+    },
+    {
+      "id": "22",
+      "name": "Neta nufar Malovani",
+      "email": "nmalovani@gmail.com",
+      "profile_id": "NULL",
+      "onboardingCompleted": "NULL",
+      "ageRange": "NULL",
+      "gender": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\tprofile_id\tonboardingCompleted\tageRange\tgender\n60133\tEran Malovani\teranmalovani@gmail.com\tNULL\tNULL\tNULL\tNULL\n60078\tEran Malovani\t49trhg8kt6@privaterelay.appleid.com\tNULL\tNULL\tNULL\tNULL\n30067\tRon Malovani\trgh56msxz5@privaterelay.appleid.com\t30002\t1\t18-24\tmale\n30054\tDana Malovani\tdanamalovani10@gmail.com\t30001\t1\t18-24\tfemale\n22\tNeta nufar Malovani\tnmalovani@gmail.com\tNULL\tNULL\tNULL\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 64
+}

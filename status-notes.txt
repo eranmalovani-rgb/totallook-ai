@@ -1,0 +1,9 @@
+Status check 2026-03-29:
+- Dev server running on port 3000
+- App shows logged-in view for Eran Malovani
+- Navbar has: ראשי, ניתוח חדש, פיד סטייל, היסטוריה, הארון שלי, פרופיל, ניהול, EN
+- Upload page visible with camera/gallery upload
+- Privacy note visible: הניתוח שלך פרטי לחלוטין — לא משותף בפיד אלא אם תבחר
+- TypeScript: No errors
+- LSP: No errors
+- Need to run tests and verify guest flow

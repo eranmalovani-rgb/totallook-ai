@@ -1,0 +1,35 @@
+{
+  "query": "SELECT id, gender, favoriteInfluencers FROM userProfiles",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user RfxnZb4sKQE9yA3.root --database SGdPHKr3xPrRPbHA9C9esB --execute SELECT id, gender, favoriteInfluencers FROM userProfiles",
+  "rows": [
+    {
+      "id": "30001",
+      "gender": "female",
+      "favoriteInfluencers": "Matilda djerf"
+    },
+    {
+      "id": "30002",
+      "gender": "male",
+      "favoriteInfluencers": "David Beckham"
+    },
+    {
+      "id": "120001",
+      "gender": "female",
+      "favoriteInfluencers": "NULL"
+    },
+    {
+      "id": "120002",
+      "gender": "female",
+      "favoriteInfluencers": "Emily Ratajkowski, Chiara Ferragni"
+    },
+    {
+      "id": "150001",
+      "gender": "female",
+      "favoriteInfluencers": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tgender\tfavoriteInfluencers\n30001\tfemale\tMatilda djerf\n30002\tmale\tDavid Beckham\n120001\tfemale\tNULL\n120002\tfemale\tEmily Ratajkowski, Chiara Ferragni\n150001\tfemale\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 56
+}

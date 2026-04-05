@@ -1,0 +1,20 @@
+{
+  "query": "SELECT id, JSON_EXTRACT(analysisJson, '$.improvements[0].shoppingLinks[0].imageUrl') AS i0l0, JSON_EXTRACT(analysisJson, '$.improvements[0].shoppingLinks[1].imageUrl') AS i0l1, JSON_EXTRACT(analysisJson, '$.improvements[0].shoppingLinks[2].imageUrl') AS i0l2, JSON_EXTRACT(analysisJson, '$.improvements[1].shoppingLinks[0].imageUrl') AS i1l0, JSON_EXTRACT(analysisJson, '$.improvements[1].shoppingLinks[1].imageUrl') AS i1l1, JSON_EXTRACT(analysisJson, '$.improvements[2].shoppingLinks[0].imageUrl') AS i2l0, JSON_EXTRACT(analysisJson, '$.improvements[3].shoppingLinks[0].imageUrl') AS i3l0 FROM reviews WHERE id = 600004;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user RfxnZb4sKQE9yA3.root --database SGdPHKr3xPrRPbHA9C9esB --execute SELECT id, JSON_EXTRACT(analysisJson, '$.improvements[0].shoppingLinks[0].imageUrl') AS i0l0, JSON_EXTRACT(analysisJson, '$.improvements[0].shoppingLinks[1].imageUrl') AS i0l1, JSON_EXTRACT(analysisJson, '$.improvements[0].shoppingLinks[2].imageUrl') AS i0l2, JSON_EXTRACT(analysisJson, '$.improvements[1].shoppingLinks[0].imageUrl') AS i1l0, JSON_EXTRACT(analysisJson, '$.improvements[1].shoppingLinks[1].imageUrl') AS i1l1, JSON_EXTRACT(analysisJson, '$.improvements[2].shoppingLinks[0].imageUrl') AS i2l0, JSON_EXTRACT(analysisJson, '$.improvements[3].shoppingLinks[0].imageUrl') AS i3l0 FROM reviews WHERE id = 600004;",
+  "rows": [
+    {
+      "id": "600004",
+      "i0l0": "\"https://d2xsxph8kpxj0f.cloudfront.net/310519663364230752/SGdPHKr3xPrRPbHA9C9esB/generated/1774614309655.png\"",
+      "i0l1": "\"https://d2xsxph8kpxj0f.cloudfront.net/310519663364230752/SGdPHKr3xPrRPbHA9C9esB/generated/1774614309259.png\"",
+      "i0l2": "\"https://d2xsxph8kpxj0f.cloudfront.net/310519663364230752/SGdPHKr3xPrRPbHA9C9esB/generated/1774614307075.png\"",
+      "i1l0": "\"https://d2xsxph8kpxj0f.cloudfront.net/310519663364230752/SGdPHKr3xPrRPbHA9C9esB/generated/1774614315560.png\"",
+      "i1l1": "\"https://d2xsxph8kpxj0f.cloudfront.net/310519663364230752/SGdPHKr3xPrRPbHA9C9esB/generated/1774614307257.png\"",
+      "i2l0": "\"https://d2xsxph8kpxj0f.cloudfront.net/310519663364230752/SGdPHKr3xPrRPbHA9C9esB/generated/1774614307110.png\"",
+      "i3l0": "\"https://d2xsxph8kpxj0f.cloudfront.net/310519663364230752/SGdPHKr3xPrRPbHA9C9esB/generated/1774614306922.png\""
+    }
+  ],
+  "messages": [],
+  "stdout": "id\ti0l0\ti0l1\ti0l2\ti1l0\ti1l1\ti2l0\ti3l0\n600004\t\"https://d2xsxph8kpxj0f.cloudfront.net/310519663364230752/SGdPHKr3xPrRPbHA9C9esB/generated/1774614309655.png\"\t\"https://d2xsxph8kpxj0f.cloudfront.net/310519663364230752/SGdPHKr3xPrRPbHA9C9esB/generated/1774614309259.png\"\t\"https://d2xsxph8kpxj0f.cloudfront.net/310519663364230752/SGdPHKr3xPrRPbHA9C9esB/generated/1774614307075.png\"\t\"https://d2xsxph8kpxj0f.cloudfront.net/310519663364230752/SGdPHKr3xPrRPbHA9C9esB/generated/1774614315560.png\"\t\"https://d2xsxph8kpxj0f.cloudfront.net/310519663364230752/SGdPHKr3xPrRPbHA9C9esB/generated/1774614307257.png\"\t\"https://d2xsxph8kpxj0f.cloudfront.net/310519663364230752/SGdPHKr3xPrRPbHA9C9esB/generated/1774614307110.png\"\t\"https://d2xsxph8kpxj0f.cloudfront.net/310519663364230752/SGdPHKr3xPrRPbHA9C9esB/generated/1774614306922.png\"\n",
+  "stderr": "",
+  "execution_time_ms": 1549
+}

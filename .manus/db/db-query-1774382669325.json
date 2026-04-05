@@ -1,0 +1,9 @@
+{
+  "query": "DELETE w1 FROM wardrobeItems w1\nINNER JOIN wardrobeItems w2\nWHERE w1.userId = w2.userId\n  AND w1.itemType = w2.itemType\n  AND w1.name = w2.name\n  AND w1.id > w2.id;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user RfxnZb4sKQE9yA3.root --database SGdPHKr3xPrRPbHA9C9esB --execute DELETE w1 FROM wardrobeItems w1\nINNER JOIN wardrobeItems w2\nWHERE w1.userId = w2.userId\n  AND w1.itemType = w2.itemType\n  AND w1.name = w2.name\n  AND w1.id > w2.id;",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 113
+}

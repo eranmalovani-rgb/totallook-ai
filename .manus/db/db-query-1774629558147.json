@@ -1,0 +1,58 @@
+{
+  "query": "SELECT id, openId, name, email, role, loginMethod FROM users WHERE name LIKE '%Eran%' OR name LIKE '%Malovani%' OR email LIKE '%malovani%';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user RfxnZb4sKQE9yA3.root --database SGdPHKr3xPrRPbHA9C9esB --execute SELECT id, openId, name, email, role, loginMethod FROM users WHERE name LIKE '%Eran%' OR name LIKE '%Malovani%' OR email LIKE '%malovani%';",
+  "rows": [
+    {
+      "id": "22",
+      "openId": "PfyLQFvPAc7ifLqW3NCB2H",
+      "name": "Neta nufar Malovani",
+      "email": "nmalovani@gmail.com",
+      "role": "user",
+      "loginMethod": "google"
+    },
+    {
+      "id": "30054",
+      "openId": "a62suuVw8iF3rZyTieKkgd",
+      "name": "Dana Malovani",
+      "email": "danamalovani10@gmail.com",
+      "role": "user",
+      "loginMethod": "google"
+    },
+    {
+      "id": "30067",
+      "openId": "khiixn7nCSSdnF9ep3Di7U",
+      "name": "Ron Malovani",
+      "email": "rgh56msxz5@privaterelay.appleid.com",
+      "role": "user",
+      "loginMethod": "apple"
+    },
+    {
+      "id": "60078",
+      "openId": "aYKeYJP84uqr9zQAyfkHhP",
+      "name": "Eran Malovani",
+      "email": "49trhg8kt6@privaterelay.appleid.com",
+      "role": "admin",
+      "loginMethod": "apple"
+    },
+    {
+      "id": "572677",
+      "openId": "SidGdSNpqVhBs7FZJyYqZx",
+      "name": "ליאור מלובני",
+      "email": "lior.malovani8@gmail.com",
+      "role": "user",
+      "loginMethod": "google"
+    },
+    {
+      "id": "1350239",
+      "openId": "XMLYVTSn6kRrvro53mM6oy",
+      "name": "Eran Malovani",
+      "email": "eranmalovani@gmail.com",
+      "role": "user",
+      "loginMethod": "google"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\topenId\tname\temail\trole\tloginMethod\n22\tPfyLQFvPAc7ifLqW3NCB2H\tNeta nufar Malovani\tnmalovani@gmail.com\tuser\tgoogle\n30054\ta62suuVw8iF3rZyTieKkgd\tDana Malovani\tdanamalovani10@gmail.com\tuser\tgoogle\n30067\tkhiixn7nCSSdnF9ep3Di7U\tRon Malovani\trgh56msxz5@privaterelay.appleid.com\tuser\tapple\n60078\taYKeYJP84uqr9zQAyfkHhP\tEran Malovani\t49trhg8kt6@privaterelay.appleid.com\tadmin\tapple\n572677\tSidGdSNpqVhBs7FZJyYqZx\tליאור מלובני\tlior.malovani8@gmail.com\tuser\tgoogle\n1350239\tXMLYVTSn6kRrvro53mM6oy\tEran Malovani\teranmalovani@gmail.com\tuser\tgoogle\n",
+  "stderr": "",
+  "execution_time_ms": 1608
+}

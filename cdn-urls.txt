@@ -1,0 +1,6 @@
+green-blazer: https://d2xsxph8kpxj0f.cloudfront.net/310519663364230752/SGdPHKr3xPrRPbHA9C9esB/green-blazer_35f2913c.jpg
+white-shirt: https://d2xsxph8kpxj0f.cloudfront.net/310519663364230752/SGdPHKr3xPrRPbHA9C9esB/white-shirt_39607137.jpg
+navy-chinos: https://d2xsxph8kpxj0f.cloudfront.net/310519663364230752/SGdPHKr3xPrRPbHA9C9esB/navy-chinos_965517fd.jpg
+white-sneakers: https://d2xsxph8kpxj0f.cloudfront.net/310519663364230752/SGdPHKr3xPrRPbHA9C9esB/white-sneakers_b007f8f5.jpg
+beige-chinos: https://d2xsxph8kpxj0f.cloudfront.net/310519663364230752/SGdPHKr3xPrRPbHA9C9esB/beige-chinos_41b66f68.jpg
+classic-watch: https://d2xsxph8kpxj0f.cloudfront.net/310519663364230752/SGdPHKr3xPrRPbHA9C9esB/classic-watch_00efcbf9.jpg

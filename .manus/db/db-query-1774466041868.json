@@ -1,0 +1,75 @@
+{
+  "query": "SELECT id, status, occasion, influencers, JSON_LENGTH(analysisJson, '$.items') as items_count, JSON_LENGTH(analysisJson, '$.scores') as scores_count, JSON_LENGTH(analysisJson, '$.improvements') as improvements_count, JSON_LENGTH(analysisJson, '$.outfitSuggestions') as outfits_count, JSON_LENGTH(analysisJson, '$.trendSources') as trends_count, JSON_LENGTH(analysisJson, '$.linkedMentions') as mentions_count, JSON_EXTRACT(analysisJson, '$.overallScore') as overall_score FROM reviews ORDER BY id DESC LIMIT 5",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user RfxnZb4sKQE9yA3.root --database SGdPHKr3xPrRPbHA9C9esB --execute SELECT id, status, occasion, influencers, JSON_LENGTH(analysisJson, '$.items') as items_count, JSON_LENGTH(analysisJson, '$.scores') as scores_count, JSON_LENGTH(analysisJson, '$.improvements') as improvements_count, JSON_LENGTH(analysisJson, '$.outfitSuggestions') as outfits_count, JSON_LENGTH(analysisJson, '$.trendSources') as trends_count, JSON_LENGTH(analysisJson, '$.linkedMentions') as mentions_count, JSON_EXTRACT(analysisJson, '$.overallScore') as overall_score FROM reviews ORDER BY id DESC LIMIT 5",
+  "rows": [
+    {
+      "id": "360039",
+      "status": "completed",
+      "occasion": "sport",
+      "influencers": "נדיר אליהו, David Beckham",
+      "items_count": "6",
+      "scores_count": "8",
+      "improvements_count": "4",
+      "outfits_count": "3",
+      "trends_count": "4",
+      "mentions_count": "20",
+      "overall_score": "7.4"
+    },
+    {
+      "id": "360038",
+      "status": "completed",
+      "occasion": "casual",
+      "influencers": "NULL",
+      "items_count": "7",
+      "scores_count": "8",
+      "improvements_count": "4",
+      "outfits_count": "3",
+      "trends_count": "4",
+      "mentions_count": "15",
+      "overall_score": "8.3"
+    },
+    {
+      "id": "360037",
+      "status": "completed",
+      "occasion": "sport",
+      "influencers": "נדיר אליהו, David Beckham",
+      "items_count": "6",
+      "scores_count": "8",
+      "improvements_count": "4",
+      "outfits_count": "3",
+      "trends_count": "4",
+      "mentions_count": "28",
+      "overall_score": "7.8"
+    },
+    {
+      "id": "360036",
+      "status": "completed",
+      "occasion": "work",
+      "influencers": "נדיר אליהו, David Beckham",
+      "items_count": "6",
+      "scores_count": "8",
+      "improvements_count": "4",
+      "outfits_count": "3",
+      "trends_count": "4",
+      "mentions_count": "24",
+      "overall_score": "8"
+    },
+    {
+      "id": "360035",
+      "status": "completed",
+      "occasion": "casual",
+      "influencers": "Emily Ratajkowski, Chiara Ferragni",
+      "items_count": "7",
+      "scores_count": "8",
+      "improvements_count": "4",
+      "outfits_count": "3",
+      "trends_count": "4",
+      "mentions_count": "18",
+      "overall_score": "8.9"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tstatus\toccasion\tinfluencers\titems_count\tscores_count\timprovements_count\toutfits_count\ttrends_count\tmentions_count\toverall_score\n360039\tcompleted\tsport\tנדיר אליהו, David Beckham\t6\t8\t4\t3\t4\t20\t7.4\n360038\tcompleted\tcasual\tNULL\t7\t8\t4\t3\t4\t15\t8.3\n360037\tcompleted\tsport\tנדיר אליהו, David Beckham\t6\t8\t4\t3\t4\t28\t7.8\n360036\tcompleted\twork\tנדיר אליהו, David Beckham\t6\t8\t4\t3\t4\t24\t8\n360035\tcompleted\tcasual\tEmily Ratajkowski, Chiara Ferragni\t7\t8\t4\t3\t4\t18\t8.9\n",
+  "stderr": "",
+  "execution_time_ms": 117
+}

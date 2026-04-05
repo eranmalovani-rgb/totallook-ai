@@ -1,0 +1,58 @@
+{
+  "query": "SELECT * FROM wardrobeItems WHERE guestSessionId = 210005;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user RfxnZb4sKQE9yA3.root --database SGdPHKr3xPrRPbHA9C9esB --execute SELECT * FROM wardrobeItems WHERE guestSessionId = 210005;",
+  "rows": [
+    {
+      "id": "600001",
+      "userId": "NULL",
+      "itemType": "👕",
+      "name": "חולצת דנים",
+      "color": "תכלת בהיר",
+      "brand": "NULL",
+      "material": "NULL",
+      "score": "8",
+      "sourceImageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663364230752/SGdPHKr3xPrRPbHA9C9esB/guest/yU_VGHgdqJk8Gf0iFlZNu.jpeg",
+      "sourceReviewId": "210005",
+      "verdict": "NULL",
+      "createdAt": "2026-03-29 19:08:34",
+      "itemImageUrl": "NULL",
+      "guestSessionId": "210005"
+    },
+    {
+      "id": "600002",
+      "userId": "NULL",
+      "itemType": "👖",
+      "name": "מכנסי צ'ינו",
+      "color": "חום-בז'",
+      "brand": "NULL",
+      "material": "NULL",
+      "score": "7",
+      "sourceImageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663364230752/SGdPHKr3xPrRPbHA9C9esB/guest/yU_VGHgdqJk8Gf0iFlZNu.jpeg",
+      "sourceReviewId": "210005",
+      "verdict": "NULL",
+      "createdAt": "2026-03-29 19:08:34",
+      "itemImageUrl": "NULL",
+      "guestSessionId": "210005"
+    },
+    {
+      "id": "600003",
+      "userId": "NULL",
+      "itemType": "👟",
+      "name": "נעלי סניקרס מעור",
+      "color": "חום-אדמדם",
+      "brand": "NULL",
+      "material": "NULL",
+      "score": "6",
+      "sourceImageUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663364230752/SGdPHKr3xPrRPbHA9C9esB/guest/yU_VGHgdqJk8Gf0iFlZNu.jpeg",
+      "sourceReviewId": "210005",
+      "verdict": "NULL",
+      "createdAt": "2026-03-29 19:08:34",
+      "itemImageUrl": "NULL",
+      "guestSessionId": "210005"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tuserId\titemType\tname\tcolor\tbrand\tmaterial\tscore\tsourceImageUrl\tsourceReviewId\tverdict\tcreatedAt\titemImageUrl\tguestSessionId\n600001\tNULL\t👕\tחולצת דנים\tתכלת בהיר\tNULL\tNULL\t8\thttps://d2xsxph8kpxj0f.cloudfront.net/310519663364230752/SGdPHKr3xPrRPbHA9C9esB/guest/yU_VGHgdqJk8Gf0iFlZNu.jpeg\t210005\tNULL\t2026-03-29 19:08:34\tNULL\t210005\n600002\tNULL\t👖\tמכנסי צ'ינו\tחום-בז'\tNULL\tNULL\t7\thttps://d2xsxph8kpxj0f.cloudfront.net/310519663364230752/SGdPHKr3xPrRPbHA9C9esB/guest/yU_VGHgdqJk8Gf0iFlZNu.jpeg\t210005\tNULL\t2026-03-29 19:08:34\tNULL\t210005\n600003\tNULL\t👟\tנעלי סניקרס מעור\tחום-אדמדם\tNULL\tNULL\t6\thttps://d2xsxph8kpxj0f.cloudfront.net/310519663364230752/SGdPHKr3xPrRPbHA9C9esB/guest/yU_VGHgdqJk8Gf0iFlZNu.jpeg\t210005\tNULL\t2026-03-29 19:08:34\tNULL\t210005\n",
+  "stderr": "",
+  "execution_time_ms": 1510
+}

@@ -1,0 +1,58 @@
+COMPLETE FLOW ANALYSIS:
+
+1. User logs in → OAuth callback → redirects to Home (/)
+2. Home.tsx: useAuth() loads, profile.get loads
+   - If profileFetched && (!profile || !onboarded) → navigate("/onboarding")
+   - This works correctly
+
+3. Onboarding.tsx: User fills all steps, clicks "בוא נתחיל!"
+   - handleFinish calls profile.save with onboardingCompleted: true
+   - Server saves as onboardingCompleted: 1 (integer) in DB
+   - Then calls utils.profile.get.invalidate()
+   - Waits 100ms
+   - navigate("/upload")
+
+4. Upload.tsx loads:
+   - useAuth({ redirectOnUnauthenticated: true }) → loads auth.me
+   - profile.get query runs
+   - useEffect checks: if profile === null || !onboarded → navigate("/onboarding")
+   
+   PROBLEM: The profile.get query might still be loading/stale when Upload mounts.
+   Even with invalidate(), the Upload page creates its OWN query instance.
+   If the query hasn't resolved yet, profile could be undefined (not null).
+   
+   The check: `if (authLoading || profileQueryLoading || !profileFetched) return;`
+   should prevent premature redirect. BUT...
+   
+   Wait - the issue might be that after invalidation, the query refetches and 
+   during refetch, profileFetched might temporarily be false again?
+   
+   Actually, let me re-read: `isFetched` stays true even during refetch.
+   
+   ANOTHER POSSIBILITY: The Onboarding navigate("/upload") happens, but then
+   the useAuth hook in Onboarding has redirectOnUnauthenticated: true.
+   After profile.save and navigate, the component might still be mounted briefly.
+   
+   WAIT - I think I found it! Look at the useAuth redirect effect:
+   ```
+   useEffect(() => {
+     if (!redirectOnUnauthenticated) return;
+     if (meQuery.isLoading || logoutMutation.isPending) return;
+     if (state.user) return;  // <-- If user exists, no redirect
+     ...
+     window.location.href = redirectPath  // <-- This does a FULL page reload!
+   ```
+   
+   The useAuth redirect uses window.location.href (full page reload), not navigate().
+   But this only fires when user is NOT authenticated, which shouldn't be the case here.
+   
+   REAL ISSUE: Let me check the deployed version. The user said the DEPLOYED version loops.
+   The deployed version may have an older build. Let me make sure the build is clean and 
+   save a new checkpoint.
+   
+   ALSO: The navigate("/upload") in handleFinish uses wouter navigate, which is client-side.
+   But what if the Upload page's profile.get query returns stale data?
+   
+   SOLUTION: Instead of relying on cache invalidation timing, use window.location.href 
+   for the post-onboarding redirect to force a full page reload. This ensures all queries
+   start fresh.

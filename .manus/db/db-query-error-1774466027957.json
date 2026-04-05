@@ -1,0 +1,8 @@
+{
+  "query": "SELECT id, status, occasion, influencers, JSON_LENGTH(analysis_json, '$.items') as items_count, JSON_LENGTH(analysis_json, '$.scores') as scores_count, JSON_LENGTH(analysis_json, '$.improvements') as improvements_count, JSON_LENGTH(analysis_json, '$.outfitSuggestions') as outfits_count, JSON_LENGTH(analysis_json, '$.trendSources') as trends_count, JSON_LENGTH(analysis_json, '$.linkedMentions') as mentions_count, JSON_EXTRACT(analysis_json, '$.overallScore') as overall_score, SUBSTRING(analysis_json, 1, 200) as analysis_preview FROM reviews ORDER BY id DESC LIMIT 5",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user RfxnZb4sKQE9yA3.root --database SGdPHKr3xPrRPbHA9C9esB --execute SELECT id, status, occasion, influencers, JSON_LENGTH(analysis_json, '$.items') as items_count, JSON_LENGTH(analysis_json, '$.scores') as scores_count, JSON_LENGTH(analysis_json, '$.improvements') as improvements_count, JSON_LENGTH(analysis_json, '$.outfitSuggestions') as outfits_count, JSON_LENGTH(analysis_json, '$.trendSources') as trends_count, JSON_LENGTH(analysis_json, '$.linkedMentions') as mentions_count, JSON_EXTRACT(analysis_json, '$.overallScore') as overall_score, SUBSTRING(analysis_json, 1, 200) as analysis_preview FROM reviews ORDER BY id DESC LIMIT 5",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 1: Unknown column 'analysis_json' in 'field list'"
+  ]
+}

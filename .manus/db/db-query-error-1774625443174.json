@@ -1,0 +1,8 @@
+{
+  "query": "SELECT id, SUBSTRING(analysis_json, LOCATE('\"imageUrl\"', analysis_json), 150) AS img_snippet FROM guestSessions WHERE id = 30002;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user RfxnZb4sKQE9yA3.root --database SGdPHKr3xPrRPbHA9C9esB --execute SELECT id, SUBSTRING(analysis_json, LOCATE('\"imageUrl\"', analysis_json), 150) AS img_snippet FROM guestSessions WHERE id = 30002;",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 1: Unknown column 'analysis_json' in 'field list'"
+  ]
+}

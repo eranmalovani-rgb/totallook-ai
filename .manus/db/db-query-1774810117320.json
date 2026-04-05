@@ -1,0 +1,9 @@
+{
+  "query": "SELECT wi.id, wi.guestSessionId, wi.itemType, wi.name, gs.fingerprint \nFROM wardrobeItems wi \nJOIN guestSessions gs ON wi.guestSessionId = gs.id \nORDER BY wi.id DESC LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user RfxnZb4sKQE9yA3.root --database SGdPHKr3xPrRPbHA9C9esB --execute SELECT wi.id, wi.guestSessionId, wi.itemType, wi.name, gs.fingerprint \nFROM wardrobeItems wi \nJOIN guestSessions gs ON wi.guestSessionId = gs.id \nORDER BY wi.id DESC LIMIT 10;",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1545
+}

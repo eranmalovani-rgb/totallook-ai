@@ -1,0 +1,13 @@
+{
+  "query": "SELECT JSON_EXTRACT(analysisJson, '$.improvements[0].shoppingLinks') as shopping0 FROM reviews WHERE id = 360039",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user RfxnZb4sKQE9yA3.root --database SGdPHKr3xPrRPbHA9C9esB --execute SELECT JSON_EXTRACT(analysisJson, '$.improvements[0].shoppingLinks') as shopping0 FROM reviews WHERE id = 360039",
+  "rows": [
+    {
+      "shopping0": "[{\"imageUrl\": \"https://d2xsxph8kpxj0f.cloudfront.net/310519663364230752/SGdPHKr3xPrRPbHA9C9esB/generated/1774465834082.png\", \"label\": \"חולצת טי שירט Sunspel Riviera מכותנה פימה – Farfetch\", \"url\": \"https://www.farfetch.com/shopping/men/search/items.aspx?q=Sunspel+Riviera+pima+cotton+t-shirt+navy\"}, {\"imageUrl\": \"https://d2xsxph8kpxj0f.cloudfront.net/310519663364230752/SGdPHKr3xPrRPbHA9C9esB/generated/1774465836396.png\", \"label\": \"חולצת טי שירט The Row Luke מכותנה – MR PORTER\", \"url\": \"https://www.mrporter.com/en-us/mens/search?query=The+Row+Luke+cotton+t-shirt+navy\"}, {\"imageUrl\": \"https://d2xsxph8kpxj0f.cloudfront.net/310519663364230752/SGdPHKr3xPrRPbHA9C9esB/generated/1774465835082.png\", \"label\": \"חולצת טי שירט Brunello Cucinelli משי-כותנה – Farfetch\", \"url\": \"https://www.farfetch.com/shopping/men/search/items.aspx?q=Brunello+Cucinelli+silk+cotton+t-shirt+navy\"}]"
+    }
+  ],
+  "messages": [],
+  "stdout": "shopping0\n[{\"imageUrl\": \"https://d2xsxph8kpxj0f.cloudfront.net/310519663364230752/SGdPHKr3xPrRPbHA9C9esB/generated/1774465834082.png\", \"label\": \"חולצת טי שירט Sunspel Riviera מכותנה פימה – Farfetch\", \"url\": \"https://www.farfetch.com/shopping/men/search/items.aspx?q=Sunspel+Riviera+pima+cotton+t-shirt+navy\"}, {\"imageUrl\": \"https://d2xsxph8kpxj0f.cloudfront.net/310519663364230752/SGdPHKr3xPrRPbHA9C9esB/generated/1774465836396.png\", \"label\": \"חולצת טי שירט The Row Luke מכותנה – MR PORTER\", \"url\": \"https://www.mrporter.com/en-us/mens/search?query=The+Row+Luke+cotton+t-shirt+navy\"}, {\"imageUrl\": \"https://d2xsxph8kpxj0f.cloudfront.net/310519663364230752/SGdPHKr3xPrRPbHA9C9esB/generated/1774465835082.png\", \"label\": \"חולצת טי שירט Brunello Cucinelli משי-כותנה – Farfetch\", \"url\": \"https://www.farfetch.com/shopping/men/search/items.aspx?q=Brunello+Cucinelli+silk+cotton+t-shirt+navy\"}]\n",
+  "stderr": "",
+  "execution_time_ms": 62
+}

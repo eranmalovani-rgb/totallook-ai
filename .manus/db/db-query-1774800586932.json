@@ -1,0 +1,15 @@
+{
+  "query": "SELECT \n  COUNT(*) as total_reviews,\n  SUM(CASE WHEN userId IS NULL OR userId = '' THEN 1 ELSE 0 END) as guest_reviews,\n  SUM(CASE WHEN userId IS NOT NULL AND userId != '' THEN 1 ELSE 0 END) as registered_reviews\nFROM reviews;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user RfxnZb4sKQE9yA3.root --database SGdPHKr3xPrRPbHA9C9esB --execute SELECT \n  COUNT(*) as total_reviews,\n  SUM(CASE WHEN userId IS NULL OR userId = '' THEN 1 ELSE 0 END) as guest_reviews,\n  SUM(CASE WHEN userId IS NOT NULL AND userId != '' THEN 1 ELSE 0 END) as registered_reviews\nFROM reviews;",
+  "rows": [
+    {
+      "total_reviews": "68",
+      "guest_reviews": "0",
+      "registered_reviews": "68"
+    }
+  ],
+  "messages": [],
+  "stdout": "total_reviews\tguest_reviews\tregistered_reviews\n68\t0\t68\n",
+  "stderr": "",
+  "execution_time_ms": 1569
+}

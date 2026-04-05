@@ -1,0 +1,70 @@
+{
+  "query": "SELECT id, name, email, role FROM users ORDER BY id LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user RfxnZb4sKQE9yA3.root --database SGdPHKr3xPrRPbHA9C9esB --execute SELECT id, name, email, role FROM users ORDER BY id LIMIT 10;",
+  "rows": [
+    {
+      "id": "22",
+      "name": "Neta nufar Malovani",
+      "email": "nmalovani@gmail.com",
+      "role": "user"
+    },
+    {
+      "id": "30054",
+      "name": "Dana Malovani",
+      "email": "danamalovani10@gmail.com",
+      "role": "user"
+    },
+    {
+      "id": "30067",
+      "name": "Ron Malovani",
+      "email": "rgh56msxz5@privaterelay.appleid.com",
+      "role": "user"
+    },
+    {
+      "id": "60078",
+      "name": "Eran Malovani",
+      "email": "49trhg8kt6@privaterelay.appleid.com",
+      "role": "user"
+    },
+    {
+      "id": "120037",
+      "name": "Yulia Piskon",
+      "email": "yulilola@icloud.com",
+      "role": "user"
+    },
+    {
+      "id": "540012",
+      "name": "Hadar Polad",
+      "email": "polad.hadar@gmail.com",
+      "role": "user"
+    },
+    {
+      "id": "540020",
+      "name": "Loren Waiser",
+      "email": "46thj7ss6m@privaterelay.appleid.com",
+      "role": "user"
+    },
+    {
+      "id": "540036",
+      "name": "נועה חן",
+      "email": "noa6299hen@gmail.com",
+      "role": "user"
+    },
+    {
+      "id": "540084",
+      "name": "יונתן מאיר",
+      "email": "johnathan995@gmail.com",
+      "role": "user"
+    },
+    {
+      "id": "570004",
+      "name": "עילאי צרפתי",
+      "email": "7xmmqmvymp@privaterelay.appleid.com",
+      "role": "user"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\trole\n22\tNeta nufar Malovani\tnmalovani@gmail.com\tuser\n30054\tDana Malovani\tdanamalovani10@gmail.com\tuser\n30067\tRon Malovani\trgh56msxz5@privaterelay.appleid.com\tuser\n60078\tEran Malovani\t49trhg8kt6@privaterelay.appleid.com\tuser\n120037\tYulia Piskon\tyulilola@icloud.com\tuser\n540012\tHadar Polad\tpolad.hadar@gmail.com\tuser\n540020\tLoren Waiser\t46thj7ss6m@privaterelay.appleid.com\tuser\n540036\tנועה חן\tnoa6299hen@gmail.com\tuser\n540084\tיונתן מאיר\tjohnathan995@gmail.com\tuser\n570004\tעילאי צרפתי\t7xmmqmvymp@privaterelay.appleid.com\tuser\n",
+  "stderr": "",
+  "execution_time_ms": 1577
+}

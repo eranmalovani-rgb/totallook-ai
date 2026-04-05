@@ -1,0 +1,25 @@
+{
+  "query": "SELECT id, createdAt, status FROM reviews WHERE id IN (600004, 630001, 630002) ORDER BY id;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user RfxnZb4sKQE9yA3.root --database SGdPHKr3xPrRPbHA9C9esB --execute SELECT id, createdAt, status FROM reviews WHERE id IN (600004, 630001, 630002) ORDER BY id;",
+  "rows": [
+    {
+      "id": "600004",
+      "createdAt": "2026-03-27 12:24:25",
+      "status": "completed"
+    },
+    {
+      "id": "630001",
+      "createdAt": "2026-03-27 14:49:51",
+      "status": "completed"
+    },
+    {
+      "id": "630002",
+      "createdAt": "2026-03-27 15:09:05",
+      "status": "completed"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tcreatedAt\tstatus\n600004\t2026-03-27 12:24:25\tcompleted\n630001\t2026-03-27 14:49:51\tcompleted\n630002\t2026-03-27 15:09:05\tcompleted\n",
+  "stderr": "",
+  "execution_time_ms": 1501
+}
