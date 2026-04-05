@@ -2102,8 +2102,32 @@ Write a precise image editing prompt to improve this outfit photo by replacing o
               } else {
                 console.log(`[Fix My Look] Orientations match — no rotation needed.`);
               }
+
+              // Resize to match original dimensions
+              try {
+                const currentProbe = await probeImageSize(fixedImageUrl);
+                if (currentProbe.width !== imageDimensions.width || currentProbe.height !== imageDimensions.height) {
+                  console.log(`[Fix My Look] Resizing from ${currentProbe.width}x${currentProbe.height} to ${imageDimensions.width}x${imageDimensions.height}...`);
+                  const resizeResponse = await fetch(fixedImageUrl);
+                  const resizeBuffer = Buffer.from(await resizeResponse.arrayBuffer());
+                  const resizedBuffer = await sharp(resizeBuffer)
+                    .resize(imageDimensions.width, imageDimensions.height, { fit: 'fill' })
+                    .toBuffer();
+                  const { url: resizedUrl } = await storagePut(
+                    `generated/resized-${Date.now()}.png`,
+                    resizedBuffer,
+                    "image/png"
+                  );
+                  if (resizedUrl) {
+                    fixedImageUrl = resizedUrl;
+                    console.log(`[Fix My Look] Resized image saved successfully.`);
+                  }
+                }
+              } catch (resizeErr) {
+                console.warn("[Fix My Look] Resize failed, using current image:", resizeErr);
+              }
             } catch (rotateErr) {
-              console.warn("[Fix My Look] Auto-rotation failed, using original generated image:", rotateErr);
+              console.warn("[Fix My Look] Auto-rotation/resize failed, using original generated image:", rotateErr);
             }
           }
 
@@ -3863,8 +3887,32 @@ The original photo is ${imageOrientation} orientation (${imageDimensions.width}x
                 const { url: rotatedUrl } = await storagePut(`generated/guest-rotated-${Date.now()}.png`, rotatedBuffer, "image/png");
                 if (rotatedUrl) fixedImageUrl = rotatedUrl;
               }
+
+              // Resize to match original dimensions
+              try {
+                const currentProbe = await probeImageSize(fixedImageUrl);
+                if (currentProbe.width !== imageDimensions.width || currentProbe.height !== imageDimensions.height) {
+                  console.log(`[Guest Fix My Look] Resizing from ${currentProbe.width}x${currentProbe.height} to ${imageDimensions.width}x${imageDimensions.height}...`);
+                  const resizeResponse = await fetch(fixedImageUrl);
+                  const resizeBuffer = Buffer.from(await resizeResponse.arrayBuffer());
+                  const resizedBuffer = await sharp(resizeBuffer)
+                    .resize(imageDimensions.width, imageDimensions.height, { fit: 'fill' })
+                    .toBuffer();
+                  const { url: resizedUrl } = await storagePut(
+                    `generated/guest-resized-${Date.now()}.png`,
+                    resizedBuffer,
+                    "image/png"
+                  );
+                  if (resizedUrl) {
+                    fixedImageUrl = resizedUrl;
+                    console.log(`[Guest Fix My Look] Resized image saved successfully.`);
+                  }
+                }
+              } catch (resizeErr) {
+                console.warn("[Guest Fix My Look] Resize failed, using current image:", resizeErr);
+              }
             } catch (rotateErr) {
-              console.warn("[Guest Fix My Look] Auto-rotation failed:", rotateErr);
+              console.warn("[Guest Fix My Look] Auto-rotation/resize failed:", rotateErr);
             }
           }
 
@@ -4634,6 +4682,7 @@ The original photo is ${imageOrientation} orientation (${imageDimensions.width}x
               dayNameEn: dayNamesEn[dayIdx],
               overallScore: analysis?.overallScore ?? r.overallScore ?? 0,
               imageUrl: r.imageUrl,
+              imageKey: r.imageKey || null,
               summary: analysis?.summary?.slice(0, 100) || "",
               relevantImprovements: relevantImprovements.slice(0, 2).map(imp => ({
                 title: imp.title,
@@ -4779,6 +4828,7 @@ Style: High-end fashion editorial flat lay for a ${genderWord}. Items arranged a
         productCategory: z.string(),
         productColors: z.array(z.string()),
         originalImageUrl: z.string(),
+        originalImageKey: z.string().optional(),
         existingItemNames: z.array(z.string()),
         gender: z.string().optional(),
       }))
@@ -4786,21 +4836,60 @@ Style: High-end fashion editorial flat lay for a ${genderWord}. Items arranged a
         const genderWord = input.gender === "male" ? "man" : "woman";
         const existingItems = input.existingItemNames.join(", ");
 
+        // Get accessible URL for R2 images (presigned URL)
+        const accessibleImageUrl = await getAccessibleImageUrl(input.originalImageUrl, input.originalImageKey || null);
+
         // Use the user's original photo as reference to generate the "after" image
         // The prompt instructs the AI to keep the SAME person, pose, and background
         // but replace/add the product item on them
         const prompt = `Edit this photo of a ${genderWord} to show them wearing a ${input.productName} in ${input.productColors.join("/")} color. Keep the EXACT same person, face, body, pose, and background from the original photo. Only change the outfit: replace or add the ${input.productName} while keeping the rest of the outfit (${existingItems}) as close to the original as possible. The ${input.productName} should look natural and realistic on this specific person. Maintain the same lighting, environment, and photo style. This should look like the same photo but with the new item added to their outfit.`;
 
         try {
+          // Detect original image dimensions for resize after generation
+          let origDimensions = { width: 0, height: 0 };
+          try {
+            const probeResult = await probeImageSize(accessibleImageUrl);
+            origDimensions = { width: probeResult.width, height: probeResult.height };
+            console.log(`[Upgrade Look] Original image: ${probeResult.width}x${probeResult.height}`);
+          } catch (probeErr) {
+            console.warn("[Upgrade Look] Could not detect image dimensions:", probeErr);
+          }
+
           // Pass the user's original image as reference so the AI generates ON their photo
           const { url } = await generateImage({
             prompt,
             originalImages: [{
-              url: input.originalImageUrl,
+              url: accessibleImageUrl,
               mimeType: "image/jpeg",
             }],
           });
-          return { imageUrl: url || "", success: true };
+
+          let finalUrl = url || "";
+
+          // Resize to match original dimensions
+          if (finalUrl && origDimensions.width > 0) {
+            try {
+              const genProbe = await probeImageSize(finalUrl);
+              if (genProbe.width !== origDimensions.width || genProbe.height !== origDimensions.height) {
+                console.log(`[Upgrade Look] Resizing from ${genProbe.width}x${genProbe.height} to ${origDimensions.width}x${origDimensions.height}...`);
+                const imgResp = await fetch(finalUrl);
+                const imgBuf = Buffer.from(await imgResp.arrayBuffer());
+                const resizedBuf = await sharp(imgBuf)
+                  .resize(origDimensions.width, origDimensions.height, { fit: 'fill' })
+                  .toBuffer();
+                const { url: resizedUrl } = await storagePut(
+                  `generated/upgrade-resized-${Date.now()}.png`,
+                  resizedBuf,
+                  "image/png"
+                );
+                if (resizedUrl) finalUrl = resizedUrl;
+              }
+            } catch (resizeErr) {
+              console.warn("[Upgrade Look] Resize failed:", resizeErr);
+            }
+          }
+
+          return { imageUrl: finalUrl, success: true };
         } catch (err: any) {
           console.error("[Upgrade Look] Image generation failed:", err);
           return { imageUrl: "", success: false };
