@@ -21,16 +21,24 @@ import bcrypt from "bcryptjs";
 import { OAuth2Client } from "google-auth-library";
 import { ENV } from "./env";
 import * as jose from "jose";
+import {
+  decodeOAuthState,
+  encodeOAuthState,
+  getCanonicalSiteOrigin,
+  resolveReturnOrigin,
+  sanitizeReturnPath,
+} from "./oauthOrigin";
 
 // ============ Google OAuth Setup ============
-function getGoogleClient(origin?: string) {
+function getGoogleClient() {
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
   if (!clientId || !clientSecret) return null;
   
-  const redirectUri = origin 
-    ? `${origin}/api/auth/google/callback`
-    : `${ENV.siteUrl}/api/auth/google/callback`;
+  // Always use a canonical callback origin to avoid redirect URI mismatches
+  // between www/non-www and preview aliases.
+  const callbackOrigin = getCanonicalSiteOrigin(ENV.siteUrl);
+  const redirectUri = `${callbackOrigin}/api/auth/google/callback`;
   
   return new OAuth2Client(clientId, clientSecret, redirectUri);
 }
@@ -257,21 +265,26 @@ export function registerOAuthRoutes(app: Express) {
    * Start Google OAuth flow (redirect to Google)
    */
   app.get("/api/auth/google", (req: Request, res: Response) => {
-    const origin = req.query.origin as string || req.headers.origin || ENV.siteUrl;
-    const returnPath = (req.query.returnPath as string) || "/";
-    const client = getGoogleClient(origin);
+    const requestedOrigin = typeof req.query.origin === "string"
+      ? req.query.origin
+      : Array.isArray(req.headers.origin)
+        ? req.headers.origin[0]
+        : req.headers.origin;
+    const origin = resolveReturnOrigin(requestedOrigin, ENV.siteUrl);
+    const returnPath = sanitizeReturnPath(req.query.returnPath);
+    const client = getGoogleClient();
     
     if (!client) {
-      res.status(503).json({ error: "Google OAuth is not configured" });
+      res.redirect(`${origin}/login?error=google_failed`);
       return;
     }
 
-    const state = JSON.stringify({ returnPath, origin });
+    const state = encodeOAuthState({ returnPath, origin });
     
     const authUrl = client.generateAuthUrl({
       access_type: "offline",
       scope: ["openid", "email", "profile"],
-      state: Buffer.from(state).toString("base64"),
+      state,
       prompt: "select_account",
     });
 
@@ -286,17 +299,15 @@ export function registerOAuthRoutes(app: Express) {
       const { code, state } = req.query;
       
       let returnPath = "/";
-      let origin = ENV.siteUrl;
+      let origin = getCanonicalSiteOrigin(ENV.siteUrl);
       
       if (state) {
-        try {
-          const decoded = JSON.parse(Buffer.from(state as string, "base64").toString());
-          returnPath = decoded.returnPath || "/";
-          origin = decoded.origin || ENV.siteUrl;
-        } catch {}
+        const decoded = decodeOAuthState(state);
+        returnPath = sanitizeReturnPath(decoded.returnPath);
+        origin = resolveReturnOrigin(decoded.origin, ENV.siteUrl);
       }
 
-      const client = getGoogleClient(origin);
+      const client = getGoogleClient();
       if (!client || !code) {
         res.redirect(`${origin}/login?error=google_failed`);
         return;
@@ -333,7 +344,8 @@ export function registerOAuthRoutes(app: Express) {
       res.redirect(`${origin}${returnPath}`);
     } catch (error) {
       console.error("[Auth/Google] Callback failed:", error);
-      res.redirect("/login?error=google_failed");
+      const fallbackOrigin = getCanonicalSiteOrigin(ENV.siteUrl);
+      res.redirect(`${fallbackOrigin}/login?error=google_failed`);
     }
   });
 
@@ -500,11 +512,14 @@ export function registerOAuthRoutes(app: Express) {
    * Returns available auth providers (for client to show correct buttons)
    */
   app.get("/api/auth/providers", (_req: Request, res: Response) => {
+    const googleClientId = process.env.GOOGLE_CLIENT_ID || null;
+    const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET || null;
     res.json({
       email: true,
-      google: !!process.env.GOOGLE_CLIENT_ID,
+      google: !!googleClientId,
       apple: !!process.env.APPLE_CLIENT_ID,
-      googleClientId: process.env.GOOGLE_CLIENT_ID || null,
+      googleClientId,
+      googleOAuthRedirectConfigured: !!(googleClientId && googleClientSecret),
       appleClientId: process.env.APPLE_CLIENT_ID || null,
     });
   });
