@@ -40,6 +40,11 @@ class SDKServer {
 
   private getSessionSecret() {
     const secret = ENV.cookieSecret;
+    if (!secret || secret.trim().length < 16) {
+      // Surface a clear server-side configuration error instead of failing deep in jose with
+      // "Zero-length key is not supported", which appears to users as generic auth/register failures.
+      throw new Error("JWT_SECRET is missing or too short (minimum 16 characters)");
+    }
     return new TextEncoder().encode(secret);
   }
 
