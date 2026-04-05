@@ -350,6 +350,65 @@ export function registerOAuthRoutes(app: Express) {
   });
 
   /**
+   * Google OAuth access-token verification
+   * Used by popup/token flows that return an OAuth access token (no server-side code exchange).
+   */
+  app.post("/api/auth/google/access-token", async (req: Request, res: Response) => {
+    try {
+      const accessToken = typeof req.body?.accessToken === "string" ? req.body.accessToken : "";
+      if (!accessToken) {
+        res.status(400).json({ error: "Missing Google access token" });
+        return;
+      }
+
+      const profileRes = await fetch("https://openidconnect.googleapis.com/v1/userinfo", {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      if (!profileRes.ok) {
+        const errorText = await profileRes.text().catch(() => "");
+        console.error("[Auth/Google] userinfo failed:", profileRes.status, errorText);
+        res.status(401).json({ error: "Invalid Google access token" });
+        return;
+      }
+
+      const profile = await profileRes.json() as {
+        sub?: string;
+        email?: string;
+        name?: string;
+      };
+
+      if (!profile.sub) {
+        res.status(401).json({ error: "Invalid Google profile" });
+        return;
+      }
+
+      const user = await findOrCreateOAuthUser({
+        provider: "google",
+        providerId: profile.sub,
+        email: profile.email,
+        name: profile.name,
+      });
+
+      if (!user) {
+        res.status(500).json({ error: "שגיאה ביצירת המשתמש" });
+        return;
+      }
+
+      await handleGuestMigration(req, user.id);
+      await createSessionAndSetCookie(req, res, user.openId, user.name || "");
+
+      console.log(`[Auth/Google] User logged in via access token: ${profile.email || profile.sub}`);
+      res.json({ success: true, user: { id: user.id, name: user.name, email: user.email } });
+    } catch (error) {
+      console.error("[Auth/Google] Access token verification failed:", error);
+      res.status(401).json({ error: "Google authentication failed" });
+    }
+  });
+
+  /**
    * Google One-Tap / Mobile token verification
    * Used when the client-side Google Sign-In returns a credential token directly
    */
