@@ -1992,16 +1992,25 @@ Style: High-end fashion editorial flat lay, items arranged aesthetically like a 
               role: "system",
               content: `You are a fashion image EDITING expert. This is an IMAGE EDITING task, NOT image generation. You will receive a person's outfit photo that MUST be edited in-place. Your job is to write a precise image editing prompt.
 
+ABSOLUTE PRIORITY #1 — PRESERVE THE PERSON'S IDENTITY:
+- The reference image contains a REAL PERSON. The edited result MUST show THIS EXACT SAME PERSON.
+- SAME FACE: identical facial features, expression, skin tone, facial hair, wrinkles, freckles — every detail.
+- SAME BODY: identical body type, height, build, proportions, skin color.
+- SAME HAIR: identical hairstyle, hair color, hair length.
+- If the person has glasses, tattoos, jewelry (not being replaced), scars, or distinguishing features — they MUST remain.
+- The result should be INDISTINGUISHABLE from the original photo except for the replaced clothing items.
+- NEVER generate a different person, a model, or an idealized version. This is the USER's photo.
+
 CRITICAL — THIS IS PHOTO EDITING, NOT GENERATION:
 - The original photo will be provided as a reference image. The AI MUST edit THIS EXACT photo.
 - DO NOT describe creating a new image or a new person. This is editing an existing photo.
-- The SAME EXACT PERSON must appear in the result — same face, same skin tone, same hair, same body type, same height.
 - SAME EXACT POSE: identical body position, posture, arm positions, leg positions, head angle.
 - SAME EXACT BACKGROUND: every detail of the environment, lighting, and setting must remain unchanged.
 - SAME EXACT CAMERA: same angle, framing, crop, zoom level, distance from subject.
+- SAME EXACT LIGHTING: same light direction, shadows, highlights, color temperature.
 - ONLY the specific clothing/accessory items listed below should be visually replaced — NOTHING ELSE changes.
 - CRITICAL: The output image MUST be in ${imageOrientation.toUpperCase()} orientation (${imageDimensions.width}x${imageDimensions.height} pixels, aspect ratio approximately ${imageAspectRatio}). DO NOT change the orientation.
-- Start your prompt with: "Edit this exact photo in-place. Keep the SAME person (same face, skin, hair, body), SAME pose, SAME background, SAME camera angle. This is ${imageOrientation} orientation (${imageDimensions.width}x${imageDimensions.height}). ONLY replace these clothing items:"
+- Start your prompt with: "Edit this exact photo in-place. This is the user's actual photo — preserve their EXACT face, skin tone, body type, hair, and all physical features with 100% fidelity. Keep the SAME person, SAME pose, SAME background, SAME camera angle, SAME lighting. This is ${imageOrientation} orientation (${imageDimensions.width}x${imageDimensions.height}). ONLY replace these clothing items:"
 - For each replacement item, describe the EXACT color, material, style, and brand aesthetic in vivid detail.
 - CRITICAL COLOR RULE: When a specific product is selected by the user with a stated color, you MUST use that EXACT color. If the product is "white linen shirt", the replacement MUST be white. If it's "navy blue jeans", it MUST be navy blue. If the product says "black jacket", the replacement MUST be BLACK — not gray, not charcoal, not dark blue. ZERO tolerance for color substitution.
 - MANDATORY: For EACH replacement item, explicitly state the EXACT color in the prompt (e.g., "Replace the jacket with a BLACK leather jacket" not just "Replace the jacket with a leather jacket"). Always include the color word.
@@ -2531,9 +2540,10 @@ Return ONLY a JSON object with these exact fields:
           return parts.join(" ");
         }).join(", ");
 
-        // 5. Build the prompt
-        const prompt = `Full-body fashion photo of a stylish ${genderLabel} wearing exactly this outfit: ${itemDescriptions}. Standing in a clean, modern setting with soft natural lighting. The outfit should be the main focus. Professional fashion photography style, editorial quality. Show the complete outfit from head to toe. Clean background.`;
-
+        // 5. Build the prompt — if we have a source image, instruct to preserve the person's identity
+        const prompt = sourceImageUrl
+          ? `Edit this exact photo in-place. This is the user's actual photo — preserve their EXACT face, skin tone, body type, hair, and all physical features with 100% fidelity. Keep the SAME person, SAME pose, SAME background, SAME camera angle, SAME lighting. Show this SAME person wearing exactly this outfit: ${itemDescriptions}. Only change the clothing items — everything else about the person and environment must remain identical. The outfit should look natural and realistic on this specific person.`
+          : `Full-body fashion photo of a stylish ${genderLabel} wearing exactly this outfit: ${itemDescriptions}. Standing in a clean, modern setting with soft natural lighting. The outfit should be the main focus. Professional fashion photography style, editorial quality. Show the complete outfit from head to toe. Clean background.`;
         // 6. Generate the image, using source photo as reference if available
         try {
           const generateOptions: any = { prompt };
@@ -2544,7 +2554,7 @@ Return ONLY a JSON object with these exact fields:
             }];
           }
           const { url } = await generateImage(generateOptions);
-          return { imageUrl: url || "", items: selectedItems.map(i => ({ name: i.name, color: i.color, brand: i.brand, itemType: i.itemType })) };
+          return { imageUrl: url || "", items: selectedItems.map(i => ({ name: i.name, color: i.color, brand: i.brand, itemType: i.itemType })) };;
         } catch (err: any) {
           console.error("[Visualize Look] Image generation failed:", err);
           throw new Error(input.lang === "en" ? "Failed to generate look visualization. Please try again." : "יצירת הדמיית הלוק נכשלה. נסה שוב.");
@@ -3764,13 +3774,24 @@ Style: High-end fashion editorial flat lay, all items arranged aesthetically lik
               role: "system",
               content: `You are a fashion image EDITING expert. This is an IMAGE EDITING task, NOT image generation. You will receive a person's outfit photo that MUST be edited in-place.
 
+ABSOLUTE PRIORITY #1 — PRESERVE THE PERSON'S IDENTITY:
+- The reference image contains a REAL PERSON. The edited result MUST show THIS EXACT SAME PERSON.
+- SAME FACE: identical facial features, expression, skin tone, facial hair, wrinkles, freckles — every detail.
+- SAME BODY: identical body type, height, build, proportions, skin color.
+- SAME HAIR: identical hairstyle, hair color, hair length.
+- If the person has glasses, tattoos, jewelry (not being replaced), scars, or distinguishing features — they MUST remain.
+- The result should be INDISTINGUISHABLE from the original photo except for the replaced clothing items.
+- NEVER generate a different person, a model, or an idealized version. This is the USER's photo.
+
 CRITICAL — THIS IS PHOTO EDITING, NOT GENERATION:
 - The original photo will be provided as a reference image. The AI MUST edit THIS EXACT photo.
-- The SAME EXACT PERSON must appear — same face, skin tone, hair, body type, height.
-- SAME EXACT POSE, BACKGROUND, CAMERA angle.
+- SAME EXACT POSE: identical body position, posture, arm positions, leg positions, head angle.
+- SAME EXACT BACKGROUND: every detail of the environment, lighting, and setting must remain unchanged.
+- SAME EXACT CAMERA: same angle, framing, crop, zoom level, distance from subject.
+- SAME EXACT LIGHTING: same light direction, shadows, highlights, color temperature.
 - ONLY the specific clothing/accessory items listed below should be visually replaced.
 - The output image MUST be in ${imageOrientation.toUpperCase()} orientation (${imageDimensions.width}x${imageDimensions.height}).
-- Start your prompt with: "Edit this exact photo in-place. Keep the SAME person, SAME pose, SAME background, SAME camera angle. This is ${imageOrientation} orientation (${imageDimensions.width}x${imageDimensions.height}). ONLY replace these clothing items:"
+- Start your prompt with: "Edit this exact photo in-place. This is the user's actual photo — preserve their EXACT face, skin tone, body type, hair, and all physical features with 100% fidelity. Keep the SAME person, SAME pose, SAME background, SAME camera angle, SAME lighting. This is ${imageOrientation} orientation (${imageDimensions.width}x${imageDimensions.height}). ONLY replace these clothing items:"
 - For each replacement, describe the EXACT color, material, style in vivid detail.
 - CRITICAL COLOR RULE: When a specific product is selected by the user with a stated color, you MUST use that EXACT color. If the product says "black" it MUST be BLACK (not gray, not charcoal). If it says "white" it MUST be WHITE. ZERO tolerance for color substitution.
 - MANDATORY: For EACH replacement item, explicitly state the EXACT color in the prompt. Always include the color word.
@@ -3889,8 +3910,10 @@ The original photo is ${imageOrientation} orientation (${imageDimensions.width}x
           return parts.join(" ");
         }).join(", ");
 
-        // 6. Build the prompt
-        const prompt = `Full-body fashion photo of a stylish ${genderLabel} wearing exactly this outfit: ${itemDescriptions}. Standing in a clean, modern setting with soft natural lighting. The outfit should be the main focus. Professional fashion photography style, editorial quality. Show the complete outfit from head to toe. Clean background.`;
+        // 6. Build the prompt — if we have a source image, instruct to preserve the person's identity
+        const prompt = sourceImageUrl
+          ? `Edit this exact photo in-place. This is the user's actual photo — preserve their EXACT face, skin tone, body type, hair, and all physical features with 100% fidelity. Keep the SAME person, SAME pose, SAME background, SAME camera angle, SAME lighting. Show this SAME person wearing exactly this outfit: ${itemDescriptions}. Only change the clothing items — everything else about the person and environment must remain identical. The outfit should look natural and realistic on this specific person.`
+          : `Full-body fashion photo of a stylish ${genderLabel} wearing exactly this outfit: ${itemDescriptions}. Standing in a clean, modern setting with soft natural lighting. The outfit should be the main focus. Professional fashion photography style, editorial quality. Show the complete outfit from head to toe. Clean background.`;
 
         // 7. Generate the image, using source photo as reference if available
         try {

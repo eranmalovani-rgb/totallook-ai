@@ -1823,3 +1823,6 @@
 
 ## Phase 39: Store Logos in Product Recommendations
 - [x] Replace store name text under product recommendation images with clickable StoreLogo components linking to purchase URL
+
+## Phase 40: Fix My Look — Preserve User Identity
+- [x] Fix Fix My Look image generation to preserve user's actual appearance (face, body) instead of generating a generic person
