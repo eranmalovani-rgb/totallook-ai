@@ -1237,20 +1237,25 @@ async function sendWhatsAppMessage(
   to: string,
   body: string,
   templateFallback?: { name: string; lang?: string; params?: string[] },
-): Promise<void> {
+): Promise<boolean> {
   const toClean = to.replace(/[^0-9]/g, "");
 
   if (isInConversationWindow(toClean)) {
     // Within 24h window — send free-form text
-    await sendWhatsAppText(to, body);
+    return await sendWhatsAppText(to, body);
   } else if (templateFallback) {
     // Outside window — use template
     console.log(`[WhatsApp] Outside conversation window for ${toClean}, using template '${templateFallback.name}'`);
-    await sendWhatsAppTemplate(to, templateFallback.name, templateFallback.lang || "he", templateFallback.params || []);
+    return await sendWhatsAppTemplate(
+      to,
+      templateFallback.name,
+      templateFallback.lang || "he",
+      templateFallback.params || []
+    );
   } else {
     // Outside window, no template fallback — try text anyway (will work if user initiated recently via Meta's own tracking)
     console.log(`[WhatsApp] Outside conversation window for ${toClean}, attempting text (no template fallback)`);
-    await sendWhatsAppText(to, body);
+    return await sendWhatsAppText(to, body);
   }
 }
 
@@ -1402,9 +1407,13 @@ async function sendWhatsAppWelcome(
   try {
     // Welcome messages are proactive (user hasn't messaged us on WhatsApp yet) — always use template
     console.log(`[WhatsApp Welcome] Sending template 'totallook_welcome' to ${cleanPhone} with params: [${name || "חבר/ה"}]`);
-    await sendWhatsAppMessage(cleanPhone, message,
+    const sent = await sendWhatsAppMessage(cleanPhone, message,
       { name: "totallook_welcome", params: [name || "חבר/ה"] },
     );
+    if (!sent) {
+      console.warn(`[WhatsApp Welcome] Meta API send failed for ${cleanPhone}`);
+      return { sent: false, error: "send_failed" };
+    }
     console.log(`[WhatsApp Welcome] ✅ Successfully sent to ${cleanPhone} (${isRegistered ? "registered" : "guest"})`);
     return { sent: true };
   } catch (error: any) {
