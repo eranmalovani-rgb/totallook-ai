@@ -257,10 +257,10 @@ export async function generateImage(
     imageData = await generateWithForge(options);
   }
 
-  let buffer = Buffer.from(imageData.base64, "base64");
+  let buffer: Buffer<ArrayBufferLike> = Buffer.from(imageData.base64, "base64");
   if (options.targetSize?.width && options.targetSize?.height) {
     try {
-      buffer = await normalizeToTargetSize(buffer, options.targetSize);
+      buffer = Buffer.from(await normalizeToTargetSize(buffer, options.targetSize));
       console.log(
         `[ImageGen] Matched output size to ${options.targetSize.width}x${options.targetSize.height}`
       );
