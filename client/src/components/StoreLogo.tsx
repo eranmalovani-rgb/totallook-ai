@@ -27,7 +27,7 @@ interface BrandStyle {
   italic?: boolean;
 }
 
-const BRAND_STYLES: Record<string, BrandStyle> = {
+export const BRAND_STYLES: Record<string, BrandStyle> = {
   // === Budget ===
   "Shein": { color: "#000000", weight: 700, transform: "uppercase", spacing: "0.15em" },
   "H&M": { color: "#E50010", weight: 700, spacing: "0.05em" },
@@ -98,6 +98,31 @@ const BRAND_STYLES: Record<string, BrandStyle> = {
   "J.Crew": { color: "#000000", weight: 700 },
   "Nike": { color: "#000000", weight: 700, transform: "uppercase" },
   "Adidas": { color: "#000000", weight: 700, transform: "lowercase" },
+  // === Additional brands ===
+  "Amazon": { color: "#FF9900", weight: 700 },
+  "END.": { display: "END.", color: "#000000", weight: 700, transform: "uppercase" },
+  "Etsy": { color: "#F16521", weight: 700, transform: "lowercase" },
+  "Levi's": { color: "#C41230", weight: 700 },
+  "Tissot": { color: "#000000", weight: 400, transform: "uppercase", spacing: "0.15em" },
+  "Veja": { color: "#000000", weight: 700, transform: "uppercase", spacing: "0.1em" },
+  "GQ": { color: "#E31837", weight: 700, transform: "uppercase" },
+  "Jomashop": { color: "#003366", weight: 700 },
+  "Stone Island": { color: "#000000", weight: 400, transform: "uppercase", spacing: "0.1em" },
+  "Trendhim": { color: "#2C3E50", weight: 700, transform: "lowercase" },
+  "Suitsupply": { color: "#1A1A2E", weight: 400, transform: "uppercase", spacing: "0.12em" },
+  "Common Projects": { color: "#000000", weight: 300, transform: "uppercase", spacing: "0.15em" },
+  "Revolve": { color: "#000000", weight: 700, transform: "uppercase" },
+  "Kith": { color: "#000000", weight: 700, transform: "uppercase", spacing: "0.15em" },
+  "New Balance": { color: "#CF0A2C", weight: 700, transform: "uppercase" },
+  "LuisaViaRoma": { display: "LVR", color: "#000000", weight: 700 },
+  "Tory Burch": { color: "#000000", weight: 400, transform: "uppercase", spacing: "0.1em" },
+  "Kate Spade": { color: "#000000", weight: 700, transform: "lowercase" },
+  "Reformation": { color: "#000000", weight: 400, transform: "uppercase", spacing: "0.08em" },
+  "Sézane": { color: "#000000", weight: 400, italic: true },
+  "Anine Bing": { color: "#000000", weight: 400, transform: "uppercase", spacing: "0.15em" },
+  "Mejuri": { color: "#000000", weight: 400, transform: "lowercase" },
+  "Brunello Cucinelli": { display: "CUCINELLI", color: "#8B7355", weight: 400, transform: "uppercase", spacing: "0.15em" },
+  "Zegna": { color: "#000000", weight: 400, transform: "uppercase", spacing: "0.12em" },
 };
 
 const SIZE_MAP = {
@@ -105,6 +130,124 @@ const SIZE_MAP = {
   md: { container: "h-12 px-3", text: "text-[10px]" },
   lg: { container: "h-14 px-4", text: "text-xs" },
 };
+
+/**
+ * Extract store name from a URL hostname.
+ * Returns the matching BRAND_STYLES key, or a cleaned hostname.
+ */
+const HOSTNAME_TO_STORE: Record<string, string> = {
+  "shein.com": "Shein",
+  "hm.com": "H&M",
+  "primark.com": "Primark",
+  "pullandbear.com": "Pull & Bear",
+  "bershka.com": "Bershka",
+  "forever21.com": "Forever 21",
+  "zara.com": "Zara",
+  "mango.com": "Mango",
+  "asos.com": "ASOS",
+  "massimodutti.com": "Massimo Dutti",
+  "cos.com": "COS",
+  "cosstores.com": "COS",
+  "uniqlo.com": "Uniqlo",
+  "urbanoutfitters.com": "Urban Outfitters",
+  "allsaints.com": "AllSaints",
+  "reiss.com": "Reiss",
+  "tedbaker.com": "Ted Baker",
+  "arket.com": "Arket",
+  "sandro-paris.com": "Sandro",
+  "maje.com": "Maje",
+  "net-a-porter.com": "NET-A-PORTER",
+  "farfetch.com": "Farfetch",
+  "ssense.com": "SSENSE",
+  "mrporter.com": "Mr Porter",
+  "matchesfashion.com": "MatchesFashion",
+  "nordstrom.com": "Nordstrom",
+  "terminalx.com": "Terminal X",
+  "factory54.co.il": "Factory 54",
+  "castro.com": "Castro",
+  "fox.co.il": "Fox",
+  "golf.co.il": "Golf",
+  "renuar.co.il": "Renuar",
+  "honigman.com": "Honigman",
+  "adika.com": "Adika",
+  "sacks.co.il": "Sack's",
+  "oysho.com": "Oysho",
+  "zalando.de": "Zalando",
+  "zalando.co.uk": "Zalando",
+  "zalando.fr": "Zalando",
+  "aboutyou.de": "About You",
+  "breuninger.com": "Breuninger",
+  "mytheresa.com": "Mytheresa",
+  "laredoute.fr": "La Redoute",
+  "selfridges.com": "Selfridges",
+  "johnlewis.com": "John Lewis",
+  "harrods.com": "Harrods",
+  "bloomingdales.com": "Bloomingdale's",
+  "saksfifthavenue.com": "Saks Fifth Avenue",
+  "neimanmarcus.com": "Neiman Marcus",
+  "anthropologie.com": "Anthropologie",
+  "jcrew.com": "J.Crew",
+  "nike.com": "Nike",
+  "adidas.com": "Adidas",
+  "jomashop.com": "Jomashop",
+  "stoneisland.com": "Stone Island",
+  "trendhim.com": "Trendhim",
+  "revolve.com": "Revolve",
+  "suitsupply.com": "Suitsupply",
+  "kith.com": "Kith",
+  "newbalance.com": "New Balance",
+  "commonprojects.com": "Common Projects",
+  "stories.com": "& Other Stories",
+  "otherstories.com": "& Other Stories",
+  "galerieslafayette.com": "Galeries Lafayette",
+  "zadig-et-voltaire.com": "Zadig & Voltaire",
+  "printemps.com": "Printemps",
+  "luisaviaroma.com": "LuisaViaRoma",
+  "toryburch.com": "Tory Burch",
+  "katespade.com": "Kate Spade",
+  "thereformation.com": "Reformation",
+  "sezane.com": "Sézane",
+  "aninebing.com": "Anine Bing",
+  "mejuri.com": "Mejuri",
+  "brunellocucinelli.com": "Brunello Cucinelli",
+  "zegna.com": "Zegna",
+  // Additional stores
+  "amazon.com": "Amazon",
+  "endclothing.com": "END.",
+  "etsy.com": "Etsy",
+  "levi.com": "Levi's",
+  "tissotwatches.com": "Tissot",
+  "veja-store.com": "Veja",
+  "gq.com": "GQ",
+  "gq.com.au": "GQ",
+};
+
+export function extractStoreFromUrl(url: string): string | null {
+  try {
+    const hostname = new URL(url).hostname.replace(/^www\./, "");
+    // Direct match
+    if (HOSTNAME_TO_STORE[hostname]) return HOSTNAME_TO_STORE[hostname];
+    // Try matching without subdomain
+    const parts = hostname.split(".");
+    if (parts.length > 2) {
+      const short = parts.slice(-2).join(".");
+      if (HOSTNAME_TO_STORE[short]) return HOSTNAME_TO_STORE[short];
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/** Extract store name from a shopping link label (format: "Product Name — StoreName") */
+export function extractStoreFromLabel(label: string): string | null {
+  const dashMatch = label.match(/[—–-]\s*([^—–-]+)$/);
+  if (dashMatch) {
+    const storeName = dashMatch[1].trim();
+    if (BRAND_STYLES[storeName]) return storeName;
+  }
+  return null;
+}
 
 export default function StoreLogo({ name, size = "md", selected = false }: StoreLogoProps) {
   const brand = BRAND_STYLES[name];

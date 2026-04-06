@@ -1,9 +1,10 @@
 /*
- * ShoppingSection — Consolidated shopping list with priority, price, and links.
+ * ShoppingSection — Consolidated shopping list with priority, price, and store logos.
  */
 
 import AnimatedSection from "./AnimatedSection";
-import { ExternalLink, ShoppingBag } from "lucide-react";
+import StoreLogo from "./StoreLogo";
+import { ExternalLink } from "lucide-react";
 
 interface ShoppingItem {
   priority: string;
@@ -110,10 +111,10 @@ export default function ShoppingSection() {
                       href={item.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 border border-primary/20 rounded-xl text-primary text-sm font-medium transition-all duration-300 hover:bg-primary/20 hover:border-primary/40"
+                      className="inline-flex items-center gap-1 px-3 py-1.5 bg-white/5 border border-white/10 rounded-xl transition-all duration-300 hover:bg-white/10 hover:border-primary/30 group"
                     >
-                      <ShoppingBag className="w-3.5 h-3.5" />
-                      {item.store}
+                      <StoreLogo name={item.store} size="sm" />
+                      <ExternalLink className="w-3 h-3 text-muted-foreground/50 group-hover:text-primary/70 shrink-0" />
                     </a>
                   </td>
                 </tr>

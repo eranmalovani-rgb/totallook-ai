@@ -1820,3 +1820,6 @@
 ## Bug Investigation (April 5, 2026)
 - [ ] Investigate guest profile save error ("שגיאה בשמירת הפרופיל")
 - [ ] Investigate Google login not working
+
+## Phase 39: Store Logos in Product Recommendations
+- [x] Replace store name text under product recommendation images with clickable StoreLogo components linking to purchase URL

@@ -3,6 +3,7 @@
  */
 
 import AnimatedSection from "./AnimatedSection";
+import StoreLogo, { extractStoreFromUrl, extractStoreFromLabel } from "./StoreLogo";
 import { ExternalLink } from "lucide-react";
 
 interface ShopLink {
@@ -119,20 +120,27 @@ export default function ImprovementsSection() {
                   </span>
                 </div>
 
-                {/* Shop links */}
+                {/* Shop links with store logos */}
                 <div className="flex flex-wrap gap-2">
-                  {item.links.map((link, j) => (
-                    <a
-                      key={j}
-                      href={link.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 border border-primary/20 rounded-xl text-primary text-sm font-medium transition-all duration-300 hover:bg-primary/20 hover:border-primary/40 hover:-translate-y-0.5"
-                    >
-                      <ExternalLink className="w-3.5 h-3.5" />
-                      {link.label}
-                    </a>
-                  ))}
+                  {item.links.map((link, j) => {
+                    const storeName = extractStoreFromUrl(link.url) || extractStoreFromLabel(link.label);
+                    return (
+                      <a
+                        key={j}
+                        href={link.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/5 border border-white/10 rounded-xl transition-all duration-300 hover:bg-white/10 hover:border-primary/30 hover:-translate-y-0.5 group"
+                      >
+                        {storeName ? (
+                          <StoreLogo name={storeName} size="sm" />
+                        ) : (
+                          <span className="text-primary text-sm font-medium">{link.label}</span>
+                        )}
+                        <ExternalLink className="w-3 h-3 text-muted-foreground/50 group-hover:text-primary/70 shrink-0" />
+                      </a>
+                    );
+                  })}
                 </div>
               </div>
             </div>

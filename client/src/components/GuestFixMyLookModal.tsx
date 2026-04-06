@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
 import { Wand2, Download, ShoppingBag, ExternalLink, RotateCcw, Sparkles, Check, RefreshCw, ImageIcon, Plus, CheckCheck, X, Eye } from "lucide-react";
+import StoreLogo, { extractStoreFromUrl, extractStoreFromLabel } from "@/components/StoreLogo";
 import FashionSpinner from "@/components/FashionSpinner";
 import BeforeAfterSlider from "@/components/BeforeAfterSlider";
 import {
@@ -146,8 +147,14 @@ function SelectableProductImage({
       )}
 
       {hasImage && !imgError && !imgLoading && label && (
-        <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent px-1.5 py-1 z-10">
-          <p className="text-[9px] text-white/90 truncate text-center">{label}</p>
+        <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent px-1 py-0.5 z-10 flex items-center justify-center">
+          {(() => {
+            const storeName = extractStoreFromLabel(label) || extractStoreFromUrl(label);
+            if (storeName) {
+              return <StoreLogo name={storeName} size="sm" />;
+            }
+            return <p className="text-[9px] text-white/90 truncate text-center">{label}</p>;
+          })()}
         </div>
       )}
     </div>
@@ -682,15 +689,22 @@ export default function GuestFixMyLookModal({ sessionId, analysis, trigger, clos
                   {isHe ? "קנה את הפריטים המומלצים:" : "Shop the recommended items:"}
                 </p>
                 <div className="grid grid-cols-2 gap-2">
-                  {result.shoppingLinks.map((link, i) => (
-                    <a key={i} href={link.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2.5 rounded-xl border border-white/5 bg-card hover:border-primary/20 transition-colors group">
-                      {link.imageUrl && <img src={link.imageUrl} alt={link.label} className="w-10 h-10 rounded-lg object-cover" />}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium truncate group-hover:text-primary transition-colors">{link.label}</p>
-                      </div>
-                      <ExternalLink className="w-3 h-3 text-muted-foreground shrink-0" />
-                    </a>
-                  ))}
+                  {result.shoppingLinks.map((link, i) => {
+                    const storeName = extractStoreFromUrl(link.url) || extractStoreFromLabel(link.label);
+                    return (
+                      <a key={i} href={link.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2.5 rounded-xl border border-white/5 bg-card hover:border-primary/20 transition-colors group">
+                        {link.imageUrl && <img src={link.imageUrl} alt={link.label} className="w-10 h-10 rounded-lg object-cover" />}
+                        <div className="flex-1 min-w-0">
+                          {storeName ? (
+                            <StoreLogo name={storeName} size="sm" />
+                          ) : (
+                            <p className="text-xs font-medium truncate group-hover:text-primary transition-colors">{link.label}</p>
+                          )}
+                        </div>
+                        <ExternalLink className="w-3 h-3 text-muted-foreground shrink-0" />
+                      </a>
+                    );
+                  })}
                 </div>
               </div>
             )}
