@@ -123,9 +123,13 @@ function isDatabaseErrorMessage(message: string): boolean {
   const lower = message.toLowerCase();
   return (
     message.includes("Database not available") ||
+    lower.includes("failed query") ||
+    lower.includes("insert into guestsessions") ||
     lower.includes("sql") ||
     lower.includes("er_") ||
     lower.includes("unknown column") ||
+    lower.includes("incorrect string value") ||
+    lower.includes("data too long for column") ||
     lower.includes("connect econnrefused") ||
     lower.includes("connection lost")
   );

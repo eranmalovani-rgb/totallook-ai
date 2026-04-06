@@ -760,5 +760,70 @@ describe("WhatsApp Integration v3 (Meta Cloud API)", () => {
       mockFetch.mockReset();
       mockFetch.mockResolvedValue(defaultFetchResponse as any);
     });
+
+    it("should classify wrapped failed-query guest insert as database issue", async () => {
+      const dbMod = await import("./db");
+      (dbMod.createGuestSession as any).mockRejectedValueOnce(
+        new Error(
+          "Failed query: insert into guestSessions (...) values (...) params: wa_972500000000,..."
+        )
+      );
+      const { handleIncomingMessage } = await import("./whatsapp");
+      const defaultFetchResponse = {
+        ok: true,
+        json: async () => ({ messages: [{ id: "wamid.test123" }] }),
+        text: async () => "ok",
+      };
+
+      const tinyPng = Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO7+X4kAAAAASUVORK5CYII=",
+        "base64"
+      );
+      const tinyPngArrayBuffer = tinyPng.buffer.slice(
+        tinyPng.byteOffset,
+        tinyPng.byteOffset + tinyPng.byteLength
+      );
+
+      mockFetch.mockImplementation((url: string) => {
+        if (url.includes("/messages")) {
+          return Promise.resolve(defaultFetchResponse as any);
+        }
+        if (url.includes("graph.facebook.com")) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ url: "https://media.example.com/valid2.png" }),
+            text: async () => "ok",
+          } as any);
+        }
+        if (url.includes("media.example.com")) {
+          return Promise.resolve({
+            ok: true,
+            arrayBuffer: async () => tinyPngArrayBuffer,
+            text: async () => "ok",
+          } as any);
+        }
+        return Promise.resolve(defaultFetchResponse as any);
+      });
+
+      await handleIncomingMessage(
+        {
+          from: "972505555555",
+          id: "wamid.img-db-fail-2",
+          timestamp: String(Math.floor(Date.now() / 1000)),
+          type: "image",
+          image: { id: "media_valid_db_fail_2", mime_type: "image/png", sha256: "dbfail2" },
+        },
+        "בודק-DB2"
+      );
+
+      const sendCalls = mockFetch.mock.calls.filter(
+        (call: any[]) => typeof call[0] === "string" && call[0].includes("/messages")
+      );
+      expect(sendCalls.length).toBeGreaterThanOrEqual(2);
+      const lastBody = JSON.parse(sendCalls[sendCalls.length - 1][1].body);
+      expect(lastBody.text.body).toContain("יש עומס זמני במערכת הניתוח");
+      mockFetch.mockReset();
+      mockFetch.mockResolvedValue(defaultFetchResponse as any);
+    });
   });
 });
