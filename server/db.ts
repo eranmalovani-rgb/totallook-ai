@@ -1008,6 +1008,14 @@ export async function getFixMyLookResult(reviewId: number, userId: number) {
 /**
  * Create a new guest session. Returns the session ID.
  */
+function containsNonBmpUnicode(value: string): boolean {
+  return /[\u{10000}-\u{10FFFF}]/u.test(value);
+}
+
+function stripNonBmpUnicode(value: string): string {
+  return value.replace(/[\u{10000}-\u{10FFFF}]/gu, "");
+}
+
 export async function createGuestSession(data: InsertGuestSession) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -1026,13 +1034,68 @@ export async function createGuestSession(data: InsertGuestSession) {
     } catch (err: any) {
       lastError = err;
       const msg = String(err?.message || "");
-      const unknownColumnMatch = msg.match(/Unknown column '([^']+)'/i);
-      const unknownColumn = unknownColumnMatch?.[1];
-      if (!unknownColumn) break;
-      if (!(unknownColumn in payload)) break;
+      const causeMsg = String(err?.cause?.message || "");
+      const fullMsg = `${msg} ${causeMsg}`.trim();
 
-      console.warn(`[DB] createGuestSession fallback: dropping unknown column '${unknownColumn}' and retrying`);
-      delete payload[unknownColumn];
+      const unknownColumnMatch = fullMsg.match(/Unknown column '([^']+)'/i);
+      const unknownColumn = unknownColumnMatch?.[1];
+      if (unknownColumn) {
+        if (!(unknownColumn in payload)) break;
+
+        console.warn(`[DB] createGuestSession fallback: dropping unknown column '${unknownColumn}' and retrying`);
+        delete payload[unknownColumn];
+        continue;
+      }
+
+      const incorrectStringColumnMatch = fullMsg.match(
+        /Incorrect string value: .* for column '([^']+)'/i
+      );
+      const incorrectStringColumn = incorrectStringColumnMatch?.[1];
+      if (incorrectStringColumn && typeof payload[incorrectStringColumn] === "string") {
+        const original = String(payload[incorrectStringColumn]);
+        const sanitized = stripNonBmpUnicode(original);
+        if (sanitized !== original) {
+          console.warn(
+            `[DB] createGuestSession fallback: sanitized non-BMP chars for column '${incorrectStringColumn}'`
+          );
+          payload[incorrectStringColumn] = sanitized;
+          continue;
+        }
+      }
+
+      const dataTooLongMatch = fullMsg.match(/Data too long for column '([^']+)'/i);
+      const dataTooLongColumn = dataTooLongMatch?.[1];
+      if (dataTooLongColumn && typeof payload[dataTooLongColumn] === "string") {
+        const original = String(payload[dataTooLongColumn]);
+        if (original.length > 255) {
+          payload[dataTooLongColumn] = original.slice(0, 255);
+          console.warn(
+            `[DB] createGuestSession fallback: truncated value for column '${dataTooLongColumn}'`
+          );
+          continue;
+        }
+      }
+
+      // Some wrapped Drizzle errors only include the failed SQL text.
+      // In that case, if the profile name contains 4-byte chars (emoji), sanitize and retry.
+      const looksLikeGuestInsertFailure = fullMsg
+        .toLowerCase()
+        .includes("failed query: insert into guestsessions");
+      const profileName = payload.whatsappProfileName;
+      if (
+        looksLikeGuestInsertFailure &&
+        typeof profileName === "string" &&
+        containsNonBmpUnicode(profileName)
+      ) {
+        const sanitized = stripNonBmpUnicode(profileName);
+        if (sanitized !== profileName) {
+          payload.whatsappProfileName = sanitized;
+          console.warn("[DB] createGuestSession fallback: sanitized whatsappProfileName and retrying");
+          continue;
+        }
+      }
+
+      break;
     }
   }
 
