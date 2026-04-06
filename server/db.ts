@@ -1016,12 +1016,53 @@ export async function createGuestSession(data: InsertGuestSession) {
 }
 
 /**
+ * Selectable guest session columns that are safe on older DBs as well.
+ * Intentionally excludes `lastViewedAt` so reads keep working even before
+ * the migration is applied in production.
+ */
+const guestSessionColumns = {
+  id: guestSessions.id,
+  fingerprint: guestSessions.fingerprint,
+  ipAddress: guestSessions.ipAddress,
+  imageUrl: guestSessions.imageUrl,
+  imageKey: guestSessions.imageKey,
+  status: guestSessions.status,
+  analysisJson: guestSessions.analysisJson,
+  overallScore: guestSessions.overallScore,
+  userAgent: guestSessions.userAgent,
+  convertedUserId: guestSessions.convertedUserId,
+  convertedAt: guestSessions.convertedAt,
+  ageRange: guestSessions.ageRange,
+  gender: guestSessions.gender,
+  occupation: guestSessions.occupation,
+  budgetLevel: guestSessions.budgetLevel,
+  stylePreference: guestSessions.stylePreference,
+  favoriteBrands: guestSessions.favoriteBrands,
+  favoriteInfluencers: guestSessions.favoriteInfluencers,
+  preferredStores: guestSessions.preferredStores,
+  country: guestSessions.country,
+  onboardingCompleted: guestSessions.onboardingCompleted,
+  email: guestSessions.email,
+  analysisCount: guestSessions.analysisCount,
+  source: guestSessions.source,
+  whatsappToken: guestSessions.whatsappToken,
+  whatsappPhone: guestSessions.whatsappPhone,
+  whatsappProfileName: guestSessions.whatsappProfileName,
+  followUpSentAt: guestSessions.followUpSentAt,
+  createdAt: guestSessions.createdAt,
+} as const;
+
+/**
  * Get a guest session by ID.
  */
 export async function getGuestSessionById(id: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  const [result] = await db.select().from(guestSessions).where(eq(guestSessions.id, id)).limit(1);
+  const [result] = await db
+    .select(guestSessionColumns)
+    .from(guestSessions)
+    .where(eq(guestSessions.id, id))
+    .limit(1);
   return result || null;
 }
 
@@ -1129,7 +1170,18 @@ export async function saveGuestProfile(fingerprint: string, profile: {
 export async function getGuestProfile(fingerprint: string) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  const [result] = await db.select().from(guestSessions)
+  const [result] = await db.select({
+    ageRange: guestSessions.ageRange,
+    gender: guestSessions.gender,
+    occupation: guestSessions.occupation,
+    budgetLevel: guestSessions.budgetLevel,
+    stylePreference: guestSessions.stylePreference,
+    favoriteBrands: guestSessions.favoriteBrands,
+    favoriteInfluencers: guestSessions.favoriteInfluencers,
+    preferredStores: guestSessions.preferredStores,
+    country: guestSessions.country,
+    onboardingCompleted: guestSessions.onboardingCompleted,
+  }).from(guestSessions)
     .where(and(
       eq(guestSessions.fingerprint, fingerprint),
       eq(guestSessions.onboardingCompleted, 1)
@@ -1274,7 +1326,12 @@ export async function migrateGuestToUser(fingerprint: string, userId: number) {
 export async function getAllGuestSessions(limit = 50, offset = 0) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  const sessions = await db.select().from(guestSessions).orderBy(desc(guestSessions.createdAt)).limit(limit).offset(offset);
+  const sessions = await db
+    .select(guestSessionColumns)
+    .from(guestSessions)
+    .orderBy(desc(guestSessions.createdAt))
+    .limit(limit)
+    .offset(offset);
   const [total] = await db.select({ cnt: count() }).from(guestSessions);
   return { sessions, total: total?.cnt || 0 };
 }
@@ -1737,7 +1794,11 @@ export async function isPhoneTaken(phone: string, excludeUserId?: number): Promi
 export async function getGuestSessionByToken(token: string) {
   const db = await getDb();
   if (!db) return null;
-  const [result] = await db.select().from(guestSessions).where(eq(guestSessions.whatsappToken, token)).limit(1);
+  const [result] = await db
+    .select(guestSessionColumns)
+    .from(guestSessions)
+    .where(eq(guestSessions.whatsappToken, token))
+    .limit(1);
   return result || null;
 }
 
@@ -1747,10 +1808,19 @@ export async function getGuestSessionByToken(token: string) {
 export async function markGuestSessionViewed(sessionId: number): Promise<void> {
   const db = await getDb();
   if (!db) return;
-  await db
-    .update(guestSessions)
-    .set({ lastViewedAt: new Date() })
-    .where(eq(guestSessions.id, sessionId));
+  try {
+    await db
+      .update(guestSessions)
+      .set({ lastViewedAt: new Date() })
+      .where(eq(guestSessions.id, sessionId));
+  } catch (err: any) {
+    const msg = String(err?.message || "");
+    if (msg.includes("Unknown column") && msg.includes("lastViewedAt")) {
+      // Backward-compatible behavior if migration hasn't run yet.
+      return;
+    }
+    throw err;
+  }
 }
 
 /**
@@ -1759,12 +1829,21 @@ export async function markGuestSessionViewed(sessionId: number): Promise<void> {
 export async function hasGuestSessionBeenViewed(sessionId: number): Promise<boolean> {
   const db = await getDb();
   if (!db) return false;
-  const [result] = await db
-    .select({ lastViewedAt: guestSessions.lastViewedAt })
-    .from(guestSessions)
-    .where(eq(guestSessions.id, sessionId))
-    .limit(1);
-  return !!result?.lastViewedAt;
+  try {
+    const [result] = await db
+      .select({ lastViewedAt: guestSessions.lastViewedAt })
+      .from(guestSessions)
+      .where(eq(guestSessions.id, sessionId))
+      .limit(1);
+    return !!result?.lastViewedAt;
+  } catch (err: any) {
+    const msg = String(err?.message || "");
+    if (msg.includes("Unknown column") && msg.includes("lastViewedAt")) {
+      // Backward-compatible behavior if migration hasn't run yet.
+      return false;
+    }
+    throw err;
+  }
 }
 
 // ==========================================
