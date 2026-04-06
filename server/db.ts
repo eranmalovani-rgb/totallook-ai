@@ -1011,8 +1011,32 @@ export async function getFixMyLookResult(reviewId: number, userId: number) {
 export async function createGuestSession(data: InsertGuestSession) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  const [result] = await db.insert(guestSessions).values(data).$returningId();
-  return result.id;
+  // Be resilient to schema drift during rolling deploys:
+  // if production DB is missing a newer optional column, strip it and retry.
+  const payload: Record<string, unknown> = { ...(data as Record<string, unknown>) };
+  let lastError: unknown = null;
+
+  for (let i = 0; i < 8; i++) {
+    try {
+      const cleanPayload = Object.fromEntries(
+        Object.entries(payload).filter(([, value]) => value !== undefined)
+      );
+      const [result] = await db.insert(guestSessions).values(cleanPayload as any).$returningId();
+      return result.id;
+    } catch (err: any) {
+      lastError = err;
+      const msg = String(err?.message || "");
+      const unknownColumnMatch = msg.match(/Unknown column '([^']+)'/i);
+      const unknownColumn = unknownColumnMatch?.[1];
+      if (!unknownColumn) break;
+      if (!(unknownColumn in payload)) break;
+
+      console.warn(`[DB] createGuestSession fallback: dropping unknown column '${unknownColumn}' and retrying`);
+      delete payload[unknownColumn];
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error("Failed to create guest session");
 }
 
 /**
