@@ -645,5 +645,59 @@ describe("WhatsApp Integration v3 (Meta Cloud API)", () => {
       expect(sentBody.text.body).toContain("TotalLook");
       expect(sentBody.text.body).toContain("תמונה");
     });
+
+    it("should return specific unsupported-image guidance when image analysis input is invalid", async () => {
+      const llmMod = await import("./_core/llm");
+      const invokeSpy = vi.spyOn(llmMod, "invokeLLM").mockRejectedValueOnce(new Error("INVALID_IMAGE_INPUT: tiny image"));
+      const { handleIncomingMessage } = await import("./whatsapp");
+      const defaultFetchResponse = {
+        ok: true,
+        json: async () => ({ messages: [{ id: "wamid.test123" }] }),
+        text: async () => "ok",
+      };
+
+      mockFetch.mockImplementation((url: string) => {
+        if (url.includes("/messages")) {
+          return Promise.resolve(defaultFetchResponse as any);
+        }
+        if (url.includes("graph.facebook.com")) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ url: "https://media.example.com/fake.jpg" }),
+            text: async () => "ok",
+          } as any);
+        }
+        if (url.includes("media.example.com")) {
+          return Promise.resolve({
+            ok: true,
+            arrayBuffer: async () => new Uint8Array([0xff, 0xd8, 0xff, 0xd9]).buffer,
+            text: async () => "ok",
+          } as any);
+        }
+        return Promise.resolve(defaultFetchResponse as any);
+      });
+
+      await handleIncomingMessage(
+        {
+          from: "972503333333",
+          id: "wamid.img-invalid-1",
+          timestamp: String(Math.floor(Date.now() / 1000)),
+          type: "image",
+          image: { id: "media_invalid", mime_type: "image/jpeg", sha256: "bad" },
+        },
+        "בודק"
+      );
+
+      const sendCalls = mockFetch.mock.calls.filter(
+        (call: any[]) => typeof call[0] === "string" && call[0].includes("/messages")
+      );
+      expect(sendCalls.length).toBeGreaterThanOrEqual(2); // processing + final error
+      const lastBody = JSON.parse(sendCalls[sendCalls.length - 1][1].body);
+      expect(lastBody.text.body).toContain("התמונה שהועלתה לא נתמכת לניתוח");
+      expect(lastBody.text.body).toContain("JPG/PNG");
+      invokeSpy.mockRestore();
+      mockFetch.mockReset();
+      mockFetch.mockResolvedValue(defaultFetchResponse as any);
+    });
   });
 });
