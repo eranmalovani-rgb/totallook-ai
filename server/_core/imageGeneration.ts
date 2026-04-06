@@ -1,13 +1,10 @@
 /**
- * Image generation helper — OpenAI gpt-image-1 for editing, DALL-E 3 for generation,
- * with Manus Forge as fallback.
+ * Image generation helper — Manus Forge for editing (preserves identity via original_images),
+ * OpenAI gpt-image-1 for new generation, with cross-fallback.
  *
- * When originalImages are provided (Fix My Look), we use gpt-image-1's edit endpoint
- * which actually processes the reference image and preserves the person's identity.
- * DALL-E 3 ignores reference images entirely, which is why it was generating new people.
- *
- * IMPORTANT: The /images/edits endpoint requires multipart/form-data, NOT JSON.
- * Images can be sent as image_url references or file uploads.
+ * IMPORTANT: For Fix My Look, we MUST use Forge because it natively supports
+ * original_images and preserves the person's identity. OpenAI's edit endpoint
+ * has compatibility issues with some API keys.
  */
 import { storagePut } from "server/storage";
 import { ENV } from "./env";
@@ -29,90 +26,17 @@ export type GenerateImageResponse = {
 };
 
 /**
- * Determine which provider to use for image generation.
- * Priority: OpenAI > Manus Forge
+ * Check if Forge is available
  */
-function getImageProvider(): "openai" | "forge" {
-  if (getOpenAIKey().length > 0) {
-    return "openai";
-  }
-  if (ENV.forgeApiUrl && ENV.forgeApiKey) {
-    return "forge";
-  }
-  throw new Error("No image generation API configured (OPENAI_API_KEY or BUILT_IN_FORGE_API_KEY)");
+function hasForge(): boolean {
+  return !!(ENV.forgeApiUrl && ENV.forgeApiKey);
 }
 
 /**
- * Download an image from URL and return as Buffer + mime type
+ * Check if OpenAI is available
  */
-async function downloadImage(url: string): Promise<{ buffer: Buffer; mimeType: string }> {
-  const imgResp = await fetch(url);
-  if (!imgResp.ok) throw new Error(`Failed to fetch image: ${imgResp.status}`);
-  const imgBuffer = Buffer.from(await imgResp.arrayBuffer());
-  const contentType = imgResp.headers.get("content-type") || "image/jpeg";
-  return { buffer: imgBuffer, mimeType: contentType };
-}
-
-/**
- * Edit an existing image using OpenAI gpt-image-1
- * Uses multipart/form-data as required by the /images/edits endpoint.
- * The image is sent as a file upload in the "image[]" field.
- */
-async function editWithOpenAI(
-  options: GenerateImageOptions
-): Promise<{ base64: string; mimeType: string }> {
-  const original = options.originalImages![0];
-
-  console.log("[ImageGen] Using gpt-image-1 edit endpoint to preserve user identity");
-
-  // Build multipart form data
-  const formData = new FormData();
-  formData.append("model", "gpt-image-1");
-  formData.append("prompt", options.prompt);
-  formData.append("size", "1024x1024");
-  formData.append("quality", "high");
-  formData.append("input_fidelity", "high");
-
-  // Get image as buffer and append as file
-  let imageBuffer: Buffer;
-  let imageMime: string;
-
-  if (original.b64Json) {
-    imageBuffer = Buffer.from(original.b64Json, "base64");
-    imageMime = original.mimeType || "image/jpeg";
-  } else if (original.url) {
-    const downloaded = await downloadImage(original.url);
-    imageBuffer = downloaded.buffer;
-    imageMime = downloaded.mimeType;
-  } else {
-    throw new Error("No image data provided for editing");
-  }
-
-  // Determine file extension from mime type
-  const ext = imageMime.includes("png") ? "png" : imageMime.includes("webp") ? "webp" : "jpg";
-  const imageBlob = new Blob([new Uint8Array(imageBuffer)], { type: imageMime });
-  formData.append("image[]", imageBlob, `input.${ext}`);
-
-  const response = await fetch("https://api.openai.com/v1/images/edits", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${getOpenAIKey()}`,
-      // Do NOT set Content-Type — fetch will set it automatically with boundary for FormData
-    },
-    body: formData,
-  });
-
-  if (!response.ok) {
-    const detail = await response.text().catch(() => "");
-    console.error(`[ImageGen] gpt-image-1 edit failed (${response.status}): ${detail}`);
-    throw new Error(`OpenAI gpt-image-1 edit failed (${response.status}): ${detail}`);
-  }
-
-  const result = await response.json();
-  return {
-    base64: result.data[0].b64_json,
-    mimeType: "image/png",
-  };
+function hasOpenAI(): boolean {
+  return getOpenAIKey().length > 0;
 }
 
 /**
@@ -122,6 +46,7 @@ async function editWithOpenAI(
 async function generateWithOpenAI(
   options: GenerateImageOptions
 ): Promise<{ base64: string; mimeType: string }> {
+  console.log("[ImageGen] Using OpenAI gpt-image-1 generation endpoint");
   const response = await fetch("https://api.openai.com/v1/images/generations", {
     method: "POST",
     headers: {
@@ -150,11 +75,15 @@ async function generateWithOpenAI(
 }
 
 /**
- * Generate image using Manus Forge (fallback)
+ * Generate or edit image using Manus Forge.
+ * Forge natively supports original_images for editing, preserving the person's identity.
  */
 async function generateWithForge(
   options: GenerateImageOptions
 ): Promise<{ base64: string; mimeType: string }> {
+  const hasOriginal = options.originalImages && options.originalImages.length > 0;
+  console.log(`[ImageGen] Using Forge ${hasOriginal ? "EDIT (with original_images)" : "GENERATE"}`);
+
   const baseUrl = ENV.forgeApiUrl!.endsWith("/")
     ? ENV.forgeApiUrl!
     : `${ENV.forgeApiUrl!}/`;
@@ -197,38 +126,53 @@ async function generateWithForge(
 export async function generateImage(
   options: GenerateImageOptions
 ): Promise<GenerateImageResponse> {
-  const provider = getImageProvider();
   const hasOriginalImages = options.originalImages && options.originalImages.length > 0;
 
-  console.log(`[ImageGen] Provider: ${provider}, Mode: ${hasOriginalImages ? "EDIT (preserve identity)" : "GENERATE (new image)"}`);
+  console.log(`[ImageGen] Mode: ${hasOriginalImages ? "EDIT (preserve identity)" : "GENERATE (new image)"}, Forge: ${hasForge()}, OpenAI: ${hasOpenAI()}`);
 
   let imageData: { base64: string; mimeType: string };
 
   if (hasOriginalImages) {
     // EDITING MODE: Must preserve the person's identity
-    if (provider === "openai") {
+    // Priority: Forge (natively supports original_images) > OpenAI generation (fallback, less ideal)
+    if (hasForge()) {
       try {
-        // Try gpt-image-1 edit endpoint first (best for identity preservation)
-        imageData = await editWithOpenAI(options);
-      } catch (editErr) {
-        console.warn("[ImageGen] OpenAI edit failed, falling back to Forge:", editErr);
-        // Fall back to Forge which handles original_images natively
-        if (ENV.forgeApiUrl && ENV.forgeApiKey) {
-          imageData = await generateWithForge(options);
+        imageData = await generateWithForge(options);
+      } catch (forgeErr) {
+        console.warn("[ImageGen] Forge edit failed:", forgeErr);
+        // Fallback: try OpenAI generation (won't have reference image, but better than nothing)
+        if (hasOpenAI()) {
+          console.log("[ImageGen] Falling back to OpenAI generation (without reference image)");
+          imageData = await generateWithOpenAI(options);
         } else {
-          throw editErr;
+          throw forgeErr;
         }
       }
+    } else if (hasOpenAI()) {
+      // No Forge available, use OpenAI generation as fallback
+      console.warn("[ImageGen] No Forge available for editing, using OpenAI generation (identity may not be preserved)");
+      imageData = await generateWithOpenAI(options);
     } else {
-      // Forge handles original_images natively
-      imageData = await generateWithForge(options);
+      throw new Error("No image generation API configured");
     }
   } else {
     // GENERATION MODE: Create a new image from scratch
-    if (provider === "openai") {
-      imageData = await generateWithOpenAI(options);
-    } else {
+    // Priority: OpenAI (better quality) > Forge
+    if (hasOpenAI()) {
+      try {
+        imageData = await generateWithOpenAI(options);
+      } catch (openaiErr) {
+        console.warn("[ImageGen] OpenAI generation failed:", openaiErr);
+        if (hasForge()) {
+          imageData = await generateWithForge(options);
+        } else {
+          throw openaiErr;
+        }
+      }
+    } else if (hasForge()) {
       imageData = await generateWithForge(options);
+    } else {
+      throw new Error("No image generation API configured");
     }
   }
 

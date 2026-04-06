@@ -11,6 +11,7 @@ import { useLanguage } from "@/i18n";
 import { getLoginUrl } from "@/const";
 import { useFingerprint } from "@/hooks/useFingerprint";
 import AnimatedSection from "@/components/AnimatedSection";
+import StoreLogo, { extractStoreFromUrl, extractStoreFromLabel } from "@/components/StoreLogo";
 
 const DEMO_IMAGE_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663364230752/SGdPHKr3xPrRPbHA9C9esB/demo-outfit_b659ecdd.jpg";
 
@@ -592,14 +593,26 @@ export default function Demo() {
                         {lang === "he" ? "מוצרים מומלצים" : "Recommended Products"}
                       </p>
                       <div className="flex flex-wrap gap-2">
-                        {imp.shoppingLinks.map((link, j) => (
-                          <a key={j} href={link.url} target="_blank" rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 px-4 py-2 border border-primary/20 text-xs text-primary hover:bg-primary/5 transition-colors">
-                            <ShoppingBag className="w-3 h-3" />
-                            {link.label}
-                            <ExternalLink className="w-3 h-3" />
-                          </a>
-                        ))}
+                        {imp.shoppingLinks.map((link, j) => {
+                          const storeName = extractStoreFromUrl(link.url) || extractStoreFromLabel(link.label);
+                          return (
+                            <a key={j} href={link.url} target="_blank" rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 px-4 py-2 border border-primary/20 text-xs text-primary hover:bg-primary/5 transition-colors">
+                              {storeName ? (
+                                <>
+                                  <StoreLogo name={storeName} size="sm" />
+                                  <ExternalLink className="w-3 h-3" />
+                                </>
+                              ) : (
+                                <>
+                                  <ShoppingBag className="w-3 h-3" />
+                                  {link.label}
+                                  <ExternalLink className="w-3 h-3" />
+                                </>
+                              )}
+                            </a>
+                          );
+                        })}
                       </div>
                     </div>
                   )}

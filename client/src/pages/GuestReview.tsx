@@ -25,6 +25,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import FashionSpinner, { FashionButtonSpinner } from "@/components/FashionSpinner";
+import StoreLogo, { extractStoreFromUrl, extractStoreFromLabel } from "@/components/StoreLogo";
 import type { FashionAnalysis, ShoppingLink, LinkedMention, OutfitSuggestion } from "../../../shared/fashionTypes";
 import { BRAND_URLS, POPULAR_INFLUENCERS } from "../../../shared/fashionTypes";
 import { useLanguage } from "@/i18n";
@@ -207,10 +208,25 @@ function ProductCard({ link, lang, isGeneratingImages }: { link: ShoppingLink; l
         )}
       </div>
       <div className="p-3">
-        <p className="text-xs font-medium truncate group-hover:text-primary transition-colors">{link.label}</p>
-        <span className="text-[10px] text-primary/70 flex items-center gap-1 mt-1 group-hover:text-primary transition-colors">
-          {lang === "he" ? "לרכישה" : "Buy Now"} <ExternalLink className="w-2.5 h-2.5" />
-        </span>
+        {(() => {
+          const storeName = extractStoreFromUrl(link.url) || extractStoreFromLabel(link.label);
+          if (storeName) {
+            return (
+              <div className="flex items-center justify-between">
+                <StoreLogo name={storeName} size="sm" />
+                <ExternalLink className="w-3 h-3 text-primary/50 group-hover:text-primary transition-colors" />
+              </div>
+            );
+          }
+          return (
+            <>
+              <p className="text-xs font-medium truncate group-hover:text-primary transition-colors">{link.label}</p>
+              <span className="text-[10px] text-primary/70 flex items-center gap-1 mt-1 group-hover:text-primary transition-colors">
+                {lang === "he" ? "לרכישה" : "Buy Now"} <ExternalLink className="w-2.5 h-2.5" />
+              </span>
+            </>
+          );
+        })()}
       </div>
     </a>
   );
