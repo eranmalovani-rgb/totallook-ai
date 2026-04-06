@@ -6,19 +6,8 @@
  * which actually processes the reference image and preserves the person's identity.
  * DALL-E 3 ignores reference images entirely, which is why it was generating new people.
  *
- * Example usage:
- *   const { url: imageUrl } = await generateImage({
- *     prompt: "A serene landscape with mountains"
- *   });
- *
- * For editing (preserves person identity):
- *   const { url: imageUrl } = await generateImage({
- *     prompt: "Edit this photo: replace the jacket with a black leather jacket",
- *     originalImages: [{
- *       url: "https://example.com/original.jpg",
- *       mimeType: "image/jpeg"
- *     }]
- *   });
+ * IMPORTANT: The /images/edits endpoint requires multipart/form-data, NOT JSON.
+ * Images can be sent as image_url references or file uploads.
  */
 import { storagePut } from "server/storage";
 import { ENV } from "./env";
@@ -54,60 +43,68 @@ function getImageProvider(): "openai" | "forge" {
 }
 
 /**
- * Download an image from URL and return as base64 data URI
+ * Download an image from URL and return as Buffer + mime type
  */
-async function downloadImageAsBase64(url: string): Promise<string> {
+async function downloadImage(url: string): Promise<{ buffer: Buffer; mimeType: string }> {
   const imgResp = await fetch(url);
   if (!imgResp.ok) throw new Error(`Failed to fetch image: ${imgResp.status}`);
   const imgBuffer = Buffer.from(await imgResp.arrayBuffer());
-  // Detect mime type from response or default to jpeg
   const contentType = imgResp.headers.get("content-type") || "image/jpeg";
-  return `data:${contentType};base64,${imgBuffer.toString("base64")}`;
+  return { buffer: imgBuffer, mimeType: contentType };
 }
 
 /**
  * Edit an existing image using OpenAI gpt-image-1
- * This model actually processes the reference image and preserves the person's identity,
- * unlike DALL-E 3 which ignores reference images.
+ * Uses multipart/form-data as required by the /images/edits endpoint.
+ * The image is sent as a file upload in the "image[]" field.
  */
 async function editWithOpenAI(
   options: GenerateImageOptions
 ): Promise<{ base64: string; mimeType: string }> {
   const original = options.originalImages![0];
 
-  // Get the image as base64 data URI
-  let imageDataUri: string;
+  console.log("[ImageGen] Using gpt-image-1 edit endpoint to preserve user identity");
+
+  // Build multipart form data
+  const formData = new FormData();
+  formData.append("model", "gpt-image-1");
+  formData.append("prompt", options.prompt);
+  formData.append("size", "1024x1024");
+  formData.append("quality", "high");
+  formData.append("input_fidelity", "high");
+
+  // Get image as buffer and append as file
+  let imageBuffer: Buffer;
+  let imageMime: string;
+
   if (original.b64Json) {
-    const mime = original.mimeType || "image/jpeg";
-    imageDataUri = `data:${mime};base64,${original.b64Json}`;
+    imageBuffer = Buffer.from(original.b64Json, "base64");
+    imageMime = original.mimeType || "image/jpeg";
   } else if (original.url) {
-    imageDataUri = await downloadImageAsBase64(original.url);
+    const downloaded = await downloadImage(original.url);
+    imageBuffer = downloaded.buffer;
+    imageMime = downloaded.mimeType;
   } else {
     throw new Error("No image data provided for editing");
   }
 
-  console.log("[ImageGen] Using gpt-image-1 edit endpoint to preserve user identity");
+  // Determine file extension from mime type
+  const ext = imageMime.includes("png") ? "png" : imageMime.includes("webp") ? "webp" : "jpg";
+  const imageBlob = new Blob([new Uint8Array(imageBuffer)], { type: imageMime });
+  formData.append("image[]", imageBlob, `input.${ext}`);
 
-  // Use the gpt-image-1 images/edits endpoint which actually processes the reference image
   const response = await fetch("https://api.openai.com/v1/images/edits", {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${getOpenAIKey()}`,
-      "Content-Type": "application/json",
+      // Do NOT set Content-Type — fetch will set it automatically with boundary for FormData
     },
-    body: JSON.stringify({
-      model: "gpt-image-1",
-      image: imageDataUri,
-      prompt: options.prompt,
-      n: 1,
-      size: "1024x1024",
-    }),
+    body: formData,
   });
 
   if (!response.ok) {
     const detail = await response.text().catch(() => "");
     console.error(`[ImageGen] gpt-image-1 edit failed (${response.status}): ${detail}`);
-    // If gpt-image-1 edit fails, try with Forge as fallback
     throw new Error(`OpenAI gpt-image-1 edit failed (${response.status}): ${detail}`);
   }
 
@@ -119,7 +116,8 @@ async function editWithOpenAI(
 }
 
 /**
- * Generate a new image using OpenAI DALL-E 3 (no reference image)
+ * Generate a new image using OpenAI gpt-image-1 (no reference image)
+ * Uses the /images/generations endpoint with JSON body.
  */
 async function generateWithOpenAI(
   options: GenerateImageOptions
@@ -131,12 +129,11 @@ async function generateWithOpenAI(
       "Authorization": `Bearer ${getOpenAIKey()}`,
     },
     body: JSON.stringify({
-      model: "dall-e-3",
+      model: "gpt-image-1",
       prompt: options.prompt,
       n: 1,
       size: "1024x1024",
-      response_format: "b64_json",
-      quality: "standard",
+      quality: "high",
     }),
   });
 

@@ -239,12 +239,47 @@ export function extractStoreFromUrl(url: string): string | null {
   }
 }
 
-/** Extract store name from a shopping link label (format: "Product Name — StoreName") */
+/** Extract store name from a shopping link label.
+ * Handles multiple formats:
+ *   "Product Name — StoreName"  (dash)
+ *   "Brand @ StoreName"         (@ sign)
+ *   "צ'ינוס Nordstrom"          (brand name anywhere in label)
+ */
+// Aliases for brand names that appear differently in labels
+const LABEL_ALIASES: Record<string, string> = {
+  "MR PORTER": "Mr Porter",
+  "NET A PORTER": "NET-A-PORTER",
+  "MATCHES FASHION": "MatchesFashion",
+  "LUISA VIA ROMA": "LuisaViaRoma",
+  "SAKS": "Saks Fifth Avenue",
+  "END": "END.",
+};
+
+function resolveAlias(name: string): string {
+  return LABEL_ALIASES[name] || LABEL_ALIASES[name.toUpperCase()] || name;
+}
+
 export function extractStoreFromLabel(label: string): string | null {
+  // 1. Try @ pattern first: "Brand @ Store" (most specific)
+  const atMatch = label.match(/@\s*(.+)$/);
+  if (atMatch) {
+    const raw = atMatch[1].trim();
+    const storeName = resolveAlias(raw);
+    if (BRAND_STYLES[storeName]) return storeName;
+  }
+  // 2. Try dash pattern: "Product — Store"
   const dashMatch = label.match(/[—–-]\s*([^—–-]+)$/);
   if (dashMatch) {
-    const storeName = dashMatch[1].trim();
+    const raw = dashMatch[1].trim();
+    const storeName = resolveAlias(raw);
     if (BRAND_STYLES[storeName]) return storeName;
+  }
+  // 3. Try direct brand name match anywhere in label (longest match first)
+  const brandNames = Object.keys(BRAND_STYLES)
+    .filter(k => !k.includes(".")) // skip hostname entries
+    .sort((a, b) => b.length - a.length); // longest first to avoid partial matches
+  for (const brand of brandNames) {
+    if (label.includes(brand)) return brand;
   }
   return null;
 }
