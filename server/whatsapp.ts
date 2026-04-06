@@ -100,6 +100,48 @@ function isRetryableNetworkErrorMessage(message: string): boolean {
   );
 }
 
+function isInvalidImageErrorMessage(message: string): boolean {
+  const lower = message.toLowerCase();
+  return (
+    message.includes("INVALID_IMAGE_INPUT") ||
+    lower.includes("unsupported image") ||
+    lower.includes("could not be decoded") ||
+    lower.includes("jpeg datastream contains no image")
+  );
+}
+
+function isMediaFetchErrorMessage(message: string): boolean {
+  return (
+    message.includes("Failed to get media URL") ||
+    message.includes("Failed to download media file") ||
+    message.includes("Meta media URL fetch failed") ||
+    message.includes("Meta media file download failed")
+  );
+}
+
+function isDatabaseErrorMessage(message: string): boolean {
+  const lower = message.toLowerCase();
+  return (
+    message.includes("Database not available") ||
+    lower.includes("sql") ||
+    lower.includes("er_") ||
+    lower.includes("unknown column") ||
+    lower.includes("connect econnrefused") ||
+    lower.includes("connection lost")
+  );
+}
+
+function isStorageErrorMessage(message: string): boolean {
+  const lower = message.toLowerCase();
+  return (
+    lower.includes("s3") ||
+    lower.includes("r2") ||
+    lower.includes("storage") ||
+    lower.includes("accessdenied") ||
+    lower.includes("nosuchbucket")
+  );
+}
+
 async function fetchWithRetry(url: string, init: RequestInit, label: string): Promise<Response> {
   let lastError: Error | null = null;
 
@@ -445,12 +487,10 @@ async function handleIncomingMessage(message: MetaWhatsAppMessage, profileName: 
     const msg = String(error?.message || "");
     console.error(`[WhatsApp] Analysis failed for ${from}:`, msg);
 
-    const isInvalidImage =
-      msg.includes("INVALID_IMAGE_INPUT") ||
-      msg.toLowerCase().includes("unsupported image");
-    const isMediaFetchError =
-      msg.includes("Failed to get media URL") ||
-      msg.includes("Failed to download media file");
+    const isInvalidImage = isInvalidImageErrorMessage(msg);
+    const isMediaFetchError = isMediaFetchErrorMessage(msg);
+    const isDatabaseError = isDatabaseErrorMessage(msg);
+    const isStorageError = isStorageErrorMessage(msg);
 
     if (isInvalidImage) {
       await sendWhatsAppMessage(
@@ -466,14 +506,33 @@ async function handleIncomingMessage(message: MetaWhatsAppMessage, profileName: 
         `${g.try_} לשלוח שוב בעוד דקה.`,
         { name: "totallook_error" },
       );
+    } else if (isDatabaseError || isStorageError) {
+      await sendWhatsAppMessage(
+        from,
+        `⏳ יש עומס זמני במערכת הניתוח כרגע.\n` +
+        `${g.try_} שוב בעוד דקה.`,
+        { name: "totallook_error" },
+      );
     } else {
       await sendWhatsAppMessage(
         from,
-        `😔 סליחה, משהו השתבש בניתוח. ${g.try_} שוב בעוד רגע.\n\n` +
-        `💡 טיפ: ${g.send} תמונה ברורה שמראה את הלוק המלא.`,
+        `😔 הייתה תקלה זמנית בתהליך הניתוח.\n` +
+        `${g.try_} שוב בעוד רגע.`,
         { name: "totallook_error" },
       );
     }
+
+    notifyOwner({
+      title: `⚠️ WhatsApp analysis failure (${from})`,
+      content:
+        `source=handleIncomingMessage\n` +
+        `phone=${from}\n` +
+        `invalidImage=${isInvalidImage}\n` +
+        `mediaFetch=${isMediaFetchError}\n` +
+        `database=${isDatabaseError}\n` +
+        `storage=${isStorageError}\n` +
+        `error=${msg.slice(0, 1500)}`,
+    }).catch(() => {});
   } finally {
     // Always release the processing lock when done (success or failure)
     processingLock.delete(from);
