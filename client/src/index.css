@@ -307,6 +307,78 @@
   border-color: oklch(0.80 0.16 75);
 }
 
+/* WhatsApp-first CTA style for landing sections */
+.btn-whatsapp-primary {
+  font-family: 'Heebo', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  padding: 1rem 2rem;
+  border-radius: 9999px;
+  border: 1px solid transparent;
+  background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
+  color: #fff;
+  transition: transform 0.2s ease, box-shadow 0.25s ease, filter 0.2s ease;
+  box-shadow: 0 10px 30px rgba(37, 211, 102, 0.28);
+}
+
+.btn-whatsapp-primary:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+  box-shadow: 0 14px 36px rgba(37, 211, 102, 0.38);
+}
+
+@media (max-width: 640px) {
+  .btn-whatsapp-primary {
+    width: 100%;
+    min-height: 56px;
+    justify-content: center;
+  }
+}
+
+.btn-website-secondary {
+  font-family: 'Heebo', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  padding: 0.85rem 1.4rem;
+  border-radius: 9999px;
+  border: 1px solid oklch(1 0 0 / 14%);
+  color: oklch(0.85 0.005 75);
+  transition: all 0.2s ease;
+}
+
+.btn-website-secondary:hover {
+  border-color: oklch(1 0 0 / 28%);
+  color: oklch(0.95 0.005 75);
+  background: oklch(1 0 0 / 3%);
+}
+
+.whatsapp-fab {
+  background: #25D366;
+  box-shadow: 0 10px 24px rgba(37, 211, 102, 0.35);
+  animation: whatsapp-pulse 5s ease-in-out infinite;
+}
+
+.whatsapp-fab:hover {
+  filter: brightness(1.07);
+}
+
+@keyframes whatsapp-pulse {
+  0%, 88%, 100% {
+    box-shadow: 0 10px 24px rgba(37, 211, 102, 0.35);
+    transform: scale(1);
+  }
+  92% {
+    box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.4);
+    transform: scale(1.03);
+  }
+  96% {
+    box-shadow: 0 0 0 10px rgba(37, 211, 102, 0);
+    transform: scale(1);
+  }
+}
+
 /* Subtle CTA glow — much more restrained than before */
 .btn-glow-cta {
   background: oklch(0.75 0.14 75);

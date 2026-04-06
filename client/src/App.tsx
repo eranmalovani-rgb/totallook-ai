@@ -1,7 +1,7 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
-import { Route, Switch } from "wouter";
+import { Route, Switch, useLocation } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { LanguageProvider } from "./i18n";
@@ -30,6 +30,7 @@ import CookieConsent from "./components/CookieConsent";
 import GlobalWhatsAppPopup from "./components/GlobalWhatsAppPopup";
 import WhatsAppReview from "./pages/WhatsAppReview";
 import About from "./pages/About";
+import WhatsAppFloatingButton from "./components/WhatsAppFloatingButton";
 
 function Router() {
   return (
@@ -64,6 +65,14 @@ function Router() {
   );
 }
 
+function LandingPageFloatingButton() {
+  const [location] = useLocation();
+  const shouldShow = location === "/" || location === "/en";
+
+  if (!shouldShow) return null;
+  return <WhatsAppFloatingButton />;
+}
+
 function App() {
   return (
     <ErrorBoundary>
@@ -73,6 +82,7 @@ function App() {
             <Toaster />
             <BackgroundWatermark />
             <Router />
+            <LandingPageFloatingButton />
             <GlobalWhatsAppPopup />
             <CookieConsent />
           </TooltipProvider>

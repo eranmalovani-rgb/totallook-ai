@@ -1,6 +1,5 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
-import { getLoginUrl } from "@/const";
 import Navbar from "@/components/Navbar";
 import { Link, useLocation } from "wouter";
 import {
@@ -13,10 +12,8 @@ import {
   Users,
   Lock,
   Camera,
+  MessageCircle,
   Eye,
-  User,
-  ArrowLeft,
-  ArrowRight,
 } from "lucide-react";
 import FashionSpinner from "@/components/FashionSpinner";
 import AnimatedSection from "@/components/AnimatedSection";
@@ -25,6 +22,7 @@ import ShowcaseSection from "@/components/ShowcaseSection";
 import { useEffect, useRef, useState } from "react";
 import { useLanguage } from "@/i18n";
 import { useFingerprint } from "@/hooks/useFingerprint";
+import WhatsAppLogo from "@/components/WhatsAppLogo";
 
 export default function Home() {
   const { user, isAuthenticated, loading: authLoading } = useAuth();
@@ -48,7 +46,7 @@ export default function Home() {
     }).catch(() => {});
   }, [fingerprint]);
 
-  const { data: profile, isLoading: profileLoading, isFetched: profileFetched } = trpc.profile.get.useQuery(
+  const { data: profile, isFetched: profileFetched } = trpc.profile.get.useQuery(
     undefined,
     { enabled: isAuthenticated }
   );
@@ -93,7 +91,7 @@ export default function Home() {
   }
 
   const steps = [
-    { num: "01", title: t("home", "step1Title"), desc: t("home", "step1Desc"), icon: User },
+    { num: "01", title: t("home", "step1Title"), desc: t("home", "step1Desc"), icon: MessageCircle },
     { num: "02", title: t("home", "step2Title"), desc: t("home", "step2Desc"), icon: Camera },
     { num: "03", title: t("home", "step3Title"), desc: t("home", "step3Desc"), icon: Zap },
     { num: "04", title: t("home", "step4Title"), desc: t("home", "step4Desc"), icon: Sparkles },
@@ -119,6 +117,7 @@ export default function Home() {
   ];
 
   const faqs = [
+    { q: t("home", "faqWhatsAppQ"), a: t("home", "faqWhatsAppA") },
     { q: t("home", "faq1Q"), a: t("home", "faq1A") },
     { q: t("home", "faq2Q"), a: t("home", "faq2A") },
     { q: t("home", "faq3Q"), a: t("home", "faq3A") },
@@ -126,7 +125,18 @@ export default function Home() {
     { q: t("home", "faq5Q"), a: t("home", "faq5A") },
   ];
 
-  const ChevronIcon = dir === "rtl" ? ArrowLeft : ArrowRight;
+  const whatsappMessage = lang === "he" ? "היי! אני רוצה ניתוח אופנתי 👋" : "Hi! I want a fashion analysis 👋";
+  const whatsappUrl = `https://wa.me/972526211811?text=${encodeURIComponent(whatsappMessage)}`;
+
+  const trackCtaClick = (target: "whatsapp" | "website", source: "hero" | "final") => {
+    if (!fingerprint) return;
+    trackPageView.mutateAsync({
+      fingerprint,
+      page: `/cta/${target}/${lang}/${source}`,
+      referrer: window.location.pathname,
+      screenWidth: window.innerWidth,
+    }).catch(() => {});
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground" dir={dir}>
@@ -181,20 +191,24 @@ export default function Home() {
           </p>
 
           {/* CTA — editorial buttons */}
-          <div className="flex flex-col sm:flex-row gap-5 items-center justify-center">
+          <div className="flex flex-col sm:flex-row gap-4 items-center justify-center">
             <a
-              href={getLoginUrl()}
-              className="btn-editorial-filled inline-flex items-center gap-3"
+              href={whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => trackCtaClick("whatsapp", "hero")}
+              className={`btn-whatsapp-primary inline-flex items-center gap-3 w-full sm:w-auto ${dir === "rtl" ? "flex-row-reverse" : ""}`}
             >
-              <Sparkles className="w-4 h-4" />
-              {t("home", "loginCtaFull")}
+              <WhatsAppLogo className="w-5 h-5" />
+              {t("home", "whatsappCta")}
             </a>
             <Link
               href="/try"
-              className="btn-editorial inline-flex items-center gap-3"
+              onClick={() => trackCtaClick("website", "hero")}
+              className={`btn-website-secondary inline-flex items-center gap-2 w-full sm:w-auto ${dir === "rtl" ? "flex-row-reverse" : ""}`}
             >
               <Camera className="w-4 h-4" />
-              {t("guest", "tryFree")}
+              {t("home", "websiteCta")}
             </Link>
           </div>
 
@@ -428,18 +442,22 @@ export default function Home() {
 
           <div className="flex flex-col sm:flex-row gap-5 items-center justify-center">
             <a
-              href={getLoginUrl()}
-              className="btn-editorial-filled inline-flex items-center gap-3"
+              href={whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => trackCtaClick("whatsapp", "final")}
+              className={`btn-whatsapp-primary inline-flex items-center gap-3 w-full sm:w-auto ${dir === "rtl" ? "flex-row-reverse" : ""}`}
             >
-              <Sparkles className="w-4 h-4" />
+              <WhatsAppLogo className="w-5 h-5" />
               {t("home", "finalCtaButton")}
             </a>
             <Link
               href="/try"
-              className="btn-editorial inline-flex items-center gap-3"
+              onClick={() => trackCtaClick("website", "final")}
+              className={`btn-website-secondary inline-flex items-center gap-2 w-full sm:w-auto ${dir === "rtl" ? "flex-row-reverse" : ""}`}
             >
               <Camera className="w-4 h-4" />
-              {t("guest", "tryFree")}
+              {t("home", "finalCtaSecondary")}
             </Link>
           </div>
 

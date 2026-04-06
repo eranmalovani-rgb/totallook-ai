@@ -7,6 +7,11 @@ export { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
  */
 const CANONICAL_ORIGIN = "https://totallook.ai";
 
+const getSafeFallbackUrl = () => {
+  if (typeof window === "undefined") return "/";
+  return `${window.location.origin}/`;
+};
+
 /**
  * Build the OAuth login URL.
  *
@@ -19,11 +24,17 @@ const CANONICAL_ORIGIN = "https://totallook.ai";
  *   { "redirectUri": "https://totallook.ai/api/oauth/callback", "returnOrigin": "https://totallook.ai" }
  */
 export const getLoginUrl = (returnPath?: string) => {
-  const oauthPortalUrl = import.meta.env.VITE_OAUTH_PORTAL_URL;
-  const appId = import.meta.env.VITE_APP_ID;
+  const oauthPortalUrl = (import.meta.env.VITE_OAUTH_PORTAL_URL || "").trim();
+  const appId = (import.meta.env.VITE_APP_ID || "").trim();
 
   // Always use the canonical origin for the redirect URI
   const redirectUri = `${CANONICAL_ORIGIN}/api/oauth/callback`;
+
+  // In preview/dev tunnels OAuth env vars may be missing.
+  // Return a safe URL instead of crashing the entire app.
+  if (!oauthPortalUrl || !appId) {
+    return getSafeFallbackUrl();
+  }
 
   // Encode both the redirect URI and the caller's origin + optional path
   const statePayload = JSON.stringify({
@@ -33,7 +44,15 @@ export const getLoginUrl = (returnPath?: string) => {
   });
   const state = btoa(statePayload);
 
-  const url = new URL(`${oauthPortalUrl}/app-auth`);
+  let url: URL;
+  try {
+    const normalizedPortal = /^https?:\/\//.test(oauthPortalUrl)
+      ? oauthPortalUrl
+      : `https://${oauthPortalUrl}`;
+    url = new URL("/app-auth", normalizedPortal);
+  } catch {
+    return getSafeFallbackUrl();
+  }
   url.searchParams.set("appId", appId);
   url.searchParams.set("redirectUri", redirectUri);
   url.searchParams.set("state", state);

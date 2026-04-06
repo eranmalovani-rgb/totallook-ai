@@ -1,4 +1,3 @@
-import { getLoginUrl } from "@/const";
 import Navbar from "@/components/Navbar";
 import { Link } from "wouter";
 import {
@@ -12,7 +11,7 @@ import {
   Lock,
   Camera,
   Eye,
-  User,
+  MessageCircle,
 } from "lucide-react";
 import AnimatedSection from "@/components/AnimatedSection";
 import FeedPromoSection from "@/components/FeedPromoSection";
@@ -21,6 +20,7 @@ import { useEffect, useRef } from "react";
 import { useLanguage } from "@/i18n";
 import { useFingerprint } from "@/hooks/useFingerprint";
 import { trpc } from "@/lib/trpc";
+import WhatsAppLogo from "@/components/WhatsAppLogo";
 
 export default function LandingEN() {
   const { setLang } = useLanguage();
@@ -28,6 +28,8 @@ export default function LandingEN() {
   const isPreview = new URLSearchParams(window.location.search).get("preview") === "1";
   const trackingRef = useRef(false);
   const trackPageView = trpc.tracking.trackPageView.useMutation();
+  const whatsappMessage = "Hi! I want a fashion analysis 👋";
+  const whatsappUrl = `https://wa.me/972526211811?text=${encodeURIComponent(whatsappMessage)}`;
 
   useEffect(() => {
     setLang("en");
@@ -45,12 +47,12 @@ export default function LandingEN() {
   }, [fingerprint]);
 
   const steps = [
-    { num: "01", title: "Create Your Style Profile", desc: "Tell us your vibe — age, style preferences, favorite influencers, and budget. We personalize everything.", icon: User },
-    { num: "02", title: "Snap Your Outfit", desc: "Take a photo of what you're wearing. Full body, good lighting — that's all we need.", icon: Camera },
-    { num: "03", title: "Get Your AI Analysis", desc: "Instant breakdown: overall score, item-by-item ratings, brand detection, color harmony, and fit assessment.", icon: Zap },
-    { num: "04", title: "Level Up Your Look", desc: "Personalized upgrade suggestions with shopping links to SSENSE, Farfetch, Nike, Zara, and more.", icon: Sparkles },
-    { num: "05", title: "Build Your Virtual Wardrobe", desc: "Every item you wear gets saved. Browse by category, search by brand, and build new outfits from your closet.", icon: Shirt },
-    { num: "06", title: "Join the Style Feed", desc: "Share your looks, discover what others are wearing, get likes and comments from the community.", icon: Users },
+    { num: "01", title: "Send a photo on WhatsApp", desc: "Tap the button and send a photo of your look. That's it.", icon: MessageCircle },
+    { num: "02", title: "Get a full analysis", desc: "Within minutes, get a score, item detection, and upgrade recommendations.", icon: Zap },
+    { num: "03", title: "Shop the recommendations", desc: "Get direct links to stores with the suggested products.", icon: ShoppingBag },
+    { num: "04", title: "Register once (optional)", desc: "Want deeper personalization? Register once and unlock the full personalized experience.", icon: Sparkles },
+    { num: "05", title: "Fix My Look", desc: "AI generates an upgraded preview of your outfit with the selected recommendations.", icon: Shirt },
+    { num: "06", title: "Build a smart wardrobe", desc: "Your detected items are saved automatically for smarter recommendations over time.", icon: Users },
   ];
 
   const features = [
@@ -71,12 +73,23 @@ export default function LandingEN() {
   ];
 
   const faqs = [
+    { q: "How does the WhatsApp analysis work?", a: "Just send a photo of your outfit to our WhatsApp number. Within minutes you'll receive a full analysis with score, item identification, improvement tips, and shopping links. No app download or signup needed." },
     { q: "Is TotalLook really free?", a: "Yes! TotalLook is free for personal use. Upload unlimited outfits, get AI analysis, build your wardrobe, and join the community — all at no cost." },
     { q: "How accurate is the AI analysis?", a: "Our AI detects brands, colors, fit, and style with high accuracy. It recognizes 50+ fashion brands and provides detailed category scores. The more you use it, the more personalized it gets." },
     { q: "Is my data private?", a: "Absolutely. Your photos and analysis are private by default. Nothing is shared unless you explicitly choose to post to the Style Feed. You can delete your data at any time." },
     { q: "What kind of outfits work best?", a: "Full-body photos in good lighting work best. Casual, streetwear, smart casual, formal — any style works. The AI adapts to your context and occasion." },
     { q: "Can I use it on mobile?", a: "Yes! TotalLook is fully mobile-optimized. Snap a photo directly from your camera or upload from your gallery." },
   ];
+
+  const trackCtaClick = (target: "whatsapp" | "website", source: "hero" | "final") => {
+    if (!fingerprint) return;
+    trackPageView.mutateAsync({
+      fingerprint,
+      page: `/cta/${target}/en/${source}`,
+      referrer: window.location.pathname,
+      screenWidth: window.innerWidth,
+    }).catch(() => {});
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground" dir="ltr">
@@ -106,9 +119,9 @@ export default function LandingEN() {
           </p>
 
           <h1 className="text-6xl md:text-8xl lg:text-9xl mb-8">
-            <span className="text-primary italic">Your Personal</span>
+            <span className="text-primary italic">Your Personal Stylist</span>
             <br />
-            <span className="text-foreground">AI Stylist</span>
+            <span className="text-foreground">Awaits You on WhatsApp</span>
           </h1>
 
           {/* Decorative flourish */}
@@ -119,23 +132,33 @@ export default function LandingEN() {
           </div>
 
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto font-light tracking-wide leading-relaxed mb-14">
-            Snap a photo of your outfit. Get an instant AI analysis with scores,
-            upgrade suggestions, shopping links, and a virtual wardrobe — all in seconds.
+            Send a photo on WhatsApp and get a complete fashion analysis with score,
+            improvement tips, and shopping links. In minutes. For free.
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-5 items-center justify-center">
-            <a href={getLoginUrl()} className="btn-editorial-filled inline-flex items-center gap-3">
-              <Sparkles className="w-4 h-4" />
-              Get Started Free
+          <div className="flex flex-col sm:flex-row gap-4 items-center justify-center">
+            <a
+              href={whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => trackCtaClick("whatsapp", "hero")}
+              className="btn-whatsapp-primary inline-flex items-center gap-3 w-full sm:w-auto"
+            >
+              <WhatsAppLogo className="w-5 h-5" />
+              Send a photo on WhatsApp — Start now
             </a>
-            <Link href="/try" className="btn-editorial inline-flex items-center gap-3">
+            <Link
+              href="/try"
+              onClick={() => trackCtaClick("website", "hero")}
+              className="btn-website-secondary inline-flex items-center gap-2 w-full sm:w-auto"
+            >
               <Camera className="w-4 h-4" />
-              Try Without Signing Up
+              Or upload a photo on the website
             </Link>
           </div>
 
           <p className="editorial-label mt-8 text-muted-foreground/40">
-            No credit card required. Free forever for personal use.
+            No signup · No payment · Instant results
           </p>
         </div>
       </section>
@@ -333,9 +356,7 @@ export default function LandingEN() {
 
           <p className="editorial-label text-primary mb-6">Ready?</p>
 
-          <h2 className="text-4xl md:text-6xl lg:text-7xl mb-8">
-            Ready to Upgrade Your Style?
-          </h2>
+          <h2 className="text-4xl md:text-6xl lg:text-7xl mb-8">Ready to upgrade your style?</h2>
 
           <div className="editorial-flourish mb-10">
             <div className="editorial-flourish-line" />
@@ -348,13 +369,23 @@ export default function LandingEN() {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-5 items-center justify-center">
-            <a href={getLoginUrl()} className="btn-editorial-filled inline-flex items-center gap-3">
-              <Sparkles className="w-4 h-4" />
-              Start Now — It's Free
+            <a
+              href={whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => trackCtaClick("whatsapp", "final")}
+              className="btn-whatsapp-primary inline-flex items-center gap-3 w-full sm:w-auto"
+            >
+              <WhatsAppLogo className="w-5 h-5" />
+              Send a photo on WhatsApp
             </a>
-            <Link href="/try" className="btn-editorial inline-flex items-center gap-3">
+            <Link
+              href="/try"
+              onClick={() => trackCtaClick("website", "final")}
+              className="btn-website-secondary inline-flex items-center gap-2 w-full sm:w-auto"
+            >
               <Camera className="w-4 h-4" />
-              Try Without Signing Up
+              Or upload on the website
             </Link>
           </div>
 
