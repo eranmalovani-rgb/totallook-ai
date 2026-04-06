@@ -74,12 +74,85 @@ const DAILY_LIMIT = 10;
 const GUEST_LIFETIME_LIMIT = 2;
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 const QUICK_GUEST_FOLLOW_UP_DELAY_MS = 2 * 60 * 1000; // 2 minutes
+const NETWORK_RETRY_ATTEMPTS = 3;
+const NETWORK_RETRY_BASE_DELAY_MS = 750;
 
 // Processing lock: only one image at a time per phone number
 // Tracks which phones currently have an analysis in progress
 // Value: timestamp when lock was acquired (for stale lock cleanup) + whether rejection msg was sent
 const processingLock = new Map<string, { lockedAt: number; rejectionSent: boolean }>();
 const LOCK_TIMEOUT_MS = 3 * 60 * 1000; // 3 minutes — auto-release stale locks
+
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+function isRetryableNetworkErrorMessage(message: string): boolean {
+  return (
+    message.includes("429") ||
+    message.includes("500") ||
+    message.includes("502") ||
+    message.includes("503") ||
+    message.includes("504") ||
+    message.includes("fetch failed") ||
+    message.includes("ECONNRESET") ||
+    message.includes("ETIMEDOUT") ||
+    message.includes("EAI_AGAIN") ||
+    message.includes("ENOTFOUND")
+  );
+}
+
+async function fetchWithRetry(url: string, init: RequestInit, label: string): Promise<Response> {
+  let lastError: Error | null = null;
+
+  for (let attempt = 1; attempt <= NETWORK_RETRY_ATTEMPTS; attempt++) {
+    try {
+      const response = await fetch(url, init);
+      if (response.ok) {
+        return response;
+      }
+
+      const detail = await response.text().catch(() => "");
+      const statusMsg = `${response.status}${detail ? ` — ${detail}` : ""}`;
+      const retryable = response.status === 429 || response.status >= 500;
+
+      if (!retryable || attempt === NETWORK_RETRY_ATTEMPTS) {
+        throw new Error(`${label} failed: ${statusMsg}`);
+      }
+
+      console.warn(
+        `[WhatsApp] ${label} retry ${attempt}/${NETWORK_RETRY_ATTEMPTS} after status ${response.status}`
+      );
+    } catch (err: any) {
+      const message = String(err?.message || err || "");
+      const retryable = isRetryableNetworkErrorMessage(message);
+
+      if (!retryable || attempt === NETWORK_RETRY_ATTEMPTS) {
+        lastError = err instanceof Error ? err : new Error(message);
+        break;
+      }
+
+      console.warn(
+        `[WhatsApp] ${label} network retry ${attempt}/${NETWORK_RETRY_ATTEMPTS}: ${message}`
+      );
+    }
+
+    const backoffMs = NETWORK_RETRY_BASE_DELAY_MS * Math.pow(2, attempt - 1);
+    await sleep(backoffMs);
+  }
+
+  throw lastError || new Error(`${label} failed after retries`);
+}
+
+async function normalizeWhatsAppImageForAnalysis(buffer: Buffer): Promise<Buffer> {
+  try {
+    const sharp = (await import("sharp")).default;
+    return await sharp(buffer)
+      .rotate()
+      .jpeg({ quality: 90, mozjpeg: true })
+      .toBuffer();
+  } catch (err: any) {
+    throw new Error(`INVALID_IMAGE_INPUT: ${err?.message || "Image could not be decoded"}`);
+  }
+}
 
 /**
  * Check if a phone number belongs to the owner (exempt from guest limits).
@@ -306,12 +379,30 @@ async function handleIncomingMessage(message: MetaWhatsAppMessage, profileName: 
 
   try {
     // Step 1: Download image from Meta (via Graph API)
-    const imageBuffer = await downloadMetaMedia(message.image!.id);
+    const rawImageBuffer = await downloadMetaMedia(message.image!.id);
+    const imageBuffer = await normalizeWhatsAppImageForAnalysis(rawImageBuffer);
 
     // Step 2: Upload to S3
     const phoneClean = from.replace(/[^0-9]/g, "");
     const s3Key = `whatsapp/${phoneClean}/${Date.now()}.jpg`;
-    const { url: s3Url } = await storagePut(s3Key, imageBuffer, "image/jpeg");
+    let s3Url = "";
+    for (let attempt = 1; attempt <= NETWORK_RETRY_ATTEMPTS; attempt++) {
+      try {
+        const uploadRes = await storagePut(s3Key, imageBuffer, "image/jpeg");
+        s3Url = uploadRes.url || "";
+        if (!s3Url) throw new Error("Missing S3 URL after upload");
+        break;
+      } catch (uploadErr: any) {
+        const msg = String(uploadErr?.message || "");
+        const retryable = isRetryableNetworkErrorMessage(msg);
+        if (!retryable || attempt === NETWORK_RETRY_ATTEMPTS) {
+          throw uploadErr;
+        }
+        const backoffMs = NETWORK_RETRY_BASE_DELAY_MS * Math.pow(2, attempt - 1);
+        console.warn(`[WhatsApp] storage upload retry ${attempt}/${NETWORK_RETRY_ATTEMPTS}: ${msg}`);
+        await sleep(backoffMs);
+      }
+    }
 
     // Step 3: Use already-fetched user match (or re-fetch if needed)
     // We already looked up the user for gender above
@@ -351,13 +442,38 @@ async function handleIncomingMessage(message: MetaWhatsAppMessage, profileName: 
       await handleGuestAnalysis(from, profileName, s3Url, s3Key, phoneClean);
     }
   } catch (error: any) {
-    console.error(`[WhatsApp] Analysis failed for ${from}:`, error);
-    await sendWhatsAppMessage(
-      from,
-      `😔 סליחה, משהו השתבש בניתוח. ${g.try_} שוב בעוד רגע.\n\n` +
-      `💡 טיפ: ${g.send} תמונה ברורה שמראה את הלוק המלא.`,
-      { name: "totallook_error" },
-    );
+    const msg = String(error?.message || "");
+    console.error(`[WhatsApp] Analysis failed for ${from}:`, msg);
+
+    const isInvalidImage =
+      msg.includes("INVALID_IMAGE_INPUT") ||
+      msg.toLowerCase().includes("unsupported image");
+    const isMediaFetchError =
+      msg.includes("Failed to get media URL") ||
+      msg.includes("Failed to download media file");
+
+    if (isInvalidImage) {
+      await sendWhatsAppMessage(
+        from,
+        `😕 התמונה שהועלתה לא נתמכת לניתוח.\n\n` +
+        `📸 ${g.send} צילום ברור בפורמט JPG/PNG (עדיף תמונה מלאה של הלוק) ונסה/י שוב.`,
+        { name: "totallook_error" },
+      );
+    } else if (isMediaFetchError) {
+      await sendWhatsAppMessage(
+        from,
+        `⏳ יש כרגע תקלה זמנית בקבלת התמונה מ-WhatsApp.\n` +
+        `${g.try_} לשלוח שוב בעוד דקה.`,
+        { name: "totallook_error" },
+      );
+    } else {
+      await sendWhatsAppMessage(
+        from,
+        `😔 סליחה, משהו השתבש בניתוח. ${g.try_} שוב בעוד רגע.\n\n` +
+        `💡 טיפ: ${g.send} תמונה ברורה שמראה את הלוק המלא.`,
+        { name: "totallook_error" },
+      );
+    }
   } finally {
     // Always release the processing lock when done (success or failure)
     processingLock.delete(from);
@@ -1068,25 +1184,20 @@ async function downloadMetaMedia(mediaId: string): Promise<Buffer> {
   }
 
   // Step 1: Get the media URL
-  const metaResponse = await fetch(`${GRAPH_API_BASE}/${mediaId}`, {
-    headers: { Authorization: `Bearer ${WHATSAPP_TOKEN}` },
-  });
-
-  if (!metaResponse.ok) {
-    const errorText = await metaResponse.text();
-    throw new Error(`Failed to get media URL: ${metaResponse.status} — ${errorText}`);
-  }
+  const metaResponse = await fetchWithRetry(
+    `${GRAPH_API_BASE}/${mediaId}`,
+    { headers: { Authorization: `Bearer ${WHATSAPP_TOKEN}` } },
+    "Meta media URL fetch"
+  );
 
   const mediaInfo = await metaResponse.json() as { url: string };
 
   // Step 2: Download the actual file
-  const fileResponse = await fetch(mediaInfo.url, {
-    headers: { Authorization: `Bearer ${WHATSAPP_TOKEN}` },
-  });
-
-  if (!fileResponse.ok) {
-    throw new Error(`Failed to download media file: ${fileResponse.status}`);
-  }
+  const fileResponse = await fetchWithRetry(
+    mediaInfo.url,
+    { headers: { Authorization: `Bearer ${WHATSAPP_TOKEN}` } },
+    "Meta media file download"
+  );
 
   return Buffer.from(await fileResponse.arrayBuffer());
 }
