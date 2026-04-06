@@ -60,8 +60,6 @@ async function notifyGuestAnalysisCompleted(
     console.warn("[Guest] Failed to send admin notification:", err);
   }
 }
-import sharp from "sharp";
-
 /**
  * Store search URL patterns — maps store domain to a function that builds
  * a product-specific search URL from a search query string.
@@ -2060,44 +2058,19 @@ Write a precise image editing prompt to improve this outfit photo by replacing o
         // Generate the fixed image using ONLY the original photo as reference
         // (passing product images as additional references confuses the AI and causes it to generate a different person)
         try {
+          const targetSize =
+            imageDimensions.width > 0 && imageDimensions.height > 0
+              ? { width: imageDimensions.width, height: imageDimensions.height }
+              : undefined;
+
           let { url: fixedImageUrl } = await generateImage({
             prompt: editPrompt,
             originalImages: [{
               url: review.imageUrl,
               mimeType: "image/jpeg",
             }],
+            targetSize,
           });
-
-          // Auto-rotate if orientation mismatch detected
-          if (fixedImageUrl && imageDimensions.width > 0) {
-            try {
-              const generatedProbe = await probeImageSize(fixedImageUrl);
-              const origIsPortrait = imageDimensions.height > imageDimensions.width;
-              const genIsPortrait = generatedProbe.height > generatedProbe.width;
-              
-              console.log(`[Fix My Look] Original: ${imageDimensions.width}x${imageDimensions.height} (${origIsPortrait ? 'portrait' : 'landscape'}), Generated: ${generatedProbe.width}x${generatedProbe.height} (${genIsPortrait ? 'portrait' : 'landscape'})`);
-              
-              if (origIsPortrait !== genIsPortrait) {
-                console.log(`[Fix My Look] Orientation mismatch! Auto-rotating 90°...`);
-                const imgResponse = await fetch(fixedImageUrl);
-                const imgBuffer = Buffer.from(await imgResponse.arrayBuffer());
-                const rotatedBuffer = await sharp(imgBuffer).rotate(90).toBuffer();
-                const { url: rotatedUrl } = await storagePut(
-                  `generated/rotated-${Date.now()}.png`,
-                  rotatedBuffer,
-                  "image/png"
-                );
-                if (rotatedUrl) {
-                  fixedImageUrl = rotatedUrl;
-                  console.log(`[Fix My Look] Auto-rotated image saved successfully.`);
-                }
-              } else {
-                console.log(`[Fix My Look] Orientations match — no rotation needed.`);
-              }
-            } catch (rotateErr) {
-              console.warn("[Fix My Look] Auto-rotation failed, using original generated image:", rotateErr);
-            }
-          }
 
           // Collect shopping links from relevant improvements
           const shoppingLinks = relevantImprovements
@@ -3835,28 +3808,16 @@ The original photo is ${imageOrientation} orientation (${imageDimensions.width}x
           : "Improve the outfit in this fashion photo with better styled alternatives";
 
         try {
+          const targetSize =
+            imageDimensions.width > 0 && imageDimensions.height > 0
+              ? { width: imageDimensions.width, height: imageDimensions.height }
+              : undefined;
+
           let { url: fixedImageUrl } = await generateImage({
             prompt: editPrompt,
             originalImages: [{ url: session.imageUrl!, mimeType: "image/jpeg" }],
+            targetSize,
           });
-
-          // Auto-rotate if orientation mismatch
-          if (fixedImageUrl && imageDimensions.width > 0) {
-            try {
-              const generatedProbe = await probeImageSize(fixedImageUrl);
-              const origIsPortrait = imageDimensions.height > imageDimensions.width;
-              const genIsPortrait = generatedProbe.height > generatedProbe.width;
-              if (origIsPortrait !== genIsPortrait) {
-                const imgResponse = await fetch(fixedImageUrl);
-                const imgBuffer = Buffer.from(await imgResponse.arrayBuffer());
-                const rotatedBuffer = await sharp(imgBuffer).rotate(90).toBuffer();
-                const { url: rotatedUrl } = await storagePut(`generated/guest-rotated-${Date.now()}.png`, rotatedBuffer, "image/png");
-                if (rotatedUrl) fixedImageUrl = rotatedUrl;
-              }
-            } catch (rotateErr) {
-              console.warn("[Guest Fix My Look] Auto-rotation failed:", rotateErr);
-            }
-          }
 
           const shoppingLinks = relevantImprovements.flatMap(imp => imp.shoppingLinks || []).slice(0, 6);
           const avgFixedItemScore = itemsToFix.reduce((sum, item) => sum + item.score, 0) / itemsToFix.length;
