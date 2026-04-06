@@ -296,6 +296,35 @@ describe("WhatsApp Integration v3 (Meta Cloud API)", () => {
     });
   });
 
+  describe("Welcome Message Sending", () => {
+    it("should return sent=true when welcome template is accepted by Meta", async () => {
+      const { sendWhatsAppWelcome } = await import("./whatsapp");
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ messages: [{ id: "wamid.welcome.ok" }] }),
+        text: async () => "ok",
+      });
+
+      const result = await sendWhatsAppWelcome("+972501234567", "דנה", true, "female");
+      expect(result.sent).toBe(true);
+    });
+
+    it("should return sent=false when Meta rejects the welcome template", async () => {
+      const { sendWhatsAppWelcome } = await import("./whatsapp");
+
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({}),
+        text: async () => '{"error":{"message":"template missing"}}',
+      });
+
+      const result = await sendWhatsAppWelcome("+972501234567", "דנה", true, "female");
+      expect(result.sent).toBe(false);
+      expect(result.error).toBe("send_failed");
+    });
+  });
+
   describe("Owner Phone Detection", () => {
     it("should identify owner phone number", async () => {
       const { isOwnerPhone } = await import("./whatsapp");
