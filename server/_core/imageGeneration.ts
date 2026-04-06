@@ -28,6 +28,10 @@ export type GenerateImageOptions = {
     b64Json?: string;
     mimeType?: string;
   }>;
+  targetSize?: {
+    width: number;
+    height: number;
+  };
 };
 
 export type GenerateImageResponse = {
@@ -57,47 +61,70 @@ async function generateWithOpenAI(
   const hasOriginalImages = options.originalImages && options.originalImages.length > 0;
 
   if (hasOriginalImages) {
-    // For image editing, use gpt-image-1 (DALL-E 3 doesn't support editing)
-    // We'll use the images API with the edit endpoint
-    const original = options.originalImages![0];
-    let imageData: string | undefined;
+    // For editing, use gpt-image-1 edit endpoint with reference images.
+    const formData = new FormData();
+    formData.append("model", "gpt-image-1");
+    formData.append("prompt", options.prompt);
+    formData.append("size", "auto");
+    formData.append("quality", "high");
+    formData.append("input_fidelity", "high");
 
-    if (original.b64Json) {
-      imageData = original.b64Json;
-    } else if (original.url) {
-      // Download the original image and convert to base64
-      const imgResp = await fetch(original.url);
-      if (!imgResp.ok) throw new Error(`Failed to fetch original image: ${imgResp.status}`);
-      const imgBuffer = Buffer.from(await imgResp.arrayBuffer());
-      imageData = imgBuffer.toString("base64");
+    for (let i = 0; i < options.originalImages!.length; i++) {
+      const original = options.originalImages![i];
+      if (original.b64Json) {
+        const contentType = original.mimeType || "image/jpeg";
+        const ext = contentType.includes("png") ? "png" : "jpg";
+        const buffer = Buffer.from(original.b64Json, "base64");
+        const blob = new Blob([buffer], { type: contentType });
+        formData.append("image[]", blob, `reference_${i}.${ext}`);
+        continue;
+      }
+      if (original.url) {
+        const imgResp = await fetch(original.url);
+        if (!imgResp.ok) {
+          throw new Error(`Failed to fetch original image: ${imgResp.status}`);
+        }
+        const imgBuffer = Buffer.from(await imgResp.arrayBuffer());
+        const contentType = imgResp.headers.get("content-type") || original.mimeType || "image/jpeg";
+        const ext = contentType.includes("png") ? "png" : "jpg";
+        const blob = new Blob([imgBuffer], { type: contentType });
+        formData.append("image[]", blob, `reference_${i}.${ext}`);
+      }
     }
 
-    // Use DALL-E 2 edit endpoint (DALL-E 3 doesn't support edits)
-    // Fall back to generating a new image with the edit prompt
-    const response = await fetch("https://api.openai.com/v1/images/generations", {
+    const response = await fetch("https://api.openai.com/v1/images/edits", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
         "Authorization": `Bearer ${getOpenAIKey()}`,
       },
-      body: JSON.stringify({
-        model: "dall-e-3",
-        prompt: options.prompt,
-        n: 1,
-        size: "1024x1024",
-        response_format: "b64_json",
-        quality: "standard",
-      }),
+      body: formData,
     });
 
     if (!response.ok) {
       const detail = await response.text().catch(() => "");
-      throw new Error(`OpenAI image generation failed (${response.status}): ${detail}`);
+      throw new Error(`OpenAI image edit failed (${response.status}): ${detail}`);
     }
 
     const result = await response.json();
+    if (result.data?.[0]?.b64_json) {
+      return {
+        base64: result.data[0].b64_json,
+        mimeType: "image/png",
+      };
+    }
+    if (result.data?.[0]?.url) {
+      const imgResp = await fetch(result.data[0].url);
+      if (!imgResp.ok) {
+        throw new Error(`OpenAI image edit URL fetch failed (${imgResp.status})`);
+      }
+      const imgBuffer = Buffer.from(await imgResp.arrayBuffer());
+      return {
+        base64: imgBuffer.toString("base64"),
+        mimeType: "image/png",
+      };
+    }
     return {
-      base64: result.data[0].b64_json,
+      base64: result.data?.[0]?.b64_json,
       mimeType: "image/png",
     };
   }
@@ -176,6 +203,46 @@ async function generateWithForge(
   };
 }
 
+function getOrientation(width: number, height: number): "portrait" | "landscape" | "square" {
+  if (width === height) return "square";
+  return width > height ? "landscape" : "portrait";
+}
+
+async function normalizeToTargetSize(
+  buffer: Buffer,
+  targetSize: NonNullable<GenerateImageOptions["targetSize"]>
+): Promise<Buffer> {
+  const sharp = (await import("sharp")).default;
+  const sourceMetadata = await sharp(buffer).metadata();
+  const sourceWidth = sourceMetadata.width ?? 0;
+  const sourceHeight = sourceMetadata.height ?? 0;
+
+  const targetOrientation = getOrientation(targetSize.width, targetSize.height);
+  const sourceOrientation =
+    sourceWidth > 0 && sourceHeight > 0
+      ? getOrientation(sourceWidth, sourceHeight)
+      : null;
+
+  const shouldRotate =
+    sourceOrientation !== null &&
+    sourceOrientation !== "square" &&
+    targetOrientation !== "square" &&
+    sourceOrientation !== targetOrientation;
+
+  let pipeline = sharp(buffer);
+  if (shouldRotate) {
+    pipeline = pipeline.rotate(90);
+    console.log(
+      `[ImageGen] Rotated output 90° for orientation match (${sourceWidth}x${sourceHeight} -> ${targetOrientation})`
+    );
+  }
+
+  return pipeline
+    .resize(targetSize.width, targetSize.height, { fit: "fill" })
+    .png()
+    .toBuffer();
+}
+
 export async function generateImage(
   options: GenerateImageOptions
 ): Promise<GenerateImageResponse> {
@@ -190,7 +257,20 @@ export async function generateImage(
     imageData = await generateWithForge(options);
   }
 
-  const buffer = Buffer.from(imageData.base64, "base64");
+  let buffer = Buffer.from(imageData.base64, "base64");
+  if (options.targetSize?.width && options.targetSize?.height) {
+    try {
+      buffer = await normalizeToTargetSize(buffer, options.targetSize);
+      console.log(
+        `[ImageGen] Matched output size to ${options.targetSize.width}x${options.targetSize.height}`
+      );
+      imageData.mimeType = "image/png";
+    } catch (resizeErr: any) {
+      console.warn(
+        `[ImageGen] Failed to resize output to target dimensions: ${resizeErr?.message}`
+      );
+    }
+  }
 
   // Save to S3
   const { url } = await storagePut(
