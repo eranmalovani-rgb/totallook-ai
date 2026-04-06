@@ -18,7 +18,6 @@ const redirectToLoginIfUnauthorized = (error: unknown) => {
 
   if (!isUnauthorized) return;
 
-  // Redirect to our own login page instead of Manus OAuth
   window.location.href = getLoginUrl();
 };
 

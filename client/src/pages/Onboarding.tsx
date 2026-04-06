@@ -6,19 +6,21 @@ import WhatsAppOnboardingModal from "@/components/WhatsAppOnboardingModal";
 import { useLocation } from "wouter";
 import { Sparkles, ChevronLeft, ChevronRight, Store, MapPin, Globe, MessageCircle } from "lucide-react";
 import FashionSpinner, { FashionButtonSpinner } from "@/components/FashionSpinner";
+import StoreLogo from "@/components/StoreLogo";
 import { toast } from "sonner";
 import {
   AGE_RANGES, GENDER_OPTIONS, OCCUPATION_OPTIONS,
   BUDGET_OPTIONS, STYLE_OPTIONS, STORE_OPTIONS, COUNTRY_STORE_MAP,
 } from "../../../shared/fashionTypes";
 import InfluencerPicker from "@/components/InfluencerPicker";
+import SocialConnectionsStep from "@/components/SocialConnectionsStep";
 import PhoneInput from "@/components/PhoneInput";
 import { useLanguage } from "@/i18n";
 import { translations } from "@/i18n/translations";
 import { useCountry } from "@/hooks/useCountry";
 import { getCountryFlag, getCountryName } from "../../../shared/countries";
 
-const TOTAL_STEPS = 4;
+const TOTAL_STEPS = 5;
 
 export default function Onboarding() {
   const { user, isAuthenticated, loading: authLoading } = useAuth({ redirectOnUnauthenticated: true });
@@ -148,7 +150,8 @@ export default function Onboarding() {
       case 1: return !!gender && !!ageRange;
       case 2: return !!occupation && !!budgetLevel;
       case 3: return stylePreferences.length > 0; // stores optional
-      case 4: return true; // influencers optional
+      case 4: return true; // social connections — always can proceed
+      case 5: return true; // influencers optional
       default: return false;
     }
   };
@@ -437,10 +440,10 @@ export default function Onboarding() {
                               className={`p-2 rounded-lg border text-center transition-all duration-200 ${
                                 isSelected
                                   ? "bg-primary text-primary-foreground border-primary"
-                                  : "bg-card border-white/10 hover:border-primary/30 text-foreground"
+                                  : "bg-white/95 border-white/20 hover:border-primary/30"
                               }`}
                             >
-                              <span className="text-xs font-medium block truncate">{store.name}</span>
+                              <StoreLogo name={store.name} size="sm" selected={isSelected} />
                             </button>
                           );
                         })}
@@ -465,10 +468,10 @@ export default function Onboarding() {
                               className={`p-2 rounded-lg border text-center transition-all duration-200 ${
                                 isSelected
                                   ? "bg-primary text-primary-foreground border-primary"
-                                  : "bg-card border-white/10 hover:border-primary/30 text-foreground"
+                                  : "bg-white/95 border-white/20 hover:border-primary/30"
                               }`}
                             >
-                              <span className="text-xs font-medium block truncate">{store.label}</span>
+                              <StoreLogo name={store.label} size="sm" selected={isSelected} />
                             </button>
                           );
                         })}
@@ -493,10 +496,10 @@ export default function Onboarding() {
                               className={`p-2 rounded-lg border text-center transition-all duration-200 ${
                                 isSelected
                                   ? "bg-primary text-primary-foreground border-primary"
-                                  : "bg-card border-white/10 hover:border-primary/30 text-foreground"
+                                  : "bg-white/95 border-white/20 hover:border-primary/30"
                               }`}
                             >
-                              <span className="text-xs font-medium block truncate">{store.label}</span>
+                              <StoreLogo name={store.label} size="sm" selected={isSelected} />
                             </button>
                           );
                         })}
@@ -537,8 +540,15 @@ export default function Onboarding() {
             </div>
           )}
 
-          {/* ═══ Step 4: Influencers (optional) ═══ */}
+          {/* ═══ Step 4: Social Connections ═══ */}
           {step === 4 && (
+            <SocialConnectionsStep
+              onInstagramClick={() => setStep(5)}
+            />
+          )}
+
+          {/* ═══ Step 5: Influencers (optional) ═══ */}
+          {step === 5 && (
             <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
               <h2 className="text-2xl md:text-3xl font-bold text-center">{t("onboarding", "influencerTitle")}</h2>
               <p className="text-muted-foreground text-center text-sm">
@@ -650,8 +660,8 @@ export default function Onboarding() {
             )}
           </div>
 
-          {/* Skip button for optional steps (3 stores part, 4 influencers) */}
-          {step === 4 && (
+          {/* Skip button for optional steps (5 influencers) */}
+          {step === 5 && (
             <div className="text-center mt-4">
               <button
                 onClick={handleFinish}

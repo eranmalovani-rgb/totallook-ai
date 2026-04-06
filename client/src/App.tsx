@@ -30,13 +30,11 @@ import CookieConsent from "./components/CookieConsent";
 import GlobalWhatsAppPopup from "./components/GlobalWhatsAppPopup";
 import WhatsAppReview from "./pages/WhatsAppReview";
 import About from "./pages/About";
-import Login from "./pages/Login";
 
 function Router() {
   return (
     <Switch>
       <Route path={"/"} component={Home} />
-      <Route path="/login" component={Login} />
       <Route path={"/upload"} component={Upload} />
       <Route path={"/review/:id"} component={ReviewPage} />
       <Route path={"/history"} component={History} />

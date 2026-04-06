@@ -1,9 +1,0 @@
-{
-  "query": "DELETE fp FROM feedPosts fp LEFT JOIN users u ON fp.userId = u.id WHERE u.id IS NULL; DELETE l FROM likes l LEFT JOIN users u ON l.userId = u.id WHERE u.id IS NULL; DELETE n FROM notifications n LEFT JOIN users u ON n.userId = u.id WHERE u.id IS NULL; DELETE f FROM follows f LEFT JOIN users u ON f.followerId = u.id WHERE u.id IS NULL; DELETE f FROM follows f LEFT JOIN users u ON f.followedId = u.id WHERE u.id IS NULL; DELETE n FROM notifications n LEFT JOIN users u ON n.actorId = u.id WHERE u.id IS NULL;",
-  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user RfxnZb4sKQE9yA3.root --database SGdPHKr3xPrRPbHA9C9esB --execute DELETE fp FROM feedPosts fp LEFT JOIN users u ON fp.userId = u.id WHERE u.id IS NULL; DELETE l FROM likes l LEFT JOIN users u ON l.userId = u.id WHERE u.id IS NULL; DELETE n FROM notifications n LEFT JOIN users u ON n.userId = u.id WHERE u.id IS NULL; DELETE f FROM follows f LEFT JOIN users u ON f.followerId = u.id WHERE u.id IS NULL; DELETE f FROM follows f LEFT JOIN users u ON f.followedId = u.id WHERE u.id IS NULL; DELETE n FROM notifications n LEFT JOIN users u ON n.actorId = u.id WHERE u.id IS NULL;",
-  "rows": [],
-  "messages": [],
-  "stdout": "",
-  "stderr": "",
-  "execution_time_ms": 115
-}

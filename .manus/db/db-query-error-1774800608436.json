@@ -1,8 +1,0 @@
-{
-  "query": "SELECT \n  DATE(u.createdAt) as registration_date,\n  COUNT(*) as new_users,\n  SUM(CASE WHEN r.id IS NOT NULL THEN 1 ELSE 0 END) as users_with_reviews\nFROM users u\nLEFT JOIN (SELECT DISTINCT userId FROM reviews) r ON r.userId = u.id\nGROUP BY DATE(u.createdAt)\nORDER BY registration_date DESC;",
-  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user RfxnZb4sKQE9yA3.root --database SGdPHKr3xPrRPbHA9C9esB --execute SELECT \n  DATE(u.createdAt) as registration_date,\n  COUNT(*) as new_users,\n  SUM(CASE WHEN r.id IS NOT NULL THEN 1 ELSE 0 END) as users_with_reviews\nFROM users u\nLEFT JOIN (SELECT DISTINCT userId FROM reviews) r ON r.userId = u.id\nGROUP BY DATE(u.createdAt)\nORDER BY registration_date DESC;",
-  "returncode": 1,
-  "logs": [
-    "ERROR 1054 (42S22) at line 1: Unknown column 'r.id' in 'group statement'"
-  ]
-}

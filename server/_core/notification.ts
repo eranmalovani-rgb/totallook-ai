@@ -1,14 +1,5 @@
-/**
- * Railway Notification Module
- * Replaces Manus notification service with console logging.
- * 
- * In the future, this can be extended to use:
- * - Email notifications (via nodemailer, already in dependencies)
- * - Telegram bot notifications
- * - WhatsApp notifications
- * - Slack webhooks
- */
 import { TRPCError } from "@trpc/server";
+import { ENV } from "./env";
 
 export type NotificationPayload = {
   title: string;
@@ -21,6 +12,16 @@ const CONTENT_MAX_LENGTH = 20000;
 const trimValue = (value: string): string => value.trim();
 const isNonEmptyString = (value: unknown): value is string =>
   typeof value === "string" && value.trim().length > 0;
+
+const buildEndpointUrl = (baseUrl: string): string => {
+  const normalizedBase = baseUrl.endsWith("/")
+    ? baseUrl
+    : `${baseUrl}/`;
+  return new URL(
+    "webdevtoken.v1.WebDevService/SendNotification",
+    normalizedBase
+  ).toString();
+};
 
 const validatePayload = (input: NotificationPayload): NotificationPayload => {
   if (!isNonEmptyString(input.title)) {
@@ -57,47 +58,57 @@ const validatePayload = (input: NotificationPayload): NotificationPayload => {
 };
 
 /**
- * Dispatches a notification to the project owner.
- * On Railway, this logs to console. Can be extended to email/Telegram/etc.
- * Returns true on success, false on failure.
+ * Dispatches a project-owner notification through the Manus Notification Service.
+ * Returns `true` if the request was accepted, `false` when the upstream service
+ * cannot be reached (callers can fall back to email/slack). Validation errors
+ * bubble up as TRPC errors so callers can fix the payload.
  */
 export async function notifyOwner(
   payload: NotificationPayload
 ): Promise<boolean> {
   const { title, content } = validatePayload(payload);
 
-  // Log the notification
-  console.log(`\n📢 [Owner Notification] ${title}`);
-  console.log(`   ${content.replace(/\n/g, "\n   ")}\n`);
-
-  // Optional: Send email notification if GMAIL_APP_PASSWORD is configured
-  try {
-    const gmailPassword = process.env.GMAIL_APP_PASSWORD;
-    const ownerEmail = process.env.OWNER_EMAIL;
-    
-    if (gmailPassword && ownerEmail) {
-      const nodemailer = await import("nodemailer");
-      const transporter = nodemailer.default.createTransport({
-        service: "gmail",
-        auth: {
-          user: ownerEmail,
-          pass: gmailPassword,
-        },
-      });
-
-      await transporter.sendMail({
-        from: ownerEmail,
-        to: ownerEmail,
-        subject: `TotalLook.ai: ${title}`,
-        text: content,
-      });
-
-      console.log("[Notification] Email sent to owner");
-    }
-  } catch (err) {
-    console.warn("[Notification] Email notification failed:", err);
-    // Don't throw - notification failure should not break the app
+  if (!ENV.forgeApiUrl) {
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Notification service URL is not configured.",
+    });
   }
 
-  return true;
+  if (!ENV.forgeApiKey) {
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Notification service API key is not configured.",
+    });
+  }
+
+  const endpoint = buildEndpointUrl(ENV.forgeApiUrl);
+
+  try {
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        accept: "application/json",
+        authorization: `Bearer ${ENV.forgeApiKey}`,
+        "content-type": "application/json",
+        "connect-protocol-version": "1",
+      },
+      body: JSON.stringify({ title, content }),
+    });
+
+    if (!response.ok) {
+      const detail = await response.text().catch(() => "");
+      console.warn(
+        `[Notification] Failed to notify owner (${response.status} ${response.statusText})${
+          detail ? `: ${detail}` : ""
+        }`
+      );
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.warn("[Notification] Error calling notification service:", error);
+    return false;
+  }
 }

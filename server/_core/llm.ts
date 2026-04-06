@@ -379,7 +379,7 @@ const normalizeToolChoice = (
 };
 
 // --- Provider resolution ---
-// Railway: Only OpenAI is supported. Set OPENAI_API_KEY env var.
+// Priority: OpenAI API key > Manus built-in forge API
 // Read at runtime (not module load) so env is always fresh
 const getOpenAIKey = () => (process.env.OPENAI_API_KEY ?? "").trim();
 
@@ -396,20 +396,24 @@ const getProvider = (): { apiUrl: string; apiKey: string; model: string; useThin
     };
   }
 
-  // No OpenAI key configured
-  console.error(`[LLM Provider] OPENAI_API_KEY not found! AI features will not work.`);
+  // Fallback to Manus built-in forge API
+  console.warn(`[LLM Provider] OPENAI_API_KEY not found (length: ${openaiKey.length}), falling back to Manus Forge`);
+  const forgeUrl = ENV.forgeApiUrl && ENV.forgeApiUrl.trim().length > 0
+    ? `${ENV.forgeApiUrl.replace(/\/$/, "")}/v1/chat/completions`
+    : "https://forge.manus.im/v1/chat/completions";
+
   return {
-    apiUrl: "https://api.openai.com/v1/chat/completions",
-    apiKey: "",
-    model: "gpt-4o",
-    useThinking: false,
+    apiUrl: forgeUrl,
+    apiKey: ENV.forgeApiKey,
+    model: "gemini-2.5-flash",
+    useThinking: true,
   };
 };
 
 const assertApiKey = () => {
   const provider = getProvider();
   if (!provider.apiKey) {
-    throw new Error("No LLM API key configured. Set OPENAI_API_KEY environment variable.");
+    throw new Error("No LLM API key configured (OPENAI_API_KEY or BUILT_IN_FORGE_API_KEY)");
   }
 };
 
@@ -462,7 +466,7 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
   assertApiKey();
 
   const provider = getProvider();
-  console.log(`[LLM] Using provider: ${provider.model} (OpenAI)`);
+  console.log(`[LLM] Using provider: ${provider.model} (${provider.apiUrl.includes("openai") ? "OpenAI" : "Manus Forge"})`);
 
   const {
     messages,
@@ -503,7 +507,14 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
   }
 
   // Set max_tokens — OpenAI GPT-4o supports up to 16384 output tokens
-  payload.max_tokens = 16384;
+  payload.max_tokens = provider.useThinking ? 32768 : 16384;
+
+  // Only add thinking config for Manus Forge (Gemini)
+  if (provider.useThinking) {
+    payload.thinking = {
+      "budget_tokens": 8192
+    };
+  }
 
   const normalizedResponseFormat = normalizeResponseFormat({
     responseFormat,

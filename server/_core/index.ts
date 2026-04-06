@@ -32,12 +32,11 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 async function startServer() {
   const app = express();
   const server = createServer(app);
-  
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
-  // Redirect www to non-www
+  // Redirect www to non-www to prevent OAuth redirect URI mismatches
   app.use((req, res, next) => {
     const host = req.headers.host || "";
     if (host.startsWith("www.")) {
@@ -47,13 +46,64 @@ async function startServer() {
     }
     next();
   });
-
-  // Health check endpoint for Railway
-  app.get("/api/health", (_req, res) => {
-    res.json({ status: "ok", timestamp: new Date().toISOString() });
+  // Debug endpoint to check env vars (temporary)
+  app.get("/api/debug-env", (req, res) => {
+    const openaiKey = (process.env.OPENAI_API_KEY ?? "").trim();
+    const forgeKey = (process.env.BUILT_IN_FORGE_API_KEY ?? "").trim();
+    res.json({
+      openaiKeyPresent: openaiKey.length > 0,
+      openaiKeyLength: openaiKey.length,
+      openaiKeyPrefix: openaiKey.substring(0, 7) || "none",
+      forgeKeyPresent: forgeKey.length > 0,
+      forgeKeyLength: forgeKey.length,
+      nodeEnv: process.env.NODE_ENV,
+      timestamp: new Date().toISOString(),
+    });
   });
 
-  // Auth routes (email + password)
+  // Test LLM endpoint (temporary diagnostic)
+  app.get("/api/test-llm", async (req, res) => {
+    try {
+      const { invokeLLM } = await import("./llm");
+      console.log("[Test LLM] Starting test call...");
+      const result = await invokeLLM({
+        messages: [
+          { role: "user", content: "Say hello in 3 words" },
+        ],
+      });
+      const content = result.choices?.[0]?.message?.content || "no content";
+      console.log("[Test LLM] Success:", content);
+      res.json({ success: true, response: content, model: result.model });
+    } catch (err: any) {
+      console.error("[Test LLM] Failed:", err.message);
+      res.status(500).json({ success: false, error: err.message?.substring(0, 500) });
+    }
+  });
+
+  // Test LLM with vision endpoint (temporary diagnostic)
+  app.get("/api/test-llm-vision", async (req, res) => {
+    try {
+      const { invokeLLM } = await import("./llm");
+      const testImageUrl = "https://picsum.photos/id/237/200/300.jpg";
+      console.log("[Test LLM Vision] Starting test call...");
+      const result = await invokeLLM({
+        messages: [
+          { role: "user", content: [
+            { type: "text", text: "What do you see? Answer in 5 words." },
+            { type: "image_url", image_url: { url: testImageUrl } },
+          ] },
+        ],
+      });
+      const content = result.choices?.[0]?.message?.content || "no content";
+      console.log("[Test LLM Vision] Success:", content);
+      res.json({ success: true, response: content, model: result.model });
+    } catch (err: any) {
+      console.error("[Test LLM Vision] Failed:", err.message);
+      res.status(500).json({ success: false, error: err.message?.substring(0, 500) });
+    }
+  });
+
+  // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
   // Instagram Story Mentions webhook
   registerInstagramWebhook(app);
@@ -67,7 +117,6 @@ async function startServer() {
       createContext,
     })
   );
-  
   // development mode uses Vite, production mode uses static files
   if (process.env.NODE_ENV === "development") {
     await setupVite(app, server);
@@ -84,10 +133,12 @@ async function startServer() {
 
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
-    console.log(`[Startup] NODE_ENV: ${process.env.NODE_ENV}`);
-    console.log(`[Startup] DATABASE_URL: ${process.env.DATABASE_URL ? "configured" : "NOT SET"}`);
-    console.log(`[Startup] OPENAI_API_KEY: ${(process.env.OPENAI_API_KEY ?? "").length > 0 ? "configured" : "NOT SET"}`);
-    console.log(`[Startup] R2/S3 Storage: ${(process.env.R2_BUCKET_NAME || process.env.S3_BUCKET_NAME) ? "configured" : "NOT SET"}`);
+    // Diagnostic: log API key availability at startup
+    const openaiKey = (process.env.OPENAI_API_KEY ?? "").trim();
+    const forgeKey = (process.env.BUILT_IN_FORGE_API_KEY ?? "").trim();
+    console.log(`[Startup Diag] OPENAI_API_KEY: ${openaiKey.length > 0 ? `present (${openaiKey.length} chars, ${openaiKey.substring(0, 7)}...)` : "NOT SET"}`);
+    console.log(`[Startup Diag] BUILT_IN_FORGE_API_KEY: ${forgeKey.length > 0 ? `present (${forgeKey.length} chars)` : "NOT SET"}`);
+    console.log(`[Startup Diag] NODE_ENV: ${process.env.NODE_ENV}`);
   });
 }
 

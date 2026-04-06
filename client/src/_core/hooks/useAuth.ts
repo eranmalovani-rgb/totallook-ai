@@ -11,6 +11,7 @@ type UseAuthOptions = {
 export function useAuth(options?: UseAuthOptions) {
   const { redirectOnUnauthenticated = false, redirectPath } =
     options ?? {};
+  // Always compute login URL fresh from current origin to prevent stale cached URLs
   const resolvedRedirectPath = redirectPath ?? getLoginUrl();
   const utils = trpc.useUtils();
 
@@ -38,9 +39,11 @@ export function useAuth(options?: UseAuthOptions) {
         console.error("[Logout] Error:", error);
       }
     } finally {
+      // Clear all client-side state
       utils.auth.me.setData(undefined, null);
       await utils.auth.me.invalidate();
       localStorage.removeItem("manus-runtime-user-info");
+      // Redirect to home page
       window.location.href = "/";
     }
   }, [logoutMutation, utils]);
@@ -69,9 +72,9 @@ export function useAuth(options?: UseAuthOptions) {
     if (meQuery.isLoading || logoutMutation.isPending) return;
     if (state.user) return;
     if (typeof window === "undefined") return;
-    if (window.location.pathname === "/login") return;
+    if (window.location.pathname === resolvedRedirectPath) return;
 
-    window.location.href = resolvedRedirectPath;
+    window.location.href = resolvedRedirectPath
   }, [
     redirectOnUnauthenticated,
     resolvedRedirectPath,

@@ -1,9 +1,0 @@
-{
-  "query": "SELECT id, userId, itemType, name, color, brand, itemImageUrl FROM wardrobeItems ORDER BY id DESC LIMIT 15;",
-  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user RfxnZb4sKQE9yA3.root --database SGdPHKr3xPrRPbHA9C9esB --execute SELECT id, userId, itemType, name, color, brand, itemImageUrl FROM wardrobeItems ORDER BY id DESC LIMIT 15;",
-  "rows": [],
-  "messages": [],
-  "stdout": "",
-  "stderr": "",
-  "execution_time_ms": 57
-}

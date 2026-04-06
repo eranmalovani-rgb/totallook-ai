@@ -4,7 +4,7 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, adminProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import { createReview, getReviewById, getReviewsByUserId, updateReviewAnalysis, updateReviewStatus, getUserProfile, upsertUserProfile, deleteAllReviewsByUserId, deleteUserAccount, addWardrobeItems, getWardrobeByUserId, deleteWardrobeItem, clearWardrobe, updateWardrobeItemImage, publishToFeed, getFeedPosts, deleteFeedPost, likeFeedPost, unlikeFeedPost, saveFeedPost, unsaveFeedPost, getUserFeedInteractions, getSavedPosts, isReviewPublished, followUser, unfollowUser, getFollowingIds, isFollowing, getFollowingFeedPosts, getFollowerCount, getFollowingCount, createNewPostNotifications, getUserNotifications, getUnreadNotificationCount, markNotificationsRead, getAllReviews, getAllUsers, getAdminStats, adminDeleteReview, getReviewCountsByUser, getFeedPostCountsByUser, addFeedComment, getFeedComments, getFeedCommentCount, deleteFeedComment, setWardrobeShareToken, getWardrobeByShareToken, getWardrobeShareToken, createCommentNotification, createReplyNotification, createLikeNotification, saveFixMyLookResult, getFixMyLookResult, getOccasionCounts, createGuestSession, getGuestSessionById, hasGuestUsedAnalysis, updateGuestSessionAnalysis, updateGuestSessionStatus, getGuestAnalytics, getAllGuestSessions, trackDemoView, markDemoSignupClick, getAllDemoViews, trackPageView, getFunnelStats, getDailyFunnelStats, getGuestAnalysisCount, saveGuestProfile, getGuestProfile, saveGuestEmail, getGuestWardrobe, getGuestSessionIdsByFingerprint, addGuestWardrobeItems, deleteGuestWardrobeItem, migrateGuestToUser, deleteReviewById, deleteGuestSession, upsertIgConnection, getIgConnection, disconnectIg, getStoryMentionsByUserId, getStoryMentionStats, getStyleDiary, saveStyleDiaryEntry, findUserByPhoneNumber, getGuestSessionByToken, isPhoneTaken, logConsent, getUserConsents, getReviewByShareToken, setReviewShareToken, adminUpdateUser, getUserById } from "./db";
-import { storagePut, getAccessibleImageUrl } from "./storage";
+import { storagePut } from "./storage";
 import { invokeLLM } from "./_core/llm";
 import { nanoid } from "nanoid";
 import type { FashionAnalysis } from "../shared/fashionTypes";
@@ -1401,12 +1401,7 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
                 await new Promise(resolve => setTimeout(resolve, delay));
               }
               // Build user content with primary image + optional second angle
-              // Get accessible URLs (presigned if R2 public access is disabled)
-              const accessibleImageUrl = await getAccessibleImageUrl(review.imageUrl, review.imageKey);
-              const accessibleSecondImageUrl = review.secondImageUrl
-                ? await getAccessibleImageUrl(review.secondImageUrl, review.secondImageKey)
-                : null;
-              const hasSecondImage = !!accessibleSecondImageUrl;
+              const hasSecondImage = !!review.secondImageUrl;
               const userTextEn = hasSecondImage
                 ? "Analyze the outfit in these TWO images (front and another angle of the same person/outfit) and provide a comprehensive fashion review in English. Use BOTH images to identify all items — the second angle may reveal accessories, shoes, or details not visible in the first. Reference current 2025-2026 trends. Pay special attention to accessories — rings, bracelets, watches, necklaces, glasses. Identify brands ONLY when clearly visible (logo, distinctive design). If uncertain, use hedging language like 'appears to be' or 'possibly'. Never confidently name a brand you're not sure about — it's better to describe generically than guess wrong. IMPORTANT: All shopping link URLs MUST be SEARCH URLs (e.g. ssense.com/en-us/men?q=product+name). NEVER use direct product page URLs with /product/ or /item/ paths — they will 404."
                 : "Analyze the outfit in this image and provide a comprehensive fashion review in English. Reference current 2025-2026 trends. Pay special attention to accessories — rings, bracelets, watches, necklaces, glasses. Identify brands ONLY when clearly visible (logo, distinctive design). If uncertain, use hedging language like 'appears to be' or 'possibly'. Never confidently name a brand you're not sure about — it's better to describe generically than guess wrong. IMPORTANT: All shopping link URLs MUST be SEARCH URLs (e.g. ssense.com/en-us/men?q=product+name). NEVER use direct product page URLs with /product/ or /item/ paths — they will 404.";
@@ -1415,10 +1410,10 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
                 : "נתח את הלוק בתמונה הזו ותן חוות דעת אופנתית מקיפה בעברית. התבסס על טרנדים עדכניים של 2025-2026. שים לב במיוחד לאקססוריז — טבעות, צמידים, שעונים, שרשרות, משקפיים. זהה מותגים רק כשאתה בטוח (לוגו נראה, עיצוב ייחודי ברור). אם לא בטוח, השתמש בניסוח כמו 'כפי הנראה' או 'ייתכן שמדובר ב-'. עדיף לתאר פריט באופן כללי מאשר לטעות בזיהוי מותג. חשוב: כל לינקי הקניות חייבים להיות כתובות חיפוש (למשל: ssense.com/en-us/men?q=product+name). לעולם לא להשתמש בכתובות עם /product/ או /item/ — הם יובילו לשגיאת 404.";
               const userContent: any[] = [
                 { type: "text", text: input.lang === "en" ? userTextEn : userTextHe },
-                { type: "image_url", image_url: { url: accessibleImageUrl, detail: "high" } },
+                { type: "image_url", image_url: { url: review.imageUrl, detail: "high" } },
               ];
               if (hasSecondImage) {
-                userContent.push({ type: "image_url", image_url: { url: accessibleSecondImageUrl!, detail: "high" } });
+                userContent.push({ type: "image_url", image_url: { url: review.secondImageUrl!, detail: "high" } });
               }
               llmResult = await invokeLLM({
                 messages: [
@@ -1924,14 +1919,12 @@ Style: High-end fashion editorial flat lay, items arranged aesthetically like a 
           .map(i => analysis.items[i]);
         if (itemsToFix.length === 0) throw new Error("No items selected");
 
-        // Get accessible URL for R2 images
-        const fixMyLookImageUrl = await getAccessibleImageUrl(review.imageUrl, review.imageKey);
         // Detect original image dimensions for orientation matching
         let imageOrientation = "portrait";
         let imageAspectRatio = "3:4";
         let imageDimensions = { width: 0, height: 0 };
         try {
-          const probeResult = await probeImageSize(fixMyLookImageUrl);
+          const probeResult = await probeImageSize(review.imageUrl);
           imageDimensions = { width: probeResult.width, height: probeResult.height };
           if (probeResult.width > probeResult.height) {
             imageOrientation = "landscape";
@@ -2071,7 +2064,7 @@ Write a precise image editing prompt to improve this outfit photo by replacing o
           let { url: fixedImageUrl } = await generateImage({
             prompt: editPrompt,
             originalImages: [{
-              url: fixMyLookImageUrl,
+              url: review.imageUrl,
               mimeType: "image/jpeg",
             }],
           });
@@ -2102,32 +2095,8 @@ Write a precise image editing prompt to improve this outfit photo by replacing o
               } else {
                 console.log(`[Fix My Look] Orientations match — no rotation needed.`);
               }
-
-              // Resize to match original dimensions
-              try {
-                const currentProbe = await probeImageSize(fixedImageUrl);
-                if (currentProbe.width !== imageDimensions.width || currentProbe.height !== imageDimensions.height) {
-                  console.log(`[Fix My Look] Resizing from ${currentProbe.width}x${currentProbe.height} to ${imageDimensions.width}x${imageDimensions.height}...`);
-                  const resizeResponse = await fetch(fixedImageUrl);
-                  const resizeBuffer = Buffer.from(await resizeResponse.arrayBuffer());
-                  const resizedBuffer = await sharp(resizeBuffer)
-                    .resize(imageDimensions.width, imageDimensions.height, { fit: 'fill' })
-                    .toBuffer();
-                  const { url: resizedUrl } = await storagePut(
-                    `generated/resized-${Date.now()}.png`,
-                    resizedBuffer,
-                    "image/png"
-                  );
-                  if (resizedUrl) {
-                    fixedImageUrl = resizedUrl;
-                    console.log(`[Fix My Look] Resized image saved successfully.`);
-                  }
-                }
-              } catch (resizeErr) {
-                console.warn("[Fix My Look] Resize failed, using current image:", resizeErr);
-              }
             } catch (rotateErr) {
-              console.warn("[Fix My Look] Auto-rotation/resize failed, using original generated image:", rotateErr);
+              console.warn("[Fix My Look] Auto-rotation failed, using original generated image:", rotateErr);
             }
           }
 
@@ -3212,8 +3181,6 @@ Return ONLY a JSON object with these exact fields:
                 console.log(`[Guest Analysis] Retry attempt ${attempt + 1}/${MAX_RETRIES} after ${delay / 1000}s...`);
                 await new Promise(resolve => setTimeout(resolve, delay));
               }
-              // Get accessible URL for guest image (presigned if R2)
-              const guestAccessibleImageUrl = await getAccessibleImageUrl(session.imageUrl!, (session as any).imageKey || null);
               llmResult = await invokeLLM({
                 messages: [
                   { role: "system", content: prompt },
@@ -3221,7 +3188,7 @@ Return ONLY a JSON object with these exact fields:
                     role: "user",
                     content: [
                       { type: "text", text: input.lang === "en" ? "Analyze the outfit in this image and provide a comprehensive fashion review in English. Reference current 2025-2026 trends. Pay special attention to accessories. Identify brands ONLY when clearly visible. IMPORTANT: All shopping link URLs MUST be SEARCH URLs. NEVER use direct product page URLs." : "נתח את הלוק בתמונה הזו ותן חוות דעת אופנתית מקיפה בעברית. התבסס על טרנדים עדכניים של 2025-2026. שים לב במיוחד לאקססוריז. זהה מותגים רק כשאתה בטוח. חשוב: כל לינקי הקניות חייבים להיות כתובות חיפוש." },
-                      { type: "image_url", image_url: { url: guestAccessibleImageUrl, detail: "high" } },
+                      { type: "image_url", image_url: { url: session.imageUrl!, detail: "high" } },
                     ],
                   },
                 ],
@@ -3777,14 +3744,12 @@ Style: High-end fashion editorial flat lay, all items arranged aesthetically lik
           .map(i => analysis.items[i]);
         if (itemsToFix.length === 0) throw new Error("No items selected");
 
-        // Get accessible URL for R2 images
-        const guestFixImageUrl = await getAccessibleImageUrl(session.imageUrl!, (session as any).imageKey || null);
         // Detect original image dimensions
         let imageOrientation = "portrait";
         let imageAspectRatio = "3:4";
         let imageDimensions = { width: 0, height: 0 };
         try {
-          const probeResult = await probeImageSize(guestFixImageUrl);
+          const probeResult = await probeImageSize(session.imageUrl!);
           imageDimensions = { width: probeResult.width, height: probeResult.height };
           if (probeResult.width > probeResult.height) {
             imageOrientation = "landscape";
@@ -3871,7 +3836,7 @@ The original photo is ${imageOrientation} orientation (${imageDimensions.width}x
         try {
           let { url: fixedImageUrl } = await generateImage({
             prompt: editPrompt,
-            originalImages: [{ url: guestFixImageUrl, mimeType: "image/jpeg" }],
+            originalImages: [{ url: session.imageUrl!, mimeType: "image/jpeg" }],
           });
 
           // Auto-rotate if orientation mismatch
@@ -3887,32 +3852,8 @@ The original photo is ${imageOrientation} orientation (${imageDimensions.width}x
                 const { url: rotatedUrl } = await storagePut(`generated/guest-rotated-${Date.now()}.png`, rotatedBuffer, "image/png");
                 if (rotatedUrl) fixedImageUrl = rotatedUrl;
               }
-
-              // Resize to match original dimensions
-              try {
-                const currentProbe = await probeImageSize(fixedImageUrl);
-                if (currentProbe.width !== imageDimensions.width || currentProbe.height !== imageDimensions.height) {
-                  console.log(`[Guest Fix My Look] Resizing from ${currentProbe.width}x${currentProbe.height} to ${imageDimensions.width}x${imageDimensions.height}...`);
-                  const resizeResponse = await fetch(fixedImageUrl);
-                  const resizeBuffer = Buffer.from(await resizeResponse.arrayBuffer());
-                  const resizedBuffer = await sharp(resizeBuffer)
-                    .resize(imageDimensions.width, imageDimensions.height, { fit: 'fill' })
-                    .toBuffer();
-                  const { url: resizedUrl } = await storagePut(
-                    `generated/guest-resized-${Date.now()}.png`,
-                    resizedBuffer,
-                    "image/png"
-                  );
-                  if (resizedUrl) {
-                    fixedImageUrl = resizedUrl;
-                    console.log(`[Guest Fix My Look] Resized image saved successfully.`);
-                  }
-                }
-              } catch (resizeErr) {
-                console.warn("[Guest Fix My Look] Resize failed, using current image:", resizeErr);
-              }
             } catch (rotateErr) {
-              console.warn("[Guest Fix My Look] Auto-rotation/resize failed:", rotateErr);
+              console.warn("[Guest Fix My Look] Auto-rotation failed:", rotateErr);
             }
           }
 
@@ -4682,7 +4623,6 @@ The original photo is ${imageOrientation} orientation (${imageDimensions.width}x
               dayNameEn: dayNamesEn[dayIdx],
               overallScore: analysis?.overallScore ?? r.overallScore ?? 0,
               imageUrl: r.imageUrl,
-              imageKey: r.imageKey || null,
               summary: analysis?.summary?.slice(0, 100) || "",
               relevantImprovements: relevantImprovements.slice(0, 2).map(imp => ({
                 title: imp.title,
@@ -4828,7 +4768,6 @@ Style: High-end fashion editorial flat lay for a ${genderWord}. Items arranged a
         productCategory: z.string(),
         productColors: z.array(z.string()),
         originalImageUrl: z.string(),
-        originalImageKey: z.string().optional(),
         existingItemNames: z.array(z.string()),
         gender: z.string().optional(),
       }))
@@ -4836,60 +4775,21 @@ Style: High-end fashion editorial flat lay for a ${genderWord}. Items arranged a
         const genderWord = input.gender === "male" ? "man" : "woman";
         const existingItems = input.existingItemNames.join(", ");
 
-        // Get accessible URL for R2 images (presigned URL)
-        const accessibleImageUrl = await getAccessibleImageUrl(input.originalImageUrl, input.originalImageKey || null);
-
         // Use the user's original photo as reference to generate the "after" image
         // The prompt instructs the AI to keep the SAME person, pose, and background
         // but replace/add the product item on them
         const prompt = `Edit this photo of a ${genderWord} to show them wearing a ${input.productName} in ${input.productColors.join("/")} color. Keep the EXACT same person, face, body, pose, and background from the original photo. Only change the outfit: replace or add the ${input.productName} while keeping the rest of the outfit (${existingItems}) as close to the original as possible. The ${input.productName} should look natural and realistic on this specific person. Maintain the same lighting, environment, and photo style. This should look like the same photo but with the new item added to their outfit.`;
 
         try {
-          // Detect original image dimensions for resize after generation
-          let origDimensions = { width: 0, height: 0 };
-          try {
-            const probeResult = await probeImageSize(accessibleImageUrl);
-            origDimensions = { width: probeResult.width, height: probeResult.height };
-            console.log(`[Upgrade Look] Original image: ${probeResult.width}x${probeResult.height}`);
-          } catch (probeErr) {
-            console.warn("[Upgrade Look] Could not detect image dimensions:", probeErr);
-          }
-
           // Pass the user's original image as reference so the AI generates ON their photo
           const { url } = await generateImage({
             prompt,
             originalImages: [{
-              url: accessibleImageUrl,
+              url: input.originalImageUrl,
               mimeType: "image/jpeg",
             }],
           });
-
-          let finalUrl = url || "";
-
-          // Resize to match original dimensions
-          if (finalUrl && origDimensions.width > 0) {
-            try {
-              const genProbe = await probeImageSize(finalUrl);
-              if (genProbe.width !== origDimensions.width || genProbe.height !== origDimensions.height) {
-                console.log(`[Upgrade Look] Resizing from ${genProbe.width}x${genProbe.height} to ${origDimensions.width}x${origDimensions.height}...`);
-                const imgResp = await fetch(finalUrl);
-                const imgBuf = Buffer.from(await imgResp.arrayBuffer());
-                const resizedBuf = await sharp(imgBuf)
-                  .resize(origDimensions.width, origDimensions.height, { fit: 'fill' })
-                  .toBuffer();
-                const { url: resizedUrl } = await storagePut(
-                  `generated/upgrade-resized-${Date.now()}.png`,
-                  resizedBuf,
-                  "image/png"
-                );
-                if (resizedUrl) finalUrl = resizedUrl;
-              }
-            } catch (resizeErr) {
-              console.warn("[Upgrade Look] Resize failed:", resizeErr);
-            }
-          }
-
-          return { imageUrl: finalUrl, success: true };
+          return { imageUrl: url || "", success: true };
         } catch (err: any) {
           console.error("[Upgrade Look] Image generation failed:", err);
           return { imageUrl: "", success: false };

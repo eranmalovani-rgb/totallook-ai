@@ -20,7 +20,7 @@
 
 import type { Request, Response, Express } from "express";
 import { invokeLLM } from "./_core/llm";
-import { storagePut, getAccessibleImageUrl } from "./storage";
+import { storagePut } from "./storage";
 import { notifyOwner } from "./_core/notification";
 import { nanoid } from "nanoid";
 import {
@@ -416,10 +416,8 @@ async function handleRegisteredUserAnalysis(
       "he", // WhatsApp default: Hebrew
     );
 
-    // Get accessible URL (presigned if R2 public access is disabled)
-    const accessibleUrl = await getAccessibleImageUrl(imageUrl, imageKey);
     // Run LLM analysis with retries
-    const llmResult = await runAnalysisWithRetries(prompt, accessibleUrl);
+    const llmResult = await runAnalysisWithRetries(prompt, imageUrl);
     if (!llmResult) throw new Error("Analysis failed after retries");
 
     const content = llmResult.choices[0]?.message?.content;
@@ -603,10 +601,8 @@ async function handleGuestAnalysis(
       "he", // WhatsApp default: Hebrew
     );
 
-    // Get accessible URL (presigned if R2 public access is disabled)
-    const guestAccessibleUrl = await getAccessibleImageUrl(imageUrl, imageKey);
     // Run LLM analysis with retries
-    const llmResult = await runAnalysisWithRetries(prompt, guestAccessibleUrl);
+    const llmResult = await runAnalysisWithRetries(prompt, imageUrl);
     if (!llmResult) throw new Error("Analysis failed after retries");
 
     const content = llmResult.choices[0]?.message?.content;

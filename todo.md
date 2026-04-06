@@ -238,6 +238,10 @@
 - [x] Fix logo showing as "ai.TotalLook" instead of "TotalLook.ai" in RTL mode — force LTR direction on logo
 - [ ] Inform user to update domain from touchup.agency to totallook.ai in Settings > Domains
 
+## Phase 38: Onboarding UX Improvements — Store Logos & Social Connections
+- [x] Replace store text names with logos in onboarding budget/location store selection screen
+- [x] Add new Social Connections screen (Instagram active, TikTok coming soon, Pinterest coming soon) before influencer selection in onboarding
+
 ## Phase 31: Expand Influencer List
 - [x] Research top 10 global fashion influencers to add
 - [x] Research top Israeli fashion influencers to add
@@ -1797,3 +1801,22 @@
 - [ ] Export and migrate database data
 - [ ] Deploy to Railway and configure totallook.ai domain
 - [ ] Test and verify everything works
+
+## Bug: Image analysis returning general error on website
+- [ ] Diagnose image analysis error from production logs
+- [ ] Fix the root cause of the analysis failure
+- [ ] Test and verify the fix works
+
+## Bug: fixMyLook not using user's relevant image
+- [ ] Fix fixMyLook to use the user's actual photo for look fitting/improvement
+
+## Domain & Hosting Cleanup
+- [ ] Remove Manus public exposure/domain for totallook.ai
+- [ ] Ensure no redirect/domain alias active to Manus
+- [ ] Verify totallook.ai custom domain on Railway with SSL
+- [ ] Verify www.totallook.ai custom domain on Railway with SSL
+- [ ] Fix SSL issue on www.totallook.ai if needed
+
+## Bug Investigation (April 5, 2026)
+- [ ] Investigate guest profile save error ("שגיאה בשמירת הפרופיל")
+- [ ] Investigate Google login not working

@@ -224,7 +224,7 @@ function TotalLookWidget({
     };
   }, [isDraggingSlider, updateSliderPosition]);
 
-  const handleUpgradeLook = useCallback((look: { reviewId: number; imageUrl: string; imageKey?: string | null; existingItems: { name: string }[]; overallScore: number }) => {
+  const handleUpgradeLook = useCallback((look: { reviewId: number; imageUrl: string; existingItems: { name: string }[]; overallScore: number }) => {
     setSelectedLookForUpgrade(look.reviewId);
     setUpgradeLookUrl(null);
     setBeforeAfterSliderPos(50);
@@ -237,7 +237,6 @@ function TotalLookWidget({
         productCategory: product.categoryKey,
         productColors: product.colors,
         originalImageUrl: look.imageUrl,
-        originalImageKey: look.imageKey || undefined,
         existingItemNames: look.existingItems.map((i) => i.name),
         gender: widgetData?.profilePreferences?.gender || undefined,
       },
