@@ -324,6 +324,8 @@ export const guestSessions = mysqlTable("guestSessions", {
   whatsappPhone: varchar("whatsappPhone", { length: 32 }),
   /** WhatsApp profile name */
   whatsappProfileName: varchar("whatsappProfileName", { length: 256 }),
+  /** Timestamp when the guest opened the WhatsApp deep-link analysis page */
+  lastViewedAt: timestamp("lastViewedAt"),
   /** Timestamp when follow-up message was sent (null = not sent yet) */
   followUpSentAt: timestamp("followUpSentAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

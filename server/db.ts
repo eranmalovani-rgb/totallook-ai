@@ -1741,6 +1741,32 @@ export async function getGuestSessionByToken(token: string) {
   return result || null;
 }
 
+/**
+ * Mark a guest session deep-link as viewed.
+ */
+export async function markGuestSessionViewed(sessionId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db
+    .update(guestSessions)
+    .set({ lastViewedAt: new Date() })
+    .where(eq(guestSessions.id, sessionId));
+}
+
+/**
+ * Check whether a guest session deep-link was viewed.
+ */
+export async function hasGuestSessionBeenViewed(sessionId: number): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+  const [result] = await db
+    .select({ lastViewedAt: guestSessions.lastViewedAt })
+    .from(guestSessions)
+    .where(eq(guestSessions.id, sessionId))
+    .limit(1);
+  return !!result?.lastViewedAt;
+}
+
 // ==========================================
 // WhatsApp Follow-up Helpers
 // ==========================================
