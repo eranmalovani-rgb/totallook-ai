@@ -42,6 +42,7 @@ import {
   addGuestWardrobeItems,
   getWhatsAppGuestsForFollowUp,
   markFollowUpSent,
+  hasGuestSessionBeenViewed,
   setReviewShareToken,
 } from "./db";
 import type { FashionAnalysis, OutfitSuggestion, Improvement, ShoppingLink } from "../shared/fashionTypes";
@@ -72,6 +73,7 @@ const DAILY_LIMIT = 10;
 // Guest lifetime limit: max analyses for unregistered WhatsApp users
 const GUEST_LIFETIME_LIMIT = 2;
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const QUICK_GUEST_FOLLOW_UP_DELAY_MS = 2 * 60 * 1000; // 2 minutes
 
 // Processing lock: only one image at a time per phone number
 // Tracks which phones currently have an analysis in progress
@@ -242,9 +244,18 @@ async function handleIncomingMessage(message: MetaWhatsAppMessage, profileName: 
     await sendWhatsAppMessage(
       from,
       `היי ${profileName}! 👋\n\n` +
-      `אני TotalLook.ai — הסטייליסט הדיגיטלי שלך ✨\n\n` +
-      `📸 ${g.send} לי תמונה של הלוק שלך ואני אתן לך ניתוח אופנתי מקיף עם ציונים, חוזקות, טיפים לשדרוג והמלצות קניות!\n\n` +
-      `💡 ${g.user}? ${g.link} את מספר הטלפון בפרופיל באתר כדי לקבל ניתוח מותאם אישית: ${SITE_URL}/profile`,
+      `אני TotalLook — הסטייליסט הדיגיטלי שלך ✨\n\n` +
+      `📸 ${g.send} לי תמונה של הלוק שלך — תוך דקה ${g.receive}:\n` +
+      `• ציון כללי ולכל פריט\n` +
+      `• זיהוי מותגים וצבעים\n` +
+      `• טיפ לשדרוג + לינקים לקנייה\n\n` +
+      `⚡ זה ניתוח כללי וחינמי.\n` +
+      `💎 רוצה ניתוח מותאם *בדיוק* אליך?\n` +
+      `${g.register} פעם אחת (30 שניות) ו${g.receive}:\n` +
+      `✓ התאמה לסגנון, תקציב ומיקום שלך\n` +
+      `✓ ארון בגדים חכם שזוכר את הכל\n` +
+      `✓ ניתוחים ללא הגבלה\n\n` +
+      `👉 ${SITE_URL}`,
       { name: "totallook_welcome", params: [profileName] },
     );
     return;
@@ -651,6 +662,17 @@ async function handleGuestAnalysis(
       { name: "totallook_analysis_ready", params: [guestScoreTruncated, guestSummaryTruncated, deepLink] },
     );
 
+    // 2-minute in-window follow-up (guest only), unless the analysis was already opened.
+    if (!isOwnerPhone(from)) {
+      scheduleQuickGuestFollowUp({
+        phone: from,
+        profileName,
+        sessionId,
+        overallScore: analysis.overallScore,
+        deepLink,
+      });
+    }
+
     console.log(`[WhatsApp] Guest analysis sent to ${from}: sessionId=${sessionId}, token=${token}, score=${analysis.overallScore}`);
 
     // Notify admin
@@ -889,6 +911,13 @@ function postProcessAnalysis(analysis: FashionAnalysis, profileContext: ProfileC
 // Response Formatting (Full Analysis)
 // ==========================================
 
+function getScoreEmoji(score: number): string {
+  if (score >= 9) return "🔥";
+  if (score >= 8) return "✨";
+  if (score >= 7) return "💫";
+  return "👍";
+}
+
 function formatFullAnalysisResponse(
   analysis: FashionAnalysis,
   profileName: string,
@@ -896,9 +925,7 @@ function formatFullAnalysisResponse(
   isRegistered: boolean,
   guestAnalysisInfo?: { used: number; limit: number },
 ): string {
-  const scoreEmoji = analysis.overallScore >= 9 ? "🔥" :
-                     analysis.overallScore >= 8 ? "✨" :
-                     analysis.overallScore >= 7 ? "💫" : "👍";
+  const scoreEmoji = getScoreEmoji(analysis.overallScore);
 
   const lines: string[] = [];
 
@@ -951,21 +978,79 @@ function formatFullAnalysisResponse(
   lines.push(`👉 ${deepLink}`);
 
   if (!isRegistered) {
-    lines.push("");
-    lines.push("🔓 *לניתוח מותאם אישית + ארון בגדים + ללא הגבלה:*");
-    lines.push(`💎 ${SITE_URL}`);
+    const remaining = guestAnalysisInfo
+      ? Math.max(0, guestAnalysisInfo.limit - guestAnalysisInfo.used)
+      : null;
 
-    if (guestAnalysisInfo) {
-      const remaining = Math.max(0, guestAnalysisInfo.limit - guestAnalysisInfo.used);
-      if (remaining > 0) {
-        lines.push(`🎫 נותרו ${remaining} ניתוחים חינמיים`);
-      } else {
-        lines.push(`🎫 זה היה הניתוח האחרון שלך!`);
-      }
+    lines.push("");
+    lines.push("━━━━━━━━━━━━━━━━━━");
+    lines.push("📋 *זה היה ניתוח כללי.*");
+    lines.push("");
+    lines.push("💎 *עם פרופיל אישי, הניתוח שלך ישתדרג:*");
+    lines.push("• המלצות מותאמות לסגנון שלך (קלאסי? סטריט? מינימליסטי?)");
+    lines.push("• חנויות לפי התקציב והמיקום שלך");
+    lines.push("• זיכרון של הארון שלך — המלצות על בסיס מה שכבר יש לך");
+    lines.push("• ניתוחים ללא הגבלה");
+    lines.push("");
+    lines.push("✨ *הירשם/י פעם אחת (30 שניות):*");
+    lines.push(`👉 ${SITE_URL}`);
+
+    if (remaining !== null) {
+      lines.push("");
+      lines.push(`🎫 נותרו ${remaining} ניתוחים חינמיים כאורח/ת`);
     }
   }
 
   return lines.join("\n");
+}
+
+async function sendQuickGuestFollowUpMessage(
+  phone: string,
+  profileName: string,
+  overallScore: number,
+  deepLink: string,
+): Promise<void> {
+  const name = profileName || "חבר/ה";
+  const scoreEmoji = getScoreEmoji(overallScore);
+  const message =
+    `💡 ${name}, ראית את הניתוח?\n\n` +
+    `הלוק שלך קיבל ${overallScore}/10 — ${scoreEmoji}\n\n` +
+    `📊 הניתוח המלא עם המלצות מוצרים ולוקים מחכה לך:\n` +
+    `👉 ${deepLink}\n\n` +
+    `✨ רוצה שהניתוח הבא יהיה מותאם *בדיוק* אליך?\n` +
+    `👉 ${SITE_URL}`;
+
+  await sendWhatsAppText(phone, message);
+}
+
+function scheduleQuickGuestFollowUp(params: {
+  phone: string;
+  profileName: string;
+  sessionId: number;
+  overallScore: number;
+  deepLink: string;
+}): void {
+  const { phone, profileName, sessionId, overallScore, deepLink } = params;
+
+  const timer = setTimeout(() => {
+    (async () => {
+      const viewed = await hasGuestSessionBeenViewed(sessionId);
+      if (viewed) {
+        console.log(`[WhatsApp] Quick follow-up skipped for session ${sessionId} (already viewed)`);
+        return;
+      }
+
+      await sendQuickGuestFollowUpMessage(phone, profileName, overallScore, deepLink);
+      console.log(`[WhatsApp] Quick follow-up sent for guest session ${sessionId}`);
+    })().catch((err: any) => {
+      console.warn(`[WhatsApp] Quick follow-up failed for session ${sessionId}:`, err?.message);
+    });
+  }, QUICK_GUEST_FOLLOW_UP_DELAY_MS);
+
+  // Avoid keeping the Node process alive only because of this timer.
+  if (typeof (timer as any)?.unref === "function") {
+    (timer as any).unref();
+  }
 }
 
 // ==========================================

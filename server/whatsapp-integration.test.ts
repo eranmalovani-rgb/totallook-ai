@@ -74,6 +74,7 @@ vi.mock("./db", () => ({
   getGuestSessionIdsByFingerprint: vi.fn().mockResolvedValue([]),
   getGuestWardrobe: vi.fn().mockResolvedValue([]),
   addGuestWardrobeItems: vi.fn().mockResolvedValue({ added: 0, skipped: 0 }),
+  hasGuestSessionBeenViewed: vi.fn().mockResolvedValue(false),
   getWhatsAppGuestsForFollowUp: vi.fn().mockResolvedValue([]),
   markFollowUpSent: vi.fn().mockResolvedValue(undefined),
 }));
@@ -82,6 +83,10 @@ vi.mock("./routers", () => ({
   buildFashionPrompt: vi.fn().mockReturnValue("You are a fashion analyst..."),
   analysisJsonSchema: { type: "object", properties: {} },
   fixShoppingLinkUrls: vi.fn().mockImplementation((a: any) => a),
+}));
+
+vi.mock("./productImages", () => ({
+  enrichAnalysisWithProductImages: vi.fn().mockImplementation(async (analysis: any) => analysis),
 }));
 
 vi.mock("nanoid", () => ({
@@ -175,7 +180,8 @@ describe("WhatsApp Integration v3 (Meta Cloud API)", () => {
       expect(result).toContain("💫");
       expect(result).toContain("https://totallook.ai/r/abc123");
       expect(result).toContain("totallook.ai");
-      expect(result).toContain("לניתוח מותאם אישית");
+      expect(result).toContain("זה היה ניתוח כללי");
+      expect(result).toContain("הירשם/י פעם אחת");
     });
 
     it("should use correct emoji for each score range", async () => {
@@ -409,7 +415,7 @@ describe("WhatsApp Integration v3 (Meta Cloud API)", () => {
       };
 
       const result = formatFullAnalysisResponse(analysis, "דנה", "#", false, { used: 1, limit: 2 });
-      expect(result).toContain("נותרו 1 ניתוחים חינמיים");
+      expect(result).toContain("נותרו 1 ניתוחים חינמיים כאורח/ת");
     });
 
     it("should show last analysis message when limit reached", async () => {
@@ -427,7 +433,7 @@ describe("WhatsApp Integration v3 (Meta Cloud API)", () => {
       };
 
       const result = formatFullAnalysisResponse(analysis, "דנה", "#", false, { used: 2, limit: 2 });
-      expect(result).toContain("הניתוח האחרון שלך");
+      expect(result).toContain("נותרו 0 ניתוחים חינמיים כאורח/ת");
     });
 
     it("should not include counter for registered users", async () => {
@@ -469,8 +475,7 @@ describe("WhatsApp Integration v3 (Meta Cloud API)", () => {
       expect(sendCalls.length).toBeGreaterThanOrEqual(1);
       const sentBody = JSON.parse(sendCalls[0][1].body);
       expect(sentBody.to).toBe("972501234567");
-      expect(sentBody.text.body).toContain("דנה");
-      expect(sentBody.text.body).toContain("לוק חדש");
+      expect(sentBody.template.name).toBe("totallook_followup");
       expect(dbMod.markFollowUpSent).toHaveBeenCalledWith("972501234567");
     });
 
@@ -493,9 +498,72 @@ describe("WhatsApp Integration v3 (Meta Cloud API)", () => {
       );
       expect(sendCalls.length).toBeGreaterThanOrEqual(1);
       const sentBody = JSON.parse(sendCalls[0][1].body);
-      expect(sentBody.text.body).toContain("יוסי");
-      expect(sentBody.text.body).toContain("הירשם/י");
-      expect(sentBody.text.body).toContain("ניתוחים ללא הגבלה");
+      expect(sentBody.template.name).toBe("totallook_followup");
+      expect(sentBody.template.components[0].parameters[0].text).toContain("יוסי");
+    });
+  });
+
+  describe("Quick Guest Follow-up (2 minutes)", () => {
+    it("should send quick follow-up when guest has not viewed deep link", async () => {
+      vi.useFakeTimers();
+      try {
+        const dbMod = await import("./db");
+        (dbMod.hasGuestSessionBeenViewed as any).mockResolvedValue(false);
+        (dbMod.getGuestSessionIdsByFingerprint as any).mockResolvedValue([42]);
+
+        const { handleGuestAnalysis } = await import("./whatsapp");
+        await handleGuestAnalysis(
+          "972501234568",
+          "דנה",
+          "https://s3.example.com/whatsapp/test.jpg",
+          "whatsapp/test.jpg",
+          "972501234568",
+        );
+
+        await vi.advanceTimersByTimeAsync(2 * 60 * 1000 + 50);
+
+        const sendCalls = mockFetch.mock.calls.filter(
+          (call: any[]) => typeof call[0] === "string" && call[0].includes("/messages")
+        );
+        const quickFollowUpSent = sendCalls.some((call: any[]) => {
+          const body = JSON.parse(call[1].body);
+          return body.type === "text" && body.text?.body?.includes("ראית את הניתוח");
+        });
+        expect(quickFollowUpSent).toBe(true);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("should skip quick follow-up when guest already viewed deep link", async () => {
+      vi.useFakeTimers();
+      try {
+        const dbMod = await import("./db");
+        (dbMod.hasGuestSessionBeenViewed as any).mockResolvedValue(true);
+        (dbMod.getGuestSessionIdsByFingerprint as any).mockResolvedValue([42]);
+
+        const { handleGuestAnalysis } = await import("./whatsapp");
+        await handleGuestAnalysis(
+          "972501234569",
+          "יואב",
+          "https://s3.example.com/whatsapp/test2.jpg",
+          "whatsapp/test2.jpg",
+          "972501234569",
+        );
+
+        await vi.advanceTimersByTimeAsync(2 * 60 * 1000 + 50);
+
+        const sendCalls = mockFetch.mock.calls.filter(
+          (call: any[]) => typeof call[0] === "string" && call[0].includes("/messages")
+        );
+        const quickFollowUpSent = sendCalls.some((call: any[]) => {
+          const body = JSON.parse(call[1].body);
+          return body.type === "text" && body.text?.body?.includes("ראית את הניתוח");
+        });
+        expect(quickFollowUpSent).toBe(false);
+      } finally {
+        vi.useRealTimers();
+      }
     });
   });
 
@@ -521,7 +589,8 @@ describe("WhatsApp Integration v3 (Meta Cloud API)", () => {
       expect(sendCalls.length).toBeGreaterThanOrEqual(1);
       const sentBody = JSON.parse(sendCalls[0][1].body);
       expect(sentBody.to).toBe("972501111111");
-      expect(sentBody.text.body).toContain("TotalLook.ai");
+      expect(sentBody.text.body).toContain("TotalLook");
+      expect(sentBody.text.body).toContain("זה ניתוח כללי וחינמי");
       expect(sentBody.text.body).toContain("תמונה");
     });
 
@@ -544,7 +613,7 @@ describe("WhatsApp Integration v3 (Meta Cloud API)", () => {
       );
       expect(sendCalls.length).toBeGreaterThanOrEqual(1);
       const sentBody = JSON.parse(sendCalls[0][1].body);
-      expect(sentBody.text.body).toContain("TotalLook.ai");
+      expect(sentBody.text.body).toContain("TotalLook");
       expect(sentBody.text.body).toContain("תמונה");
     });
   });
