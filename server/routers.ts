@@ -1043,8 +1043,10 @@ function buildDeterministicFixMyLookPrompt(params: {
     : imageOrientation;
 
   return [
-    `Edit this exact photo in-place.`,
-    `This is the user's real photo. Preserve EXACT identity: same face, skin tone, body, hair, expression, and all physical features.`,
+    `IMAGE EDITING TASK ONLY: edit this exact user photo in-place.`,
+    `ABSOLUTE IDENTITY LOCK: output MUST show the same real user from the input photo (not a model, not a new person).`,
+    `Preserve EXACT identity: same face geometry, skin tone, body proportions, hair, expression, and physical features.`,
+    `Do NOT beautify/retouch: do not change age, facial structure, skin texture, body shape, or hairstyle.`,
     `Keep SAME pose, SAME background, SAME camera framing, and SAME lighting.`,
     `Do NOT create a new person. Do NOT restyle the environment.`,
     `Output must keep the same orientation and dimensions: ${orientationText}.`,
@@ -1057,9 +1059,11 @@ function buildDeterministicFixMyLookPrompt(params: {
     ...(keepLines.length > 0 ? keepLines : ["- Keep all other visible items unchanged."]),
     "",
     "Quality rules:",
+    "- Result must still be clearly the same user from the source photo.",
     "- Preserve photorealism and natural fabric behavior.",
     "- Keep edits coherent with body proportions and perspective.",
     "- Respect exact product color/style when explicitly provided.",
+    "- If an item replacement is ambiguous, prefer minimal change over identity drift.",
   ].join("\n");
 }
 
