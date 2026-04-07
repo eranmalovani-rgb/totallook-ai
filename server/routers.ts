@@ -76,9 +76,13 @@ function detectClothingCategory(text: string): ClothingCategory {
   return "other";
 }
 
-function normalizeOutfitSuggestionsForWearableCore(analysis: FashionAnalysis): FashionAnalysis {
+function normalizeOutfitSuggestionsForWearableCore(
+  analysis: FashionAnalysis,
+  userGender: GenderCategory = "male",
+): FashionAnalysis {
   if (!analysis?.outfitSuggestions?.length) return analysis;
   const isHebrew = /[\u0590-\u05FF]/.test(analysis.summary || "");
+  const femaleCodedPattern = /(dress|gown|skirt|heels?|bralette|bra|שמלה|חצאית|עקבים|חזיה)/i;
   const clothingFallbackByCategory: Record<Exclude<ClothingCategory, "accessory" | "other">, string> = {
     top: isHebrew ? "חולצה מחויטת איכותית" : "Well-fitted structured top",
     bottom: isHebrew ? "מכנסיים בגזרה נקייה" : "Clean tailored bottoms",
@@ -89,7 +93,10 @@ function normalizeOutfitSuggestionsForWearableCore(analysis: FashionAnalysis): F
   };
 
   analysis.outfitSuggestions = analysis.outfitSuggestions.map((outfit) => {
-    const items = Array.isArray(outfit.items) ? outfit.items.filter(Boolean) : [];
+    const rawItems = Array.isArray(outfit.items) ? outfit.items.filter(Boolean) : [];
+    const items = userGender === "male"
+      ? rawItems.filter((item) => !femaleCodedPattern.test(item))
+      : rawItems;
     const dedupedItems: string[] = [];
     const seen = new Set<string>();
     for (const raw of items) {
@@ -283,11 +290,17 @@ function buildFallbackImprovement(category: Exclude<ClothingCategory, "accessory
   };
 }
 
-function normalizeImprovementsForWearableCore(analysis: FashionAnalysis): FashionAnalysis {
+function normalizeImprovementsForWearableCore(
+  analysis: FashionAnalysis,
+  userGender: GenderCategory = "male",
+): FashionAnalysis {
   if (!analysis?.improvements?.length) return analysis;
 
   const isHebrew = /[\u0590-\u05FF]/.test(analysis.summary || "");
-  const preferredOrder: Array<Exclude<ClothingCategory, "accessory" | "other">> = ["top", "bottom", "shoes", "outerwear", "dress", "onepiece"];
+  const preferredOrder: Array<Exclude<ClothingCategory, "accessory" | "other">> =
+    userGender === "male"
+      ? ["top", "bottom", "shoes", "outerwear"]
+      : ["top", "bottom", "shoes", "outerwear", "dress", "onepiece"];
   const rank: Record<ClothingCategory, number> = {
     top: 0,
     bottom: 1,
@@ -298,7 +311,10 @@ function normalizeImprovementsForWearableCore(analysis: FashionAnalysis): Fashio
     accessory: 6,
     other: 7,
   };
-  const isClothing = (cat: ClothingCategory) => cat !== "accessory" && cat !== "other";
+  const isClothing = (cat: ClothingCategory) =>
+    cat !== "accessory" &&
+    cat !== "other" &&
+    (userGender !== "male" || (cat !== "dress" && cat !== "onepiece"));
 
   const clothing = analysis.improvements
     .filter((imp) => isClothing(detectImprovementCategory(imp)))
@@ -1652,11 +1668,32 @@ export const recommendationsJsonSchema = {
 function buildRecommendationsPromptFromCore(
   lang: "he" | "en",
   occasion?: string | null,
+  userGender?: string | null,
+  preferredInfluencers?: string | null,
 ): string {
   const isHebrew = lang === "he";
   const occasionLine = occasion
     ? (isHebrew ? `אירוע יעד: ${occasion}` : `Target occasion: ${occasion}`)
     : (isHebrew ? "אין אירוע יעד מחייב." : "No strict target occasion.");
+  const normalizedGender = (userGender || "").toLowerCase();
+  const genderLine = normalizedGender === "male"
+    ? (isHebrew
+      ? "המשתמש הוא גבר: ההמלצות (ביגוד, לוקים ומשפיענים) חייבות להיות גבריות או יוניסקס בלבד. אין להמליץ על פריטי נשים."
+      : "User gender is male: recommendations (items, looks, influencers) must be male or unisex only. Do not recommend female-only items.")
+    : normalizedGender === "female"
+      ? (isHebrew
+        ? "המשתמשת היא אישה: ההמלצות (ביגוד, לוקים ומשפיענים) חייבות להיות נשיות או יוניסקס בלבד."
+        : "User gender is female: recommendations (items, looks, influencers) must be female or unisex only.")
+      : (isHebrew
+        ? "אין מגבלת מגדר קשיחה: העדף/י התאמה כללית/יוניסקס."
+        : "No strict gender lock: prefer broadly compatible/unisex recommendations.");
+  const preferredInfluencersLine = preferredInfluencers
+    ? (isHebrew
+      ? `משפיענים מועדפים שהמשתמש ציין: ${preferredInfluencers}.`
+      : `User preferred influencers: ${preferredInfluencers}.`)
+    : (isHebrew
+      ? "אם אין משפיענים מפורשים, הצע 2-3 משפיענים רלוונטיים."
+      : "If no explicit influencers are provided, suggest 2-3 relevant influencers.");
   return isHebrew
     ? `אתה שלב 2 במערכת דו-שלבית: השראה והמלצות בלבד.
 קלט: JSON מובנה של שלב 1 שכבר ביצע ניתוח וזיהוי פריטים.
@@ -1675,9 +1712,12 @@ function buildRecommendationsPromptFromCore(
 - shoppingLinks חייבים להיות כתובות חיפוש תקינות (לא /product/ ישיר).
 - trendSources חייב להיות רלוונטי לפריטים שזוהו.
 - influencerInsight חייב להיות פרקטי וקצר.
+- influencerInsight חייב להזכיר לפחות 2 שמות משפיענים רלוונטיים (שמות באנגלית, הסבר בעברית).
 - כל הטקסטים בתשובה חייבים להיות בעברית תקינה בלבד.
 - החזר JSON בלבד, ללא markdown.
 
+${genderLine}
+${preferredInfluencersLine}
 ${occasionLine}`
     : `You are Stage 2 of a split pipeline: inspiration and recommendations only.
 Input: structured Stage 1 JSON that already completed analysis and item identification.
@@ -1696,14 +1736,72 @@ Rules:
 - shoppingLinks must be valid search URLs (never direct /product/ URLs).
 - trendSources must be relevant to identified items.
 - influencerInsight should be practical and concise.
+- influencerInsight must include at least 2 relevant influencer names.
 - All user-facing text must be in English only.
 - Return JSON only, no markdown.
 
+${genderLine}
+${preferredInfluencersLine}
 ${occasionLine}`;
 }
 
 function isHebrewText(text: string): boolean {
   return /[\u0590-\u05FF]/.test(text || "");
+}
+
+function isLikelyImageUrl(url: string | undefined | null): boolean {
+  if (!url || typeof url !== "string") return false;
+  const u = url.trim();
+  return /^https?:\/\//i.test(u) && !/placeholder|example\.com/i.test(u);
+}
+
+function pickInfluencersForProfile(
+  userGender?: string | null,
+  max = 2,
+): Array<{ name: string; igUrl: string }> {
+  const normalizedGender = (userGender || "").toLowerCase();
+  const matches = POPULAR_INFLUENCERS.filter((inf) => {
+    if (normalizedGender === "male") return inf.gender === "male" || inf.gender === "unisex";
+    if (normalizedGender === "female") return inf.gender === "female" || inf.gender === "unisex";
+    return true;
+  });
+  return matches.slice(0, Math.max(1, max)).map((inf) => ({ name: inf.name, igUrl: inf.igUrl }));
+}
+
+function sanitizeOutfitSuggestionsForProfileGender(
+  outfitSuggestions: OutfitSuggestion[],
+  userGender: string | null | undefined,
+  lang: "he" | "en",
+): OutfitSuggestion[] {
+  if (!Array.isArray(outfitSuggestions)) return [];
+  const normalizedGender = (userGender || "").toLowerCase();
+  if (normalizedGender !== "male") return outfitSuggestions;
+
+  const femaleCodedPattern = /(dress|gown|skirt|heels?|bralette|bra|blouse|שמלה|חצאית|עקבים|חזיה)/i;
+  const fallbackItems = lang === "he"
+    ? ["חולצה מחויטת", "מכנסיים בגזרה נקייה", "נעליים תואמות", "שכבה עליונה מובנית"]
+    : ["structured top", "clean-cut bottoms", "coordinated shoes", "structured outer layer"];
+
+  return outfitSuggestions.map((outfit) => {
+    const baseItems = Array.isArray(outfit.items) ? outfit.items.filter(Boolean) : [];
+    const filteredItems = baseItems.filter((item) => !femaleCodedPattern.test(item));
+    const deduped: string[] = [];
+    const seen = new Set<string>();
+    for (const item of filteredItems) {
+      const key = item.toLowerCase().trim();
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      deduped.push(item);
+    }
+    for (const item of fallbackItems) {
+      if (deduped.length >= 3) break;
+      const key = item.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      deduped.push(item);
+    }
+    return { ...outfit, items: deduped.slice(0, 6) };
+  });
 }
 
 function normalizeImprovementShoppingLinks(
@@ -1725,7 +1823,7 @@ function normalizeImprovementShoppingLinks(
     deduped.push({
       label: (link.label || `${fallbackQuery}`).trim(),
       url: link.url.trim(),
-      imageUrl: link.imageUrl || "",
+      imageUrl: isLikelyImageUrl(link.imageUrl) ? link.imageUrl!.trim() : "",
     });
   }
   if (deduped.length < 3) {
@@ -1773,8 +1871,9 @@ function sanitizeRecommendationsPayload(
   core: FashionAnalysisCorePayload,
   lang: "he" | "en",
   occasion?: string | null,
+  userGender?: string | null,
 ): FashionRecommendationsPayload {
-  const fallback = buildFallbackRecommendationsFromCore(core, lang, occasion);
+  const fallback = buildFallbackRecommendationsFromCore(core, lang, occasion, userGender);
   if (shouldFallbackRecommendationsForLanguage(rec, lang)) {
     return fallback;
   }
@@ -1792,6 +1891,7 @@ function sanitizeRecommendationsPayload(
   if (outfitSuggestions.length < 2) {
     outfitSuggestions = [...outfitSuggestions, ...fallback.outfitSuggestions];
   }
+  outfitSuggestions = sanitizeOutfitSuggestionsForProfileGender(outfitSuggestions, userGender, lang);
   outfitSuggestions = outfitSuggestions.slice(0, 3);
 
   let trendSources = Array.isArray(rec.trendSources) ? rec.trendSources : [];
@@ -1804,6 +1904,16 @@ function sanitizeRecommendationsPayload(
   if (!influencerInsight) influencerInsight = fallback.influencerInsight;
   if (lang === "he" && !isHebrewText(influencerInsight)) {
     influencerInsight = fallback.influencerInsight;
+  }
+  const preferredInfluencers = pickInfluencersForProfile(userGender, 2);
+  if (preferredInfluencers.length > 0) {
+    const hasMentionedInfluencer = preferredInfluencers.some((inf) => influencerInsight.includes(inf.name));
+    if (!hasMentionedInfluencer) {
+      const names = preferredInfluencers.map((inf) => inf.name).join(", ");
+      influencerInsight = lang === "he"
+        ? `בהשראת ${names}: מומלץ לשמור על פרופורציות נקיות, שילוב שכבה עליונה מדויקת ונעליים שמחזקות את הלוק.`
+        : `Inspired by ${names}: keep clean proportions, add one structured layer, and use footwear that anchors the look.`;
+    }
   }
 
   return {
@@ -1818,6 +1928,7 @@ function buildFallbackRecommendationsFromCore(
   core: FashionAnalysisCorePayload,
   lang: "he" | "en",
   occasion?: string | null,
+  userGender?: string | null,
 ): FashionRecommendationsPayload {
   const isHebrew = lang === "he";
   const improvements: Improvement[] = [
@@ -1867,11 +1978,22 @@ function buildFallbackRecommendationsFromCore(
         { source: "GQ", title: "Clean silhouettes and layering", url: "https://www.gq.com/style", relevance: "menswear/unisex styling", season: "2025-2026" },
       ];
 
+  const preferredInfluencers = pickInfluencersForProfile(userGender, 2);
+  const influencerNames = preferredInfluencers.map((inf) => inf.name).join(", ");
   const influencerInsight = isHebrew
-    ? "כדי לחזק את הלוק, התמקד/י בפרופורציות נקיות, שכבה עליונה מדויקת ונעליים שמסיימות את ההופעה באופן עקבי."
-    : "To elevate this look, prioritize cleaner proportions, one structured outer layer, and footwear that consistently anchors the outfit.";
+    ? (influencerNames
+      ? `בהשראת ${influencerNames}: כדי לחזק את הלוק, התמקד/י בפרופורציות נקיות, שכבה עליונה מדויקת ונעליים שסוגרות את ההופעה.`
+      : "כדי לחזק את הלוק, התמקד/י בפרופורציות נקיות, שכבה עליונה מדויקת ונעליים שמסיימות את ההופעה באופן עקבי.")
+    : (influencerNames
+      ? `Inspired by ${influencerNames}: prioritize cleaner proportions, one structured outer layer, and footwear that anchors the look.`
+      : "To elevate this look, prioritize cleaner proportions, one structured outer layer, and footwear that consistently anchors the outfit.");
 
-  return { improvements, outfitSuggestions, trendSources, influencerInsight };
+  return {
+    improvements: improvements.map((imp) => normalizeImprovementShoppingLinks(imp, lang)),
+    outfitSuggestions: sanitizeOutfitSuggestionsForProfileGender(outfitSuggestions, userGender, lang),
+    trendSources,
+    influencerInsight,
+  };
 }
 
 export const appRouter = router({
@@ -2260,7 +2382,12 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
                   messages: [
                     {
                       role: "system",
-                      content: buildRecommendationsPromptFromCore(input.lang, review.occasion),
+                      content: buildRecommendationsPromptFromCore(
+                        input.lang,
+                        review.occasion,
+                        profileContext?.gender || null,
+                        review.influencers || profileContext?.favoriteInfluencers || null,
+                      ),
                     },
                     {
                       role: "user",
@@ -2301,13 +2428,19 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
             console.warn(`[Fashion Analysis] Stage-2 recommendations fallback: ${recErr?.message || recErr}`);
           }
           if (!recommendations) {
-            recommendations = buildFallbackRecommendationsFromCore(analysisCore, input.lang, review.occasion);
+            recommendations = buildFallbackRecommendationsFromCore(
+              analysisCore,
+              input.lang,
+              review.occasion,
+              profileContext?.gender || null,
+            );
           }
           recommendations = sanitizeRecommendationsPayload(
             recommendations,
             analysisCore,
             input.lang,
             review.occasion,
+            profileContext?.gender || null,
           );
           let analysis: FashionAnalysis = {
             ...analysisCore,
@@ -2491,8 +2624,8 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
           // Even if AI generated correct-looking URLs, we rebuild them to guarantee they work
           const userGender: GenderCategory = (profileContext?.gender as GenderCategory) || "male";
           analysis = fixShoppingLinkUrls(analysis, userGender);
-          analysis = normalizeOutfitSuggestionsForWearableCore(analysis);
-          analysis = normalizeImprovementsForWearableCore(analysis);
+          analysis = normalizeOutfitSuggestionsForWearableCore(analysis, userGender);
+          analysis = normalizeImprovementsForWearableCore(analysis, userGender);
 
           // --- Closet matching: enrich improvements with matching wardrobe items ---
           const allWardrobeItemsForMatching = Array.isArray(allWardrobeItems)
@@ -4060,7 +4193,12 @@ Return ONLY a JSON object with these exact fields:
                   messages: [
                     {
                       role: "system",
-                      content: buildRecommendationsPromptFromCore(input.lang, input.occasion),
+                      content: buildRecommendationsPromptFromCore(
+                        input.lang,
+                        input.occasion,
+                        profileForPrompt?.gender || null,
+                        guestProfile?.favoriteInfluencers || null,
+                      ),
                     },
                     {
                       role: "user",
@@ -4101,13 +4239,19 @@ Return ONLY a JSON object with these exact fields:
             console.warn(`[Guest Analysis] Stage-2 recommendations fallback: ${recErr?.message || recErr}`);
           }
           if (!recommendations) {
-            recommendations = buildFallbackRecommendationsFromCore(analysisCore, input.lang, input.occasion);
+            recommendations = buildFallbackRecommendationsFromCore(
+              analysisCore,
+              input.lang,
+              input.occasion,
+              profileForPrompt?.gender || null,
+            );
           }
           recommendations = sanitizeRecommendationsPayload(
             recommendations,
             analysisCore,
             input.lang,
             input.occasion,
+            profileForPrompt?.gender || null,
           );
           let analysis: FashionAnalysis = {
             ...analysisCore,
@@ -4246,8 +4390,8 @@ Return ONLY a JSON object with these exact fields:
           // Fix shopping URLs with gender from profile
           const guestGender: GenderCategory = (profileForPrompt?.gender as GenderCategory) || "male";
           analysis = fixShoppingLinkUrls(analysis, guestGender);
-          analysis = normalizeOutfitSuggestionsForWearableCore(analysis);
-          analysis = normalizeImprovementsForWearableCore(analysis);
+          analysis = normalizeOutfitSuggestionsForWearableCore(analysis, guestGender);
+          analysis = normalizeImprovementsForWearableCore(analysis, guestGender);
 
           // --- Closet matching: enrich improvements with matching wardrobe items ---
           const wardrobeItemsForMatching = Array.isArray(wardrobeItemsList)
