@@ -325,6 +325,18 @@ export async function generateOutfitLookFromMetadata(params: {
   const candidates = Array.from(dedupMap.values()).sort((a, b) => b.score - a.score);
   // Diversify different look cards so outfit #1/#2/#3 do not all pick identical top-ranked links.
   const diversifiedCandidates = rotateCandidates(candidates, outfitIndex);
+  const categoryPools = new Map<OutfitCategory, typeof diversifiedCandidates>();
+  for (const c of diversifiedCandidates) {
+    const existing = categoryPools.get(c.category) || [];
+    existing.push(c);
+    categoryPools.set(c.category, existing);
+  }
+  const hasCategoryVariants = Array.from(categoryPools.values()).some((pool) => pool.length > 1);
+  // If metadata source has no per-category variance, later cards should use AI fallback
+  // instead of repeating the exact same collage.
+  if (outfitIndex > 0 && !hasCategoryVariants) {
+    return null;
+  }
 
   // Select links with strict diversity: max one per category in metadata mode
   const selected: typeof candidates = [];
@@ -338,11 +350,18 @@ export async function generateOutfitLookFromMetadata(params: {
 
   const tryPickCategory = (cat: OutfitCategory) => {
     if (selected.length >= 4) return;
-    const found = diversifiedCandidates.find((c) => {
-      if (c.category !== cat) return false;
+    const pool = categoryPools.get(cat) || [];
+    if (pool.length === 0) return;
+    const start = outfitIndex % pool.length;
+    let found: (typeof diversifiedCandidates)[number] | undefined;
+    for (let step = 0; step < pool.length; step += 1) {
+      const candidate = pool[(start + step) % pool.length];
       const key = buildCandidateDedupKey(c.link.label, c.link.url);
-      return !usedDedupKeys.has(key) && !usedCategories.has(c.category);
-    });
+      if (!usedDedupKeys.has(key) && !usedCategories.has(candidate.category)) {
+        found = candidate;
+        break;
+      }
+    }
     if (!found) return;
     selected.push(found);
     usedCategories.add(found.category);
@@ -366,7 +385,9 @@ export async function generateOutfitLookFromMetadata(params: {
 
   // Pass 3: fill remaining slots with best non-duplicate categories
   if (selected.length < 4) {
-    for (const c of diversifiedCandidates) {
+    const start = diversifiedCandidates.length > 0 ? outfitIndex % diversifiedCandidates.length : 0;
+    for (let i = 0; i < diversifiedCandidates.length; i += 1) {
+      const c = diversifiedCandidates[(start + i) % diversifiedCandidates.length];
       const key = buildCandidateDedupKey(c.link.label, c.link.url);
       if (usedDedupKeys.has(key)) continue;
       if (usedCategories.has(c.category)) continue;
