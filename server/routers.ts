@@ -1711,7 +1711,7 @@ function buildRecommendationsPromptFromCore(
 - לכל improvement חייבים להיות לפחות 3 shoppingLinks.
 - shoppingLinks חייבים להיות כתובות חיפוש תקינות (לא /product/ ישיר).
 - trendSources חייב להיות רלוונטי לפריטים שזוהו.
-- influencerInsight חייב להיות פרקטי וקצר.
+- influencerInsight חייב להיות מפורט (לפחות 4-6 משפטים), ספציפי ללוק של המשתמש, ולהסביר: מה בלוק הנוכחי מזכיר את המשפיענים ומה חסר כדי להתיישר לסגנון שלהם.
 - influencerInsight חייב להזכיר לפחות 2 שמות משפיענים רלוונטיים (שמות באנגלית, הסבר בעברית).
 - כל הטקסטים בתשובה חייבים להיות בעברית תקינה בלבד.
 - החזר JSON בלבד, ללא markdown.
@@ -1735,7 +1735,7 @@ Rules:
 - Every improvement must include at least 3 shoppingLinks.
 - shoppingLinks must be valid search URLs (never direct /product/ URLs).
 - trendSources must be relevant to identified items.
-- influencerInsight should be practical and concise.
+- influencerInsight should be detailed (at least 4-6 sentences), specific to the user's actual outfit, and explain both alignment and gaps versus the influencer style.
 - influencerInsight must include at least 2 relevant influencer names.
 - All user-facing text must be in English only.
 - Return JSON only, no markdown.
@@ -1743,6 +1743,50 @@ Rules:
 ${genderLine}
 ${preferredInfluencersLine}
 ${occasionLine}`;
+}
+
+function buildFallbackInfluencerInsight(
+  lang: "he" | "en",
+  userGender?: string | null,
+  preferredInfluencers?: string | null,
+): { insight: string; mentions: Array<{ text: string; type: "influencer"; url: string }> } {
+  const preferredNames = (preferredInfluencers || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const preferredResolved = preferredNames
+    .map((name) => POPULAR_INFLUENCERS.find((inf) => inf.name.toLowerCase() === name.toLowerCase()))
+    .filter((v): v is (typeof POPULAR_INFLUENCERS)[number] => Boolean(v));
+
+  const picked = preferredResolved.length >= 2
+    ? preferredResolved.slice(0, 2)
+    : [
+        ...preferredResolved,
+        ...pickInfluencersForProfile(userGender, 2 + Math.max(0, 2 - preferredResolved.length))
+          .map((x) => POPULAR_INFLUENCERS.find((inf) => inf.name === x.name))
+          .filter((v): v is (typeof POPULAR_INFLUENCERS)[number] => Boolean(v)),
+      ].slice(0, 2);
+
+  const first = picked[0];
+  const second = picked[1] || picked[0];
+
+  if (!first) {
+    return {
+      insight: lang === "he"
+        ? "כדי לדייק את הלוק, התמקד/י בשכבות נקיות, פרופורציות מאוזנות ונעליים שמחברות את כל ההופעה."
+        : "To refine this look, focus on clean layering, balanced proportions, and footwear that anchors the outfit.",
+      mentions: [],
+    };
+  }
+
+  const insight = lang === "he"
+    ? `ביחס לקו הסטייל של ${first.name}${second ? ` ו-${second.name}` : ""}, הלוק שלך יושב טוב על בסיס נקי ומאוזן, אבל צריך יותר הדגשה בנקודת הפוקוס המרכזית. כדי להתקרב לאסתטיקה שלהם, שמור/י על פרופורציות חדות בין עליון לתחתון, הוסף/י שכבה חיצונית מדויקת, וסיים/י עם נעליים שמייצרות רצף צבעוני ברור לכל ההופעה.`
+    : `Compared with the styling language of ${first.name}${second ? ` and ${second.name}` : ""}, your look has a solid clean base but needs a stronger focal point. To move closer to their aesthetic, keep sharper top-bottom proportions, add one precise outer layer, and finish with footwear that creates clearer color continuity across the full outfit.`;
+
+  return {
+    insight,
+    mentions: picked.map((inf) => ({ text: inf.name, type: "influencer" as const, url: inf.igUrl })),
+  };
 }
 
 function isHebrewText(text: string): boolean {
