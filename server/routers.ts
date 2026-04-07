@@ -17,6 +17,321 @@ import { generateImage } from "./_core/imageGeneration";
 import type { OutfitSuggestion, Improvement, ShoppingLink } from "../shared/fashionTypes";
 import probeImageSize from "probe-image-size";
 
+const ANALYSIS_CONCURRENCY_LIMIT = 2;
+const ANALYSIS_QUEUE_MAX_WAITERS = 40;
+let activeAnalysisJobs = 0;
+const waitingAnalysisResolvers: Array<() => void> = [];
+
+async function withAnalysisSlot<T>(jobLabel: string, fn: () => Promise<T>): Promise<T> {
+  if (activeAnalysisJobs >= ANALYSIS_CONCURRENCY_LIMIT) {
+    if (waitingAnalysisResolvers.length >= ANALYSIS_QUEUE_MAX_WAITERS) {
+      throw new Error("ANALYSIS_QUEUE_BUSY");
+    }
+    await new Promise<void>((resolve) => waitingAnalysisResolvers.push(resolve));
+  }
+
+  activeAnalysisJobs += 1;
+  try {
+    return await fn();
+  } finally {
+    activeAnalysisJobs = Math.max(0, activeAnalysisJobs - 1);
+    const next = waitingAnalysisResolvers.shift();
+    if (next) next();
+    if (process.env.NODE_ENV !== "test") {
+      console.log(`[AnalysisQueue] ${jobLabel} done. active=${activeAnalysisJobs} waiting=${waitingAnalysisResolvers.length}`);
+    }
+  }
+}
+
+type ClothingCategory = "top" | "bottom" | "outerwear" | "dress" | "onepiece" | "shoes" | "accessory" | "other";
+
+function detectClothingCategory(text: string): ClothingCategory {
+  const t = (text || "").toLowerCase();
+  if (/(dress|gown|שמלה)/.test(t)) return "dress";
+  if (/(jumpsuit|overall|אוברול|סרבל)/.test(t)) return "onepiece";
+  if (/(shirt|tee|t-shirt|blouse|sweater|sweatshirt|hoodie|top|חולצ|טי שירט|סריג|קפוצ)/.test(t)) return "top";
+  if (/(jeans|pants|trouser|skirt|shorts|מכנס|גינס|ג׳ינס|חצאית|שורט)/.test(t)) return "bottom";
+  if (/(jacket|coat|blazer|cardigan|מעיל|זקט|ז'קט|בלייזר|קרדיגן)/.test(t)) return "outerwear";
+  if (/(shoe|sneaker|boot|loafer|heel|sandals?|נעל|סניקר)/.test(t)) return "shoes";
+  if (/(watch|bracelet|ring|necklace|earring|belt|bag|hat|cap|scarf|sunglass|שעון|צמיד|טבעת|שרשר|עגיל|חגורה|תיק|כובע|צעיף|משקפ)/.test(t)) return "accessory";
+  return "other";
+}
+
+function normalizeOutfitSuggestionsForWearableCore(analysis: FashionAnalysis): FashionAnalysis {
+  if (!analysis?.outfitSuggestions?.length) return analysis;
+  const isHebrew = /[\u0590-\u05FF]/.test(analysis.summary || "");
+  const clothingFallbackByCategory: Record<Exclude<ClothingCategory, "accessory" | "other">, string> = {
+    top: isHebrew ? "חולצה מחויטת איכותית" : "Well-fitted structured top",
+    bottom: isHebrew ? "מכנסיים בגזרה נקייה" : "Clean tailored bottoms",
+    outerwear: isHebrew ? "שכבה עליונה מחויטת" : "Structured outerwear layer",
+    dress: isHebrew ? "שמלה מחמיאה בגזרה נקייה" : "Flattering structured dress",
+    onepiece: isHebrew ? "פריט one-piece מחויט" : "Tailored one-piece garment",
+    shoes: isHebrew ? "נעליים תואמות ללוק" : "Coordinated footwear",
+  };
+
+  analysis.outfitSuggestions = analysis.outfitSuggestions.map((outfit) => {
+    const items = Array.isArray(outfit.items) ? outfit.items.filter(Boolean) : [];
+    const dedupedItems: string[] = [];
+    const seen = new Set<string>();
+    for (const raw of items) {
+      const key = raw.toLowerCase().replace(/\s+/g, " ").trim();
+      if (!seen.has(key)) {
+        seen.add(key);
+        dedupedItems.push(raw);
+      }
+    }
+
+    const clothing = dedupedItems.filter((item) => {
+      const cat = detectClothingCategory(item);
+      return cat !== "accessory" && cat !== "other";
+    });
+    const accessories = dedupedItems.filter((item) => detectClothingCategory(item) === "accessory");
+
+    const categories = new Set(clothing.map((item) => detectClothingCategory(item)));
+    if (categories.size < 3 || clothing.length < 3) {
+      // Keep the strongest distinct clothing entries first, then fill with accessories.
+      const picked: string[] = [];
+      const usedCats = new Set<ClothingCategory>();
+      for (const item of clothing) {
+        const cat = detectClothingCategory(item);
+        if (usedCats.has(cat)) continue;
+        picked.push(item);
+        usedCats.add(cat);
+        if (picked.length >= 3) break;
+      }
+      for (const item of clothing) {
+        if (picked.includes(item)) continue;
+        picked.push(item);
+        if (picked.length >= 3) break;
+      }
+      // Backfill missing clothing slots from improvement labels/titles (non-accessory only).
+      if (picked.length < 3) {
+        const improvementCandidates = (analysis.improvements || [])
+          .flatMap((imp) => [imp.afterLabel, imp.beforeLabel, imp.title])
+          .filter(Boolean);
+        for (const candidate of improvementCandidates) {
+          const cat = detectClothingCategory(candidate);
+          if (cat === "accessory" || cat === "other") continue;
+          if (picked.includes(candidate)) continue;
+          picked.push(candidate);
+          if (picked.length >= 3) break;
+        }
+      }
+      // Final guard: enforce at least 3 clothing entries with deterministic placeholders.
+      if (picked.length < 3) {
+        const preferredOrder: Array<Exclude<ClothingCategory, "accessory" | "other">> = ["top", "bottom", "shoes", "outerwear", "dress", "onepiece"];
+        const existingCats = new Set(picked.map((item) => detectClothingCategory(item)));
+        for (const cat of preferredOrder) {
+          if (picked.length >= 3) break;
+          if (existingCats.has(cat)) continue;
+          picked.push(clothingFallbackByCategory[cat]);
+          existingCats.add(cat);
+        }
+      }
+      const finalItems = [...picked, ...accessories].slice(0, Math.max(5, picked.length + accessories.length));
+      return { ...outfit, items: finalItems };
+    }
+
+    return { ...outfit, items: [...clothing, ...accessories].slice(0, 8) };
+  });
+  return analysis;
+}
+
+function detectImprovementCategory(imp: Improvement): ClothingCategory {
+  return detectClothingCategory(`${imp.title || ""} ${imp.beforeLabel || ""} ${imp.afterLabel || ""} ${imp.productSearchQuery || ""}`);
+}
+
+function buildFallbackShoppingLinks(query: string): ShoppingLink[] {
+  const encoded = encodeURIComponent(query).replace(/%20/g, "+");
+  return [
+    {
+      label: `${query} - ASOS`,
+      url: `https://www.asos.com/search/?q=${encoded}`,
+      imageUrl: "",
+    },
+    {
+      label: `${query} - Zara`,
+      url: `https://www.zara.com/us/en/search?searchTerm=${encoded}`,
+      imageUrl: "",
+    },
+    {
+      label: `${query} - H&M`,
+      url: `https://www2.hm.com/en_us/search-results.html?q=${encoded}`,
+      imageUrl: "",
+    },
+  ];
+}
+
+function buildFallbackImprovement(category: Exclude<ClothingCategory, "accessory" | "other">, isHebrew: boolean): Improvement {
+  const map: Record<Exclude<ClothingCategory, "accessory" | "other">, { title: string; description: string; beforeLabel: string; afterLabel: string; query: string }> = isHebrew
+    ? {
+        top: {
+          title: "שדרוג חלק עליון",
+          description: "הוסף/י חלק עליון מחויט ומחמיא כדי לחזק את הלוק ולהעלות את רמת הסטייל הכללית.",
+          beforeLabel: "חלק עליון נוכחי",
+          afterLabel: "חולצה/טופ מחויט איכותי",
+          query: "tailored shirt premium",
+        },
+        bottom: {
+          title: "שדרוג חלק תחתון",
+          description: "בחר/י פריט תחתון בגזרה נקייה ומדויקת שיוצר בסיס חזק ללוק מלא ומאוזן.",
+          beforeLabel: "חלק תחתון נוכחי",
+          afterLabel: "מכנסיים/חצאית בגזרה נקייה",
+          query: "tailored pants clean fit",
+        },
+        outerwear: {
+          title: "שדרוג שכבה עליונה",
+          description: "שלב/י שכבה עליונה מובנית שתיתן עומק, נוכחות וקו סילואט ברור.",
+          beforeLabel: "ללא שכבה עליונה מובנית",
+          afterLabel: "בלייזר/ג׳קט מובנה",
+          query: "structured blazer jacket",
+        },
+        dress: {
+          title: "שדרוג לפריט מרכזי",
+          description: "בחר/י שמלה בגזרה מחמיאה כדי ליצור הופעה שלמה, מאוזנת ומעודכנת.",
+          beforeLabel: "שמלה נוכחית",
+          afterLabel: "שמלה בגזרה מחמיאה",
+          query: "structured flattering dress",
+        },
+        onepiece: {
+          title: "שדרוג לפריט one-piece",
+          description: "החלף/י לפריט one-piece מחויט שמייצר מראה נקי ואלגנטי יותר.",
+          beforeLabel: "one-piece נוכחי",
+          afterLabel: "one-piece מחויט",
+          query: "tailored jumpsuit one piece",
+        },
+        shoes: {
+          title: "שדרוג נעליים",
+          description: "הוסף/י נעליים תואמות ומדויקות ללוק כדי לייצר סגירה חזקה והרמונית.",
+          beforeLabel: "נעליים נוכחיות",
+          afterLabel: "נעליים תואמות ללוק",
+          query: "premium outfit matching shoes",
+        },
+      }
+    : {
+        top: {
+          title: "Upgrade your top",
+          description: "Add a better-structured top to sharpen the silhouette and elevate the full look.",
+          beforeLabel: "Current top",
+          afterLabel: "Well-fitted structured top",
+          query: "tailored shirt premium",
+        },
+        bottom: {
+          title: "Upgrade your bottoms",
+          description: "Use cleaner-cut bottoms that anchor the outfit and improve overall balance.",
+          beforeLabel: "Current bottoms",
+          afterLabel: "Clean tailored bottoms",
+          query: "tailored pants clean fit",
+        },
+        outerwear: {
+          title: "Add a structured outer layer",
+          description: "Introduce a structured outer layer to create depth and a stronger style profile.",
+          beforeLabel: "No structured outer layer",
+          afterLabel: "Structured blazer or jacket",
+          query: "structured blazer jacket",
+        },
+        dress: {
+          title: "Upgrade to a stronger dress silhouette",
+          description: "Choose a more flattering dress cut to create a coherent, polished full look.",
+          beforeLabel: "Current dress",
+          afterLabel: "Flattering structured dress",
+          query: "structured flattering dress",
+        },
+        onepiece: {
+          title: "Upgrade your one-piece option",
+          description: "Switch to a tailored one-piece garment for a cleaner and more elevated outfit.",
+          beforeLabel: "Current one-piece",
+          afterLabel: "Tailored one-piece garment",
+          query: "tailored jumpsuit one piece",
+        },
+        shoes: {
+          title: "Upgrade your footwear",
+          description: "Use coordinated shoes that lock the look together and improve visual harmony.",
+          beforeLabel: "Current shoes",
+          afterLabel: "Coordinated footwear",
+          query: "premium outfit matching shoes",
+        },
+      };
+
+  const picked = map[category];
+  return {
+    title: picked.title,
+    description: picked.description,
+    beforeLabel: picked.beforeLabel,
+    afterLabel: picked.afterLabel,
+    productSearchQuery: picked.query,
+    shoppingLinks: buildFallbackShoppingLinks(picked.query),
+  };
+}
+
+function normalizeImprovementsForWearableCore(analysis: FashionAnalysis): FashionAnalysis {
+  if (!analysis?.improvements?.length) return analysis;
+
+  const isHebrew = /[\u0590-\u05FF]/.test(analysis.summary || "");
+  const preferredOrder: Array<Exclude<ClothingCategory, "accessory" | "other">> = ["top", "bottom", "shoes", "outerwear", "dress", "onepiece"];
+  const rank: Record<ClothingCategory, number> = {
+    top: 0,
+    bottom: 1,
+    shoes: 2,
+    outerwear: 3,
+    dress: 4,
+    onepiece: 5,
+    accessory: 6,
+    other: 7,
+  };
+  const isClothing = (cat: ClothingCategory) => cat !== "accessory" && cat !== "other";
+
+  const clothing = analysis.improvements
+    .filter((imp) => isClothing(detectImprovementCategory(imp)))
+    .sort((a, b) => rank[detectImprovementCategory(a)] - rank[detectImprovementCategory(b)]);
+  const nonClothing = analysis.improvements.filter((imp) => !isClothing(detectImprovementCategory(imp)));
+
+  const normalized: Improvement[] = [...clothing, ...nonClothing];
+  const currentClothingCats = new Set(
+    normalized
+      .map((imp) => detectImprovementCategory(imp))
+      .filter((cat): cat is Exclude<ClothingCategory, "accessory" | "other"> => isClothing(cat)),
+  );
+
+  while (normalized.filter((imp) => isClothing(detectImprovementCategory(imp))).length < 3) {
+    const nextCat =
+      preferredOrder.find((cat) => !currentClothingCats.has(cat)) ||
+      preferredOrder[normalized.length % preferredOrder.length];
+    normalized.push(buildFallbackImprovement(nextCat, isHebrew));
+    currentClothingCats.add(nextCat);
+  }
+
+  const keep: Improvement[] = [...normalized];
+  while (keep.length > 5) {
+    let removableIdx: number | undefined;
+    for (let idx = keep.length - 1; idx >= 0; idx -= 1) {
+      const cat = detectImprovementCategory(keep[idx]);
+      if (isClothing(cat)) {
+        const clothingCount = keep.filter((imp) => isClothing(detectImprovementCategory(imp))).length;
+        if (clothingCount > 3) {
+          removableIdx = idx;
+          break;
+        }
+      } else {
+        removableIdx = idx;
+        break;
+      }
+    }
+    if (removableIdx === undefined) break;
+    keep.splice(removableIdx, 1);
+  }
+
+  while (keep.length < 4) {
+    const missingCat =
+      preferredOrder.find((cat) => !keep.some((imp) => detectImprovementCategory(imp) === cat)) ||
+      preferredOrder[keep.length % preferredOrder.length];
+    keep.push(buildFallbackImprovement(missingCat, isHebrew));
+  }
+
+  analysis.improvements = keep;
+  return analysis;
+}
+
 /**
  * Fire-and-forget: notify the owner when a guest completes an analysis.
  * Never throws — errors are logged and swallowed.
@@ -1489,8 +1804,9 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
         const review = await getReviewById(input.reviewId);
         if (!review) throw new Error("Review not found");
         if (review.userId !== ctx.user.id) throw new Error("Unauthorized");
-        await updateReviewStatus(input.reviewId, "analyzing");
         try {
+          return await withAnalysisSlot(`review:${input.reviewId}`, async () => {
+            await updateReviewStatus(input.reviewId, "analyzing");
           // Fetch user profile and wardrobe items in parallel for speed
           const [profile, allWardrobeItems] = await Promise.all([
             getUserProfile(ctx.user.id),
@@ -1769,6 +2085,8 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
           // Even if AI generated correct-looking URLs, we rebuild them to guarantee they work
           const userGender: GenderCategory = (profileContext?.gender as GenderCategory) || "male";
           analysis = fixShoppingLinkUrls(analysis, userGender);
+          analysis = normalizeOutfitSuggestionsForWearableCore(analysis);
+          analysis = normalizeImprovementsForWearableCore(analysis);
 
           // --- Closet matching: enrich improvements with matching wardrobe items ---
           if (allWardrobeItems && allWardrobeItems.length > 0 && analysis.improvements) {
@@ -1938,6 +2256,7 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
           }
 
           return { success: true, analysis };
+          });
         } catch (error: any) {
           console.error("[Fashion Analysis] Failed:", error);
           console.error("[Fashion Analysis] Error message:", error?.message);
@@ -1950,6 +2269,9 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
           }
           if (msg.includes("timeout") || msg.includes("ECONNRESET") || msg.includes("ETIMEDOUT") || msg.includes("ECONNREFUSED")) {
             throw new Error(`הניתוח לקח יותר מדי זמן. שגיאה: ${msg.substring(0, 200)}`);
+          }
+          if (msg.includes("ANALYSIS_QUEUE_BUSY")) {
+            throw new Error("שירות הניתוח עמוס כרגע. נסו שוב בעוד כחצי דקה.");
           }
           throw new Error(`הניתוח נכשל. שגיאה: ${msg.substring(0, 200)}`);
         }
@@ -3209,9 +3531,9 @@ Return ONLY a JSON object with these exact fields:
         if (session.status === "completed") throw new Error("Analysis already completed");
         if (session.status === "analyzing") throw new Error("Analysis in progress");
 
-        await updateGuestSessionStatus(input.sessionId, "analyzing");
-
         try {
+          return await withAnalysisSlot(`guest:${input.sessionId}`, async () => {
+          await updateGuestSessionStatus(input.sessionId, "analyzing");
           // Get guest profile if onboarding was completed
           const guestProfile = session.fingerprint ? await getGuestProfile(session.fingerprint) : null;
           // Get guest wardrobe items
@@ -3427,6 +3749,8 @@ Return ONLY a JSON object with these exact fields:
           // Fix shopping URLs with gender from profile
           const guestGender: GenderCategory = (profileForPrompt?.gender as GenderCategory) || "male";
           analysis = fixShoppingLinkUrls(analysis, guestGender);
+          analysis = normalizeOutfitSuggestionsForWearableCore(analysis);
+          analysis = normalizeImprovementsForWearableCore(analysis);
 
           // --- Closet matching: enrich improvements with matching wardrobe items ---
           if (wardrobeItemsList && wardrobeItemsList.length > 0 && analysis.improvements) {
@@ -3586,11 +3910,15 @@ Return ONLY a JSON object with these exact fields:
           ).catch(() => {}); // swallow any unhandled rejection
 
           return { success: true, analysis };
+          });
         } catch (error: any) {
           console.error("[Guest Analysis] Failed:", error?.message);
           console.error("[Guest Analysis] Error status:", error?.status || error?.statusCode);
           await updateGuestSessionStatus(input.sessionId, "failed");
           const msg = error?.message || "";
+          if (msg.includes("ANALYSIS_QUEUE_BUSY")) {
+            throw new Error("שירות הניתוח עמוס כרגע. נסו שוב בעוד כחצי דקה.");
+          }
           throw new Error(`הניתוח נכשל. שגיאה: ${msg.substring(0, 200)}`);
         }
       }),
