@@ -1745,50 +1745,6 @@ ${preferredInfluencersLine}
 ${occasionLine}`;
 }
 
-function buildFallbackInfluencerInsight(
-  lang: "he" | "en",
-  userGender?: string | null,
-  preferredInfluencers?: string | null,
-): { insight: string; mentions: Array<{ text: string; type: "influencer"; url: string }> } {
-  const preferredNames = (preferredInfluencers || "")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
-  const preferredResolved = preferredNames
-    .map((name) => POPULAR_INFLUENCERS.find((inf) => inf.name.toLowerCase() === name.toLowerCase()))
-    .filter((v): v is (typeof POPULAR_INFLUENCERS)[number] => Boolean(v));
-
-  const picked = preferredResolved.length >= 2
-    ? preferredResolved.slice(0, 2)
-    : [
-        ...preferredResolved,
-        ...pickInfluencersForProfile(userGender, 2 + Math.max(0, 2 - preferredResolved.length))
-          .map((x) => POPULAR_INFLUENCERS.find((inf) => inf.name === x.name))
-          .filter((v): v is (typeof POPULAR_INFLUENCERS)[number] => Boolean(v)),
-      ].slice(0, 2);
-
-  const first = picked[0];
-  const second = picked[1] || picked[0];
-
-  if (!first) {
-    return {
-      insight: lang === "he"
-        ? "כדי לדייק את הלוק, התמקד/י בשכבות נקיות, פרופורציות מאוזנות ונעליים שמחברות את כל ההופעה."
-        : "To refine this look, focus on clean layering, balanced proportions, and footwear that anchors the outfit.",
-      mentions: [],
-    };
-  }
-
-  const insight = lang === "he"
-    ? `ביחס לקו הסטייל של ${first.name}${second ? ` ו-${second.name}` : ""}, הלוק שלך יושב טוב על בסיס נקי ומאוזן, אבל צריך יותר הדגשה בנקודת הפוקוס המרכזית. כדי להתקרב לאסתטיקה שלהם, שמור/י על פרופורציות חדות בין עליון לתחתון, הוסף/י שכבה חיצונית מדויקת, וסיים/י עם נעליים שמייצרות רצף צבעוני ברור לכל ההופעה.`
-    : `Compared with the styling language of ${first.name}${second ? ` and ${second.name}` : ""}, your look has a solid clean base but needs a stronger focal point. To move closer to their aesthetic, keep sharper top-bottom proportions, add one precise outer layer, and finish with footwear that creates clearer color continuity across the full outfit.`;
-
-  return {
-    insight,
-    mentions: picked.map((inf) => ({ text: inf.name, type: "influencer" as const, url: inf.igUrl })),
-  };
-}
-
 function isHebrewText(text: string): boolean {
   return /[\u0590-\u05FF]/.test(text || "");
 }
@@ -1810,6 +1766,67 @@ function pickInfluencersForProfile(
     return true;
   });
   return matches.slice(0, Math.max(1, max)).map((inf) => ({ name: inf.name, igUrl: inf.igUrl }));
+}
+
+function resolvePreferredInfluencers(
+  preferredInfluencers: string | null | undefined,
+  userGender?: string | null,
+  max = 2,
+): Array<{ name: string; igUrl: string }> {
+  const preferredNames = (preferredInfluencers || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const preferredResolved = preferredNames
+    .map((name) => POPULAR_INFLUENCERS.find((inf) => inf.name.toLowerCase() === name.toLowerCase()))
+    .filter((v): v is (typeof POPULAR_INFLUENCERS)[number] => Boolean(v))
+    .map((inf) => ({ name: inf.name, igUrl: inf.igUrl }));
+  if (preferredResolved.length >= max) {
+    return preferredResolved.slice(0, max);
+  }
+  const fallback = pickInfluencersForProfile(userGender, max + 2);
+  const out = [...preferredResolved];
+  for (const inf of fallback) {
+    if (out.some((x) => x.name === inf.name)) continue;
+    out.push(inf);
+    if (out.length >= max) break;
+  }
+  return out.slice(0, max);
+}
+
+function buildDetailedInfluencerInsightFromCore(
+  core: FashionAnalysisCorePayload,
+  lang: "he" | "en",
+  userGender?: string | null,
+  preferredInfluencers?: string | null,
+): { insight: string; mentions: Array<{ text: string; type: "influencer"; url: string }> } {
+  const picked = resolvePreferredInfluencers(preferredInfluencers, userGender, 2);
+  const first = picked[0];
+  const second = picked[1] || picked[0];
+  const topItems = (core.items || [])
+    .slice(0, 3)
+    .map((it) => it.name)
+    .filter(Boolean)
+    .join(", ");
+  const summary = (core.summary || "").trim().slice(0, 180);
+
+  if (!first) {
+    return {
+      insight: lang === "he"
+        ? `הלוק שלך מציג בסיס טוב, אבל כדי לדייק אותו ברמת סטייל גבוהה יותר צריך חידוד בכמה נקודות מפתח. התמקד/י בפרופורציות ברורות בין החלק העליון והתחתון, הוסף/י שכבה חיצונית אחת מדויקת, ושמור/י על רצף צבעוני אחיד בין הפריטים המרכזיים. בנוסף, סיום חזק דרך נעליים ותיק/אביזר תואם ייתן ללוק נוכחות שלמה יותר.`
+        : `Your look has a solid base, but to elevate it further you need sharper execution in a few key areas. Focus on clearer top-bottom proportions, add one precise outer layer, and keep a consistent color story across the core pieces. A stronger finish through footwear and one coordinated accessory will make the outfit feel more complete.`,
+      mentions: [],
+    };
+  }
+
+  const insight = lang === "he"
+    ? `בהשוואה לקו הסטייל של ${first.name}${second ? ` ו-${second.name}` : ""}, הלוק הנוכחי שלך נמצא בכיוון נכון אבל עדיין לא ממצה את הפוטנציאל האופנתי שלו. ${summary ? `בסיכום הכללי עולה ש-${summary}. ` : ""}${topItems ? `בפריטים שזוהו (${topItems}) יש בסיס טוב, אבל צריך יותר היררכיה ברורה בין פריט מוביל לפריטים משלימים. ` : ""}כדי להתיישר יותר לתפיסת הסטייל שלהם, כדאי לחזק את הסילואט עם שכבה חיצונית מובנית, לשמור על גזרת תחתון נקייה יותר, ולסגור את הלוק עם נעליים מדויקות שמחברות את כל הצבעוניות. בנוסף, בחירה מוקפדת באביזר אחד איכותי במקום כמה אביזרים מפוזרים תייצר הופעה בוגרת, חדה ומזוהה יותר עם הקו שלהם.`
+    : `Compared to the styling language of ${first.name}${second ? ` and ${second.name}` : ""}, your current look is on the right track but still under-delivers on full style impact. ${summary ? `The overall read suggests that ${summary}. ` : ""}${topItems ? `Within the identified pieces (${topItems}), the base is solid, but you still need a clearer hierarchy between a hero item and supporting pieces. ` : ""}To align more closely with their aesthetic, reinforce the silhouette with one structured outer layer, keep cleaner bottoms, and finish with footwear that ties the palette together. Also, choosing one high-quality focal accessory instead of several scattered accents will make the look feel sharper, more intentional, and more signature-driven.`;
+
+  return {
+    insight,
+    mentions: picked.map((inf) => ({ text: inf.name, type: "influencer" as const, url: inf.igUrl })),
+  };
 }
 
 function sanitizeOutfitSuggestionsForProfileGender(
@@ -1916,8 +1933,9 @@ function sanitizeRecommendationsPayload(
   lang: "he" | "en",
   occasion?: string | null,
   userGender?: string | null,
+  preferredInfluencers?: string | null,
 ): FashionRecommendationsPayload {
-  const fallback = buildFallbackRecommendationsFromCore(core, lang, occasion, userGender);
+  const fallback = buildFallbackRecommendationsFromCore(core, lang, occasion, userGender, preferredInfluencers);
   if (shouldFallbackRecommendationsForLanguage(rec, lang)) {
     return fallback;
   }
@@ -1949,15 +1967,15 @@ function sanitizeRecommendationsPayload(
   if (lang === "he" && !isHebrewText(influencerInsight)) {
     influencerInsight = fallback.influencerInsight;
   }
-  const preferredInfluencers = pickInfluencersForProfile(userGender, 2);
-  if (preferredInfluencers.length > 0) {
-    const hasMentionedInfluencer = preferredInfluencers.some((inf) => influencerInsight.includes(inf.name));
-    if (!hasMentionedInfluencer) {
-      const names = preferredInfluencers.map((inf) => inf.name).join(", ");
-      influencerInsight = lang === "he"
-        ? `בהשראת ${names}: מומלץ לשמור על פרופורציות נקיות, שילוב שכבה עליונה מדויקת ונעליים שמחזקות את הלוק.`
-        : `Inspired by ${names}: keep clean proportions, add one structured layer, and use footwear that anchors the look.`;
-    }
+  const detailedInsight = buildDetailedInfluencerInsightFromCore(core, lang, userGender, preferredInfluencers);
+  const mentionedCount = detailedInsight.mentions.filter((inf) => influencerInsight.includes(inf.text)).length;
+  const sentenceCount = influencerInsight
+    .split(/[.!?]+/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .length;
+  if (mentionedCount < 2 || sentenceCount < 4 || influencerInsight.length < 220) {
+    influencerInsight = detailedInsight.insight;
   }
 
   return {
@@ -1973,6 +1991,7 @@ function buildFallbackRecommendationsFromCore(
   lang: "he" | "en",
   occasion?: string | null,
   userGender?: string | null,
+  preferredInfluencers?: string | null,
 ): FashionRecommendationsPayload {
   const isHebrew = lang === "he";
   const improvements: Improvement[] = [
@@ -2022,15 +2041,12 @@ function buildFallbackRecommendationsFromCore(
         { source: "GQ", title: "Clean silhouettes and layering", url: "https://www.gq.com/style", relevance: "menswear/unisex styling", season: "2025-2026" },
       ];
 
-  const preferredInfluencers = pickInfluencersForProfile(userGender, 2);
-  const influencerNames = preferredInfluencers.map((inf) => inf.name).join(", ");
-  const influencerInsight = isHebrew
-    ? (influencerNames
-      ? `בהשראת ${influencerNames}: כדי לחזק את הלוק, התמקד/י בפרופורציות נקיות, שכבה עליונה מדויקת ונעליים שסוגרות את ההופעה.`
-      : "כדי לחזק את הלוק, התמקד/י בפרופורציות נקיות, שכבה עליונה מדויקת ונעליים שמסיימות את ההופעה באופן עקבי.")
-    : (influencerNames
-      ? `Inspired by ${influencerNames}: prioritize cleaner proportions, one structured outer layer, and footwear that anchors the look.`
-      : "To elevate this look, prioritize cleaner proportions, one structured outer layer, and footwear that consistently anchors the outfit.");
+  const influencerInsight = buildDetailedInfluencerInsightFromCore(
+    core,
+    lang,
+    userGender,
+    preferredInfluencers,
+  ).insight;
 
   return {
     improvements: improvements.map((imp) => normalizeImprovementShoppingLinks(imp, lang)),
@@ -2477,6 +2493,7 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
               input.lang,
               review.occasion,
               profileContext?.gender || null,
+              review.influencers || profileContext?.favoriteInfluencers || null,
             );
           }
           recommendations = sanitizeRecommendationsPayload(
@@ -2485,6 +2502,7 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
             input.lang,
             review.occasion,
             profileContext?.gender || null,
+            review.influencers || profileContext?.favoriteInfluencers || null,
           );
           let analysis: FashionAnalysis = {
             ...analysisCore,
@@ -3161,7 +3179,7 @@ ${input.context ? `Context: The user's analysis mentioned this influencer regard
 
 Return a JSON object with:
 - caption: A realistic Instagram caption this influencer would write (2-3 sentences, include emojis, in the style of the influencer). Write in English.
-- stylingTip: A specific styling tip in Hebrew that users can learn from this influencer's approach (2-3 sentences). Write the stylingTip in the same language as the user's interface
+- stylingTip: A detailed, practical style analysis (4-6 sentences) that explicitly compares the USER'S CURRENT LOOK (from Context) to this influencer's style philosophy: what already aligns, what is missing, and 2-3 concrete changes the user should make in garments/colors/silhouette. Write the stylingTip in the same language as the user's interface.
 - styleTags: Array of 4-6 relevant hashtag words (without #) that describe the look
 - outfitDescription: A detailed description in English of what the influencer is wearing in this example post (for image generation). Be specific about colors, brands, and styling details.
 
@@ -3231,6 +3249,7 @@ Return ONLY the JSON object, no markdown.`;
         const colors = outfit.colors?.join(", ") || "neutral tones";
 
         const prompt = `Professional fashion flat lay / mood board photograph. Clean white marble background, luxury editorial style photography.
+Outfit card variation index: ${input.outfitIndex + 1}. Keep this variation visually distinct from other outfit cards.
 
 Complete outfit: ${lookDesc}.
 Color palette: ${colors}.
@@ -3242,6 +3261,9 @@ Style: High-end fashion editorial flat lay, all items arranged aesthetically lik
           return { imageUrl: url || "" };
         } catch (err: any) {
           console.error("[Outfit Look] Image generation failed:", err);
+          if (metadataLook?.imageUrl) {
+            return { imageUrl: metadataLook.imageUrl };
+          }
           throw new Error("יצירת הדמיית הלוק נכשלה. נסה שוב.");
         }
       }),
@@ -4288,6 +4310,7 @@ Return ONLY a JSON object with these exact fields:
               input.lang,
               input.occasion,
               profileForPrompt?.gender || null,
+              guestProfile?.favoriteInfluencers || null,
             );
           }
           recommendations = sanitizeRecommendationsPayload(
@@ -4296,6 +4319,7 @@ Return ONLY a JSON object with these exact fields:
             input.lang,
             input.occasion,
             profileForPrompt?.gender || null,
+            guestProfile?.favoriteInfluencers || null,
           );
           let analysis: FashionAnalysis = {
             ...analysisCore,
@@ -4696,6 +4720,7 @@ Return ONLY a JSON object with these exact fields:
         const colors = outfit.colors?.join(", ") || "neutral tones";
 
         const prompt = `Professional fashion flat lay / mood board photograph. Clean white marble background, luxury editorial style photography.
+Outfit card variation index: ${input.outfitIndex + 1}. Keep this variation visually distinct from other outfit cards.
 
 Complete outfit: ${lookDesc}.
 Color palette: ${colors}.
@@ -4707,6 +4732,9 @@ Style: High-end fashion editorial flat lay, all items arranged aesthetically lik
           return { imageUrl: url || "" };
         } catch (err: any) {
           console.error("[Guest Outfit Look] Image generation failed:", err);
+          if (metadataLook?.imageUrl) {
+            return { imageUrl: metadataLook.imageUrl };
+          }
           throw new Error("יצירת הדמיית הלוק נכשלה. נסה שוב.");
         }
       }),

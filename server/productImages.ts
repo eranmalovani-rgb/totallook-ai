@@ -110,7 +110,7 @@ async function resolveShoppingLinkImage(params: {
   allowAIFallback?: boolean;
 }): Promise<string> {
   const { label, url, categoryQuery, logPrefix, allowAIFallback = true } = params;
-  const cacheKey = normalizeProductKey(label, categoryQuery);
+  const cacheKey = normalizeProductKey(label, categoryQuery, url);
   const cachedUrl = await getCachedProductImage(cacheKey, CACHE_TTL_DAYS);
   if (cachedUrl && isValidImageUrl(cachedUrl)) {
     const works = await testImageUrl(cachedUrl);
@@ -136,7 +136,7 @@ async function resolveShoppingLinkImage(params: {
     return "";
   }
 
-  const prompt = buildProductImagePrompt(label, categoryQuery);
+  const prompt = buildProductImagePrompt(label, categoryQuery, url);
   console.log(`${logPrefix} AI generation: "${label}"`);
   const startTime = Date.now();
   const { url: generatedUrl } = await generateImage({ prompt });
@@ -356,7 +356,7 @@ export async function generateOutfitLookFromMetadata(params: {
     let found: (typeof diversifiedCandidates)[number] | undefined;
     for (let step = 0; step < pool.length; step += 1) {
       const candidate = pool[(start + step) % pool.length];
-      const key = buildCandidateDedupKey(c.link.label, c.link.url);
+      const key = buildCandidateDedupKey(candidate.link.label, candidate.link.url);
       if (!usedDedupKeys.has(key) && !usedCategories.has(candidate.category)) {
         found = candidate;
         break;
@@ -612,9 +612,29 @@ export async function generateImagesForImprovement(
 /**
  * Build a unique prompt for each specific product.
  */
-function buildProductImagePrompt(linkLabel: string, categoryQuery: string): string {
-  const productName = linkLabel.split(/\s*[—–]\s*/)[0].trim();
-  return `E-commerce product photo: ${productName}. Category: ${categoryQuery}. White background, studio lighting, single product, no model, no text.`;
+function buildProductImagePrompt(linkLabel: string, categoryQuery: string, productUrl?: string): string {
+  const [productNameRaw, storeFromLabelRaw] = linkLabel.split(/\s*[—–]\s*/);
+  const productName = (productNameRaw || linkLabel).trim();
+  const storeFromLabel = (storeFromLabelRaw || "").trim();
+  let storeHost = "";
+  if (productUrl) {
+    try {
+      storeHost = new URL(productUrl).hostname.replace(/^www\./, "");
+    } catch {
+      storeHost = "";
+    }
+  }
+  const storeHint = storeFromLabel || storeHost || "fashion store";
+  const seed = `${linkLabel}|${categoryQuery}|${storeHint}`;
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) hash = ((hash << 5) - hash + seed.charCodeAt(i)) | 0;
+  const variants = [
+    "front-facing studio angle",
+    "3/4 angle with visible texture detail",
+    "flat-lay style product cutout composition",
+  ];
+  const variant = variants[Math.abs(hash) % variants.length];
+  return `E-commerce product photo of ${productName}. Category: ${categoryQuery}. Store context: ${storeHint}. White/neutral background, studio lighting, single product only, no model, no text. Variation: ${variant}.`;
 }
 
 export function isValidImageUrl(url: string): boolean {

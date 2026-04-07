@@ -188,7 +188,6 @@ async function generateWithOpenAI(
       prompt: options.prompt,
       n: 1,
       size: OPENAI_IMAGE_SIZE,
-      response_format: "b64_json",
       quality: OPENAI_IMAGE_QUALITY,
     }),
   }, "OpenAI image generation");

@@ -1660,11 +1660,26 @@ import { productImageCache, type InsertProductImageCache } from "../drizzle/sche
  * Normalize a product name into a stable cache key.
  * Lowercases, trims, removes extra whitespace and punctuation.
  */
-export function normalizeProductKey(label: string, categoryQuery: string): string {
-  const productName = label.split(/\s*[—–\-]\s*/)[0].trim();
-  const normalized = productName.toLowerCase().replace(/[^a-zA-Z0-9\u0590-\u05FF\u0400-\u04FF\s]/g, "").replace(/\s+/g, " ").trim();
-  const category = categoryQuery.toLowerCase().replace(/[^a-zA-Z0-9\u0590-\u05FF\u0400-\u04FF\s]/g, "").replace(/\s+/g, " ").trim();
-  return `${category}::${normalized}`;
+export function normalizeProductKey(label: string, categoryQuery: string, sourceUrl?: string): string {
+  const normalizedLabel = (label || "")
+    .toLowerCase()
+    .replace(/[^a-zA-Z0-9\u0590-\u05FF\u0400-\u04FF\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const category = (categoryQuery || "")
+    .toLowerCase()
+    .replace(/[^a-zA-Z0-9\u0590-\u05FF\u0400-\u04FF\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  let host = "";
+  if (sourceUrl) {
+    try {
+      host = new URL(sourceUrl).hostname.replace(/^www\./, "").toLowerCase();
+    } catch {
+      host = "";
+    }
+  }
+  return `${category}::${host}::${normalizedLabel}`.slice(0, 500);
 }
 
 /**
