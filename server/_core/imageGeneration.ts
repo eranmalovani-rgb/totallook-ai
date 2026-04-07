@@ -16,6 +16,7 @@
  *   });
  */
 import { storagePut } from "server/storage";
+import sharp from "sharp";
 import { ENV } from "./env";
 
 // Read at runtime (not module load) so env is always fresh
@@ -101,18 +102,26 @@ export type GenerateImageResponse = {
   url?: string;
 };
 
-/**
- * Determine which provider to use for image generation.
- * Priority: OpenAI Images API > Manus Forge
- */
-function getImageProvider(): "openai" | "forge" {
-  if (getOpenAIKey().length > 0) {
-    return "openai";
-  }
-  if (ENV.forgeApiUrl && ENV.forgeApiKey) {
-    return "forge";
-  }
-  throw new Error("No image generation API configured (OPENAI_API_KEY or BUILT_IN_FORGE_API_KEY)");
+function hasForgeConfig(): boolean {
+  return Boolean(ENV.forgeApiUrl && ENV.forgeApiKey);
+}
+
+async function buildPlaceholderProductImage(prompt: string): Promise<{ base64: string; mimeType: string }> {
+  const title = (prompt.split(".")[0] || "Product").replace(/^E-commerce product photo:\s*/i, "").slice(0, 36);
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024">
+<defs>
+<linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+<stop offset="0%" stop-color="#111827"/>
+<stop offset="100%" stop-color="#1f2937"/>
+</linearGradient>
+</defs>
+<rect width="1024" height="1024" fill="url(#bg)"/>
+<rect x="156" y="156" width="712" height="712" rx="28" fill="#0b0f18" stroke="#f59e0b" stroke-opacity="0.35"/>
+<text x="512" y="455" text-anchor="middle" fill="#fbbf24" font-size="42" font-family="Arial, Helvetica, sans-serif">Preview unavailable</text>
+<text x="512" y="520" text-anchor="middle" fill="#d1d5db" font-size="28" font-family="Arial, Helvetica, sans-serif">${title}</text>
+</svg>`;
+  const png = await sharp(Buffer.from(svg)).png().toBuffer();
+  return { base64: png.toString("base64"), mimeType: "image/png" };
 }
 
 /**
@@ -276,17 +285,36 @@ async function normalizeToTargetSize(
 export async function generateImage(
   options: GenerateImageOptions
 ): Promise<GenerateImageResponse> {
-  const provider = getImageProvider();
-  console.log(
-    `[ImageGen] Using provider: ${provider === "openai" ? `OpenAI Images (${OPENAI_IMAGE_MODEL})` : "Manus Forge"}`
-  );
+  const hasOpenAI = getOpenAIKey().length > 0;
+  const canUseForge = hasForgeConfig();
+  let imageData: { base64: string; mimeType: string } | null = null;
+  let openAIFailure: any = null;
 
-  let imageData: { base64: string; mimeType: string };
+  if (hasOpenAI) {
+    console.log(`[ImageGen] Using provider: OpenAI Images (${OPENAI_IMAGE_MODEL})`);
+    try {
+      imageData = await generateWithOpenAI(options);
+    } catch (err: any) {
+      openAIFailure = err;
+      console.warn(`[ImageGen] OpenAI image generation failed, trying Forge fallback: ${err?.message || err}`);
+    }
+  }
 
-  if (provider === "openai") {
-    imageData = await generateWithOpenAI(options);
-  } else {
-    imageData = await generateWithForge(options);
+  if (!imageData && canUseForge) {
+    try {
+      console.log("[ImageGen] Using provider: Manus Forge (fallback)");
+      imageData = await generateWithForge(options);
+    } catch (forgeErr: any) {
+      console.warn(`[ImageGen] Forge fallback failed: ${forgeErr?.message || forgeErr}`);
+    }
+  }
+
+  if (!imageData) {
+    console.warn("[ImageGen] All providers failed, using placeholder product image");
+    imageData = await buildPlaceholderProductImage(options.prompt);
+    if (openAIFailure) {
+      console.warn(`[ImageGen] Original OpenAI failure: ${openAIFailure?.message || openAIFailure}`);
+    }
   }
 
   let buffer: Buffer<ArrayBufferLike> = Buffer.from(imageData.base64, "base64");
