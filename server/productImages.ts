@@ -108,28 +108,42 @@ async function resolveShoppingLinkImage(params: {
   categoryQuery: string;
   logPrefix: string;
   allowAIFallback?: boolean;
+  skipCache?: boolean;
+  skipStoreImage?: boolean;
 }): Promise<string> {
-  const { label, url, categoryQuery, logPrefix, allowAIFallback = true } = params;
+  const {
+    label,
+    url,
+    categoryQuery,
+    logPrefix,
+    allowAIFallback = true,
+    skipCache = false,
+    skipStoreImage = false,
+  } = params;
   const cacheKey = normalizeProductKey(label, categoryQuery, url);
-  const cachedUrl = await getCachedProductImage(cacheKey, CACHE_TTL_DAYS);
-  if (cachedUrl && isValidImageUrl(cachedUrl)) {
-    const works = await testImageUrl(cachedUrl);
-    if (works) {
-      console.log(`${logPrefix} cache hit: "${label}"`);
-      return cachedUrl;
+  if (!skipCache) {
+    const cachedUrl = await getCachedProductImage(cacheKey, CACHE_TTL_DAYS);
+    if (cachedUrl && isValidImageUrl(cachedUrl)) {
+      const works = await testImageUrl(cachedUrl);
+      if (works) {
+        console.log(`${logPrefix} cache hit: "${label}"`);
+        return cachedUrl;
+      }
     }
   }
 
-  const storeImageUrl = await fetchStoreImageUrl(url);
-  if (storeImageUrl && isValidImageUrl(storeImageUrl)) {
-    console.log(`${logPrefix} store image: "${label}"`);
-    saveProductImageToCache({
-      productKey: cacheKey,
-      imageUrl: storeImageUrl,
-      originalLabel: label,
-      categoryQuery,
-    }).catch(err => console.warn("[ProductImages] Cache save failed:", err?.message));
-    return storeImageUrl;
+  if (!skipStoreImage) {
+    const storeImageUrl = await fetchStoreImageUrl(url);
+    if (storeImageUrl && isValidImageUrl(storeImageUrl)) {
+      console.log(`${logPrefix} store image: "${label}"`);
+      saveProductImageToCache({
+        productKey: cacheKey,
+        imageUrl: storeImageUrl,
+        originalLabel: label,
+        categoryQuery,
+      }).catch(err => console.warn("[ProductImages] Cache save failed:", err?.message));
+      return storeImageUrl;
+    }
   }
 
   if (!allowAIFallback) {
@@ -153,6 +167,40 @@ async function resolveShoppingLinkImage(params: {
     categoryQuery,
   }).catch(err => console.warn("[ProductImages] Cache save failed:", err?.message));
   return generatedUrl;
+}
+
+async function ensureUniqueImageWithinImprovement(params: {
+  resolvedUrl: string;
+  usedImageUrls: Set<string>;
+  label: string;
+  url: string;
+  categoryQuery: string;
+  logPrefix: string;
+}): Promise<string> {
+  const { resolvedUrl, usedImageUrls, label, url, categoryQuery, logPrefix } = params;
+  const normalized = resolvedUrl.trim().toLowerCase();
+  if (!normalized || !usedImageUrls.has(normalized)) {
+    if (normalized) usedImageUrls.add(normalized);
+    return resolvedUrl;
+  }
+
+  // Same image URL appeared again in the same improvement.
+  // Force an AI-only regeneration for this link to avoid duplicate cards.
+  const regenerated = await resolveShoppingLinkImage({
+    label,
+    url,
+    categoryQuery,
+    logPrefix: `${logPrefix} [dedupe]`,
+    skipCache: true,
+    skipStoreImage: true,
+    allowAIFallback: true,
+  });
+  const regeneratedKey = (regenerated || "").trim().toLowerCase();
+  if (regeneratedKey && !usedImageUrls.has(regeneratedKey)) {
+    usedImageUrls.add(regeneratedKey);
+    return regenerated;
+  }
+  return "";
 }
 
 function extractKeywords(text: string): string[] {
@@ -550,6 +598,38 @@ export async function enrichAnalysisWithProductImages(
 
   await runWithConcurrency(taskFns, MAX_CONCURRENT);
 
+  // Enforce image diversity per improvement:
+  // if multiple links ended up with the same image URL, force AI-only regeneration for duplicates.
+  for (let impIdx = 0; impIdx < enrichedImprovements.length; impIdx += 1) {
+    const imp = enrichedImprovements[impIdx];
+    const usedImageUrls = new Set<string>();
+    for (let linkIdx = 0; linkIdx < imp.shoppingLinks.length; linkIdx += 1) {
+      const link = imp.shoppingLinks[linkIdx];
+      const current = (link.imageUrl || "").trim();
+      if (!current) continue;
+      const unique = await ensureUniqueImageWithinImprovement({
+        resolvedUrl: current,
+        usedImageUrls,
+        label: link.label,
+        url: link.url,
+        categoryQuery: imp.productSearchQuery || "",
+        logPrefix: `[ProductImages] [${impIdx}][${linkIdx}]`,
+      });
+      if (!unique) {
+        link.imageUrl = "";
+        continue;
+      }
+      link.imageUrl = unique;
+      if (onImageReady && unique !== current) {
+        try {
+          await onImageReady(impIdx, linkIdx, unique);
+        } catch (dbErr: any) {
+          console.warn(`[ProductImages] DB update failed for dedupe [${impIdx}][${linkIdx}]:`, dbErr?.message);
+        }
+      }
+    }
+  }
+
   const successCount = enrichedImprovements.reduce(
     (sum, imp) => sum + imp.shoppingLinks.filter(l => l.imageUrl && isValidImageUrl(l.imageUrl)).length,
     0
@@ -606,6 +686,35 @@ export async function generateImagesForImprovement(
   });
 
   await runWithConcurrency(taskFns, MAX_CONCURRENT);
+
+  // Enforce image diversity inside this single improvement payload.
+  const usedImageUrls = new Set<string>();
+  for (let linkIdx = 0; linkIdx < links.length; linkIdx += 1) {
+    const link = links[linkIdx];
+    const current = (link.imageUrl || "").trim();
+    if (!current) continue;
+    const unique = await ensureUniqueImageWithinImprovement({
+      resolvedUrl: current,
+      usedImageUrls,
+      label: link.label,
+      url: link.url,
+      categoryQuery: improvement.productSearchQuery || "",
+      logPrefix: `[ProductImages] Lazy [${linkIdx}]`,
+    });
+    if (!unique) {
+      links[linkIdx].imageUrl = "";
+      continue;
+    }
+    links[linkIdx].imageUrl = unique;
+    if (onImageReady && unique !== current) {
+      try {
+        await onImageReady(linkIdx, unique);
+      } catch (dbErr: any) {
+        console.warn(`[ProductImages] Lazy: DB update failed for dedupe [${linkIdx}]:`, dbErr?.message);
+      }
+    }
+  }
+
   return links;
 }
 
