@@ -1067,6 +1067,53 @@ function buildDeterministicFixMyLookPrompt(params: {
   ].join("\n");
 }
 
+function extractLLMTextContent(content: unknown): string {
+  if (typeof content === "string") return content;
+  if (!Array.isArray(content)) return "";
+  return content
+    .map((part: any) => {
+      if (typeof part === "string") return part;
+      if (part?.type === "text" && typeof part?.text === "string") return part.text;
+      return "";
+    })
+    .filter(Boolean)
+    .join("\n")
+    .trim();
+}
+
+function parseFashionAnalysisPayload(llmResult: any): FashionAnalysis {
+  const rawContent = extractLLMTextContent(llmResult?.choices?.[0]?.message?.content).trim();
+  if (!rawContent) {
+    throw new Error("INVALID_LLM_JSON: empty_content");
+  }
+
+  const cleaned = rawContent
+    .replace(/^\s*```json\s*/i, "")
+    .replace(/^\s*```\s*/i, "")
+    .replace(/\s*```\s*$/i, "")
+    .trim();
+
+  let parsed: any;
+  try {
+    parsed = JSON.parse(cleaned);
+  } catch (err: any) {
+    throw new Error(`INVALID_LLM_JSON: ${String(err?.message || "parse_failed")}`);
+  }
+
+  if (typeof parsed?.overallScore !== "number" || typeof parsed?.summary !== "string") {
+    throw new Error("INVALID_LLM_JSON: missing_core_fields");
+  }
+
+  const requiredArrays = ["items", "scores", "improvements", "outfitSuggestions", "trendSources", "linkedMentions"];
+  for (const key of requiredArrays) {
+    if (!Array.isArray(parsed?.[key])) {
+      throw new Error(`INVALID_LLM_JSON: missing_${key}`);
+    }
+  }
+
+  return parsed as FashionAnalysis;
+}
+
 export const analysisJsonSchema = {
   type: "object" as const,
   properties: {
@@ -1482,7 +1529,7 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
           );
           // Retry logic with exponential backoff for transient errors
           const MAX_RETRIES = 3;
-          let llmResult: any = null;
+          let analysis: FashionAnalysis | null = null;
           for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
             try {
               if (attempt > 0) {
@@ -1506,7 +1553,7 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
               if (hasSecondImage) {
                 userContent.push({ type: "image_url", image_url: { url: review.secondImageUrl!, detail: "auto" } });
               }
-              llmResult = await invokeLLM({
+              const llmResult = await invokeLLM({
                 messages: [
                   { role: "system", content: prompt },
                   {
@@ -1524,6 +1571,7 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
                 },
                 maxTokens: 4500,
               });
+              analysis = parseFashionAnalysisPayload(llmResult);
               break; // Success
             } catch (retryErr: any) {
               const msg = retryErr?.message || "";
@@ -1534,6 +1582,7 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
                 msg.includes("429") || msg.includes("503") || msg.includes("500") ||
                 msg.includes("timeout") || msg.includes("ECONNRESET") || msg.includes("ETIMEDOUT") ||
                 msg.includes("ECONNREFUSED") || msg.includes("fetch failed") ||
+                msg.includes("INVALID_LLM_JSON") ||
                 statusCode === 429 || statusCode === 503 || statusCode === 500 || statusCode === 502;
               if (!isRetryable || attempt === MAX_RETRIES - 1) {
                 throw retryErr;
@@ -1541,10 +1590,7 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
               console.warn(`[Fashion Analysis] Attempt ${attempt + 1} failed (retryable): ${msg}`);
             }
           }
-          if (!llmResult) throw new Error("Analysis failed after retries");
-          const content = llmResult.choices[0]?.message?.content;
-          const analysisText = typeof content === "string" ? content : "";
-          let analysis: FashionAnalysis = JSON.parse(analysisText);
+          if (!analysis) throw new Error("Analysis failed after retries");
 
           // Ensure linkedMentions exists and enrich with known brand URLs
           if (!analysis.linkedMentions) {
@@ -3178,7 +3224,7 @@ Return ONLY a JSON object with these exact fields:
 
           // Retry logic with shorter backoff for faster guest UX
           const MAX_RETRIES = 3;
-          let llmResult: any = null;
+          let analysis: FashionAnalysis | null = null;
           for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
             try {
               if (attempt > 0) {
@@ -3186,7 +3232,7 @@ Return ONLY a JSON object with these exact fields:
                 console.log(`[Guest Analysis] Retry attempt ${attempt + 1}/${MAX_RETRIES} after ${delay / 1000}s...`);
                 await new Promise(resolve => setTimeout(resolve, delay));
               }
-              llmResult = await invokeLLM({
+              const llmResult = await invokeLLM({
                 messages: [
                   { role: "system", content: prompt },
                   {
@@ -3207,6 +3253,7 @@ Return ONLY a JSON object with these exact fields:
                 },
                 maxTokens: 4500,
               });
+              analysis = parseFashionAnalysisPayload(llmResult);
               break;
             } catch (retryErr: any) {
               const msg = retryErr?.message || "";
@@ -3217,6 +3264,7 @@ Return ONLY a JSON object with these exact fields:
                 msg.includes("429") || msg.includes("503") || msg.includes("500") ||
                 msg.includes("timeout") || msg.includes("ECONNRESET") || msg.includes("ETIMEDOUT") ||
                 msg.includes("ECONNREFUSED") || msg.includes("fetch failed") ||
+                msg.includes("INVALID_LLM_JSON") ||
                 statusCode === 429 || statusCode === 503 || statusCode === 500 || statusCode === 502;
               if (!isRetryable || attempt === MAX_RETRIES - 1) {
                 throw retryErr;
@@ -3224,11 +3272,7 @@ Return ONLY a JSON object with these exact fields:
               console.warn(`[Guest Analysis] Attempt ${attempt + 1} failed (retryable): ${msg}`);
             }
           }
-          if (!llmResult) throw new Error("Analysis failed after retries");
-
-          const content = llmResult.choices[0]?.message?.content;
-          const analysisText = typeof content === "string" ? content : "";
-          let analysis: FashionAnalysis = JSON.parse(analysisText);
+          if (!analysis) throw new Error("Analysis failed after retries");
 
           // Enrich with brand URLs — same 4-step enrichment as main analysis
           if (!analysis.linkedMentions) analysis.linkedMentions = [];
