@@ -11,8 +11,9 @@
  * - **Concurrency limit**: Max 3 concurrent image generations.
  */
 import { generateImage } from "./_core/imageGeneration";
+import { storagePut } from "server/storage";
 import { getCachedProductImage, saveProductImageToCache, normalizeProductKey } from "./db";
-import type { FashionAnalysis } from "../shared/fashionTypes";
+import type { FashionAnalysis, OutfitSuggestion } from "../shared/fashionTypes";
 
 const MAX_CONCURRENT = 3;
 const CACHE_TTL_DAYS = 30;
@@ -106,8 +107,9 @@ async function resolveShoppingLinkImage(params: {
   url: string;
   categoryQuery: string;
   logPrefix: string;
+  allowAIFallback?: boolean;
 }): Promise<string> {
-  const { label, url, categoryQuery, logPrefix } = params;
+  const { label, url, categoryQuery, logPrefix, allowAIFallback = true } = params;
   const cacheKey = normalizeProductKey(label, categoryQuery);
   const cachedUrl = await getCachedProductImage(cacheKey, CACHE_TTL_DAYS);
   if (cachedUrl && isValidImageUrl(cachedUrl)) {
@@ -130,6 +132,10 @@ async function resolveShoppingLinkImage(params: {
     return storeImageUrl;
   }
 
+  if (!allowAIFallback) {
+    return "";
+  }
+
   const prompt = buildProductImagePrompt(label, categoryQuery);
   console.log(`${logPrefix} AI generation: "${label}"`);
   const startTime = Date.now();
@@ -147,6 +153,157 @@ async function resolveShoppingLinkImage(params: {
     categoryQuery,
   }).catch(err => console.warn("[ProductImages] Cache save failed:", err?.message));
   return generatedUrl;
+}
+
+function extractKeywords(text: string): string[] {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9\u0590-\u05FF\s]/g, " ")
+    .split(/\s+/)
+    .filter(w => w.length >= 3)
+    .slice(0, 30);
+}
+
+function scoreLinkForOutfit(
+  link: { label: string; url: string; imageUrl?: string },
+  categoryQuery: string,
+  improvementTitle: string,
+  outfitText: string,
+): number {
+  const sourceText = `${link.label} ${categoryQuery} ${improvementTitle}`.toLowerCase();
+  const keywords = extractKeywords(sourceText);
+  let score = 0;
+  for (const word of keywords) {
+    if (outfitText.includes(word)) score += 2;
+  }
+  if (link.imageUrl && isValidImageUrl(link.imageUrl)) score += 1;
+  return score;
+}
+
+function buildOutfitCacheKey(outfit: OutfitSuggestion): string {
+  const base = `${outfit.name} ${outfit.occasion} ${(outfit.items || []).join(" ")} ${(outfit.colors || []).join(" ")}`;
+  const normalized = base
+    .toLowerCase()
+    .replace(/[^a-z0-9\u0590-\u05FF\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 380);
+  return `outfit::${normalized}`;
+}
+
+async function fetchImageBuffer(url: string): Promise<Buffer | null> {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 9000);
+    const response = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    if (!response.ok) return null;
+    const ct = (response.headers.get("content-type") || "").toLowerCase();
+    if (!ct.startsWith("image/")) return null;
+    return Buffer.from(await response.arrayBuffer());
+  } catch {
+    return null;
+  }
+}
+
+async function buildOutfitMosaic(imageUrls: string[]): Promise<Buffer | null> {
+  const sharp = (await import("sharp")).default;
+  const selected = imageUrls.filter(Boolean).slice(0, 4);
+  if (selected.length < 2) return null;
+
+  const buffers = (await Promise.all(selected.map(fetchImageBuffer))).filter(Boolean) as Buffer[];
+  if (buffers.length < 2) return null;
+
+  const tileSize = 512;
+  const canvas = sharp({
+    create: {
+      width: 1024,
+      height: 1024,
+      channels: 3,
+      background: { r: 8, g: 12, b: 24 },
+    },
+  });
+
+  const composites = await Promise.all(
+    buffers.slice(0, 4).map(async (buf, idx) => {
+      const prepared = await sharp(buf)
+        .rotate()
+        .resize(tileSize, tileSize, { fit: "cover" })
+        .jpeg({ quality: 86 })
+        .toBuffer();
+      const x = (idx % 2) * tileSize;
+      const y = Math.floor(idx / 2) * tileSize;
+      return { input: prepared, left: x, top: y };
+    }),
+  );
+
+  return canvas.composite(composites).png().toBuffer();
+}
+
+export async function generateOutfitLookFromMetadata(params: {
+  analysis: FashionAnalysis;
+  outfit: OutfitSuggestion;
+  outfitIndex: number;
+}): Promise<{ imageUrl: string; storeLinks: Array<{ label: string; url: string; imageUrl: string }> } | null> {
+  const { analysis, outfit, outfitIndex } = params;
+  const cacheKey = buildOutfitCacheKey(outfit);
+  const cached = await getCachedProductImage(cacheKey, CACHE_TTL_DAYS);
+  if (cached && isValidImageUrl(cached)) {
+    const works = await testImageUrl(cached);
+    if (works) {
+      return { imageUrl: cached, storeLinks: [] };
+    }
+  }
+
+  const outfitText = `${outfit.name} ${outfit.occasion} ${(outfit.items || []).join(" ")}`.toLowerCase();
+  const candidates = (analysis.improvements || []).flatMap((imp) =>
+    (imp.shoppingLinks || []).map((link) => ({
+      link,
+      categoryQuery: imp.productSearchQuery || "",
+      improvementTitle: imp.title || "",
+      score: scoreLinkForOutfit(link, imp.productSearchQuery || "", imp.title || "", outfitText),
+    })),
+  );
+
+  candidates.sort((a, b) => b.score - a.score);
+  const selected = candidates.slice(0, 10);
+  const resolved: Array<{ label: string; url: string; imageUrl: string }> = [];
+  for (const item of selected) {
+    const resolvedUrl = await resolveShoppingLinkImage({
+      label: item.link.label,
+      url: item.link.url,
+      categoryQuery: item.categoryQuery || "outfit",
+      logPrefix: `[OutfitMetadata] [${outfitIndex}]`,
+      allowAIFallback: false,
+    });
+    if (resolvedUrl && isValidImageUrl(resolvedUrl)) {
+      resolved.push({
+        label: item.link.label,
+        url: item.link.url,
+        imageUrl: resolvedUrl,
+      });
+    }
+    if (resolved.length >= 4) break;
+  }
+
+  const mosaic = await buildOutfitMosaic(resolved.map(r => r.imageUrl));
+  if (!mosaic) return null;
+
+  const { url: storedUrl } = await storagePut(
+    `generated/outfit-metadata/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.png`,
+    mosaic,
+    "image/png",
+  );
+  if (!storedUrl) return null;
+
+  saveProductImageToCache({
+    productKey: cacheKey,
+    imageUrl: storedUrl,
+    originalLabel: outfit.name || `Outfit ${outfitIndex + 1}`,
+    categoryQuery: "outfit-metadata",
+  }).catch(err => console.warn("[OutfitMetadata] Cache save failed:", err?.message));
+
+  return { imageUrl: storedUrl, storeLinks: resolved };
 }
 
 /**
