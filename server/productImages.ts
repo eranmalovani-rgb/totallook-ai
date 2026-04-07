@@ -108,35 +108,51 @@ async function resolveShoppingLinkImage(params: {
   categoryQuery: string;
   logPrefix: string;
   allowAIFallback?: boolean;
+  skipCache?: boolean;
+  skipStoreImage?: boolean;
+  promptSalt?: string;
 }): Promise<string> {
-  const { label, url, categoryQuery, logPrefix, allowAIFallback = true } = params;
-  const cacheKey = normalizeProductKey(label, categoryQuery);
-  const cachedUrl = await getCachedProductImage(cacheKey, CACHE_TTL_DAYS);
-  if (cachedUrl && isValidImageUrl(cachedUrl)) {
-    const works = await testImageUrl(cachedUrl);
-    if (works) {
-      console.log(`${logPrefix} cache hit: "${label}"`);
-      return cachedUrl;
+  const {
+    label,
+    url,
+    categoryQuery,
+    logPrefix,
+    allowAIFallback = true,
+    skipCache = false,
+    skipStoreImage = false,
+    promptSalt,
+  } = params;
+  const cacheKey = normalizeProductKey(label, categoryQuery, url);
+  if (!skipCache) {
+    const cachedUrl = await getCachedProductImage(cacheKey, CACHE_TTL_DAYS);
+    if (cachedUrl && isValidImageUrl(cachedUrl)) {
+      const works = await testImageUrl(cachedUrl);
+      if (works) {
+        console.log(`${logPrefix} cache hit: "${label}"`);
+        return cachedUrl;
+      }
     }
   }
 
-  const storeImageUrl = await fetchStoreImageUrl(url);
-  if (storeImageUrl && isValidImageUrl(storeImageUrl)) {
-    console.log(`${logPrefix} store image: "${label}"`);
-    saveProductImageToCache({
-      productKey: cacheKey,
-      imageUrl: storeImageUrl,
-      originalLabel: label,
-      categoryQuery,
-    }).catch(err => console.warn("[ProductImages] Cache save failed:", err?.message));
-    return storeImageUrl;
+  if (!skipStoreImage) {
+    const storeImageUrl = await fetchStoreImageUrl(url);
+    if (storeImageUrl && isValidImageUrl(storeImageUrl)) {
+      console.log(`${logPrefix} store image: "${label}"`);
+      saveProductImageToCache({
+        productKey: cacheKey,
+        imageUrl: storeImageUrl,
+        originalLabel: label,
+        categoryQuery,
+      }).catch(err => console.warn("[ProductImages] Cache save failed:", err?.message));
+      return storeImageUrl;
+    }
   }
 
   if (!allowAIFallback) {
     return "";
   }
 
-  const prompt = buildProductImagePrompt(label, categoryQuery);
+  const prompt = buildProductImagePrompt(label, categoryQuery, url, promptSalt);
   console.log(`${logPrefix} AI generation: "${label}"`);
   const startTime = Date.now();
   const { url: generatedUrl } = await generateImage({ prompt });
@@ -153,6 +169,45 @@ async function resolveShoppingLinkImage(params: {
     categoryQuery,
   }).catch(err => console.warn("[ProductImages] Cache save failed:", err?.message));
   return generatedUrl;
+}
+
+async function ensureUniqueImageWithinImprovement(params: {
+  resolvedUrl: string;
+  usedImageUrls: Set<string>;
+  label: string;
+  url: string;
+  categoryQuery: string;
+  logPrefix: string;
+}): Promise<string> {
+  const { resolvedUrl, usedImageUrls, label, url, categoryQuery, logPrefix } = params;
+  const normalized = resolvedUrl.trim().toLowerCase();
+  if (!normalized || !usedImageUrls.has(normalized)) {
+    if (normalized) usedImageUrls.add(normalized);
+    return resolvedUrl;
+  }
+
+  // Same image URL appeared again in the same improvement.
+  // Force AI-only regeneration attempts with prompt salt to avoid duplicate cards.
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    const regenerated = await resolveShoppingLinkImage({
+      label,
+      url,
+      categoryQuery,
+      logPrefix: `${logPrefix} [dedupe:${attempt}]`,
+      skipCache: true,
+      skipStoreImage: true,
+      allowAIFallback: true,
+      promptSalt: `dedupe-${attempt}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    });
+    const regeneratedKey = (regenerated || "").trim().toLowerCase();
+    if (regeneratedKey && !usedImageUrls.has(regeneratedKey)) {
+      usedImageUrls.add(regeneratedKey);
+      return regenerated;
+    }
+  }
+
+  // Never clear an already-valid image; keep original to avoid empty cards.
+  return resolvedUrl;
 }
 
 function extractKeywords(text: string): string[] {
@@ -293,8 +348,9 @@ export async function generateOutfitLookFromMetadata(params: {
   analysis: FashionAnalysis;
   outfit: OutfitSuggestion;
   outfitIndex: number;
+  allowAIFallbackForLinks?: boolean;
 }): Promise<{ imageUrl: string; storeLinks: Array<{ label: string; url: string; imageUrl: string }> } | null> {
-  const { analysis, outfit, outfitIndex } = params;
+  const { analysis, outfit, outfitIndex, allowAIFallbackForLinks = false } = params;
   const cacheKey = buildOutfitCacheKey(outfit, outfitIndex);
   const cached = await getCachedProductImage(cacheKey, CACHE_TTL_DAYS);
   if (cached && isValidImageUrl(cached)) {
@@ -356,7 +412,7 @@ export async function generateOutfitLookFromMetadata(params: {
     let found: (typeof diversifiedCandidates)[number] | undefined;
     for (let step = 0; step < pool.length; step += 1) {
       const candidate = pool[(start + step) % pool.length];
-      const key = buildCandidateDedupKey(c.link.label, c.link.url);
+      const key = buildCandidateDedupKey(candidate.link.label, candidate.link.url);
       if (!usedDedupKeys.has(key) && !usedCategories.has(candidate.category)) {
         found = candidate;
         break;
@@ -414,7 +470,7 @@ export async function generateOutfitLookFromMetadata(params: {
       url: item.link.url,
       categoryQuery: item.categoryQuery || "outfit",
       logPrefix: `[OutfitMetadata] [${outfitIndex}]`,
-      allowAIFallback: false,
+      allowAIFallback: allowAIFallbackForLinks,
     });
     if (resolvedUrl && isValidImageUrl(resolvedUrl)) {
       resolved.push({
@@ -550,6 +606,38 @@ export async function enrichAnalysisWithProductImages(
 
   await runWithConcurrency(taskFns, MAX_CONCURRENT);
 
+  // Enforce image diversity per improvement:
+  // if multiple links ended up with the same image URL, force AI-only regeneration for duplicates.
+  for (let impIdx = 0; impIdx < enrichedImprovements.length; impIdx += 1) {
+    const imp = enrichedImprovements[impIdx];
+    const usedImageUrls = new Set<string>();
+    for (let linkIdx = 0; linkIdx < imp.shoppingLinks.length; linkIdx += 1) {
+      const link = imp.shoppingLinks[linkIdx];
+      const current = (link.imageUrl || "").trim();
+      if (!current) continue;
+      const unique = await ensureUniqueImageWithinImprovement({
+        resolvedUrl: current,
+        usedImageUrls,
+        label: link.label,
+        url: link.url,
+        categoryQuery: imp.productSearchQuery || "",
+        logPrefix: `[ProductImages] [${impIdx}][${linkIdx}]`,
+      });
+      if (!unique) {
+        link.imageUrl = "";
+        continue;
+      }
+      link.imageUrl = unique;
+      if (onImageReady && unique !== current) {
+        try {
+          await onImageReady(impIdx, linkIdx, unique);
+        } catch (dbErr: any) {
+          console.warn(`[ProductImages] DB update failed for dedupe [${impIdx}][${linkIdx}]:`, dbErr?.message);
+        }
+      }
+    }
+  }
+
   const successCount = enrichedImprovements.reduce(
     (sum, imp) => sum + imp.shoppingLinks.filter(l => l.imageUrl && isValidImageUrl(l.imageUrl)).length,
     0
@@ -606,15 +694,64 @@ export async function generateImagesForImprovement(
   });
 
   await runWithConcurrency(taskFns, MAX_CONCURRENT);
+
+  // Enforce image diversity inside this single improvement payload.
+  const usedImageUrls = new Set<string>();
+  for (let linkIdx = 0; linkIdx < links.length; linkIdx += 1) {
+    const link = links[linkIdx];
+    const current = (link.imageUrl || "").trim();
+    if (!current) continue;
+    const unique = await ensureUniqueImageWithinImprovement({
+      resolvedUrl: current,
+      usedImageUrls,
+      label: link.label,
+      url: link.url,
+      categoryQuery: improvement.productSearchQuery || "",
+      logPrefix: `[ProductImages] Lazy [${linkIdx}]`,
+    });
+    if (!unique) {
+      links[linkIdx].imageUrl = "";
+      continue;
+    }
+    links[linkIdx].imageUrl = unique;
+    if (onImageReady && unique !== current) {
+      try {
+        await onImageReady(linkIdx, unique);
+      } catch (dbErr: any) {
+        console.warn(`[ProductImages] Lazy: DB update failed for dedupe [${linkIdx}]:`, dbErr?.message);
+      }
+    }
+  }
+
   return links;
 }
 
 /**
  * Build a unique prompt for each specific product.
  */
-function buildProductImagePrompt(linkLabel: string, categoryQuery: string): string {
-  const productName = linkLabel.split(/\s*[—–]\s*/)[0].trim();
-  return `E-commerce product photo: ${productName}. Category: ${categoryQuery}. White background, studio lighting, single product, no model, no text.`;
+function buildProductImagePrompt(linkLabel: string, categoryQuery: string, productUrl?: string): string {
+  const [productNameRaw, storeFromLabelRaw] = linkLabel.split(/\s*[—–]\s*/);
+  const productName = (productNameRaw || linkLabel).trim();
+  const storeFromLabel = (storeFromLabelRaw || "").trim();
+  let storeHost = "";
+  if (productUrl) {
+    try {
+      storeHost = new URL(productUrl).hostname.replace(/^www\./, "");
+    } catch {
+      storeHost = "";
+    }
+  }
+  const storeHint = storeFromLabel || storeHost || "fashion store";
+  const seed = `${linkLabel}|${categoryQuery}|${storeHint}`;
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) hash = ((hash << 5) - hash + seed.charCodeAt(i)) | 0;
+  const variants = [
+    "front-facing studio angle",
+    "3/4 angle with visible texture detail",
+    "flat-lay style product cutout composition",
+  ];
+  const variant = variants[Math.abs(hash) % variants.length];
+  return `E-commerce product photo of ${productName}. Category: ${categoryQuery}. Store context: ${storeHint}. White/neutral background, studio lighting, single product only, no model, no text. Variation: ${variant}.`;
 }
 
 export function isValidImageUrl(url: string): boolean {
