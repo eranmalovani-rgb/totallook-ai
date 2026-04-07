@@ -1415,6 +1415,9 @@ function extractLLMTextContent(content: unknown): string {
     .trim();
 }
 
+type FashionAnalysisCorePayload = Pick<FashionAnalysis, "overallScore" | "summary" | "items" | "scores" | "linkedMentions">;
+type FashionRecommendationsPayload = Pick<FashionAnalysis, "improvements" | "outfitSuggestions" | "trendSources" | "influencerInsight">;
+
 function parseFashionAnalysisPayload(llmResult: any): FashionAnalysis {
   const rawContent = extractLLMTextContent(llmResult?.choices?.[0]?.message?.content).trim();
   if (!rawContent) {
@@ -1446,6 +1449,62 @@ function parseFashionAnalysisPayload(llmResult: any): FashionAnalysis {
   }
 
   return parsed as FashionAnalysis;
+}
+
+function parseFashionAnalysisCorePayload(llmResult: any): FashionAnalysisCorePayload {
+  const rawContent = extractLLMTextContent(llmResult?.choices?.[0]?.message?.content).trim();
+  if (!rawContent) {
+    throw new Error("INVALID_LLM_JSON: empty_content");
+  }
+  const cleaned = rawContent
+    .replace(/^\s*```json\s*/i, "")
+    .replace(/^\s*```\s*/i, "")
+    .replace(/\s*```\s*$/i, "")
+    .trim();
+  let parsed: any;
+  try {
+    parsed = JSON.parse(cleaned);
+  } catch (err: any) {
+    throw new Error(`INVALID_LLM_JSON: ${String(err?.message || "parse_failed")}`);
+  }
+  if (typeof parsed?.overallScore !== "number" || typeof parsed?.summary !== "string") {
+    throw new Error("INVALID_LLM_JSON: missing_core_fields");
+  }
+  const requiredArrays = ["items", "scores", "linkedMentions"];
+  for (const key of requiredArrays) {
+    if (!Array.isArray(parsed?.[key])) {
+      throw new Error(`INVALID_LLM_JSON: missing_${key}`);
+    }
+  }
+  return parsed as FashionAnalysisCorePayload;
+}
+
+function parseFashionRecommendationsPayload(llmResult: any): FashionRecommendationsPayload {
+  const rawContent = extractLLMTextContent(llmResult?.choices?.[0]?.message?.content).trim();
+  if (!rawContent) {
+    throw new Error("INVALID_LLM_JSON: empty_content");
+  }
+  const cleaned = rawContent
+    .replace(/^\s*```json\s*/i, "")
+    .replace(/^\s*```\s*/i, "")
+    .replace(/\s*```\s*$/i, "")
+    .trim();
+  let parsed: any;
+  try {
+    parsed = JSON.parse(cleaned);
+  } catch (err: any) {
+    throw new Error(`INVALID_LLM_JSON: ${String(err?.message || "parse_failed")}`);
+  }
+  if (typeof parsed?.influencerInsight !== "string") {
+    throw new Error("INVALID_LLM_JSON: missing_influencerInsight");
+  }
+  const requiredArrays = ["improvements", "outfitSuggestions", "trendSources"];
+  for (const key of requiredArrays) {
+    if (!Array.isArray(parsed?.[key])) {
+      throw new Error(`INVALID_LLM_JSON: missing_${key}`);
+    }
+  }
+  return parsed as FashionRecommendationsPayload;
 }
 
 export const analysisJsonSchema = {
@@ -1564,6 +1623,138 @@ export const analysisJsonSchema = {
   required: ["overallScore", "summary", "items", "scores", "improvements", "outfitSuggestions", "trendSources", "influencerInsight", "linkedMentions"] as const,
   additionalProperties: false,
 };
+
+export const analysisCoreJsonSchema = {
+  type: "object" as const,
+  properties: {
+    overallScore: { type: "number" as const },
+    summary: { type: "string" as const },
+    items: analysisJsonSchema.properties.items,
+    scores: analysisJsonSchema.properties.scores,
+    linkedMentions: analysisJsonSchema.properties.linkedMentions,
+  },
+  required: ["overallScore", "summary", "items", "scores", "linkedMentions"] as const,
+  additionalProperties: false,
+};
+
+export const recommendationsJsonSchema = {
+  type: "object" as const,
+  properties: {
+    improvements: analysisJsonSchema.properties.improvements,
+    outfitSuggestions: analysisJsonSchema.properties.outfitSuggestions,
+    trendSources: analysisJsonSchema.properties.trendSources,
+    influencerInsight: { type: "string" as const },
+  },
+  required: ["improvements", "outfitSuggestions", "trendSources", "influencerInsight"] as const,
+  additionalProperties: false,
+};
+
+function buildRecommendationsPromptFromCore(
+  lang: "he" | "en",
+  occasion?: string | null,
+): string {
+  const isHebrew = lang === "he";
+  const occasionLine = occasion
+    ? (isHebrew ? `אירוע יעד: ${occasion}` : `Target occasion: ${occasion}`)
+    : (isHebrew ? "אין אירוע יעד מחייב." : "No strict target occasion.");
+  return isHebrew
+    ? `אתה שלב 2 במערכת דו-שלבית: השראה והמלצות בלבד.
+קלט: JSON מובנה של שלב 1 שכבר ביצע ניתוח וזיהוי פריטים.
+משימה: להחזיר רק JSON עם fields:
+- improvements
+- outfitSuggestions
+- trendSources
+- influencerInsight
+
+כללים:
+- התבסס על פריטי הלבוש, הציונים והסיכום משלב 1.
+- שמור על התאמה לאירוע ולסגנון המשתמש.
+- improvements חייב לכלול המלצות לביגוד לביש (לא רק אביזרים).
+- shoppingLinks חייבים להיות כתובות חיפוש תקינות (לא /product/ ישיר).
+- trendSources חייב להיות רלוונטי לפריטים שזוהו.
+- influencerInsight חייב להיות פרקטי וקצר.
+- החזר JSON בלבד, ללא markdown.
+
+${occasionLine}`
+    : `You are Stage 2 of a split pipeline: inspiration and recommendations only.
+Input: structured Stage 1 JSON that already completed analysis and item identification.
+Task: return JSON with fields only:
+- improvements
+- outfitSuggestions
+- trendSources
+- influencerInsight
+
+Rules:
+- Base recommendations on stage-1 items, scores, and summary.
+- Keep suggestions occasion-aware and style-consistent.
+- improvements must include wearable clothing upgrades (not accessories-only).
+- shoppingLinks must be valid search URLs (never direct /product/ URLs).
+- trendSources must be relevant to identified items.
+- influencerInsight should be practical and concise.
+- Return JSON only, no markdown.
+
+${occasionLine}`;
+}
+
+function buildFallbackRecommendationsFromCore(
+  core: FashionAnalysisCorePayload,
+  lang: "he" | "en",
+  occasion?: string | null,
+): FashionRecommendationsPayload {
+  const isHebrew = lang === "he";
+  const improvements: Improvement[] = [
+    buildFallbackImprovement("top", isHebrew),
+    buildFallbackImprovement("bottom", isHebrew),
+    buildFallbackImprovement("shoes", isHebrew),
+    buildFallbackImprovement("outerwear", isHebrew),
+  ];
+
+  const coreItems = (core.items || []).map((it) => it.name).filter(Boolean);
+  const firstLookItems = coreItems.slice(0, 3);
+  const secondLookItems = coreItems.slice(1, 4);
+  const outfitSuggestions: OutfitSuggestion[] = [
+    {
+      name: isHebrew ? "לוק נקי ומאוזן" : "Clean balanced look",
+      occasion: occasion || (isHebrew ? "יומיומי" : "daily"),
+      items: firstLookItems.length > 0 ? firstLookItems : (isHebrew ? ["חולצה מחויטת", "מכנסיים בגזרה נקייה", "נעליים תואמות"] : ["structured top", "clean-cut bottoms", "coordinated shoes"]),
+      colors: isHebrew ? ["שחור", "לבן", "אפור"] : ["black", "white", "grey"],
+      lookDescription: isHebrew
+        ? "מראה מלא עם שכבות נקיות, פרופורציות מאוזנות ונעליים מחברות."
+        : "A complete look with clean layering, balanced proportions, and grounding footwear.",
+      inspirationNote: isHebrew
+        ? "בסיס ורסטילי שקל לשדרג עם שכבה עליונה או אקססוריז מדויקים."
+        : "A versatile base you can elevate with a structured outer layer or precise accessories.",
+    },
+    {
+      name: isHebrew ? "לוק מודרני משודרג" : "Elevated modern look",
+      occasion: occasion || (isHebrew ? "יציאה" : "going out"),
+      items: secondLookItems.length > 0 ? secondLookItems : (isHebrew ? ["שכבה עליונה מובנית", "פריט תחתון מחויט", "נעליים איכותיות"] : ["structured outerwear", "tailored bottoms", "quality footwear"]),
+      colors: isHebrew ? ["נייבי", "לבן שבור", "חום"] : ["navy", "off-white", "brown"],
+      lookDescription: isHebrew
+        ? "שילוב מודרני המדגיש צללית נקייה ואיכות חומרים."
+        : "A modern combination emphasizing clean silhouette and elevated material quality.",
+      inspirationNote: isHebrew
+        ? "מתאים כשצריך לוק שלם ומחודד בלי עומס."
+        : "Useful when you need a complete polished look without visual overload.",
+    },
+  ];
+
+  const trendSources = isHebrew
+    ? [
+        { source: "Vogue", title: "טרנדי לבוש עדכניים", url: "https://www.vogue.com/fashion/trends", relevance: "מגמות לבישות", season: "2025-2026" },
+        { source: "GQ", title: "קווים נקיים ושכבות", url: "https://www.gq.com/style", relevance: "סגנון גברי/יוניסקס", season: "2025-2026" },
+      ]
+    : [
+        { source: "Vogue", title: "Current wearable fashion trends", url: "https://www.vogue.com/fashion/trends", relevance: "wearable direction", season: "2025-2026" },
+        { source: "GQ", title: "Clean silhouettes and layering", url: "https://www.gq.com/style", relevance: "menswear/unisex styling", season: "2025-2026" },
+      ];
+
+  const influencerInsight = isHebrew
+    ? "כדי לחזק את הלוק, התמקד/י בפרופורציות נקיות, שכבה עליונה מדויקת ונעליים שמסיימות את ההופעה באופן עקבי."
+    : "To elevate this look, prioritize cleaner proportions, one structured outer layer, and footwear that consistently anchors the outfit.";
+
+  return { improvements, outfitSuggestions, trendSources, influencerInsight };
+}
 
 export const appRouter = router({
   system: systemRouter,
@@ -1862,9 +2053,9 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
             wardrobeCtx,
             input.lang,
           );
-          // Retry logic with exponential backoff for transient errors
+          // Stage 1: core analysis + identification (image-based)
           const MAX_RETRIES = 2;
-          let analysis: FashionAnalysis | null = null;
+          let analysisCore: FashionAnalysisCorePayload | null = null;
           for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
             try {
               if (attempt > 0) {
@@ -1899,14 +2090,14 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
                 response_format: {
                   type: "json_schema",
                   json_schema: {
-                    name: "fashion_analysis",
+                    name: "fashion_analysis_core",
                     strict: true,
-                    schema: analysisJsonSchema,
+                    schema: analysisCoreJsonSchema,
                   },
                 },
-                maxTokens: 4500,
+                maxTokens: 2800,
               });
-              analysis = parseFashionAnalysisPayload(llmResult);
+              analysisCore = parseFashionAnalysisCorePayload(llmResult);
               break; // Success
             } catch (retryErr: any) {
               const msg = retryErr?.message || "";
@@ -1925,7 +2116,79 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
               console.warn(`[Fashion Analysis] Attempt ${attempt + 1} failed (retryable): ${msg}`);
             }
           }
-          if (!analysis) throw new Error("Analysis failed after retries");
+          if (!analysisCore) throw new Error("Analysis failed after retries");
+
+          // Stage 2: inspiration + recommendations (text-only from stage-1 output)
+          const recommendationSeed = {
+            overallScore: analysisCore.overallScore,
+            summary: analysisCore.summary,
+            items: (analysisCore.items || []).slice(0, 12),
+            scores: analysisCore.scores || [],
+            linkedMentions: (analysisCore.linkedMentions || []).slice(0, 20),
+            occasion: review.occasion || null,
+            influencers: review.influencers || null,
+            styleNotes: review.styleNotes || null,
+          };
+          let recommendations: FashionRecommendationsPayload | null = null;
+          try {
+            const MAX_RECOMMENDATION_RETRIES = 2;
+            for (let attempt = 0; attempt < MAX_RECOMMENDATION_RETRIES; attempt++) {
+              try {
+                if (attempt > 0) {
+                  const delay = 1200 * Math.pow(2, attempt - 1);
+                  await new Promise((resolve) => setTimeout(resolve, delay));
+                }
+                const recResult = await invokeLLM({
+                  messages: [
+                    {
+                      role: "system",
+                      content: buildRecommendationsPromptFromCore(input.lang, review.occasion),
+                    },
+                    {
+                      role: "user",
+                      content: input.lang === "he"
+                        ? `להלן פלט שלב 1 (ניתוח+זיהוי). החזר רק השראה+המלצות בפורמט המבוקש:\n${JSON.stringify(recommendationSeed)}`
+                        : `Here is the stage-1 analysis+identification output. Return only inspiration+recommendations in the required schema:\n${JSON.stringify(recommendationSeed)}`,
+                    },
+                  ],
+                  response_format: {
+                    type: "json_schema",
+                    json_schema: {
+                      name: "fashion_recommendations",
+                      strict: true,
+                      schema: recommendationsJsonSchema,
+                    },
+                  },
+                  maxTokens: 2400,
+                });
+                recommendations = parseFashionRecommendationsPayload(recResult);
+                break;
+              } catch (retryErr: any) {
+                const msg = retryErr?.message || "";
+                const statusCode = retryErr?.status || retryErr?.statusCode || 0;
+                const isRetryable =
+                  msg.includes("exhausted") || msg.includes("412") ||
+                  msg.includes("quota") || msg.includes("rate limit") || msg.includes("rate_limit") ||
+                  msg.includes("429") || msg.includes("503") || msg.includes("500") ||
+                  msg.includes("timeout") || msg.includes("ECONNRESET") || msg.includes("ETIMEDOUT") ||
+                  msg.includes("ECONNREFUSED") || msg.includes("fetch failed") ||
+                  msg.includes("INVALID_LLM_JSON") ||
+                  statusCode === 429 || statusCode === 503 || statusCode === 500 || statusCode === 502;
+                if (!isRetryable || attempt === MAX_RECOMMENDATION_RETRIES - 1) {
+                  throw retryErr;
+                }
+              }
+            }
+          } catch (recErr: any) {
+            console.warn(`[Fashion Analysis] Stage-2 recommendations fallback: ${recErr?.message || recErr}`);
+          }
+          if (!recommendations) {
+            recommendations = buildFallbackRecommendationsFromCore(analysisCore, input.lang, review.occasion);
+          }
+          let analysis: FashionAnalysis = {
+            ...analysisCore,
+            ...recommendations,
+          };
 
           // Ensure linkedMentions exists and enrich with known brand URLs
           if (!analysis.linkedMentions) {
@@ -3597,9 +3860,9 @@ Return ONLY a JSON object with these exact fields:
             input.lang,
           );
 
-          // Retry logic with shorter backoff for faster guest UX
+          // Stage 1: core analysis + identification (image-based)
           const MAX_RETRIES = 2;
-          let analysis: FashionAnalysis | null = null;
+          let analysisCore: FashionAnalysisCorePayload | null = null;
           for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
             try {
               if (attempt > 0) {
@@ -3621,14 +3884,14 @@ Return ONLY a JSON object with these exact fields:
                 response_format: {
                   type: "json_schema",
                   json_schema: {
-                    name: "fashion_analysis",
+                    name: "fashion_analysis_core",
                     strict: true,
-                    schema: analysisJsonSchema,
+                    schema: analysisCoreJsonSchema,
                   },
                 },
-                maxTokens: 4500,
+                maxTokens: 2800,
               });
-              analysis = parseFashionAnalysisPayload(llmResult);
+              analysisCore = parseFashionAnalysisCorePayload(llmResult);
               break;
             } catch (retryErr: any) {
               const msg = retryErr?.message || "";
@@ -3647,7 +3910,79 @@ Return ONLY a JSON object with these exact fields:
               console.warn(`[Guest Analysis] Attempt ${attempt + 1} failed (retryable): ${msg}`);
             }
           }
-          if (!analysis) throw new Error("Analysis failed after retries");
+          if (!analysisCore) throw new Error("Analysis failed after retries");
+
+          // Stage 2: inspiration + recommendations (text-only from stage-1 output)
+          const recommendationSeed = {
+            overallScore: analysisCore.overallScore,
+            summary: analysisCore.summary,
+            items: (analysisCore.items || []).slice(0, 12),
+            scores: analysisCore.scores || [],
+            linkedMentions: (analysisCore.linkedMentions || []).slice(0, 20),
+            occasion: input.occasion || null,
+            stylePreference: guestProfile?.stylePreference || null,
+            favoriteInfluencers: guestProfile?.favoriteInfluencers || null,
+          };
+          let recommendations: FashionRecommendationsPayload | null = null;
+          try {
+            const MAX_RECOMMENDATION_RETRIES = 2;
+            for (let attempt = 0; attempt < MAX_RECOMMENDATION_RETRIES; attempt++) {
+              try {
+                if (attempt > 0) {
+                  const delay = 1200 * Math.pow(2, attempt - 1);
+                  await new Promise((resolve) => setTimeout(resolve, delay));
+                }
+                const recResult = await invokeLLM({
+                  messages: [
+                    {
+                      role: "system",
+                      content: buildRecommendationsPromptFromCore(input.lang, input.occasion),
+                    },
+                    {
+                      role: "user",
+                      content: input.lang === "he"
+                        ? `להלן פלט שלב 1 (ניתוח+זיהוי). החזר רק השראה+המלצות בפורמט המבוקש:\n${JSON.stringify(recommendationSeed)}`
+                        : `Here is the stage-1 analysis+identification output. Return only inspiration+recommendations in the required schema:\n${JSON.stringify(recommendationSeed)}`,
+                    },
+                  ],
+                  response_format: {
+                    type: "json_schema",
+                    json_schema: {
+                      name: "fashion_recommendations",
+                      strict: true,
+                      schema: recommendationsJsonSchema,
+                    },
+                  },
+                  maxTokens: 2400,
+                });
+                recommendations = parseFashionRecommendationsPayload(recResult);
+                break;
+              } catch (retryErr: any) {
+                const msg = retryErr?.message || "";
+                const statusCode = retryErr?.status || retryErr?.statusCode || 0;
+                const isRetryable =
+                  msg.includes("exhausted") || msg.includes("412") ||
+                  msg.includes("quota") || msg.includes("rate limit") || msg.includes("rate_limit") ||
+                  msg.includes("429") || msg.includes("503") || msg.includes("500") ||
+                  msg.includes("timeout") || msg.includes("ECONNRESET") || msg.includes("ETIMEDOUT") ||
+                  msg.includes("ECONNREFUSED") || msg.includes("fetch failed") ||
+                  msg.includes("INVALID_LLM_JSON") ||
+                  statusCode === 429 || statusCode === 503 || statusCode === 500 || statusCode === 502;
+                if (!isRetryable || attempt === MAX_RECOMMENDATION_RETRIES - 1) {
+                  throw retryErr;
+                }
+              }
+            }
+          } catch (recErr: any) {
+            console.warn(`[Guest Analysis] Stage-2 recommendations fallback: ${recErr?.message || recErr}`);
+          }
+          if (!recommendations) {
+            recommendations = buildFallbackRecommendationsFromCore(analysisCore, input.lang, input.occasion);
+          }
+          let analysis: FashionAnalysis = {
+            ...analysisCore,
+            ...recommendations,
+          };
 
           // Enrich with brand URLs — same 4-step enrichment as main analysis
           if (!analysis.linkedMentions) analysis.linkedMentions = [];
