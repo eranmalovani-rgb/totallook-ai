@@ -1,0 +1,1 @@
+ALTER TABLE `wardrobeItems` ADD `styleNote` varchar(512);

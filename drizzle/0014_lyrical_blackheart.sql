@@ -1,0 +1,1 @@
+ALTER TABLE `feedPosts` ADD `occasion` varchar(64);
