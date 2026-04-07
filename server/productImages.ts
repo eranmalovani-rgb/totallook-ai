@@ -14,7 +14,7 @@ import { generateImage } from "./_core/imageGeneration";
 import { getCachedProductImage, saveProductImageToCache, normalizeProductKey } from "./db";
 import type { FashionAnalysis } from "../shared/fashionTypes";
 
-const MAX_CONCURRENT = 6;
+const MAX_CONCURRENT = 3;
 
 /**
  * Simple concurrency limiter — runs tasks with at most `limit` concurrent executions.
