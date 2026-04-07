@@ -317,7 +317,7 @@ Score generously (minimum 5) but give honest improvement tips.`,
         role: "user",
         content: [
           { type: "text", text: "Analyze this outfit from my Instagram story:" },
-          { type: "image_url", image_url: { url: imageUrl, detail: "high" } },
+          { type: "image_url", image_url: { url: imageUrl, detail: "auto" } },
         ],
       },
     ],
@@ -367,6 +367,7 @@ Score generously (minimum 5) but give honest improvement tips.`,
         },
       },
     },
+    maxTokens: 2048,
   });
 
   const rawContent = response.choices?.[0]?.message?.content;

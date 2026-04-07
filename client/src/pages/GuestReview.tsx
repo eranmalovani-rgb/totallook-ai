@@ -185,7 +185,7 @@ function ProductCard({ link, lang, isGeneratingImages }: { link: ShoppingLink; l
             {imgLoading && (
               <div className="absolute inset-0 flex items-center justify-center bg-white/5"><FashionButtonSpinner /></div>
             )}
-            <img src={link.imageUrl} alt={link.label}
+            <img loading="lazy" src={link.imageUrl} alt={link.label}
               className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ${imgLoading ? 'opacity-0' : 'opacity-100'}`}
               onError={() => { setImgError(true); setImgLoading(false); }}
               onLoad={() => setImgLoading(false)} />
@@ -317,7 +317,7 @@ function GuestImprovementAccordionCard({
               <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
                 <Recycle className="w-4 h-4 text-emerald-400 shrink-0" />
                 {closetMatch.itemImageUrl && (
-                  <img src={closetMatch.itemImageUrl} alt={closetMatch.name} className="w-7 h-7 rounded-md object-cover border border-emerald-500/30" />
+                  <img loading="lazy" src={closetMatch.itemImageUrl} alt={closetMatch.name} className="w-7 h-7 rounded-md object-cover border border-emerald-500/30" />
                 )}
                 <span className="text-xs text-emerald-400 font-medium truncate">
                   {lang === "he" ? "יש לך בארון: " : "In your closet: "}
@@ -395,7 +395,7 @@ function GuestOutfitCard({
     <div className="rounded-2xl border border-white/5 bg-card overflow-hidden flex flex-col">
       <div className="relative">
         {lookImage ? (
-          <img src={lookImage} alt={outfit.name} className="w-full aspect-[3/4] object-cover" />
+          <img loading="lazy" src={lookImage} alt={outfit.name} className="w-full aspect-[3/4] object-cover" />
         ) : loading ? (
           <div className="w-full aspect-[3/4] bg-gradient-to-br from-primary/5 via-rose-500/5 to-transparent flex flex-col items-center justify-center gap-4">
             <FashionButtonSpinner />
@@ -1314,7 +1314,7 @@ export default function GuestReview() {
             {/* Image + Score overlay */}
             <div className="relative">
               {result.imageUrl && (
-                <img src={result.imageUrl} alt="Look" className="w-full max-h-[420px] object-contain bg-black/20" />
+                <img loading="lazy" src={result.imageUrl} alt="Look" className="w-full max-h-[420px] object-contain bg-black/20" />
               )}
               <div className="absolute top-4 end-4">
                 <div className="bg-black/60 backdrop-blur-sm rounded-2xl p-2">

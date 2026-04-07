@@ -548,11 +548,9 @@ export default function GuestWardrobe() {
                       onClick={() => setViewingImage(item.itemImageUrl || item.sourceImageUrl)}
                       className="relative w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-white/5 border border-border/30 hover:border-primary/50 transition-colors"
                     >
-                      <img
-                        src={item.itemImageUrl || item.sourceImageUrl || ""}
+                      <img loading="lazy" src={item.itemImageUrl || item.sourceImageUrl || ""}
                         alt={item.name || ""}
                         className="w-full h-full object-cover"
-                        loading="lazy"
                       />
                       <div className="absolute inset-0 bg-black/0 hover:bg-black/20 transition-colors flex items-center justify-center">
                         <Eye className="w-4 h-4 text-white opacity-0 group-hover:opacity-70 transition-opacity" />
@@ -678,7 +676,7 @@ export default function GuestWardrobe() {
                   {Object.entries(lookItems).map(([catId, item]) => (
                     <div key={catId} className="flex items-center gap-2 bg-card/80 rounded-lg px-3 py-2 border border-border/30">
                       {item.sourceImageUrl ? (
-                        <img src={item.sourceImageUrl} alt="" className="w-10 h-10 rounded-md object-cover" />
+                        <img loading="lazy" src={item.sourceImageUrl} alt="" className="w-10 h-10 rounded-md object-cover" />
                       ) : (
                         <span className="text-lg">{grouped.find(g => g.def.id === catId)?.def.emoji}</span>
                       )}
@@ -724,8 +722,7 @@ export default function GuestWardrobe() {
                           : "opacity-0 scale-90 blur-md"
                       }`}
                     >
-                      <img
-                        src={visualizedImageUrl}
+                      <img loading="lazy" src={visualizedImageUrl}
                         alt="Look Visualization"
                         className="w-full object-contain max-h-[500px] transition-transform duration-500 ease-in-out"
                         style={{ transform: `rotate(${imageRotation}deg)` }}
@@ -946,8 +943,7 @@ export default function GuestWardrobe() {
             <button className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors" onClick={() => setViewingImage(null)}>
               <X className="w-6 h-6" />
             </button>
-            <img
-              src={viewingImage}
+            <img loading="lazy" src={viewingImage}
               alt=""
               className="max-w-full max-h-[85vh] rounded-xl object-contain"
               onClick={(e) => e.stopPropagation()}

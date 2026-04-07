@@ -381,8 +381,7 @@ function TotalLookWidget({
                 {/* Product + Score Header */}
                 <div className="flex gap-4">
                   <div className="w-20 h-24 rounded-lg overflow-hidden flex-shrink-0 bg-white/5">
-                    <img
-                      src={product.image}
+                    <img loading="lazy" src={product.image}
                       alt={product.name[lang]}
                       className="w-full h-full object-cover"
                     />
@@ -517,9 +516,9 @@ function TotalLookWidget({
                             {/* Item image */}
                             <div className="w-12 h-12 rounded-md overflow-hidden bg-white/10 flex-shrink-0">
                               {item.itemImageUrl ? (
-                                <img src={item.itemImageUrl} alt={item.name} className="w-full h-full object-cover" />
+                                <img loading="lazy" src={item.itemImageUrl} alt={item.name} className="w-full h-full object-cover" />
                               ) : item.sourceImageUrl ? (
-                                <img src={item.sourceImageUrl} alt={item.name} className="w-full h-full object-cover" />
+                                <img loading="lazy" src={item.sourceImageUrl} alt={item.name} className="w-full h-full object-cover" />
                               ) : (
                                 <div className="w-full h-full flex items-center justify-center">
                                   <Shirt className="w-5 h-5 text-white/20" />
@@ -590,7 +589,7 @@ function TotalLookWidget({
                             <div className="flex items-start gap-3">
                               {/* Look thumbnail */}
                               <div className="w-14 h-14 rounded-md overflow-hidden bg-white/10 flex-shrink-0">
-                                <img src={look.imageUrl} alt="" className="w-full h-full object-cover" />
+                                <img loading="lazy" src={look.imageUrl} alt="" className="w-full h-full object-cover" />
                               </div>
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 mb-1">
@@ -775,8 +774,7 @@ function TotalLookWidget({
                             }}
                           >
                             {/* AFTER image — full background */}
-                            <img
-                              src={upgradeLookUrl}
+                            <img loading="lazy" src={upgradeLookUrl}
                               alt="After"
                               className="absolute inset-0 w-full h-full object-contain"
                               style={{ userSelect: "none", pointerEvents: "none" }}
@@ -788,8 +786,7 @@ function TotalLookWidget({
                               className="absolute inset-0"
                               style={{ clipPath: `inset(0 ${100 - beforeAfterSliderPos}% 0 0)` }}
                             >
-                              <img
-                                src={selectedLook.imageUrl}
+                              <img loading="lazy" src={selectedLook.imageUrl}
                                 alt="Before"
                                 className="absolute inset-0 w-full h-full object-contain"
                                 style={{ userSelect: "none", pointerEvents: "none" }}
@@ -890,8 +887,7 @@ function TotalLookWidget({
                     {/* AI Generated Look Image */}
                     {generatedLookUrl ? (
                       <div className="relative rounded-xl overflow-hidden border border-amber-500/30 bg-black/30">
-                        <img
-                          src={generatedLookUrl}
+                        <img loading="lazy" src={generatedLookUrl}
                           alt="AI Generated Look"
                           className="w-full object-contain max-h-[300px]"
                         />
@@ -960,7 +956,7 @@ function TotalLookWidget({
                         {/* The product being viewed */}
                         <div className="relative">
                           <div className="w-20 h-24 rounded-lg overflow-hidden border-2 border-amber-500/50 shadow-lg shadow-amber-500/10">
-                            <img src={product.image} alt={product.name[lang]} className="w-full h-full object-cover" />
+                            <img loading="lazy" src={product.image} alt={product.name[lang]} className="w-full h-full object-cover" />
                           </div>
                           <div className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-amber-500 flex items-center justify-center">
                             <ShoppingBag className="w-2.5 h-2.5 text-black" />
@@ -978,7 +974,7 @@ function TotalLookWidget({
                           <div key={item.id} className="relative">
                             <div className="w-20 h-24 rounded-lg overflow-hidden border border-white/10 bg-white/5">
                               {item.itemImageUrl ? (
-                                <img src={item.itemImageUrl} alt={item.name} className="w-full h-full object-cover" />
+                                <img loading="lazy" src={item.itemImageUrl} alt={item.name} className="w-full h-full object-cover" />
                               ) : (
                                 <div className="w-full h-full flex items-center justify-center">
                                   <Shirt className="w-6 h-6 text-white/15" />
@@ -1165,7 +1161,7 @@ function SmartMatchNotification({
             className="w-full flex items-center gap-3 p-2.5 rounded-xl bg-white/5 border border-white/10 hover:border-amber-500/30 transition-all group"
           >
             <div className="w-14 h-16 rounded-lg overflow-hidden flex-shrink-0 bg-white/10">
-              <img src={DEMO_PRODUCT.gallery[0].url} alt="" className="w-full h-full object-cover" />
+              <img loading="lazy" src={DEMO_PRODUCT.gallery[0].url} alt="" className="w-full h-full object-cover" />
             </div>
             <div className="flex-1 min-w-0 text-start">
               <p className="text-sm font-medium text-white truncate">{DEMO_PRODUCT.name[lang]}</p>
@@ -1284,8 +1280,7 @@ export default function BrandDemo() {
           {/* Product Image */}
           <div className="relative">
             <div className="aspect-[3/4] rounded-lg overflow-hidden bg-gray-100">
-              <img
-                src={DEMO_PRODUCT.gallery[selectedGalleryIdx].url}
+              <img loading="lazy" src={DEMO_PRODUCT.gallery[selectedGalleryIdx].url}
                 alt={`${selectedProduct.name[lang]} - ${DEMO_PRODUCT.gallery[selectedGalleryIdx].label[lang]}`}
                 className="w-full h-full object-cover"
               />
@@ -1303,7 +1298,7 @@ export default function BrandDemo() {
                       : "border-gray-200 hover:border-gray-400"
                   }`}
                 >
-                  <img src={img.url} alt={img.label[lang]} className="w-full h-full object-cover" />
+                  <img loading="lazy" src={img.url} alt={img.label[lang]} className="w-full h-full object-cover" />
                 </button>
               ))}
             </div>

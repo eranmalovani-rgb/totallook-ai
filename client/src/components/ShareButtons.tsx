@@ -81,7 +81,7 @@ export default function ShareButtons({ reviewId, score, summary, imageUrl }: Sha
           <div className="flex gap-4 p-4">
             {imageUrl && (
               <div className="w-20 h-20 rounded-lg overflow-hidden shrink-0 bg-white/5">
-                <img src={imageUrl} alt="Outfit" className="w-full h-full object-cover" />
+                <img loading="lazy" src={imageUrl} alt="Outfit" className="w-full h-full object-cover" />
               </div>
             )}
             <div className="flex-1 min-w-0">

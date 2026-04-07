@@ -645,7 +645,7 @@ export default function WhatsAppReview() {
     <div key="hero" className="rounded-2xl border border-white/5 bg-card overflow-hidden">
       {data.imageUrl && (
         <div className="relative">
-          <img src={data.imageUrl} alt="Look" className="w-full max-h-[350px] object-contain bg-black/20" />
+          <img loading="lazy" src={data.imageUrl} alt="Look" className="w-full max-h-[350px] object-contain bg-black/20" />
           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-card via-card/80 to-transparent h-24" />
           <div className="absolute bottom-3 left-0 right-0 flex justify-center">
             <ScoreCircle score={analysis.overallScore} />

@@ -65,3 +65,14 @@
 
 ## Bugs
 - [x] Fix OAuth redirect in Staging — removed hardcoded totallook.ai, now uses window.location.origin dynamically
+
+## Stage 1 — Quick Wins (Zero Risk)
+- [x] 1.1: Limit max_tokens per call type (correction 1024, influencer search 2048, influencer post 1024, IG story 2048; core analysis 2800, recommendations 2400 already set)
+- [x] 1.2: Change detail: "high" to "auto" (Instagram fixed; routers.ts + whatsapp.ts already "low")
+- [x] 1.3: Lower input_fidelity from "high" to "low" (model already gpt-image-1-mini, quality already "low")
+- [x] 1.4: Add loading="lazy" to all product/recommendation images in client (21 fixed, 5 upload previews kept eager)
+- [x] Verify Stage 1: build passes, 593 tests pass, 0 TS errors
+
+## Stage 2 — LLM Model Switch
+- [x] 2.1: Switch GPT-4o to GPT-4.1-mini in llm.ts getProvider() (fallback: gpt-4o)
+- [x] 2.2: Build passes, 593 tests pass, 0 TS errors. Live quality check recommended by user.

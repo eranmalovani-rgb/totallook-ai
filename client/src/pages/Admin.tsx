@@ -600,12 +600,10 @@ function ReviewCard({
             <ImageOff className="w-8 h-8 text-muted-foreground/30" />
           </div>
         ) : (
-          <img
-            src={review.imageUrl}
+          <img loading="lazy" src={review.imageUrl}
             alt={`Review ${review.id}`}
             className="w-full h-full object-cover"
             onError={() => setImgError(true)}
-            loading="lazy"
           />
         )}
 
@@ -766,8 +764,7 @@ function ReviewDetailModal({
                     <ImageOff className="w-12 h-12 text-muted-foreground/30" />
                   </div>
                 ) : (
-                  <img
-                    src={review.imageUrl}
+                  <img loading="lazy" src={review.imageUrl}
                     alt={`Review ${review.id}`}
                     className="w-full object-contain max-h-[60vh]"
                     onError={() => setImgError(true)}
@@ -1345,7 +1342,7 @@ function GuestsTab({ lang, dir }: { lang: "he" | "en"; dir: string }) {
                 {/* Image */}
                 <div className="aspect-square bg-white/5 overflow-hidden relative">
                   {session.imageUrl ? (
-                    <img src={session.imageUrl} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    <img loading="lazy" src={session.imageUrl} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
                       <ImageOff className="w-8 h-8 text-muted-foreground/30" />
@@ -1543,7 +1540,7 @@ function GuestSessionDetailModal({ session, lang, dir, onClose }: {
           <div className="grid md:grid-cols-2 gap-6">
             {session.imageUrl && (
               <div className="rounded-xl overflow-hidden border border-white/10">
-                <img src={session.imageUrl} alt="Guest upload" className="w-full max-h-[500px] object-contain bg-black" />
+                <img loading="lazy" src={session.imageUrl} alt="Guest upload" className="w-full max-h-[500px] object-contain bg-black" />
               </div>
             )}
             {analysis && (

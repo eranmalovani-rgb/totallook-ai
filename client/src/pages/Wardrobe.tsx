@@ -1071,7 +1071,7 @@ export default function Wardrobe() {
                   {Object.entries(lookItems).map(([catId, item]) => (
                     <div key={catId} className="flex items-center gap-2 bg-card/80 rounded-lg px-3 py-2 border border-border/30">
                       {item.sourceImageUrl ? (
-                        <img src={item.sourceImageUrl} alt="" className="w-10 h-10 rounded-md object-cover" />
+                        <img loading="lazy" src={item.sourceImageUrl} alt="" className="w-10 h-10 rounded-md object-cover" />
                       ) : (
                         <span className="text-lg">{grouped.find(g => g.def.id === catId)?.def.emoji}</span>
                       )}
@@ -1117,8 +1117,7 @@ export default function Wardrobe() {
                           : "opacity-0 scale-90 blur-md"
                       }`}
                     >
-                      <img
-                        src={visualizedImageUrl}
+                      <img loading="lazy" src={visualizedImageUrl}
                         alt="Look Visualization"
                         className="w-full object-contain max-h-[500px] transition-transform duration-500 ease-in-out"
                         style={{ transform: `rotate(${imageRotation}deg)` }}
@@ -1347,8 +1346,7 @@ export default function Wardrobe() {
               >
                 <X className="w-5 h-5" />
               </button>
-              <img
-                src={viewingImage}
+              <img loading="lazy" src={viewingImage}
                 alt=""
                 className="w-full h-auto max-h-[85vh] object-contain rounded-xl"
               />

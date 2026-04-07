@@ -2264,6 +2264,7 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
               { role: "system", content: prompt },
               { role: "user", content: `Find fashion influencers for @${input.handle}` },
             ],
+            maxTokens: 2048,
           });
           const content = result.choices[0]?.message?.content;
           const text = typeof content === "string" ? content : "[]";
@@ -3213,6 +3214,7 @@ Return ONLY the JSON object, no markdown.`;
               { role: "system", content: prompt },
               { role: "user", content: `Generate an example Instagram post for ${input.influencerName}` },
             ],
+            maxTokens: 1024,
           });
           const content = llmResult.choices[0]?.message?.content;
           const text = typeof content === "string" ? content : "{}";
@@ -3397,6 +3399,7 @@ Return ONLY a JSON object with these exact fields:
                 },
               },
             },
+            maxTokens: 1024,
           });
           const content = llmResult.choices[0]?.message?.content;
           const text = typeof content === "string" ? content : "";

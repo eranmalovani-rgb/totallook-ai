@@ -120,8 +120,7 @@ function SelectableProductImage({
               <RefreshCw className="w-5 h-5 text-primary/40 animate-spin" style={{ animationDuration: "3s" }} />
             </div>
           )}
-          <img
-            src={imageUrl}
+          <img loading="lazy" src={imageUrl}
             alt={label}
             className={`w-full h-full object-cover transition-opacity duration-300 ${imgLoading ? "opacity-0" : "opacity-100"}`}
             onError={() => { setImgError(true); setImgLoading(false); }}
@@ -518,8 +517,7 @@ export default function GuestFixMyLookModal({ sessionId, analysis, trigger, clos
                         >
                           <span style={{ fontSize: '16px' }}>♻️</span>
                           {(closetMatch!.itemImageUrl || closetMatch!.sourceImageUrl) && (
-                            <img
-                              src={closetMatch!.itemImageUrl || closetMatch!.sourceImageUrl}
+                            <img loading="lazy" src={closetMatch!.itemImageUrl || closetMatch!.sourceImageUrl}
                               alt={closetMatch!.name}
                               className="w-8 h-8 rounded-md object-cover border border-emerald-500/30"
                             />
@@ -693,7 +691,7 @@ export default function GuestFixMyLookModal({ sessionId, analysis, trigger, clos
                     const storeName = extractStoreFromUrl(link.url) || extractStoreFromLabel(link.label);
                     return (
                       <a key={i} href={link.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2.5 rounded-xl border border-white/5 bg-card hover:border-primary/20 transition-colors group">
-                        {link.imageUrl && <img src={link.imageUrl} alt={link.label} className="w-10 h-10 rounded-lg object-cover" />}
+                        {link.imageUrl && <img loading="lazy" src={link.imageUrl} alt={link.label} className="w-10 h-10 rounded-lg object-cover" />}
                         <div className="flex-1 min-w-0">
                           {storeName ? (
                             <StoreLogo name={storeName} size="sm" />
@@ -773,8 +771,7 @@ export default function GuestFixMyLookModal({ sessionId, analysis, trigger, clos
 
               {imgSrc && (
                 <div className="flex justify-center">
-                  <img
-                    src={imgSrc}
+                  <img loading="lazy" src={imgSrc}
                     alt={cm.name}
                     className="w-48 h-48 rounded-xl object-cover border-2 border-emerald-500/30 shadow-lg shadow-emerald-500/10"
                   />

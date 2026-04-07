@@ -203,8 +203,7 @@ function ProductCard({ link, lang, isGeneratingImages }: { link: ShoppingLink; l
                 <FashionButtonSpinner />
               </div>
             )}
-            <img
-              src={link.imageUrl}
+            <img loading="lazy" src={link.imageUrl}
               alt={link.label}
               className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ${imgLoading ? 'opacity-0' : 'opacity-100'}`}
               onError={() => { setImgError(true); setImgLoading(false); }}
@@ -288,7 +287,7 @@ function ClosetItemPopup({
         <div className="space-y-4">
           {imageUrl ? (
             <div className="rounded-xl overflow-hidden border border-emerald-500/20 bg-black/20">
-              <img src={imageUrl} alt={closetMatch.name} className="w-full max-h-[400px] object-contain" />
+              <img loading="lazy" src={imageUrl} alt={closetMatch.name} className="w-full max-h-[400px] object-contain" />
             </div>
           ) : (
             <div className="rounded-xl border border-emerald-500/20 bg-black/20 flex items-center justify-center h-48">
@@ -465,8 +464,7 @@ function ImprovementCard({
                 <span className="text-xs" style={{ fontSize: '12px' }}>♻️</span>
                 <div className="flex items-center gap-1.5 flex-1 min-w-0">
                   {(validClosetMatch.itemImageUrl || validClosetMatch.sourceImageUrl) && (
-                    <img
-                      src={validClosetMatch.itemImageUrl || validClosetMatch.sourceImageUrl}
+                    <img loading="lazy" src={validClosetMatch.itemImageUrl || validClosetMatch.sourceImageUrl}
                       alt={validClosetMatch.name}
                       className="w-6 h-6 rounded-md object-cover border border-emerald-500/30"
                     />
@@ -610,7 +608,7 @@ function OutfitCard({
     <div className="rounded-2xl border border-white/5 bg-card overflow-hidden flex flex-col">
       <div className="relative">
         {lookImage ? (
-          <img src={lookImage} alt={outfit.name} className="w-full aspect-[3/4] object-cover" />
+          <img loading="lazy" src={lookImage} alt={outfit.name} className="w-full aspect-[3/4] object-cover" />
         ) : loading ? (
           <div className="w-full aspect-[3/4] bg-gradient-to-br from-primary/5 via-rose-500/5 to-transparent flex flex-col items-center justify-center gap-4">
             <FashionButtonSpinner />
@@ -1316,8 +1314,7 @@ export default function ReviewPage() {
         <section className="container max-w-lg mx-auto mb-6 px-4">
           {/* Image + Score overlay */}
           <div className="relative rounded-2xl overflow-hidden border border-white/10 bg-card">
-            <img
-              src={review.imageUrl}
+            <img loading="lazy" src={review.imageUrl}
               alt="Outfit"
               className="w-full max-h-[420px] object-contain bg-black/20"
             />
