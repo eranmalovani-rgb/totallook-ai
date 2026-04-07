@@ -960,7 +960,7 @@ async function runAnalysisWithRetries(prompt: string, imageUrl: string): Promise
             schema: analysisJsonSchema,
           },
         },
-        maxTokens: 1500,
+        maxTokens: 4096,
       });
       break; // Success
     } catch (retryErr: any) {
