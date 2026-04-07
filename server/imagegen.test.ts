@@ -51,7 +51,7 @@ describe("OpenAI Image Generation (gpt-image-1-mini)", () => {
         "Authorization": `Bearer ${OPENAI_API_KEY.trim()}`,
       },
       body: JSON.stringify({
-        model: "gpt-5.3-mini",
+        model: "gpt-5-mini",
         messages: [
           { role: "user", content: "Say hello in JSON format: {\"greeting\": \"hello\"}" },
         ],

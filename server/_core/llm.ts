@@ -286,7 +286,7 @@ const getProvider = (): {
     return {
       apiUrl: "https://api.openai.com/v1/chat/completions",
       apiKey: openaiKey,
-      model: "gpt-5.3-mini",
+      model: "gpt-5-mini",
       fallbackModel: "gpt-4o",
       useThinking: false,
     };
@@ -301,7 +301,7 @@ const getProvider = (): {
   return {
     apiUrl: forgeUrl,
     apiKey: ENV.forgeApiKey,
-    model: "gpt-5.3-mini",
+    model: "gpt-5-mini",
     fallbackModel: "gemini-2.5-flash",
     useThinking: false,
   };
@@ -415,8 +415,13 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     payload.tool_choice = normalizedToolChoice;
   }
 
-  // Unified default budget for text model responses
-  payload.max_tokens = 16384;
+  // Unified default budget for text model responses.
+  // Newer GPT-5* models require max_completion_tokens instead of max_tokens.
+  if (provider.model.startsWith("gpt-5")) {
+    payload.max_completion_tokens = 16384;
+  } else {
+    payload.max_tokens = 16384;
+  }
 
   // Only add thinking config for Manus Forge (Gemini)
   if (provider.useThinking) {
