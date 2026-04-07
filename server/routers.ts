@@ -1670,9 +1670,12 @@ function buildRecommendationsPromptFromCore(
 - התבסס על פריטי הלבוש, הציונים והסיכום משלב 1.
 - שמור על התאמה לאירוע ולסגנון המשתמש.
 - improvements חייב לכלול המלצות לביגוד לביש (לא רק אביזרים).
+- החזר בין 4 ל-5 improvements.
+- לכל improvement חייבים להיות לפחות 3 shoppingLinks.
 - shoppingLinks חייבים להיות כתובות חיפוש תקינות (לא /product/ ישיר).
 - trendSources חייב להיות רלוונטי לפריטים שזוהו.
 - influencerInsight חייב להיות פרקטי וקצר.
+- כל הטקסטים בתשובה חייבים להיות בעברית תקינה בלבד.
 - החזר JSON בלבד, ללא markdown.
 
 ${occasionLine}`
@@ -1688,12 +1691,127 @@ Rules:
 - Base recommendations on stage-1 items, scores, and summary.
 - Keep suggestions occasion-aware and style-consistent.
 - improvements must include wearable clothing upgrades (not accessories-only).
+- Return 4-5 improvements.
+- Every improvement must include at least 3 shoppingLinks.
 - shoppingLinks must be valid search URLs (never direct /product/ URLs).
 - trendSources must be relevant to identified items.
 - influencerInsight should be practical and concise.
+- All user-facing text must be in English only.
 - Return JSON only, no markdown.
 
 ${occasionLine}`;
+}
+
+function isHebrewText(text: string): boolean {
+  return /[\u0590-\u05FF]/.test(text || "");
+}
+
+function normalizeImprovementShoppingLinks(
+  imp: Improvement,
+  lang: "he" | "en",
+): Improvement {
+  const isHebrew = lang === "he";
+  const fallbackQuery =
+    (imp.productSearchQuery || imp.afterLabel || imp.title || (isHebrew ? "שדרוג לבוש" : "clothing upgrade")).trim();
+  const existingLinks = Array.isArray(imp.shoppingLinks)
+    ? imp.shoppingLinks.filter((l) => l && typeof l.url === "string" && l.url.trim().length > 0)
+    : [];
+  const deduped: ShoppingLink[] = [];
+  const seen = new Set<string>();
+  for (const link of existingLinks) {
+    const key = (link.url || "").trim().toLowerCase();
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    deduped.push({
+      label: (link.label || `${fallbackQuery}`).trim(),
+      url: link.url.trim(),
+      imageUrl: link.imageUrl || "",
+    });
+  }
+  if (deduped.length < 3) {
+    const fallbackLinks = buildFallbackShoppingLinks(fallbackQuery);
+    for (const fb of fallbackLinks) {
+      const key = (fb.url || "").trim().toLowerCase();
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      deduped.push(fb);
+      if (deduped.length >= 3) break;
+    }
+  }
+
+  return {
+    title: (imp.title || (isHebrew ? "שדרוג לבוש" : "Wardrobe upgrade")).trim(),
+    description: (imp.description || (isHebrew ? "התאמה לשדרוג הלוק." : "Upgrade to improve overall look coherence.")).trim(),
+    beforeLabel: (imp.beforeLabel || (isHebrew ? "לפני" : "Before")).trim(),
+    afterLabel: (imp.afterLabel || (isHebrew ? "אחרי" : "After")).trim(),
+    productSearchQuery: fallbackQuery,
+    shoppingLinks: deduped.slice(0, 3),
+    closetMatch: imp.closetMatch,
+  };
+}
+
+function shouldFallbackRecommendationsForLanguage(
+  rec: FashionRecommendationsPayload,
+  lang: "he" | "en",
+): boolean {
+  if (lang !== "he") return false;
+  const samples = [
+    rec.influencerInsight,
+    ...(rec.improvements || []).flatMap((imp) => [imp.title, imp.description, imp.afterLabel]),
+    ...(rec.outfitSuggestions || []).flatMap((o) => [o.name, o.occasion, o.inspirationNote]),
+    ...(rec.trendSources || []).map((t) => t.title),
+  ]
+    .filter((s): s is string => typeof s === "string" && s.trim().length > 0)
+    .slice(0, 24);
+  if (samples.length === 0) return true;
+  const hebrewCount = samples.filter((s) => isHebrewText(s)).length;
+  return hebrewCount < Math.ceil(samples.length * 0.5);
+}
+
+function sanitizeRecommendationsPayload(
+  rec: FashionRecommendationsPayload,
+  core: FashionAnalysisCorePayload,
+  lang: "he" | "en",
+  occasion?: string | null,
+): FashionRecommendationsPayload {
+  const fallback = buildFallbackRecommendationsFromCore(core, lang, occasion);
+  if (shouldFallbackRecommendationsForLanguage(rec, lang)) {
+    return fallback;
+  }
+
+  let improvements = Array.isArray(rec.improvements) ? rec.improvements : [];
+  improvements = improvements.map((imp) => normalizeImprovementShoppingLinks(imp, lang));
+  if (improvements.length < 4) {
+    const needed = 4 - improvements.length;
+    improvements = [...improvements, ...fallback.improvements.slice(0, needed)];
+  }
+  if (improvements.length > 5) improvements = improvements.slice(0, 5);
+  improvements = improvements.map((imp) => normalizeImprovementShoppingLinks(imp, lang));
+
+  let outfitSuggestions = Array.isArray(rec.outfitSuggestions) ? rec.outfitSuggestions : [];
+  if (outfitSuggestions.length < 2) {
+    outfitSuggestions = [...outfitSuggestions, ...fallback.outfitSuggestions];
+  }
+  outfitSuggestions = outfitSuggestions.slice(0, 3);
+
+  let trendSources = Array.isArray(rec.trendSources) ? rec.trendSources : [];
+  if (trendSources.length < 2) {
+    trendSources = [...trendSources, ...fallback.trendSources];
+  }
+  trendSources = trendSources.slice(0, 4);
+
+  let influencerInsight = (rec.influencerInsight || "").trim();
+  if (!influencerInsight) influencerInsight = fallback.influencerInsight;
+  if (lang === "he" && !isHebrewText(influencerInsight)) {
+    influencerInsight = fallback.influencerInsight;
+  }
+
+  return {
+    improvements,
+    outfitSuggestions,
+    trendSources,
+    influencerInsight,
+  };
 }
 
 function buildFallbackRecommendationsFromCore(
@@ -2185,6 +2303,12 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
           if (!recommendations) {
             recommendations = buildFallbackRecommendationsFromCore(analysisCore, input.lang, review.occasion);
           }
+          recommendations = sanitizeRecommendationsPayload(
+            recommendations,
+            analysisCore,
+            input.lang,
+            review.occasion,
+          );
           let analysis: FashionAnalysis = {
             ...analysisCore,
             ...recommendations,
@@ -3979,6 +4103,12 @@ Return ONLY a JSON object with these exact fields:
           if (!recommendations) {
             recommendations = buildFallbackRecommendationsFromCore(analysisCore, input.lang, input.occasion);
           }
+          recommendations = sanitizeRecommendationsPayload(
+            recommendations,
+            analysisCore,
+            input.lang,
+            input.occasion,
+          );
           let analysis: FashionAnalysis = {
             ...analysisCore,
             ...recommendations,
