@@ -19,7 +19,7 @@ describe("OpenAI API Key Validation", () => {
         "Authorization": `Bearer ${key}`,
       },
       body: JSON.stringify({
-        model: "gpt-4o",
+        model: "gpt-5.3-mini",
         messages: [{ role: "user", content: "Say hello in one word" }],
         max_tokens: 10,
       }),
