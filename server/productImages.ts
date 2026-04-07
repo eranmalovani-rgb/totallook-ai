@@ -222,7 +222,7 @@ function scoreLinkForOutfit(
   return score;
 }
 
-function buildOutfitCacheKey(outfit: OutfitSuggestion): string {
+function buildOutfitCacheKey(outfit: OutfitSuggestion, outfitIndex: number): string {
   const base = `${outfit.name} ${outfit.occasion} ${(outfit.items || []).join(" ")} ${(outfit.colors || []).join(" ")}`;
   const normalized = base
     .toLowerCase()
@@ -230,7 +230,14 @@ function buildOutfitCacheKey(outfit: OutfitSuggestion): string {
     .replace(/\s+/g, " ")
     .trim()
     .slice(0, 380);
-  return `outfit::${normalized}`;
+  return `outfit::idx:${outfitIndex}::${normalized}`;
+}
+
+function rotateCandidates<T>(arr: T[], offset: number): T[] {
+  if (!arr.length) return arr;
+  const safeOffset = ((offset % arr.length) + arr.length) % arr.length;
+  if (safeOffset === 0) return arr;
+  return [...arr.slice(safeOffset), ...arr.slice(0, safeOffset)];
 }
 
 async function fetchImageBuffer(url: string): Promise<Buffer | null> {
@@ -288,7 +295,7 @@ export async function generateOutfitLookFromMetadata(params: {
   outfitIndex: number;
 }): Promise<{ imageUrl: string; storeLinks: Array<{ label: string; url: string; imageUrl: string }> } | null> {
   const { analysis, outfit, outfitIndex } = params;
-  const cacheKey = buildOutfitCacheKey(outfit);
+  const cacheKey = buildOutfitCacheKey(outfit, outfitIndex);
   const cached = await getCachedProductImage(cacheKey, CACHE_TTL_DAYS);
   if (cached && isValidImageUrl(cached)) {
     const works = await testImageUrl(cached);
@@ -316,6 +323,8 @@ export async function generateOutfitLookFromMetadata(params: {
     if (!prev || c.score > prev.score) dedupMap.set(key, c);
   }
   const candidates = Array.from(dedupMap.values()).sort((a, b) => b.score - a.score);
+  // Diversify different look cards so outfit #1/#2/#3 do not all pick identical top-ranked links.
+  const diversifiedCandidates = rotateCandidates(candidates, outfitIndex);
 
   // Select links with strict diversity: max one per category in metadata mode
   const selected: typeof candidates = [];
@@ -329,7 +338,7 @@ export async function generateOutfitLookFromMetadata(params: {
 
   const tryPickCategory = (cat: OutfitCategory) => {
     if (selected.length >= 4) return;
-    const found = candidates.find((c) => {
+    const found = diversifiedCandidates.find((c) => {
       if (c.category !== cat) return false;
       const key = buildCandidateDedupKey(c.link.label, c.link.url);
       return !usedDedupKeys.has(key) && !usedCategories.has(c.category);
@@ -357,7 +366,7 @@ export async function generateOutfitLookFromMetadata(params: {
 
   // Pass 3: fill remaining slots with best non-duplicate categories
   if (selected.length < 4) {
-    for (const c of candidates) {
+    for (const c of diversifiedCandidates) {
       const key = buildCandidateDedupKey(c.link.label, c.link.url);
       if (usedDedupKeys.has(key)) continue;
       if (usedCategories.has(c.category)) continue;
