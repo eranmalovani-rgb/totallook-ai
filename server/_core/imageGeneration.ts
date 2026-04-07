@@ -1,5 +1,5 @@
 /**
- * Image generation helper — OpenAI DALL-E 3 (primary) with Manus Forge fallback
+ * Image generation helper — OpenAI Images API (primary) with Manus Forge fallback
  *
  * Example usage:
  *   const { url: imageUrl } = await generateImage({
@@ -20,6 +20,9 @@ import { ENV } from "./env";
 
 // Read at runtime (not module load) so env is always fresh
 const getOpenAIKey = () => (process.env.OPENAI_API_KEY ?? "").trim();
+const OPENAI_IMAGE_MODEL = "gpt-image-1-mini";
+const OPENAI_IMAGE_SIZE = "1024x1024";
+const OPENAI_IMAGE_QUALITY = "low";
 
 export type GenerateImageOptions = {
   prompt: string;
@@ -40,7 +43,7 @@ export type GenerateImageResponse = {
 
 /**
  * Determine which provider to use for image generation.
- * Priority: OpenAI DALL-E > Manus Forge
+ * Priority: OpenAI Images API > Manus Forge
  */
 function getImageProvider(): "openai" | "forge" {
   if (getOpenAIKey().length > 0) {
@@ -53,7 +56,7 @@ function getImageProvider(): "openai" | "forge" {
 }
 
 /**
- * Generate image using OpenAI DALL-E 3
+ * Generate image using OpenAI Images API
  */
 async function generateWithOpenAI(
   options: GenerateImageOptions
@@ -61,12 +64,12 @@ async function generateWithOpenAI(
   const hasOriginalImages = options.originalImages && options.originalImages.length > 0;
 
   if (hasOriginalImages) {
-    // For editing, use gpt-image-1 edit endpoint with reference images.
+    // For editing, use gpt-image-1-mini edit endpoint with reference images.
     const formData = new FormData();
-    formData.append("model", "gpt-image-1");
+    formData.append("model", OPENAI_IMAGE_MODEL);
     formData.append("prompt", options.prompt);
-    formData.append("size", "auto");
-    formData.append("quality", "high");
+    formData.append("size", OPENAI_IMAGE_SIZE);
+    formData.append("quality", OPENAI_IMAGE_QUALITY);
     formData.append("input_fidelity", "high");
 
     for (let i = 0; i < options.originalImages!.length; i++) {
@@ -129,7 +132,7 @@ async function generateWithOpenAI(
     };
   }
 
-  // Standard generation with DALL-E 3
+  // Standard generation with OpenAI Images API
   const response = await fetch("https://api.openai.com/v1/images/generations", {
     method: "POST",
     headers: {
@@ -137,12 +140,12 @@ async function generateWithOpenAI(
       "Authorization": `Bearer ${getOpenAIKey()}`,
     },
     body: JSON.stringify({
-      model: "dall-e-3",
+      model: OPENAI_IMAGE_MODEL,
       prompt: options.prompt,
       n: 1,
-      size: "1024x1024",
+      size: OPENAI_IMAGE_SIZE,
       response_format: "b64_json",
-      quality: "standard",
+      quality: OPENAI_IMAGE_QUALITY,
     }),
   });
 
@@ -247,7 +250,9 @@ export async function generateImage(
   options: GenerateImageOptions
 ): Promise<GenerateImageResponse> {
   const provider = getImageProvider();
-  console.log(`[ImageGen] Using provider: ${provider === "openai" ? "OpenAI DALL-E 3" : "Manus Forge"}`);
+  console.log(
+    `[ImageGen] Using provider: ${provider === "openai" ? `OpenAI Images (${OPENAI_IMAGE_MODEL})` : "Manus Forge"}`
+  );
 
   let imageData: { base64: string; mimeType: string };
 

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 
-describe("OpenAI Image Generation (DALL-E 3)", () => {
+describe("OpenAI Image Generation (gpt-image-1-mini)", () => {
   const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
   it("should have OPENAI_API_KEY configured", () => {
@@ -8,7 +8,7 @@ describe("OpenAI Image Generation (DALL-E 3)", () => {
     expect(OPENAI_API_KEY!.startsWith("sk-")).toBe(true);
   });
 
-  it("should generate an image via OpenAI DALL-E 3 API", async () => {
+  it("should generate an image via OpenAI gpt-image-1-mini API", async () => {
     if (!OPENAI_API_KEY) {
       console.warn("Skipping: OPENAI_API_KEY not set");
       return;
@@ -21,12 +21,12 @@ describe("OpenAI Image Generation (DALL-E 3)", () => {
         "Authorization": `Bearer ${OPENAI_API_KEY.trim()}`,
       },
       body: JSON.stringify({
-        model: "dall-e-3",
+        model: "gpt-image-1-mini",
         prompt: "A simple red circle on white background, minimal",
         n: 1,
         size: "1024x1024",
         response_format: "b64_json",
-        quality: "standard",
+        quality: "low",
       }),
     });
 
