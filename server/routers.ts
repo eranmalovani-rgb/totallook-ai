@@ -9,7 +9,7 @@ import { invokeLLM } from "./_core/llm";
 import { nanoid } from "nanoid";
 import type { FashionAnalysis } from "../shared/fashionTypes";
 import { POPULAR_INFLUENCERS, BRAND_URLS, COUNTRY_STORE_MAP, COUNTRY_LOCAL_BRANDS, filterStoresForUser } from "../shared/fashionTypes";
-import { enrichAnalysisWithProductImages, generateImagesForImprovement } from "./productImages";
+import { enrichAnalysisWithProductImages, generateImagesForImprovement, generateOutfitLookFromMetadata } from "./productImages";
 import { sendWhatsAppWelcome } from "./whatsapp";
 import { notifyOwner } from "./_core/notification";
 import { ENV } from "./_core/env";
@@ -2003,6 +2003,18 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
         const outfitItems = (analysis.outfitSuggestions || []).slice(0, 1).flatMap((s: OutfitSuggestion) => s.items).join(", ");
         const colors = (analysis.outfitSuggestions || []).slice(0, 1).flatMap((s: OutfitSuggestion) => s.colors).join(", ");
         const existingItems = (analysis.items || []).map(item => item.name).join(", ");
+        const firstOutfit = (analysis.outfitSuggestions || [])[0];
+
+        if (firstOutfit) {
+          const metadataLook = await generateOutfitLookFromMetadata({
+            analysis,
+            outfit: firstOutfit,
+            outfitIndex: 0,
+          });
+          if (metadataLook?.imageUrl) {
+            return { imageUrl: metadataLook.imageUrl };
+          }
+        }
 
         const prompt = `Fashion mood board / flat lay photograph showing a complete outfit look. Professional editorial style, clean white marble background, luxury fashion photography.
 
@@ -2288,6 +2300,15 @@ Return ONLY the JSON object, no markdown.`;
 
         const outfit = analysis.outfitSuggestions?.[input.outfitIndex];
         if (!outfit) throw new Error("Outfit suggestion not found");
+
+        const metadataLook = await generateOutfitLookFromMetadata({
+          analysis,
+          outfit,
+          outfitIndex: input.outfitIndex,
+        });
+        if (metadataLook?.imageUrl) {
+          return { imageUrl: metadataLook.imageUrl };
+        }
 
         // Use the lookDescription from AI if available, otherwise build from items
         const lookDesc = outfit.lookDescription || outfit.items.join(", ");
@@ -3634,6 +3655,15 @@ Return ONLY a JSON object with these exact fields:
 
         const outfit = analysis.outfitSuggestions?.[input.outfitIndex];
         if (!outfit) throw new Error("Outfit suggestion not found");
+
+        const metadataLook = await generateOutfitLookFromMetadata({
+          analysis,
+          outfit,
+          outfitIndex: input.outfitIndex,
+        });
+        if (metadataLook?.imageUrl) {
+          return { imageUrl: metadataLook.imageUrl };
+        }
 
         const lookDesc = outfit.lookDescription || outfit.items.join(", ");
         const colors = outfit.colors?.join(", ") || "neutral tones";
