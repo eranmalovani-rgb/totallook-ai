@@ -1016,6 +1016,152 @@ function stripNonBmpUnicode(value: string): string {
   return value.replace(/[\u{10000}-\u{10FFFF}]/gu, "");
 }
 
+const GUEST_SESSION_INSERTABLE_COLUMNS = new Set([
+  "fingerprint",
+  "ipAddress",
+  "imageUrl",
+  "imageKey",
+  "status",
+  "analysisJson",
+  "overallScore",
+  "userAgent",
+  "convertedUserId",
+  "convertedAt",
+  "ageRange",
+  "gender",
+  "occupation",
+  "budgetLevel",
+  "stylePreference",
+  "favoriteBrands",
+  "favoriteInfluencers",
+  "preferredStores",
+  "country",
+  "onboardingCompleted",
+  "email",
+  "analysisCount",
+  "source",
+  "whatsappToken",
+  "whatsappPhone",
+  "whatsappProfileName",
+  "lastViewedAt",
+  "followUpSentAt",
+  "createdAt",
+]);
+
+function buildGuestSessionInsertPayload(
+  payload: Record<string, unknown>
+): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(payload).filter(
+      ([key, value]) => value !== undefined && GUEST_SESSION_INSERTABLE_COLUMNS.has(key)
+    )
+  );
+}
+
+function applyGuestPayloadFallbackFromMessage(
+  payload: Record<string, unknown>,
+  fullMsg: string
+): boolean {
+  const unknownColumnMatch = fullMsg.match(/Unknown column '([^']+)'/i);
+  const unknownColumn = unknownColumnMatch?.[1];
+  if (unknownColumn && unknownColumn in payload) {
+    console.warn(
+      `[DB] createGuestSession fallback: dropping unknown column '${unknownColumn}' and retrying`
+    );
+    delete payload[unknownColumn];
+    return true;
+  }
+
+  const incorrectStringColumnMatch = fullMsg.match(
+    /Incorrect string value: .* for column '([^']+)'/i
+  );
+  const incorrectStringColumn = incorrectStringColumnMatch?.[1];
+  if (incorrectStringColumn && typeof payload[incorrectStringColumn] === "string") {
+    const original = String(payload[incorrectStringColumn]);
+    const sanitized = stripNonBmpUnicode(original);
+    if (sanitized !== original) {
+      console.warn(
+        `[DB] createGuestSession fallback: sanitized non-BMP chars for column '${incorrectStringColumn}'`
+      );
+      payload[incorrectStringColumn] = sanitized;
+      return true;
+    }
+  }
+
+  const dataTooLongMatch = fullMsg.match(/Data too long for column '([^']+)'/i);
+  const dataTooLongColumn = dataTooLongMatch?.[1];
+  if (dataTooLongColumn && typeof payload[dataTooLongColumn] === "string") {
+    const original = String(payload[dataTooLongColumn]);
+    if (original.length > 255) {
+      payload[dataTooLongColumn] = original.slice(0, 255);
+      console.warn(
+        `[DB] createGuestSession fallback: truncated value for column '${dataTooLongColumn}'`
+      );
+      return true;
+    }
+  }
+
+  // Wrapped Drizzle errors often only include SQL text (without concrete MySQL cause).
+  const lower = fullMsg.toLowerCase();
+  const looksLikeGuestInsertFailure =
+    lower.includes("failed query") && lower.includes("insert into guestsessions");
+  const profileName = payload.whatsappProfileName;
+  if (
+    looksLikeGuestInsertFailure &&
+    typeof profileName === "string" &&
+    containsNonBmpUnicode(profileName)
+  ) {
+    const sanitized = stripNonBmpUnicode(profileName);
+    if (sanitized !== profileName) {
+      payload.whatsappProfileName = sanitized;
+      console.warn("[DB] createGuestSession fallback: sanitized whatsappProfileName and retrying");
+      return true;
+    }
+  }
+
+  return false;
+}
+
+async function insertGuestSessionWithExplicitColumns(
+  db: NonNullable<Awaited<ReturnType<typeof getDb>>>,
+  payload: Record<string, unknown>
+): Promise<number> {
+  const cleanPayload = buildGuestSessionInsertPayload(payload);
+  const columns = Object.keys(cleanPayload);
+  if (columns.length === 0) {
+    throw new Error("createGuestSession explicit insert has no values");
+  }
+
+  await db.execute(sql`
+    INSERT INTO ${sql.identifier("guestSessions")}
+    (${sql.join(columns.map((column) => sql.identifier(column)), sql`, `)})
+    VALUES (${sql.join(columns.map((column) => sql`${cleanPayload[column]}`), sql`, `)})
+  `);
+
+  // Fetch inserted row ID using stable keys from payload.
+  if (typeof cleanPayload.whatsappToken === "string" && cleanPayload.whatsappToken.length > 0) {
+    const rows = await db
+      .select({ id: guestSessions.id })
+      .from(guestSessions)
+      .where(eq(guestSessions.whatsappToken, cleanPayload.whatsappToken))
+      .orderBy(desc(guestSessions.id))
+      .limit(1);
+    if (rows[0]?.id) return rows[0].id;
+  }
+
+  if (typeof cleanPayload.fingerprint === "string" && cleanPayload.fingerprint.length > 0) {
+    const rows = await db
+      .select({ id: guestSessions.id })
+      .from(guestSessions)
+      .where(eq(guestSessions.fingerprint, cleanPayload.fingerprint))
+      .orderBy(desc(guestSessions.id))
+      .limit(1);
+    if (rows[0]?.id) return rows[0].id;
+  }
+
+  throw new Error("createGuestSession explicit insert succeeded but ID lookup failed");
+}
+
 export async function createGuestSession(data: InsertGuestSession) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -1026,9 +1172,7 @@ export async function createGuestSession(data: InsertGuestSession) {
 
   for (let i = 0; i < 8; i++) {
     try {
-      const cleanPayload = Object.fromEntries(
-        Object.entries(payload).filter(([, value]) => value !== undefined)
-      );
+      const cleanPayload = buildGuestSessionInsertPayload(payload);
       const [result] = await db.insert(guestSessions).values(cleanPayload as any).$returningId();
       return result.id;
     } catch (err: any) {
@@ -1037,61 +1181,28 @@ export async function createGuestSession(data: InsertGuestSession) {
       const causeMsg = String(err?.cause?.message || "");
       const fullMsg = `${msg} ${causeMsg}`.trim();
 
-      const unknownColumnMatch = fullMsg.match(/Unknown column '([^']+)'/i);
-      const unknownColumn = unknownColumnMatch?.[1];
-      if (unknownColumn) {
-        if (!(unknownColumn in payload)) break;
-
-        console.warn(`[DB] createGuestSession fallback: dropping unknown column '${unknownColumn}' and retrying`);
-        delete payload[unknownColumn];
+      if (applyGuestPayloadFallbackFromMessage(payload, fullMsg)) {
         continue;
       }
 
-      const incorrectStringColumnMatch = fullMsg.match(
-        /Incorrect string value: .* for column '([^']+)'/i
-      );
-      const incorrectStringColumn = incorrectStringColumnMatch?.[1];
-      if (incorrectStringColumn && typeof payload[incorrectStringColumn] === "string") {
-        const original = String(payload[incorrectStringColumn]);
-        const sanitized = stripNonBmpUnicode(original);
-        if (sanitized !== original) {
-          console.warn(
-            `[DB] createGuestSession fallback: sanitized non-BMP chars for column '${incorrectStringColumn}'`
-          );
-          payload[incorrectStringColumn] = sanitized;
-          continue;
-        }
-      }
-
-      const dataTooLongMatch = fullMsg.match(/Data too long for column '([^']+)'/i);
-      const dataTooLongColumn = dataTooLongMatch?.[1];
-      if (dataTooLongColumn && typeof payload[dataTooLongColumn] === "string") {
-        const original = String(payload[dataTooLongColumn]);
-        if (original.length > 255) {
-          payload[dataTooLongColumn] = original.slice(0, 255);
-          console.warn(
-            `[DB] createGuestSession fallback: truncated value for column '${dataTooLongColumn}'`
-          );
-          continue;
-        }
-      }
-
-      // Some wrapped Drizzle errors only include the failed SQL text.
-      // In that case, if the profile name contains 4-byte chars (emoji), sanitize and retry.
-      const looksLikeGuestInsertFailure = fullMsg
-        .toLowerCase()
-        .includes("failed query: insert into guestsessions");
-      const profileName = payload.whatsappProfileName;
-      if (
-        looksLikeGuestInsertFailure &&
-        typeof profileName === "string" &&
-        containsNonBmpUnicode(profileName)
-      ) {
-        const sanitized = stripNonBmpUnicode(profileName);
-        if (sanitized !== profileName) {
-          payload.whatsappProfileName = sanitized;
-          console.warn("[DB] createGuestSession fallback: sanitized whatsappProfileName and retrying");
-          continue;
+      // For wrapped/opaque insert errors, force an explicit-column insert that does
+      // not include drifted DB columns generated from Drizzle defaults.
+      const lower = fullMsg.toLowerCase();
+      const shouldTryExplicitInsert =
+        lower.includes("failed query") ||
+        lower.includes("insert into guestsessions") ||
+        lower.includes("unknown column");
+      if (shouldTryExplicitInsert) {
+        try {
+          return await insertGuestSessionWithExplicitColumns(db, payload);
+        } catch (explicitErr: any) {
+          lastError = explicitErr;
+          const explicitMsg = String(explicitErr?.message || "");
+          const explicitCause = String(explicitErr?.cause?.message || "");
+          const explicitFullMsg = `${explicitMsg} ${explicitCause}`.trim();
+          if (applyGuestPayloadFallbackFromMessage(payload, explicitFullMsg)) {
+            continue;
+          }
         }
       }
 
