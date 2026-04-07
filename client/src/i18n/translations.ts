@@ -195,7 +195,7 @@ export const translations = {
     analyzeButton: { he: "נתח את הלוק שלי", en: "Analyze My Look" },
     retryButton: { he: "נסה שוב", en: "Try Again" },
     rateLimitError: { he: "שירות הניתוח עמוס כרגע. התמונה כבר נשמרה — לחץ נסה שוב או חכה דקה.", en: "Analysis service is busy. Image saved — click retry or wait a minute." },
-    timeoutError: { he: "הניתוח לקח יותר מדי זמן. לחץ נסה שוב — בדרך כלל הניסיון השני מצליח.", en: "Analysis took too long. Click retry — the second attempt usually succeeds." },
+    timeoutError: { he: "הניתוח לקח יותר מדי זמן. לחץ נסה שוב בעוד רגע — התמונה כבר נשמרה.", en: "Analysis took too long. Please retry in a moment — your image is already saved." },
     genericError: { he: "אירעה שגיאה. לחץ נסה שוב — התמונה כבר נשמרה.", en: "An error occurred. Click retry — the image is already saved." },
     imageSaved: { he: "התמונה כבר נשמרה — לא צריך להעלות מחדש", en: "Image already saved — no need to re-upload" },
     retryCountdown: { he: "נסה שוב", en: "Try again" },

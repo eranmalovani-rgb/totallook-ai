@@ -20,6 +20,7 @@ import probeImageSize from "probe-image-size";
 const ANALYSIS_CONCURRENCY_LIMIT = 2;
 const ANALYSIS_QUEUE_MAX_WAITERS = 40;
 const ANALYSIS_QUEUE_WAIT_TIMEOUT_MS = 12000;
+const MAX_WARDROBE_ITEMS_FOR_MATCHING = 40;
 let activeAnalysisJobs = 0;
 const waitingAnalysisResolvers: Array<() => void> = [];
 
@@ -2106,7 +2107,10 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
           analysis = normalizeImprovementsForWearableCore(analysis);
 
           // --- Closet matching: enrich improvements with matching wardrobe items ---
-          if (allWardrobeItems && allWardrobeItems.length > 0 && analysis.improvements) {
+          const allWardrobeItemsForMatching = Array.isArray(allWardrobeItems)
+            ? allWardrobeItems.slice(0, MAX_WARDROBE_ITEMS_FOR_MATCHING)
+            : [];
+          if (allWardrobeItemsForMatching.length > 0 && analysis.improvements) {
             for (const imp of analysis.improvements) {
               // Try to find a wardrobe item that matches this improvement's category
               const impLower = `${imp.title} ${imp.description} ${imp.afterLabel} ${imp.productSearchQuery}`.toLowerCase();
@@ -2141,7 +2145,7 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
               // STRICT: If we can't identify the improvement's category, skip closet matching entirely
               if (!impCategory) continue;
 
-              for (const wItem of allWardrobeItems) {
+              for (const wItem of allWardrobeItemsForMatching) {
                 let matchScore = 0;
                 const wName = (wItem.name || "").toLowerCase();
                 const wType = (wItem.itemType || "").toLowerCase();
@@ -3773,7 +3777,10 @@ Return ONLY a JSON object with these exact fields:
           analysis = normalizeImprovementsForWearableCore(analysis);
 
           // --- Closet matching: enrich improvements with matching wardrobe items ---
-          if (wardrobeItemsList && wardrobeItemsList.length > 0 && analysis.improvements) {
+          const wardrobeItemsForMatching = Array.isArray(wardrobeItemsList)
+            ? wardrobeItemsList.slice(0, MAX_WARDROBE_ITEMS_FOR_MATCHING)
+            : [];
+          if (wardrobeItemsForMatching.length > 0 && analysis.improvements) {
             for (const imp of analysis.improvements) {
               const impLower = `${imp.title} ${imp.description} ${imp.afterLabel} ${imp.productSearchQuery}`.toLowerCase();
               let bestMatch: typeof wardrobeItemsList[0] | null = null;
@@ -3805,7 +3812,7 @@ Return ONLY a JSON object with these exact fields:
               // STRICT: If we can't identify the improvement's category, skip closet matching entirely
               if (!impCategory) continue;
 
-              for (const wItem of wardrobeItemsList) {
+              for (const wItem of wardrobeItemsForMatching) {
                 let matchScore = 0;
                 const wName = (wItem.name || "").toLowerCase();
                 const wType = (wItem.itemType || "").toLowerCase();
