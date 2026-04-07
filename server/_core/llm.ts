@@ -418,17 +418,11 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
   }
 
   // Unified token budget with optional per-call override.
-  // Newer GPT-5* models require max_completion_tokens instead of max_tokens.
   const requestedMaxTokens = typeof maxTokens === "number"
     ? maxTokens
     : typeof max_tokens === "number"
       ? max_tokens
       : 16384;
-  if (provider.model.startsWith("gpt-5")) {
-    payload.max_completion_tokens = requestedMaxTokens;
-  } else {
-    payload.max_tokens = requestedMaxTokens;
-  }
 
   // Only add thinking config for Manus Forge (Gemini)
   if (provider.useThinking) {
@@ -456,6 +450,15 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
   for (let i = 0; i < modelsToTry.length; i++) {
     const model = modelsToTry[i];
     payload.model = model;
+    // Token param must match the specific model on each attempt.
+    // GPT-5 models require max_completion_tokens; older models use max_tokens.
+    delete payload.max_tokens;
+    delete payload.max_completion_tokens;
+    if (model.startsWith("gpt-5")) {
+      payload.max_completion_tokens = requestedMaxTokens;
+    } else {
+      payload.max_tokens = requestedMaxTokens;
+    }
 
     const response = await fetch(provider.apiUrl, {
       method: "POST",
