@@ -24,6 +24,66 @@ const OPENAI_IMAGE_MODEL = "gpt-image-1-mini";
 const OPENAI_IMAGE_SIZE = "1024x1024";
 const OPENAI_IMAGE_QUALITY = "low";
 
+async function fetchWithRetry(
+  url: string,
+  init: RequestInit,
+  label: string,
+  attempts = 3
+): Promise<Response> {
+  let lastError: Error | null = null;
+  for (let i = 0; i < attempts; i++) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 45000);
+    try {
+      const response = await fetch(url, { ...init, signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (response.ok) return response;
+      const retryable = [429, 500, 502, 503, 504].includes(response.status);
+      if (!retryable || i === attempts - 1) {
+        const detail = await response.text().catch(() => "");
+        throw new Error(`${label} failed (${response.status}): ${detail}`);
+      }
+      const delay = 1000 * Math.pow(2, i);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    } catch (err: any) {
+      clearTimeout(timeoutId);
+      const isAbort = err?.name === "AbortError";
+      if (i === attempts - 1) {
+        lastError = new Error(
+          isAbort ? `${label} timeout after 45s` : `${label} failed: ${err?.message || "unknown error"}`
+        );
+        break;
+      }
+      const delay = 1000 * Math.pow(2, i);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  throw lastError || new Error(`${label} failed`);
+}
+
+async function extractOpenAIImageData(
+  result: any,
+  mode: "generation" | "edit"
+): Promise<{ base64: string; mimeType: string }> {
+  const first = result?.data?.[0];
+  if (!first) {
+    throw new Error(`OpenAI image ${mode} failed: empty data array`);
+  }
+
+  if (typeof first.b64_json === "string" && first.b64_json.length > 10) {
+    return { base64: first.b64_json, mimeType: "image/png" };
+  }
+
+  if (typeof first.url === "string" && first.url.startsWith("http")) {
+    const imgResp = await fetchWithRetry(first.url, { method: "GET" }, `OpenAI image ${mode} URL fetch`, 2);
+    const imgBuffer = Buffer.from(await imgResp.arrayBuffer());
+    const mimeType = imgResp.headers.get("content-type") || "image/png";
+    return { base64: imgBuffer.toString("base64"), mimeType };
+  }
+
+  throw new Error(`OpenAI image ${mode} failed: no b64_json/url in response`);
+}
+
 export type GenerateImageOptions = {
   prompt: string;
   originalImages?: Array<{
@@ -95,45 +155,20 @@ async function generateWithOpenAI(
       }
     }
 
-    const response = await fetch("https://api.openai.com/v1/images/edits", {
+    const response = await fetchWithRetry("https://api.openai.com/v1/images/edits", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${getOpenAIKey()}`,
       },
       body: formData,
-    });
-
-    if (!response.ok) {
-      const detail = await response.text().catch(() => "");
-      throw new Error(`OpenAI image edit failed (${response.status}): ${detail}`);
-    }
+    }, "OpenAI image edit");
 
     const result = await response.json();
-    if (result.data?.[0]?.b64_json) {
-      return {
-        base64: result.data[0].b64_json,
-        mimeType: "image/png",
-      };
-    }
-    if (result.data?.[0]?.url) {
-      const imgResp = await fetch(result.data[0].url);
-      if (!imgResp.ok) {
-        throw new Error(`OpenAI image edit URL fetch failed (${imgResp.status})`);
-      }
-      const imgBuffer = Buffer.from(await imgResp.arrayBuffer());
-      return {
-        base64: imgBuffer.toString("base64"),
-        mimeType: "image/png",
-      };
-    }
-    return {
-      base64: result.data?.[0]?.b64_json,
-      mimeType: "image/png",
-    };
+    return extractOpenAIImageData(result, "edit");
   }
 
   // Standard generation with OpenAI Images API
-  const response = await fetch("https://api.openai.com/v1/images/generations", {
+  const response = await fetchWithRetry("https://api.openai.com/v1/images/generations", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -147,18 +182,10 @@ async function generateWithOpenAI(
       response_format: "b64_json",
       quality: OPENAI_IMAGE_QUALITY,
     }),
-  });
-
-  if (!response.ok) {
-    const detail = await response.text().catch(() => "");
-    throw new Error(`OpenAI image generation failed (${response.status}): ${detail}`);
-  }
+  }, "OpenAI image generation");
 
   const result = await response.json();
-  return {
-    base64: result.data[0].b64_json,
-    mimeType: "image/png",
-  };
+  return extractOpenAIImageData(result, "generation");
 }
 
 /**
