@@ -382,6 +382,8 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     tools,
     toolChoice,
     tool_choice,
+    maxTokens,
+    max_tokens,
     outputSchema,
     output_schema,
     responseFormat,
@@ -415,12 +417,17 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     payload.tool_choice = normalizedToolChoice;
   }
 
-  // Unified default budget for text model responses.
+  // Unified token budget with optional per-call override.
   // Newer GPT-5* models require max_completion_tokens instead of max_tokens.
+  const requestedMaxTokens = typeof maxTokens === "number"
+    ? maxTokens
+    : typeof max_tokens === "number"
+      ? max_tokens
+      : 16384;
   if (provider.model.startsWith("gpt-5")) {
-    payload.max_completion_tokens = 16384;
+    payload.max_completion_tokens = requestedMaxTokens;
   } else {
-    payload.max_tokens = 16384;
+    payload.max_tokens = requestedMaxTokens;
   }
 
   // Only add thinking config for Manus Forge (Gemini)

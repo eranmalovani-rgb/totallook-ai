@@ -927,13 +927,13 @@ async function handleGuestAnalysis(
 // ==========================================
 
 async function runAnalysisWithRetries(prompt: string, imageUrl: string): Promise<any> {
-  const MAX_RETRIES = 5;
+  const MAX_RETRIES = 3;
   let llmResult: any = null;
 
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     try {
       if (attempt > 0) {
-        const delay = Math.min(8000 * Math.pow(2, attempt - 1), 60000);
+        const delay = 2000 * Math.pow(2, attempt - 1);
         console.log(`[WhatsApp Analysis] Retry attempt ${attempt + 1}/${MAX_RETRIES} after ${delay / 1000}s...`);
         await new Promise(resolve => setTimeout(resolve, delay));
       }
@@ -948,7 +948,7 @@ async function runAnalysisWithRetries(prompt: string, imageUrl: string): Promise
                 type: "text",
                 text: "נתח את הלוק בתמונה הזו ותן חוות דעת אופנתית מקיפה בעברית. התבסס על טרנדים עדכניים של 2025-2026. שים לב במיוחד לאקססוריז. זהה מותגים רק כשאתה בטוח. חשוב: כל לינקי הקניות חייבים להיות כתובות חיפוש.",
               },
-              { type: "image_url", image_url: { url: imageUrl, detail: "high" } },
+              { type: "image_url", image_url: { url: imageUrl, detail: "low" } },
             ],
           },
         ],
@@ -960,6 +960,7 @@ async function runAnalysisWithRetries(prompt: string, imageUrl: string): Promise
             schema: analysisJsonSchema,
           },
         },
+        maxTokens: 1500,
       });
       break; // Success
     } catch (retryErr: any) {
