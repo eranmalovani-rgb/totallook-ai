@@ -164,6 +164,48 @@ function extractKeywords(text: string): string[] {
     .slice(0, 30);
 }
 
+type OutfitCategory =
+  | "top"
+  | "bottom"
+  | "outerwear"
+  | "dress"
+  | "shoes"
+  | "bag"
+  | "watch"
+  | "jewelry"
+  | "accessory"
+  | "other";
+
+function detectFashionCategory(text: string): OutfitCategory {
+  const t = (text || "").toLowerCase();
+
+  if (/(shoe|sneaker|boot|loafer|heel|sandals?|נעל|סניקר)/.test(t)) return "shoes";
+  if (/(watch|שעון)/.test(t)) return "watch";
+  if (/(bag|backpack|purse|tote|תיק)/.test(t)) return "bag";
+  if (/(coat|jacket|blazer|hoodie|cardigan|trench|מעיל|זקט|ז'קט|בלייזר|קפוצ)/.test(t)) return "outerwear";
+  if (/(dress|gown|שמלה|אוברול)/.test(t)) return "dress";
+  if (/(shirt|tee|t-shirt|polo|blouse|top|חולצ|טי שירט|גופיה)/.test(t)) return "top";
+  if (/(jeans|pants|trouser|chino|shorts|skirt|מכנס|גינס|ג׳ינס|חצאית|שורט)/.test(t)) return "bottom";
+  if (/(necklace|bracelet|ring|earring|שרשר|צמיד|טבעת|עגיל)/.test(t)) return "jewelry";
+  if (/(hat|cap|belt|scarf|sunglass|משקפ|כובע|חגורה|צעיף)/.test(t)) return "accessory";
+  return "other";
+}
+
+function buildCandidateDedupKey(label: string, url: string): string {
+  const normalizedLabel = label
+    .toLowerCase()
+    .replace(/[^a-z0-9\u0590-\u05FF\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const normalizedUrl = url
+    .toLowerCase()
+    .replace(/^https?:\/\//, "")
+    .replace(/^www\./, "")
+    .split("?")[0]
+    .trim();
+  return `${normalizedLabel}::${normalizedUrl}`;
+}
+
 function scoreLinkForOutfit(
   link: { label: string; url: string; imageUrl?: string },
   categoryQuery: string,
@@ -256,17 +298,75 @@ export async function generateOutfitLookFromMetadata(params: {
   }
 
   const outfitText = `${outfit.name} ${outfit.occasion} ${(outfit.items || []).join(" ")}`.toLowerCase();
-  const candidates = (analysis.improvements || []).flatMap((imp) =>
+  const rawCandidates = (analysis.improvements || []).flatMap((imp) =>
     (imp.shoppingLinks || []).map((link) => ({
       link,
       categoryQuery: imp.productSearchQuery || "",
       improvementTitle: imp.title || "",
+      category: detectFashionCategory(`${link.label} ${imp.productSearchQuery || ""} ${imp.title || ""}`),
       score: scoreLinkForOutfit(link, imp.productSearchQuery || "", imp.title || "", outfitText),
     })),
   );
 
-  candidates.sort((a, b) => b.score - a.score);
-  const selected = candidates.slice(0, 10);
+  // Remove exact/near duplicates early (same label+URL)
+  const dedupMap = new Map<string, (typeof rawCandidates)[number]>();
+  for (const c of rawCandidates) {
+    const key = buildCandidateDedupKey(c.link.label, c.link.url);
+    const prev = dedupMap.get(key);
+    if (!prev || c.score > prev.score) dedupMap.set(key, c);
+  }
+  const candidates = Array.from(dedupMap.values()).sort((a, b) => b.score - a.score);
+
+  // Build desired outfit categories from items text
+  const desiredCategories = new Set<OutfitCategory>();
+  for (const item of outfit.items || []) {
+    const cat = detectFashionCategory(item);
+    if (cat !== "other") desiredCategories.add(cat);
+  }
+  // Encourage full-look diversity even if item parsing is weak
+  for (const fallbackCat of ["top", "bottom", "shoes", "outerwear"] as const) {
+    desiredCategories.add(fallbackCat);
+  }
+
+  // Select links with strict diversity: max one per category in metadata mode
+  const selected: typeof candidates = [];
+  const usedCategories = new Set<OutfitCategory>();
+  const usedDedupKeys = new Set<string>();
+
+  // Pass 1: pick best per desired category
+  for (const cat of desiredCategories) {
+    const found = candidates.find((c) => {
+      if (c.category !== cat) return false;
+      const key = buildCandidateDedupKey(c.link.label, c.link.url);
+      return !usedDedupKeys.has(key) && !usedCategories.has(c.category);
+    });
+    if (found) {
+      selected.push(found);
+      usedCategories.add(found.category);
+      usedDedupKeys.add(buildCandidateDedupKey(found.link.label, found.link.url));
+    }
+    if (selected.length >= 4) break;
+  }
+
+  // Pass 2: fill remaining slots with highest score from new categories
+  if (selected.length < 4) {
+    for (const c of candidates) {
+      const key = buildCandidateDedupKey(c.link.label, c.link.url);
+      if (usedDedupKeys.has(key)) continue;
+      if (usedCategories.has(c.category)) continue;
+      selected.push(c);
+      usedCategories.add(c.category);
+      usedDedupKeys.add(key);
+      if (selected.length >= 4) break;
+    }
+  }
+
+  // If we couldn't build a diverse set, use AI fallback path instead of a broken-looking mosaic.
+  const distinctCategoryCount = new Set(selected.map((s) => s.category)).size;
+  if (selected.length < 3 || distinctCategoryCount < 3) {
+    return null;
+  }
+
   const resolved: Array<{ label: string; url: string; imageUrl: string }> = [];
   for (const item of selected) {
     const resolvedUrl = await resolveShoppingLinkImage({
