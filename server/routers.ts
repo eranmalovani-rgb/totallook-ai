@@ -1522,7 +1522,7 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
                     schema: analysisJsonSchema,
                   },
                 },
-                maxTokens: 1500,
+                maxTokens: 4500,
               });
               break; // Success
             } catch (retryErr: any) {
@@ -3205,7 +3205,7 @@ Return ONLY a JSON object with these exact fields:
                     schema: analysisJsonSchema,
                   },
                 },
-                maxTokens: 1500,
+                maxTokens: 4500,
               });
               break;
             } catch (retryErr: any) {
