@@ -974,6 +974,99 @@ CRITICAL — PRODUCT VARIETY WITHIN SHOPPING LINKS:
 IMPORTANT: Return ONLY the JSON object, no markdown, no code fences, no explanation.`;
 }
 
+type FixMyLookProductDetail = {
+  improvementIndex: number;
+  productLabel: string;
+  productImageUrl: string;
+};
+
+function detectColorHint(text: string): string | null {
+  const normalized = text.toLowerCase();
+  const colorHints = [
+    "black", "white", "navy", "blue", "red", "green", "beige", "brown", "gray", "grey",
+    "khaki", "cream", "pink", "purple", "orange", "yellow", "gold", "silver", "olive",
+    "burgundy", "teal", "charcoal",
+    "שחור", "לבן", "כחול", "אדום", "ירוק", "בז", "חום", "אפור", "ורוד", "סגול", "כתום", "צהוב", "זהב", "כסוף",
+  ];
+  for (const hint of colorHints) {
+    if (normalized.includes(hint)) return hint;
+  }
+  return null;
+}
+
+function buildDeterministicFixMyLookPrompt(params: {
+  analysis: FashionAnalysis;
+  itemsToFix: FashionAnalysis["items"];
+  relevantImprovements: Improvement[];
+  allImprovements: Improvement[];
+  selectedProductDetails?: FixMyLookProductDetail[];
+  imageOrientation: string;
+  imageDimensions: { width: number; height: number };
+}): string {
+  const {
+    analysis,
+    itemsToFix,
+    relevantImprovements,
+    allImprovements,
+    selectedProductDetails,
+    imageOrientation,
+    imageDimensions,
+  } = params;
+
+  const selectedByImprovementIndex = new Map<number, FixMyLookProductDetail>();
+  for (const detail of selectedProductDetails || []) {
+    selectedByImprovementIndex.set(detail.improvementIndex, detail);
+  }
+
+  const replacementLines = relevantImprovements.map((imp) => {
+    const improvementIndex = allImprovements.indexOf(imp);
+    const selected = improvementIndex >= 0 ? selectedByImprovementIndex.get(improvementIndex) : undefined;
+    const targetLabel = selected?.productLabel || imp.afterLabel || imp.title;
+    const colorHint = detectColorHint(targetLabel);
+    const colorInstruction = colorHint
+      ? `Use EXACT color "${colorHint}" with zero substitution.`
+      : "Use a color that is closest to the target product description.";
+    return `- Replace "${imp.beforeLabel || imp.title}" with "${targetLabel}". ${colorInstruction} Keep garment type, sleeve length, collar type, and fit aligned with the target item.`;
+  });
+
+  const fallbackReplacements = itemsToFix.map((item) =>
+    `- Replace "${item.name}" with a more flattering, premium, trend-aware alternative that matches the overall look.`,
+  );
+
+  const keepLines = (analysis.items || [])
+    .filter(item => !itemsToFix.includes(item))
+    .slice(0, 12)
+    .map(item => `- Keep "${item.name}" unchanged.`);
+
+  const orientationText = imageDimensions.width > 0 && imageDimensions.height > 0
+    ? `${imageOrientation} (${imageDimensions.width}x${imageDimensions.height})`
+    : imageOrientation;
+
+  return [
+    `IMAGE EDITING TASK ONLY: edit this exact user photo in-place.`,
+    `ABSOLUTE IDENTITY LOCK: output MUST show the same real user from the input photo (not a model, not a new person).`,
+    `Preserve EXACT identity: same face geometry, skin tone, body proportions, hair, expression, and physical features.`,
+    `Do NOT beautify/retouch: do not change age, facial structure, skin texture, body shape, or hairstyle.`,
+    `Keep SAME pose, SAME background, SAME camera framing, and SAME lighting.`,
+    `Do NOT create a new person. Do NOT restyle the environment.`,
+    `Output must keep the same orientation and dimensions: ${orientationText}.`,
+    `ONLY replace the specified clothing/accessory items below.`,
+    "",
+    "Items to replace:",
+    ...(replacementLines.length > 0 ? replacementLines : fallbackReplacements),
+    "",
+    "Items to keep unchanged:",
+    ...(keepLines.length > 0 ? keepLines : ["- Keep all other visible items unchanged."]),
+    "",
+    "Quality rules:",
+    "- Result must still be clearly the same user from the source photo.",
+    "- Preserve photorealism and natural fabric behavior.",
+    "- Keep edits coherent with body proportions and perspective.",
+    "- Respect exact product color/style when explicitly provided.",
+    "- If an item replacement is ambiguous, prefer minimal change over identity drift.",
+  ].join("\n");
+}
+
 export const analysisJsonSchema = {
   type: "object" as const,
   properties: {
@@ -1388,13 +1481,13 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
             input.lang,
           );
           // Retry logic with exponential backoff for transient errors
-          const MAX_RETRIES = 5;
+          const MAX_RETRIES = 3;
           let llmResult: any = null;
           for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
             try {
               if (attempt > 0) {
-                // Longer delays: 8s, 16s, 32s, 60s
-                const delay = Math.min(8000 * Math.pow(2, attempt - 1), 60000);
+                // Faster retry cadence: 2s, 4s
+                const delay = 2000 * Math.pow(2, attempt - 1);
                 console.log(`[Fashion Analysis] Retry attempt ${attempt + 1}/${MAX_RETRIES} after ${delay / 1000}s...`);
                 await new Promise(resolve => setTimeout(resolve, delay));
               }
@@ -1408,10 +1501,10 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
                 : "נתח את הלוק בתמונה הזו ותן חוות דעת אופנתית מקיפה בעברית. התבסס על טרנדים עדכניים של 2025-2026. שים לב במיוחד לאקססוריז — טבעות, צמידים, שעונים, שרשרות, משקפיים. זהה מותגים רק כשאתה בטוח (לוגו נראה, עיצוב ייחודי ברור). אם לא בטוח, השתמש בניסוח כמו 'כפי הנראה' או 'ייתכן שמדובר ב-'. עדיף לתאר פריט באופן כללי מאשר לטעות בזיהוי מותג. חשוב: כל לינקי הקניות חייבים להיות כתובות חיפוש (למשל: ssense.com/en-us/men?q=product+name). לעולם לא להשתמש בכתובות עם /product/ או /item/ — הם יובילו לשגיאת 404.";
               const userContent: any[] = [
                 { type: "text", text: input.lang === "en" ? userTextEn : userTextHe },
-                { type: "image_url", image_url: { url: review.imageUrl, detail: "high" } },
+                { type: "image_url", image_url: { url: review.imageUrl, detail: "auto" } },
               ];
               if (hasSecondImage) {
-                userContent.push({ type: "image_url", image_url: { url: review.secondImageUrl!, detail: "high" } });
+                userContent.push({ type: "image_url", image_url: { url: review.secondImageUrl!, detail: "auto" } });
               }
               llmResult = await invokeLLM({
                 messages: [
@@ -1429,6 +1522,7 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
                     schema: analysisJsonSchema,
                   },
                 },
+                maxTokens: 1500,
               });
               break; // Success
             } catch (retryErr: any) {
@@ -1983,77 +2077,15 @@ Style: High-end fashion editorial flat lay, items arranged aesthetically like a 
           relevantImprovements.push(...allImprovements.slice(0, Math.min(allImprovements.length, input.itemIndices.length + 1)));
         }
 
-        // Use LLM to build a precise image editing prompt
-        const llmResult = await invokeLLM({
-          messages: [
-            {
-              role: "system",
-              content: `You are a fashion image EDITING expert. This is an IMAGE EDITING task, NOT image generation. You will receive a person's outfit photo that MUST be edited in-place. Your job is to write a precise image editing prompt.
-
-ABSOLUTE PRIORITY #1 — PRESERVE THE PERSON'S IDENTITY:
-- The reference image contains a REAL PERSON. The edited result MUST show THIS EXACT SAME PERSON.
-- SAME FACE: identical facial features, expression, skin tone, facial hair, wrinkles, freckles — every detail.
-- SAME BODY: identical body type, height, build, proportions, skin color.
-- SAME HAIR: identical hairstyle, hair color, hair length.
-- If the person has glasses, tattoos, jewelry (not being replaced), scars, or distinguishing features — they MUST remain.
-- The result should be INDISTINGUISHABLE from the original photo except for the replaced clothing items.
-- NEVER generate a different person, a model, or an idealized version. This is the USER's photo.
-
-CRITICAL — THIS IS PHOTO EDITING, NOT GENERATION:
-- The original photo will be provided as a reference image. The AI MUST edit THIS EXACT photo.
-- DO NOT describe creating a new image or a new person. This is editing an existing photo.
-- SAME EXACT POSE: identical body position, posture, arm positions, leg positions, head angle.
-- SAME EXACT BACKGROUND: every detail of the environment, lighting, and setting must remain unchanged.
-- SAME EXACT CAMERA: same angle, framing, crop, zoom level, distance from subject.
-- SAME EXACT LIGHTING: same light direction, shadows, highlights, color temperature.
-- ONLY the specific clothing/accessory items listed below should be visually replaced — NOTHING ELSE changes.
-- CRITICAL: The output image MUST be in ${imageOrientation.toUpperCase()} orientation (${imageDimensions.width}x${imageDimensions.height} pixels, aspect ratio approximately ${imageAspectRatio}). DO NOT change the orientation.
-- Start your prompt with: "Edit this exact photo in-place. This is the user's actual photo — preserve their EXACT face, skin tone, body type, hair, and all physical features with 100% fidelity. Keep the SAME person, SAME pose, SAME background, SAME camera angle, SAME lighting. This is ${imageOrientation} orientation (${imageDimensions.width}x${imageDimensions.height}). ONLY replace these clothing items:"
-- For each replacement item, describe the EXACT color, material, style, and brand aesthetic in vivid detail.
-- CRITICAL COLOR RULE: When a specific product is selected by the user with a stated color, you MUST use that EXACT color. If the product is "white linen shirt", the replacement MUST be white. If it's "navy blue jeans", it MUST be navy blue. If the product says "black jacket", the replacement MUST be BLACK — not gray, not charcoal, not dark blue. ZERO tolerance for color substitution.
-- MANDATORY: For EACH replacement item, explicitly state the EXACT color in the prompt (e.g., "Replace the jacket with a BLACK leather jacket" not just "Replace the jacket with a leather jacket"). Always include the color word.
-- CRITICAL GARMENT DETAILS RULE: You MUST be extremely specific about EVERY detail of the replacement garment:
-  * SLEEVE LENGTH: If the product is "short sleeve" or "polo", it MUST be short sleeve. If "long sleeve", it MUST be long sleeve. NEVER change sleeve length.
-  * COLLAR TYPE: If the product is a "polo" (has a collar), show a collar. If it's a "crew neck" or "t-shirt", show no collar. If it's a "v-neck", show a v-neck.
-  * GARMENT TYPE: A "polo shirt" is NOT the same as a "dress shirt" or a "long sleeve shirt". A "t-shirt" is NOT the same as a "sweater". Be precise.
-  * FIT: If the product says "slim fit", "oversized", "cropped", etc., reflect that exactly.
-  * For EACH replacement, write out ALL these details explicitly in the prompt (e.g., "Replace with a BLACK short-sleeve polo shirt with collar" not just "Replace with a black shirt").
-- The result must look like the SAME natural photo with only the clothing swapped — not a new AI-generated image.
-- Return ONLY the editing prompt text, nothing else.`,
-            },
-            {
-              role: "user",
-              content: `Original outfit analysis:
-- Overall score: ${analysis.overallScore}/10
-- Summary: ${analysis.summary}
-
-Items to fix (replace these with better alternatives):
-${itemsToFix.map(item => `- ${item.name} (score: ${item.score}/10, verdict: ${item.verdict}): ${item.analysis}`).join("\n")}
-
-User-selected improvements (apply EXACTLY these alternatives):
-${relevantImprovements.map(imp => {
-              // Find the specific product the user selected for this improvement
-              const productDetail = (input.selectedProductDetails || []).find(pd => {
-                const pdImpIdx = pd.improvementIndex;
-                return pdImpIdx >= 0 && pdImpIdx < allImprovements.length && allImprovements[pdImpIdx] === imp;
-              });
-              const productInfo = productDetail?.productLabel ? `\n  ⚠️ SPECIFIC PRODUCT SELECTED BY USER: "${productDetail.productLabel}" \u2014 use this EXACT product name, style, color, and brand as the replacement.\n  🎨 MANDATORY COLOR RULE: The color described in the product name is the EXACT color to use. Do NOT substitute any other color or shade. If the product says "black" it MUST be BLACK (not gray, not charcoal, not dark blue). If it says "white" it MUST be WHITE. If it says "navy" it MUST be NAVY. ZERO tolerance for color substitution.\n  👕 MANDATORY GARMENT DETAILS: Match the EXACT garment type, sleeve length, collar style, and fit. If the product is a "short sleeve polo" — it MUST be short sleeve with a polo collar. If it's a "long sleeve shirt" — it MUST have long sleeves. NEVER substitute a different sleeve length or garment type.\n  The replacement item MUST be visually identical to what the user selected — same color, same material, same style, same sleeve length, same collar type.` : "";
-              return `- ${imp.title}: ${imp.description}\n  REPLACE WITH: ${imp.afterLabel}${productInfo}`;
-            }).join("\n") || "Use your fashion expertise to suggest better alternatives."}
-
-Keep items that are working well:
-${(analysis.items || []).filter(item => !itemsToFix.includes(item)).map(item => `- ${item.name} (score: ${item.score}/10) — KEEP AS IS`).join("\n")}
-
-IMPORTANT: The original photo is ${imageOrientation} orientation (${imageDimensions.width}x${imageDimensions.height}). The output image MUST maintain the same ${imageOrientation} orientation and similar aspect ratio. Do NOT generate a ${imageOrientation === 'portrait' ? 'landscape' : 'portrait'} image.
-
-Write a precise image editing prompt to improve this outfit photo by replacing only the problematic items.`,
-            },
-          ],
+        const editPrompt = buildDeterministicFixMyLookPrompt({
+          analysis,
+          itemsToFix,
+          relevantImprovements,
+          allImprovements,
+          selectedProductDetails: input.selectedProductDetails,
+          imageOrientation,
+          imageDimensions,
         });
-
-        const editPrompt = typeof llmResult.choices[0]?.message?.content === "string"
-          ? llmResult.choices[0].message.content
-          : "Improve the outfit in this fashion photo with better styled alternatives";
 
         // Generate the fixed image using ONLY the original photo as reference
         // (passing product images as additional references confuses the AI and causes it to generate a different person)
@@ -3144,13 +3176,13 @@ Return ONLY a JSON object with these exact fields:
             input.lang,
           );
 
-          // Retry logic
-          const MAX_RETRIES = 5;
+          // Retry logic with shorter backoff for faster guest UX
+          const MAX_RETRIES = 3;
           let llmResult: any = null;
           for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
             try {
               if (attempt > 0) {
-                const delay = Math.min(8000 * Math.pow(2, attempt - 1), 60000);
+                const delay = 2000 * Math.pow(2, attempt - 1);
                 console.log(`[Guest Analysis] Retry attempt ${attempt + 1}/${MAX_RETRIES} after ${delay / 1000}s...`);
                 await new Promise(resolve => setTimeout(resolve, delay));
               }
@@ -3161,7 +3193,7 @@ Return ONLY a JSON object with these exact fields:
                     role: "user",
                     content: [
                       { type: "text", text: input.lang === "en" ? "Analyze the outfit in this image and provide a comprehensive fashion review in English. Reference current 2025-2026 trends. Pay special attention to accessories. Identify brands ONLY when clearly visible. IMPORTANT: All shopping link URLs MUST be SEARCH URLs. NEVER use direct product page URLs." : "נתח את הלוק בתמונה הזו ותן חוות דעת אופנתית מקיפה בעברית. התבסס על טרנדים עדכניים של 2025-2026. שים לב במיוחד לאקססוריז. זהה מותגים רק כשאתה בטוח. חשוב: כל לינקי הקניות חייבים להיות כתובות חיפוש." },
-                      { type: "image_url", image_url: { url: session.imageUrl!, detail: "high" } },
+                      { type: "image_url", image_url: { url: session.imageUrl!, detail: "auto" } },
                     ],
                   },
                 ],
@@ -3173,6 +3205,7 @@ Return ONLY a JSON object with these exact fields:
                     schema: analysisJsonSchema,
                   },
                 },
+                maxTokens: 1500,
               });
               break;
             } catch (retryErr: any) {
@@ -3741,71 +3774,15 @@ Style: High-end fashion editorial flat lay, all items arranged aesthetically lik
           relevantImprovements.push(...allImprovements.slice(0, Math.min(allImprovements.length, input.itemIndices.length + 1)));
         }
 
-        const llmResult = await invokeLLM({
-          messages: [
-            {
-              role: "system",
-              content: `You are a fashion image EDITING expert. This is an IMAGE EDITING task, NOT image generation. You will receive a person's outfit photo that MUST be edited in-place.
-
-ABSOLUTE PRIORITY #1 — PRESERVE THE PERSON'S IDENTITY:
-- The reference image contains a REAL PERSON. The edited result MUST show THIS EXACT SAME PERSON.
-- SAME FACE: identical facial features, expression, skin tone, facial hair, wrinkles, freckles — every detail.
-- SAME BODY: identical body type, height, build, proportions, skin color.
-- SAME HAIR: identical hairstyle, hair color, hair length.
-- If the person has glasses, tattoos, jewelry (not being replaced), scars, or distinguishing features — they MUST remain.
-- The result should be INDISTINGUISHABLE from the original photo except for the replaced clothing items.
-- NEVER generate a different person, a model, or an idealized version. This is the USER's photo.
-
-CRITICAL — THIS IS PHOTO EDITING, NOT GENERATION:
-- The original photo will be provided as a reference image. The AI MUST edit THIS EXACT photo.
-- SAME EXACT POSE: identical body position, posture, arm positions, leg positions, head angle.
-- SAME EXACT BACKGROUND: every detail of the environment, lighting, and setting must remain unchanged.
-- SAME EXACT CAMERA: same angle, framing, crop, zoom level, distance from subject.
-- SAME EXACT LIGHTING: same light direction, shadows, highlights, color temperature.
-- ONLY the specific clothing/accessory items listed below should be visually replaced.
-- The output image MUST be in ${imageOrientation.toUpperCase()} orientation (${imageDimensions.width}x${imageDimensions.height}).
-- Start your prompt with: "Edit this exact photo in-place. This is the user's actual photo — preserve their EXACT face, skin tone, body type, hair, and all physical features with 100% fidelity. Keep the SAME person, SAME pose, SAME background, SAME camera angle, SAME lighting. This is ${imageOrientation} orientation (${imageDimensions.width}x${imageDimensions.height}). ONLY replace these clothing items:"
-- For each replacement, describe the EXACT color, material, style in vivid detail.
-- CRITICAL COLOR RULE: When a specific product is selected by the user with a stated color, you MUST use that EXACT color. If the product says "black" it MUST be BLACK (not gray, not charcoal). If it says "white" it MUST be WHITE. ZERO tolerance for color substitution.
-- MANDATORY: For EACH replacement item, explicitly state the EXACT color in the prompt. Always include the color word.
-- CRITICAL GARMENT DETAILS RULE: You MUST be extremely specific about EVERY detail of the replacement garment:
-  * SLEEVE LENGTH: If the product is "short sleeve" or "polo", it MUST be short sleeve. If "long sleeve", it MUST be long sleeve. NEVER change sleeve length.
-  * COLLAR TYPE: If the product is a "polo" (has a collar), show a collar. If it's a "crew neck" or "t-shirt", show no collar. If it's a "v-neck", show a v-neck.
-  * GARMENT TYPE: A "polo shirt" is NOT the same as a "dress shirt" or a "long sleeve shirt". A "t-shirt" is NOT the same as a "sweater". Be precise.
-  * FIT: If the product says "slim fit", "oversized", "cropped", etc., reflect that exactly.
-  * For EACH replacement, write out ALL these details explicitly in the prompt.
-- Return ONLY the editing prompt text.`,
-            },
-            {
-              role: "user",
-              content: `Original outfit analysis:
-- Overall score: ${analysis.overallScore}/10
-- Summary: ${analysis.summary}
-
-Items to fix:
-${itemsToFix.map(item => `- ${item.name} (score: ${item.score}/10, verdict: ${item.verdict}): ${item.analysis}`).join("\n")}
-
-Improvements to apply:
-${relevantImprovements.map(imp => {
-                const productDetail = (input.selectedProductDetails || []).find(pd => {
-                  const pdImpIdx = pd.improvementIndex;
-                  return pdImpIdx >= 0 && pdImpIdx < allImprovements.length && allImprovements[pdImpIdx] === imp;
-                });
-                const productInfo = productDetail?.productLabel ? `\n  ⚠️ SPECIFIC PRODUCT SELECTED BY USER: "${productDetail.productLabel}" — use this EXACT product name, style, color, and brand as the replacement.\n  🎨 MANDATORY COLOR RULE: The color described in the product name is the EXACT color to use. Do NOT substitute any other color or shade. ZERO tolerance for color substitution.\n  👕 MANDATORY GARMENT DETAILS: Match the EXACT garment type, sleeve length, collar style, and fit. If the product is a "short sleeve polo" — it MUST be short sleeve with a polo collar. If it's a "long sleeve shirt" — it MUST have long sleeves. NEVER substitute a different sleeve length or garment type.\n  The replacement item MUST be visually identical to what the user selected — same color, same material, same style, same sleeve length, same collar type.` : "";
-                return `- ${imp.title}: ${imp.description}\n  REPLACE WITH: ${imp.afterLabel}${productInfo}`;
-              }).join("\n") || "Use your fashion expertise to suggest better alternatives."}
-
-Keep items that are working well:
-${(analysis.items || []).filter(item => !itemsToFix.includes(item)).map(item => `- ${item.name} (score: ${item.score}/10) — KEEP AS IS`).join("\n")}
-
-The original photo is ${imageOrientation} orientation (${imageDimensions.width}x${imageDimensions.height}). Maintain the same orientation.`,
-            },
-          ],
+        const editPrompt = buildDeterministicFixMyLookPrompt({
+          analysis,
+          itemsToFix,
+          relevantImprovements,
+          allImprovements,
+          selectedProductDetails: input.selectedProductDetails,
+          imageOrientation,
+          imageDimensions,
         });
-
-        const editPrompt = typeof llmResult.choices[0]?.message?.content === "string"
-          ? llmResult.choices[0].message.content
-          : "Improve the outfit in this fashion photo with better styled alternatives";
 
         try {
           const targetSize =
