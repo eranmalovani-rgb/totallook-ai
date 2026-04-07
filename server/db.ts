@@ -178,11 +178,25 @@ export async function getReviewsByUserId(userId: number) {
 export async function updateReviewAnalysis(id: number, overallScore: number, analysisJson: unknown) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  await db.update(reviews).set({
-    status: "completed",
-    overallScore,
-    analysisJson,
-  }).where(eq(reviews.id, id));
+  try {
+    await db.update(reviews).set({
+      status: "completed",
+      overallScore,
+      analysisJson,
+    }).where(eq(reviews.id, id));
+  } catch (error: any) {
+    const fullMsg = `${error?.message || ""} ${error?.cause?.message || ""}`;
+    if (fullMsg.includes("Incorrect string value")) {
+      const sanitized = sanitizeJsonForMysql(analysisJson);
+      await db.update(reviews).set({
+        status: "completed",
+        overallScore,
+        analysisJson: sanitized,
+      }).where(eq(reviews.id, id));
+      return;
+    }
+    throw error;
+  }
 }
 
 export async function updateReviewStatus(id: number, status: "pending" | "analyzing" | "completed" | "failed") {
@@ -1016,6 +1030,24 @@ function stripNonBmpUnicode(value: string): string {
   return value.replace(/[\u{10000}-\u{10FFFF}]/gu, "");
 }
 
+function sanitizeJsonForMysql(value: unknown): unknown {
+  if (typeof value === "string") {
+    return containsNonBmpUnicode(value) ? stripNonBmpUnicode(value) : value;
+  }
+  if (Array.isArray(value)) {
+    return value.map((entry) => sanitizeJsonForMysql(entry));
+  }
+  if (value && typeof value === "object") {
+    const input = value as Record<string, unknown>;
+    const output: Record<string, unknown> = {};
+    for (const [key, entry] of Object.entries(input)) {
+      output[key] = sanitizeJsonForMysql(entry);
+    }
+    return output;
+  }
+  return value;
+}
+
 const GUEST_SESSION_INSERTABLE_COLUMNS = new Set([
   "fingerprint",
   "ipAddress",
@@ -1312,11 +1344,25 @@ export async function hasGuestUsedAnalysis(fingerprint: string): Promise<boolean
 export async function updateGuestSessionAnalysis(id: number, overallScore: number, analysisJson: unknown) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  await db.update(guestSessions).set({
-    status: "completed",
-    overallScore,
-    analysisJson,
-  }).where(eq(guestSessions.id, id));
+  try {
+    await db.update(guestSessions).set({
+      status: "completed",
+      overallScore,
+      analysisJson,
+    }).where(eq(guestSessions.id, id));
+  } catch (error: any) {
+    const fullMsg = `${error?.message || ""} ${error?.cause?.message || ""}`;
+    if (fullMsg.includes("Incorrect string value")) {
+      const sanitized = sanitizeJsonForMysql(analysisJson);
+      await db.update(guestSessions).set({
+        status: "completed",
+        overallScore,
+        analysisJson: sanitized,
+      }).where(eq(guestSessions.id, id));
+      return;
+    }
+    throw error;
+  }
 }
 
 /**
