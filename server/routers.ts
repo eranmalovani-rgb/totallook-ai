@@ -1927,6 +1927,25 @@ function shouldFallbackRecommendationsForLanguage(
   return hebrewCount < Math.ceil(samples.length * 0.5);
 }
 
+function hasCoreItemReferenceInInsight(
+  text: string,
+  core: FashionAnalysisCorePayload,
+): boolean {
+  const normalized = (text || "").toLowerCase();
+  if (!normalized) return false;
+  return (core.items || [])
+    .slice(0, 5)
+    .some((item) => {
+      const tokens = (item.name || "")
+        .toLowerCase()
+        .split(/\s+/)
+        .map((t) => t.trim())
+        .filter((t) => t.length >= 3)
+        .slice(0, 3);
+      return tokens.some((token) => normalized.includes(token));
+    });
+}
+
 function sanitizeRecommendationsPayload(
   rec: FashionRecommendationsPayload,
   core: FashionAnalysisCorePayload,
@@ -1974,7 +1993,11 @@ function sanitizeRecommendationsPayload(
     .map((s) => s.trim())
     .filter(Boolean)
     .length;
-  if (mentionedCount < 2 || sentenceCount < 4 || influencerInsight.length < 220) {
+  const hasGapLanguage = lang === "he"
+    ? /(חסר|פער|כדי להתיישר|מה לשפר|דורש שיפור)/.test(influencerInsight)
+    : /(missing|gap|align|needs improvement|to improve)/i.test(influencerInsight);
+  const hasCoreReference = hasCoreItemReferenceInInsight(influencerInsight, core);
+  if (mentionedCount < 2 || sentenceCount < 4 || influencerInsight.length < 260 || !hasGapLanguage || !hasCoreReference) {
     influencerInsight = detailedInsight.insight;
   }
 
@@ -3258,14 +3281,29 @@ Style: High-end fashion editorial flat lay, all items arranged aesthetically lik
 
         try {
           const { url } = await generateImage({ prompt });
-          return { imageUrl: url || "" };
+          if (url && url.trim().length > 0) {
+            return { imageUrl: url };
+          }
         } catch (err: any) {
           console.error("[Outfit Look] Image generation failed:", err);
-          if (metadataLook?.imageUrl) {
-            return { imageUrl: metadataLook.imageUrl };
-          }
-          throw new Error("יצירת הדמיית הלוק נכשלה. נסה שוב.");
         }
+
+        // Slow but resilient fallback: allow AI-generated product images for metadata mosaic.
+        const resilientMetadataLook = await generateOutfitLookFromMetadata({
+          analysis,
+          outfit,
+          outfitIndex: input.outfitIndex,
+          allowAIFallbackForLinks: true,
+        });
+        if (resilientMetadataLook?.imageUrl) {
+          return { imageUrl: resilientMetadataLook.imageUrl };
+        }
+
+        // Last-resort fallback: never fail the card, show original image.
+        if (review.imageUrl) {
+          return { imageUrl: review.imageUrl };
+        }
+        throw new Error("יצירת הדמיית הלוק נכשלה. נסה שוב.");
       }),
 
     correctItem: protectedProcedure
@@ -4729,14 +4767,26 @@ Style: High-end fashion editorial flat lay, all items arranged aesthetically lik
 
         try {
           const { url } = await generateImage({ prompt });
-          return { imageUrl: url || "" };
+          if (url && url.trim().length > 0) {
+            return { imageUrl: url };
+          }
         } catch (err: any) {
           console.error("[Guest Outfit Look] Image generation failed:", err);
-          if (metadataLook?.imageUrl) {
-            return { imageUrl: metadataLook.imageUrl };
-          }
-          throw new Error("יצירת הדמיית הלוק נכשלה. נסה שוב.");
         }
+
+        const resilientMetadataLook = await generateOutfitLookFromMetadata({
+          analysis,
+          outfit,
+          outfitIndex: input.outfitIndex,
+          allowAIFallbackForLinks: true,
+        });
+        if (resilientMetadataLook?.imageUrl) {
+          return { imageUrl: resilientMetadataLook.imageUrl };
+        }
+        if (session.imageUrl) {
+          return { imageUrl: session.imageUrl };
+        }
+        throw new Error("יצירת הדמיית הלוק נכשלה. נסה שוב.");
       }),
 
     /** Save guest onboarding profile */

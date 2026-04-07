@@ -110,6 +110,7 @@ async function resolveShoppingLinkImage(params: {
   allowAIFallback?: boolean;
   skipCache?: boolean;
   skipStoreImage?: boolean;
+  promptSalt?: string;
 }): Promise<string> {
   const {
     label,
@@ -119,6 +120,7 @@ async function resolveShoppingLinkImage(params: {
     allowAIFallback = true,
     skipCache = false,
     skipStoreImage = false,
+    promptSalt,
   } = params;
   const cacheKey = normalizeProductKey(label, categoryQuery, url);
   if (!skipCache) {
@@ -150,7 +152,7 @@ async function resolveShoppingLinkImage(params: {
     return "";
   }
 
-  const prompt = buildProductImagePrompt(label, categoryQuery, url);
+  const prompt = buildProductImagePrompt(label, categoryQuery, url, promptSalt);
   console.log(`${logPrefix} AI generation: "${label}"`);
   const startTime = Date.now();
   const { url: generatedUrl } = await generateImage({ prompt });
@@ -185,22 +187,27 @@ async function ensureUniqueImageWithinImprovement(params: {
   }
 
   // Same image URL appeared again in the same improvement.
-  // Force an AI-only regeneration for this link to avoid duplicate cards.
-  const regenerated = await resolveShoppingLinkImage({
-    label,
-    url,
-    categoryQuery,
-    logPrefix: `${logPrefix} [dedupe]`,
-    skipCache: true,
-    skipStoreImage: true,
-    allowAIFallback: true,
-  });
-  const regeneratedKey = (regenerated || "").trim().toLowerCase();
-  if (regeneratedKey && !usedImageUrls.has(regeneratedKey)) {
-    usedImageUrls.add(regeneratedKey);
-    return regenerated;
+  // Force AI-only regeneration attempts with prompt salt to avoid duplicate cards.
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    const regenerated = await resolveShoppingLinkImage({
+      label,
+      url,
+      categoryQuery,
+      logPrefix: `${logPrefix} [dedupe:${attempt}]`,
+      skipCache: true,
+      skipStoreImage: true,
+      allowAIFallback: true,
+      promptSalt: `dedupe-${attempt}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    });
+    const regeneratedKey = (regenerated || "").trim().toLowerCase();
+    if (regeneratedKey && !usedImageUrls.has(regeneratedKey)) {
+      usedImageUrls.add(regeneratedKey);
+      return regenerated;
+    }
   }
-  return "";
+
+  // Never clear an already-valid image; keep original to avoid empty cards.
+  return resolvedUrl;
 }
 
 function extractKeywords(text: string): string[] {
@@ -341,8 +348,9 @@ export async function generateOutfitLookFromMetadata(params: {
   analysis: FashionAnalysis;
   outfit: OutfitSuggestion;
   outfitIndex: number;
+  allowAIFallbackForLinks?: boolean;
 }): Promise<{ imageUrl: string; storeLinks: Array<{ label: string; url: string; imageUrl: string }> } | null> {
-  const { analysis, outfit, outfitIndex } = params;
+  const { analysis, outfit, outfitIndex, allowAIFallbackForLinks = false } = params;
   const cacheKey = buildOutfitCacheKey(outfit, outfitIndex);
   const cached = await getCachedProductImage(cacheKey, CACHE_TTL_DAYS);
   if (cached && isValidImageUrl(cached)) {
@@ -462,7 +470,7 @@ export async function generateOutfitLookFromMetadata(params: {
       url: item.link.url,
       categoryQuery: item.categoryQuery || "outfit",
       logPrefix: `[OutfitMetadata] [${outfitIndex}]`,
-      allowAIFallback: false,
+      allowAIFallback: allowAIFallbackForLinks,
     });
     if (resolvedUrl && isValidImageUrl(resolvedUrl)) {
       resolved.push({
