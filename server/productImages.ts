@@ -1,8 +1,13 @@
 /**
  * Product Image Helper
  * 
- * Uses the built-in image generation API to create realistic product images
- * for fashion recommendations. Each shopping link gets its OWN unique image.
+ * Resolves product images for fashion recommendations.
+ * 
+ * Resolution order:
+ *   1. DB cache (avoid re-fetching)
+ *   2. Store OG image (scrape product page meta tags)
+ *   3. **Google Custom Search Image API** (real product photos)
+ *   4. AI image generation (DALL-E / gpt-image fallback)
  * 
  * Features:
  * - **Cache**: Checks DB cache before generating. If the same product was generated before, reuses the image.
@@ -13,6 +18,7 @@
 import { generateImage } from "./_core/imageGeneration";
 import { storagePut } from "server/storage";
 import { getCachedProductImage, saveProductImageToCache, normalizeProductKey } from "./db";
+import { searchGoogleImages, buildProductSearchQuery, pickBestProductImage } from "./googleImageSearch";
 import type { FashionAnalysis, OutfitSuggestion } from "../shared/fashionTypes";
 
 const MAX_CONCURRENT = 3;
@@ -134,6 +140,7 @@ async function resolveShoppingLinkImage(params: {
     }
   }
 
+  // --- Step 2: Try store OG image ---
   if (!skipStoreImage) {
     const storeImageUrl = await fetchStoreImageUrl(url);
     if (storeImageUrl && isValidImageUrl(storeImageUrl)) {
@@ -148,6 +155,31 @@ async function resolveShoppingLinkImage(params: {
     }
   }
 
+  // --- Step 3: Try Google Image Search ---
+  try {
+    const googleQuery = buildProductSearchQuery(label, categoryQuery);
+    const googleResults = await searchGoogleImages(googleQuery, 5);
+    if (googleResults.length > 0) {
+      const bestImage = await pickBestProductImage(googleResults);
+      if (bestImage && isValidImageUrl(bestImage)) {
+        const reachable = await testImageUrl(bestImage);
+        if (reachable) {
+          console.log(`${logPrefix} Google Image: "${label}"`);
+          saveProductImageToCache({
+            productKey: cacheKey,
+            imageUrl: bestImage,
+            originalLabel: label,
+            categoryQuery,
+          }).catch(err => console.warn("[ProductImages] Cache save failed:", err?.message));
+          return bestImage;
+        }
+      }
+    }
+  } catch (googleErr: any) {
+    console.warn(`${logPrefix} Google Image Search failed:`, googleErr?.message);
+  }
+
+  // --- Step 4: AI image generation (fallback) ---
   if (!allowAIFallback) {
     return "";
   }

@@ -76,3 +76,11 @@
 ## Stage 2 — LLM Model Switch
 - [x] 2.1: Switch GPT-4o to GPT-4.1-mini in llm.ts getProvider() (fallback: gpt-4o)
 - [x] 2.2: Build passes, 593 tests pass, 0 TS errors. Live quality check recommended by user.
+
+## Stage 3 — Google Product Images (Replace DALL-E)
+- [x] 3.1: Configure GOOGLE_CSE_API_KEY and GOOGLE_CSE_CX secrets
+- [x] 3.2: Create Google Image Search service (server/googleImageSearch.ts)
+- [x] 3.3: Integrate Google Image Search as Step 3 in productImages.ts (Cache → Store OG → Google → AI fallback)
+- [x] 3.4: Add fallback logic — if Google returns no results, falls through to AI generation
+- [x] 3.5: Google image URLs are cached in existing product image cache
+- [x] 3.6: Build passes (0 TS errors), 15 new unit tests pass, Google CSE integration ready (awaiting API propagation)
