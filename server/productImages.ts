@@ -8,13 +8,14 @@
  * - **Cache**: Checks DB cache before generating. If the same product was generated before, reuses the image.
  * - **Lazy loading**: Can generate images for a SINGLE improvement category on demand.
  * - **Progressive updates**: Each image is saved to DB as soon as it's ready.
- * - **Concurrency limit**: Max 6 concurrent image generations.
+ * - **Concurrency limit**: Max 3 concurrent image generations.
  */
 import { generateImage } from "./_core/imageGeneration";
 import { getCachedProductImage, saveProductImageToCache, normalizeProductKey } from "./db";
 import type { FashionAnalysis } from "../shared/fashionTypes";
 
 const MAX_CONCURRENT = 3;
+const CACHE_TTL_DAYS = 30;
 
 /**
  * Simple concurrency limiter — runs tasks with at most `limit` concurrent executions.
@@ -46,6 +47,108 @@ async function runWithConcurrency<T>(
 /** Callback type for progressive DB updates */
 export type OnImageReady = (impIdx: number, linkIdx: number, imageUrl: string) => Promise<void>;
 
+function resolveUrl(candidate: string, baseUrl: string): string | null {
+  try {
+    if (!candidate) return null;
+    if (candidate.startsWith("//")) {
+      return `https:${candidate}`;
+    }
+    return new URL(candidate, baseUrl).toString();
+  } catch {
+    return null;
+  }
+}
+
+function extractMetaImageFromHtml(html: string, pageUrl: string): string | null {
+  const patterns = [
+    /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["'][^>]*>/i,
+    /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["'][^>]*>/i,
+    /<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["'][^>]*>/i,
+    /<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:image["'][^>]*>/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = html.match(pattern);
+    if (match?.[1]) {
+      const resolved = resolveUrl(match[1].trim(), pageUrl);
+      if (resolved && resolved.startsWith("http")) return resolved;
+    }
+  }
+  return null;
+}
+
+async function fetchStoreImageUrl(productUrl: string): Promise<string | null> {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    const response = await fetch(productUrl, {
+      method: "GET",
+      redirect: "follow",
+      headers: {
+        "user-agent": "Mozilla/5.0 (compatible; TotalLookBot/1.0; +https://totallook.ai)",
+        "accept-language": "en-US,en;q=0.9,he;q=0.8",
+      },
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    if (!response.ok) return null;
+    const contentType = (response.headers.get("content-type") || "").toLowerCase();
+    if (!contentType.includes("text/html")) return null;
+    const html = await response.text();
+    return extractMetaImageFromHtml(html, productUrl);
+  } catch {
+    return null;
+  }
+}
+
+async function resolveShoppingLinkImage(params: {
+  label: string;
+  url: string;
+  categoryQuery: string;
+  logPrefix: string;
+}): Promise<string> {
+  const { label, url, categoryQuery, logPrefix } = params;
+  const cacheKey = normalizeProductKey(label, categoryQuery);
+  const cachedUrl = await getCachedProductImage(cacheKey, CACHE_TTL_DAYS);
+  if (cachedUrl && isValidImageUrl(cachedUrl)) {
+    const works = await testImageUrl(cachedUrl);
+    if (works) {
+      console.log(`${logPrefix} cache hit: "${label}"`);
+      return cachedUrl;
+    }
+  }
+
+  const storeImageUrl = await fetchStoreImageUrl(url);
+  if (storeImageUrl && isValidImageUrl(storeImageUrl)) {
+    console.log(`${logPrefix} store image: "${label}"`);
+    saveProductImageToCache({
+      productKey: cacheKey,
+      imageUrl: storeImageUrl,
+      originalLabel: label,
+      categoryQuery,
+    }).catch(err => console.warn("[ProductImages] Cache save failed:", err?.message));
+    return storeImageUrl;
+  }
+
+  const prompt = buildProductImagePrompt(label, categoryQuery);
+  console.log(`${logPrefix} AI generation: "${label}"`);
+  const startTime = Date.now();
+  const { url: generatedUrl } = await generateImage({ prompt });
+  const elapsed = Date.now() - startTime;
+  if (!generatedUrl) {
+    console.warn(`${logPrefix} no URL from AI (${elapsed}ms): "${label}"`);
+    return "";
+  }
+  console.log(`${logPrefix} AI done in ${elapsed}ms: "${label}"`);
+  saveProductImageToCache({
+    productKey: cacheKey,
+    imageUrl: generatedUrl,
+    originalLabel: label,
+    categoryQuery,
+  }).catch(err => console.warn("[ProductImages] Cache save failed:", err?.message));
+  return generatedUrl;
+}
+
 /**
  * Generate a UNIQUE product image for EACH shopping link across ALL improvements.
  * Checks cache first — reuses existing images when available.
@@ -61,12 +164,12 @@ export async function enrichAnalysisWithProductImages(
   }
 
   // Collect all shopping links that need images
-  type Task = { impIdx: number; linkIdx: number; label: string; categoryQuery: string };
+  type Task = { impIdx: number; linkIdx: number; label: string; url: string; categoryQuery: string };
   const tasks: Task[] = [];
 
   analysis.improvements.forEach((imp, impIdx) => {
     imp.shoppingLinks.forEach((link, linkIdx) => {
-      tasks.push({ impIdx, linkIdx, label: link.label, categoryQuery: imp.productSearchQuery });
+      tasks.push({ impIdx, linkIdx, label: link.label, url: link.url, categoryQuery: imp.productSearchQuery });
     });
   });
 
@@ -81,7 +184,7 @@ export async function enrichAnalysisWithProductImages(
 
   // Build one task per shopping link
   const taskFns = tasks.map((task) => async (): Promise<void> => {
-    const { impIdx, linkIdx, label, categoryQuery } = task;
+    const { impIdx, linkIdx, label, url, categoryQuery } = task;
     const existingUrl = enrichedImprovements[impIdx].shoppingLinks[linkIdx].imageUrl;
 
     // Skip if existing image is valid
@@ -93,51 +196,23 @@ export async function enrichAnalysisWithProductImages(
       }
     }
 
-    // Check cache first
-    const cacheKey = normalizeProductKey(label, categoryQuery);
-    const cachedUrl = await getCachedProductImage(cacheKey);
-    if (cachedUrl && isValidImageUrl(cachedUrl)) {
-      const works = await testImageUrl(cachedUrl);
-      if (works) {
-        console.log(`[ProductImages] ✓ Cache hit for [${impIdx}][${linkIdx}]: "${label}"`);
-        enrichedImprovements[impIdx].shoppingLinks[linkIdx].imageUrl = cachedUrl;
-        if (onImageReady) {
-          try { await onImageReady(impIdx, linkIdx, cachedUrl); } catch (e: any) {
-            console.warn(`[ProductImages] DB update failed for cache hit:`, e?.message);
-          }
-        }
-        return;
-      }
-    }
-
-    // Generate a new product image
     try {
-      const prompt = buildProductImagePrompt(label, categoryQuery);
-      console.log(`[ProductImages] Generating image [${impIdx}][${linkIdx}]: "${label}"...`);
-      const startTime = Date.now();
-      const { url } = await generateImage({ prompt });
-      const elapsed = Date.now() - startTime;
-
-      if (url) {
-        console.log(`[ProductImages] ✓ [${impIdx}][${linkIdx}] in ${elapsed}ms`);
-        enrichedImprovements[impIdx].shoppingLinks[linkIdx].imageUrl = url;
-
-        // Save to cache for future reuse
-        saveProductImageToCache({
-          productKey: cacheKey,
-          imageUrl: url,
-          originalLabel: label,
-          categoryQuery,
-        }).catch(err => console.warn("[ProductImages] Cache save failed:", err?.message));
+      const resolvedUrl = await resolveShoppingLinkImage({
+        label,
+        url,
+        categoryQuery,
+        logPrefix: `[ProductImages] [${impIdx}][${linkIdx}]`,
+      });
+      if (resolvedUrl) {
+        enrichedImprovements[impIdx].shoppingLinks[linkIdx].imageUrl = resolvedUrl;
 
         // Progressive DB update
         if (onImageReady) {
-          try { await onImageReady(impIdx, linkIdx, url); } catch (dbErr: any) {
+          try { await onImageReady(impIdx, linkIdx, resolvedUrl); } catch (dbErr: any) {
             console.warn(`[ProductImages] DB update failed for [${impIdx}][${linkIdx}]:`, dbErr?.message);
           }
         }
       } else {
-        console.warn(`[ProductImages] ✗ No URL for [${impIdx}][${linkIdx}] (${elapsed}ms)`);
         enrichedImprovements[impIdx].shoppingLinks[linkIdx].imageUrl = "";
       }
     } catch (err: any) {
@@ -180,45 +255,17 @@ export async function generateImagesForImprovement(
       }
     }
 
-    // Check cache
-    const cacheKey = normalizeProductKey(link.label, improvement.productSearchQuery);
-    const cachedUrl = await getCachedProductImage(cacheKey);
-    if (cachedUrl && isValidImageUrl(cachedUrl)) {
-      const works = await testImageUrl(cachedUrl);
-      if (works) {
-        console.log(`[ProductImages] Lazy: cache hit for [${linkIdx}]: "${link.label}"`);
-        links[linkIdx].imageUrl = cachedUrl;
-        if (onImageReady) {
-          try { await onImageReady(linkIdx, cachedUrl); } catch (e: any) {
-            console.warn(`[ProductImages] Lazy: DB update failed:`, e?.message);
-          }
-        }
-        return;
-      }
-    }
-
-    // Generate new image
     try {
-      const prompt = buildProductImagePrompt(link.label, improvement.productSearchQuery);
-      console.log(`[ProductImages] Lazy: generating [${linkIdx}]: "${link.label}"...`);
-      const startTime = Date.now();
-      const { url } = await generateImage({ prompt });
-      const elapsed = Date.now() - startTime;
-
-      if (url) {
-        console.log(`[ProductImages] Lazy: ✓ [${linkIdx}] in ${elapsed}ms`);
-        links[linkIdx].imageUrl = url;
-
-        // Save to cache
-        saveProductImageToCache({
-          productKey: cacheKey,
-          imageUrl: url,
-          originalLabel: link.label,
-          categoryQuery: improvement.productSearchQuery,
-        }).catch(err => console.warn("[ProductImages] Cache save failed:", err?.message));
-
+      const resolvedUrl = await resolveShoppingLinkImage({
+        label: link.label,
+        url: link.url,
+        categoryQuery: improvement.productSearchQuery,
+        logPrefix: `[ProductImages] Lazy [${linkIdx}]`,
+      });
+      if (resolvedUrl) {
+        links[linkIdx].imageUrl = resolvedUrl;
         if (onImageReady) {
-          try { await onImageReady(linkIdx, url); } catch (dbErr: any) {
+          try { await onImageReady(linkIdx, resolvedUrl); } catch (dbErr: any) {
             console.warn(`[ProductImages] Lazy: DB update failed:`, dbErr?.message);
           }
         }

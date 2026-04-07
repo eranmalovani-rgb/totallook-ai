@@ -1659,11 +1659,21 @@ export function normalizeProductKey(label: string, categoryQuery: string): strin
  * Look up a cached product image by its normalized key.
  * Returns the image URL if found, null otherwise.
  */
-export async function getCachedProductImage(productKey: string): Promise<string | null> {
+export async function getCachedProductImage(
+  productKey: string,
+  maxAgeDays = 30
+): Promise<string | null> {
   const db = await getDb();
   if (!db) return null;
   const [result] = await db.select().from(productImageCache).where(eq(productImageCache.productKey, productKey)).limit(1);
-  return result?.imageUrl || null;
+  if (!result?.imageUrl) return null;
+  if (maxAgeDays > 0 && result.createdAt) {
+    const ageMs = Date.now() - new Date(result.createdAt).getTime();
+    if (ageMs > maxAgeDays * 24 * 60 * 60 * 1000) {
+      return null;
+    }
+  }
+  return result.imageUrl;
 }
 
 /**
