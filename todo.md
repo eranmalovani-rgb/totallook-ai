@@ -53,3 +53,15 @@
 - [x] Run all 29 migrations on Manus built-in DB
 - [x] Verify dev server works with new staging DB
 - [x] Keep Railway as production — only push updates on explicit user request via GitHub
+
+## Complete Environment Isolation (Staging vs Production)
+- [ ] Remove Railway DATABASE_URL from Staging secrets (use only Manus built-in DB)
+- [ ] Remove R2 Storage credentials from Staging (use only Manus built-in Storage)
+- [ ] Remove WhatsApp production credentials from Staging
+- [ ] Remove Google OAuth production credentials from Staging
+- [ ] Update storage calls to use Manus storagePut/storageGet instead of R2
+- [ ] Verify Staging has zero connection to any Production resource
+- [ ] Verify dev server runs cleanly with only Manus-native services
+
+## Bugs
+- [x] Fix OAuth redirect in Staging — removed hardcoded totallook.ai, now uses window.location.origin dynamically

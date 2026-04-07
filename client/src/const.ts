@@ -2,10 +2,13 @@ export { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 
 /**
  * The canonical origin used for the OAuth redirect URI.
- * Since the app is deployed on Railway with the custom domain totallook.ai,
- * we route the OAuth callback directly through this domain.
+ * Uses the current window origin so it works on any domain
+ * (production totallook.ai, staging manus.space, dev tunnels, etc.).
  */
-const CANONICAL_ORIGIN = "https://totallook.ai";
+const getCanonicalOrigin = () => {
+  if (typeof window === "undefined") return "";
+  return window.location.origin;
+};
 
 const getSafeFallbackUrl = () => {
   if (typeof window === "undefined") return "/";
@@ -15,20 +18,22 @@ const getSafeFallbackUrl = () => {
 /**
  * Build the OAuth login URL.
  *
- * – The `redirectUri` points at the canonical totallook.ai callback.
+ * – The `redirectUri` points at the current origin's callback.
  * – The `state` parameter carries **both** the redirect URI (needed by the
  *   token-exchange step) **and** the caller's origin so the server can send
  *   the user back to the correct domain after login.
  *
  * State format (base64-encoded JSON):
- *   { "redirectUri": "https://totallook.ai/api/oauth/callback", "returnOrigin": "https://totallook.ai" }
+ *   { "redirectUri": "https://<current-origin>/api/oauth/callback", "returnOrigin": "https://<current-origin>" }
  */
 export const getLoginUrl = (returnPath?: string) => {
   const oauthPortalUrl = (import.meta.env.VITE_OAUTH_PORTAL_URL || "").trim();
   const appId = (import.meta.env.VITE_APP_ID || "").trim();
 
-  // Always use the canonical origin for the redirect URI
-  const redirectUri = `${CANONICAL_ORIGIN}/api/oauth/callback`;
+  const canonicalOrigin = getCanonicalOrigin();
+
+  // Always use the current origin for the redirect URI
+  const redirectUri = `${canonicalOrigin}/api/oauth/callback`;
 
   // In preview/dev tunnels OAuth env vars may be missing.
   // Return a safe URL instead of crashing the entire app.
@@ -39,7 +44,7 @@ export const getLoginUrl = (returnPath?: string) => {
   // Encode both the redirect URI and the caller's origin + optional path
   const statePayload = JSON.stringify({
     redirectUri,
-    returnOrigin: window.location.origin,
+    returnOrigin: canonicalOrigin,
     returnPath: returnPath || "/",
   });
   const state = btoa(statePayload);
