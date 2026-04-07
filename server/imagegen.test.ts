@@ -51,7 +51,7 @@ describe("OpenAI Image Generation (DALL-E 3)", () => {
         "Authorization": `Bearer ${OPENAI_API_KEY.trim()}`,
       },
       body: JSON.stringify({
-        model: "gpt-4o",
+        model: "gpt-5.3-mini",
         messages: [
           { role: "user", content: "Say hello in JSON format: {\"greeting\": \"hello\"}" },
         ],

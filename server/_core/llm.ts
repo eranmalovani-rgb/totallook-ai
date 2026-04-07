@@ -280,7 +280,7 @@ const getProvider = (): { apiUrl: string; apiKey: string; model: string; useThin
     return {
       apiUrl: "https://api.openai.com/v1/chat/completions",
       apiKey: openaiKey,
-      model: "gpt-4o",
+      model: "gpt-5.3-mini",
       useThinking: false,
     };
   }
@@ -294,8 +294,8 @@ const getProvider = (): { apiUrl: string; apiKey: string; model: string; useThin
   return {
     apiUrl: forgeUrl,
     apiKey: ENV.forgeApiKey,
-    model: "gemini-2.5-flash",
-    useThinking: true,
+    model: "gpt-5.3-mini",
+    useThinking: false,
   };
 };
 
@@ -395,8 +395,8 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     payload.tool_choice = normalizedToolChoice;
   }
 
-  // Set max_tokens — OpenAI GPT-4o supports up to 16384 output tokens
-  payload.max_tokens = provider.useThinking ? 32768 : 16384;
+  // Unified default budget for text model responses
+  payload.max_tokens = 16384;
 
   // Only add thinking config for Manus Forge (Gemini)
   if (provider.useThinking) {
