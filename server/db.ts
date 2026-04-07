@@ -302,10 +302,18 @@ export async function addWardrobeItems(items: InsertWardrobeItem[]) {
   return { added: newItems.length, skipped: items.length - newItems.length };
 }
 
-export async function getWardrobeByUserId(userId: number) {
+export async function getWardrobeByUserId(userId: number, limit?: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  return db.select().from(wardrobeItems).where(eq(wardrobeItems.userId, userId)).orderBy(desc(wardrobeItems.createdAt));
+  const query = db
+    .select()
+    .from(wardrobeItems)
+    .where(eq(wardrobeItems.userId, userId))
+    .orderBy(desc(wardrobeItems.createdAt));
+  if (typeof limit === "number" && limit > 0) {
+    return query.limit(limit);
+  }
+  return query;
 }
 
 export async function deleteWardrobeItem(id: number, userId: number) {
@@ -1460,13 +1468,17 @@ export async function saveGuestEmail(fingerprint: string, email: string) {
 /**
  * Get wardrobe items for a guest (by guestSessionId).
  */
-export async function getGuestWardrobe(guestSessionIds: number[]) {
+export async function getGuestWardrobe(guestSessionIds: number[], limit?: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   if (guestSessionIds.length === 0) return [];
-  return db.select().from(wardrobeItems)
+  const query = db.select().from(wardrobeItems)
     .where(inArray(wardrobeItems.guestSessionId, guestSessionIds))
     .orderBy(desc(wardrobeItems.createdAt));
+  if (typeof limit === "number" && limit > 0) {
+    return query.limit(limit);
+  }
+  return query;
 }
 
 /**

@@ -20,6 +20,7 @@ import probeImageSize from "probe-image-size";
 const ANALYSIS_CONCURRENCY_LIMIT = 2;
 const ANALYSIS_QUEUE_MAX_WAITERS = 40;
 const ANALYSIS_QUEUE_WAIT_TIMEOUT_MS = 12000;
+const MAX_WARDROBE_ITEMS_FOR_ANALYSIS = 60;
 const MAX_WARDROBE_ITEMS_FOR_MATCHING = 40;
 let activeAnalysisJobs = 0;
 const waitingAnalysisResolvers: Array<() => void> = [];
@@ -1828,7 +1829,7 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
           // Fetch user profile and wardrobe items in parallel for speed
           const [profile, allWardrobeItems] = await Promise.all([
             getUserProfile(ctx.user.id),
-            getWardrobeByUserId(ctx.user.id),
+            getWardrobeByUserId(ctx.user.id, MAX_WARDROBE_ITEMS_FOR_ANALYSIS),
           ]);
           const profileContext: ProfileContext | null = profile ? {
             ageRange: profile.ageRange ?? undefined,
@@ -2111,9 +2112,11 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
             ? allWardrobeItems.slice(0, MAX_WARDROBE_ITEMS_FOR_MATCHING)
             : [];
           if (allWardrobeItemsForMatching.length > 0 && analysis.improvements) {
-            for (const imp of analysis.improvements) {
+            try {
+              for (const imp of analysis.improvements) {
               // Try to find a wardrobe item that matches this improvement's category
               const impLower = `${imp.title} ${imp.description} ${imp.afterLabel} ${imp.productSearchQuery}`.toLowerCase();
+              const impDescriptionLower = typeof imp.description === "string" ? imp.description.toLowerCase() : "";
               let bestMatch: typeof allWardrobeItems[0] | null = null;
               let bestScore = 0;
 
@@ -2206,7 +2209,7 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
                 matchScore += 5;
 
                 // Check if the AI explicitly mentioned this wardrobe item in the description
-                if (wName && imp.description.toLowerCase().includes(wName)) matchScore += 10;
+                if (wName && impDescriptionLower.includes(wName)) matchScore += 10;
                 if (wBrand && wBrand.length > 2 && impLower.includes(wBrand)) matchScore += 3;
 
                 // Color matching bonus
@@ -2237,6 +2240,9 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
                   itemImageUrl: bestMatch.itemImageUrl || undefined,
                 };
               }
+            }
+            } catch (closetErr: any) {
+              console.warn(`[ClosetMatch] Review closet matching skipped: ${closetErr?.message || closetErr}`);
             }
           }
 
@@ -3562,7 +3568,9 @@ Return ONLY a JSON object with these exact fields:
           const guestProfile = session.fingerprint ? await getGuestProfile(session.fingerprint) : null;
           // Get guest wardrobe items
           const sessionIds = session.fingerprint ? await getGuestSessionIdsByFingerprint(session.fingerprint) : [];
-          const wardrobeItemsList = sessionIds.length > 0 ? await getGuestWardrobe(sessionIds) : [];
+          const wardrobeItemsList = sessionIds.length > 0
+            ? await getGuestWardrobe(sessionIds, MAX_WARDROBE_ITEMS_FOR_ANALYSIS)
+            : [];
           const wardrobeForPrompt = wardrobeItemsList.length > 0 ? wardrobeItemsList.map(w => ({
             itemType: w.itemType,
             name: w.name || "",
@@ -3781,8 +3789,10 @@ Return ONLY a JSON object with these exact fields:
             ? wardrobeItemsList.slice(0, MAX_WARDROBE_ITEMS_FOR_MATCHING)
             : [];
           if (wardrobeItemsForMatching.length > 0 && analysis.improvements) {
-            for (const imp of analysis.improvements) {
+            try {
+              for (const imp of analysis.improvements) {
               const impLower = `${imp.title} ${imp.description} ${imp.afterLabel} ${imp.productSearchQuery}`.toLowerCase();
+              const impDescriptionLower = typeof imp.description === "string" ? imp.description.toLowerCase() : "";
               let bestMatch: typeof wardrobeItemsList[0] | null = null;
               let bestScore = 0;
 
@@ -3864,7 +3874,7 @@ Return ONLY a JSON object with these exact fields:
                 // Same category — base score
                 matchScore += 5;
 
-                if (wName && imp.description.toLowerCase().includes(wName)) matchScore += 10;
+                if (wName && impDescriptionLower.includes(wName)) matchScore += 10;
                 if (wBrand && wBrand.length > 2 && impLower.includes(wBrand)) matchScore += 3;
                 if (wColor && wColor.length > 1 && impLower.includes(wColor)) matchScore += 2;
 
@@ -3893,6 +3903,9 @@ Return ONLY a JSON object with these exact fields:
                   itemImageUrl: bestMatch.itemImageUrl || undefined,
                 };
               }
+            }
+            } catch (closetErr: any) {
+              console.warn(`[ClosetMatch] Guest closet matching skipped: ${closetErr?.message || closetErr}`);
             }
           }
 
