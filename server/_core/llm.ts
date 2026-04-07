@@ -272,7 +272,13 @@ const normalizeToolChoice = (
 // Read at runtime (not module load) so env is always fresh
 const getOpenAIKey = () => (process.env.OPENAI_API_KEY ?? "").trim();
 
-const getProvider = (): { apiUrl: string; apiKey: string; model: string; useThinking: boolean } => {
+const getProvider = (): {
+  apiUrl: string;
+  apiKey: string;
+  model: string;
+  fallbackModel?: string;
+  useThinking: boolean;
+} => {
   const openaiKey = getOpenAIKey();
   // If user has their own OpenAI API key, use OpenAI directly
   if (openaiKey.length > 0) {
@@ -281,6 +287,7 @@ const getProvider = (): { apiUrl: string; apiKey: string; model: string; useThin
       apiUrl: "https://api.openai.com/v1/chat/completions",
       apiKey: openaiKey,
       model: "gpt-5.3-mini",
+      fallbackModel: "gpt-4o",
       useThinking: false,
     };
   }
@@ -295,9 +302,22 @@ const getProvider = (): { apiUrl: string; apiKey: string; model: string; useThin
     apiUrl: forgeUrl,
     apiKey: ENV.forgeApiKey,
     model: "gpt-5.3-mini",
+    fallbackModel: "gemini-2.5-flash",
     useThinking: false,
   };
 };
+
+function isModelAccessError(status: number, errorText: string): boolean {
+  if (![400, 403, 404].includes(status)) return false;
+  const lower = errorText.toLowerCase();
+  return (
+    lower.includes("model_not_found") ||
+    lower.includes("does not exist") ||
+    lower.includes("do not have access") ||
+    lower.includes("you do not have access") ||
+    lower.includes("invalid model")
+  );
+}
 
 const assertApiKey = () => {
   const provider = getProvider();
@@ -416,21 +436,47 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     payload.response_format = normalizedResponseFormat;
   }
 
-  const response = await fetch(provider.apiUrl, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      authorization: `Bearer ${provider.apiKey}`,
-    },
-    body: JSON.stringify(payload),
-  });
+  const modelsToTry = provider.fallbackModel
+    ? [provider.model, provider.fallbackModel]
+    : [provider.model];
+  let lastError: Error | null = null;
 
-  if (!response.ok) {
+  for (let i = 0; i < modelsToTry.length; i++) {
+    const model = modelsToTry[i];
+    payload.model = model;
+
+    const response = await fetch(provider.apiUrl, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${provider.apiKey}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (response.ok) {
+      if (i > 0) {
+        console.warn(`[LLM] Fallback model succeeded: ${model}`);
+      }
+      return (await response.json()) as InvokeResult;
+    }
+
     const errorText = await response.text();
-    throw new Error(
+    const shouldFallback =
+      i < modelsToTry.length - 1 && isModelAccessError(response.status, errorText);
+
+    if (shouldFallback) {
+      console.warn(
+        `[LLM] Model '${model}' unavailable (${response.status}). Retrying with fallback '${modelsToTry[i + 1]}'`
+      );
+      continue;
+    }
+
+    lastError = new Error(
       `LLM invoke failed: ${response.status} ${response.statusText} – ${errorText}`
     );
+    break;
   }
 
-  return (await response.json()) as InvokeResult;
+  throw lastError || new Error("LLM invoke failed with unknown error");
 }
