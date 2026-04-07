@@ -19,6 +19,7 @@ import probeImageSize from "probe-image-size";
 
 const ANALYSIS_CONCURRENCY_LIMIT = 2;
 const ANALYSIS_QUEUE_MAX_WAITERS = 40;
+const ANALYSIS_QUEUE_WAIT_TIMEOUT_MS = 12000;
 let activeAnalysisJobs = 0;
 const waitingAnalysisResolvers: Array<() => void> = [];
 
@@ -27,7 +28,23 @@ async function withAnalysisSlot<T>(jobLabel: string, fn: () => Promise<T>): Prom
     if (waitingAnalysisResolvers.length >= ANALYSIS_QUEUE_MAX_WAITERS) {
       throw new Error("ANALYSIS_QUEUE_BUSY");
     }
-    await new Promise<void>((resolve) => waitingAnalysisResolvers.push(resolve));
+    await new Promise<void>((resolve, reject) => {
+      let done = false;
+      const resolver = () => {
+        if (done) return;
+        done = true;
+        clearTimeout(timeoutId);
+        resolve();
+      };
+      waitingAnalysisResolvers.push(resolver);
+      const timeoutId = setTimeout(() => {
+        if (done) return;
+        done = true;
+        const idx = waitingAnalysisResolvers.indexOf(resolver);
+        if (idx >= 0) waitingAnalysisResolvers.splice(idx, 1);
+        reject(new Error("ANALYSIS_QUEUE_TIMEOUT"));
+      }, ANALYSIS_QUEUE_WAIT_TIMEOUT_MS);
+    });
   }
 
   activeAnalysisJobs += 1;
@@ -1844,13 +1861,13 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
             input.lang,
           );
           // Retry logic with exponential backoff for transient errors
-          const MAX_RETRIES = 3;
+          const MAX_RETRIES = 2;
           let analysis: FashionAnalysis | null = null;
           for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
             try {
               if (attempt > 0) {
                 // Faster retry cadence: 2s, 4s
-                const delay = 2000 * Math.pow(2, attempt - 1);
+                const delay = 1500 * Math.pow(2, attempt - 1);
                 console.log(`[Fashion Analysis] Retry attempt ${attempt + 1}/${MAX_RETRIES} after ${delay / 1000}s...`);
                 await new Promise(resolve => setTimeout(resolve, delay));
               }
@@ -1864,10 +1881,10 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
                 : "נתח את הלוק בתמונה הזו ותן חוות דעת אופנתית מקיפה בעברית. התבסס על טרנדים עדכניים של 2025-2026. שים לב במיוחד לאקססוריז — טבעות, צמידים, שעונים, שרשרות, משקפיים. זהה מותגים רק כשאתה בטוח (לוגו נראה, עיצוב ייחודי ברור). אם לא בטוח, השתמש בניסוח כמו 'כפי הנראה' או 'ייתכן שמדובר ב-'. עדיף לתאר פריט באופן כללי מאשר לטעות בזיהוי מותג. חשוב: כל לינקי הקניות חייבים להיות כתובות חיפוש (למשל: ssense.com/en-us/men?q=product+name). לעולם לא להשתמש בכתובות עם /product/ או /item/ — הם יובילו לשגיאת 404.";
               const userContent: any[] = [
                 { type: "text", text: input.lang === "en" ? userTextEn : userTextHe },
-                { type: "image_url", image_url: { url: review.imageUrl, detail: "auto" } },
+                { type: "image_url", image_url: { url: review.imageUrl, detail: "low" } },
               ];
               if (hasSecondImage) {
-                userContent.push({ type: "image_url", image_url: { url: review.secondImageUrl!, detail: "auto" } });
+                userContent.push({ type: "image_url", image_url: { url: review.secondImageUrl!, detail: "low" } });
               }
               const llmResult = await invokeLLM({
                 messages: [
@@ -2271,6 +2288,9 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
             throw new Error(`הניתוח לקח יותר מדי זמן. שגיאה: ${msg.substring(0, 200)}`);
           }
           if (msg.includes("ANALYSIS_QUEUE_BUSY")) {
+            throw new Error("שירות הניתוח עמוס כרגע. נסו שוב בעוד כחצי דקה.");
+          }
+          if (msg.includes("ANALYSIS_QUEUE_TIMEOUT")) {
             throw new Error("שירות הניתוח עמוס כרגע. נסו שוב בעוד כחצי דקה.");
           }
           throw new Error(`הניתוח נכשל. שגיאה: ${msg.substring(0, 200)}`);
@@ -3566,12 +3586,12 @@ Return ONLY a JSON object with these exact fields:
           );
 
           // Retry logic with shorter backoff for faster guest UX
-          const MAX_RETRIES = 3;
+          const MAX_RETRIES = 2;
           let analysis: FashionAnalysis | null = null;
           for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
             try {
               if (attempt > 0) {
-                const delay = 2000 * Math.pow(2, attempt - 1);
+                const delay = 1500 * Math.pow(2, attempt - 1);
                 console.log(`[Guest Analysis] Retry attempt ${attempt + 1}/${MAX_RETRIES} after ${delay / 1000}s...`);
                 await new Promise(resolve => setTimeout(resolve, delay));
               }
@@ -3582,7 +3602,7 @@ Return ONLY a JSON object with these exact fields:
                     role: "user",
                     content: [
                       { type: "text", text: input.lang === "en" ? "Analyze the outfit in this image and provide a comprehensive fashion review in English. Reference current 2025-2026 trends. Pay special attention to accessories. Identify brands ONLY when clearly visible. IMPORTANT: All shopping link URLs MUST be SEARCH URLs. NEVER use direct product page URLs." : "נתח את הלוק בתמונה הזו ותן חוות דעת אופנתית מקיפה בעברית. התבסס על טרנדים עדכניים של 2025-2026. שים לב במיוחד לאקססוריז. זהה מותגים רק כשאתה בטוח. חשוב: כל לינקי הקניות חייבים להיות כתובות חיפוש." },
-                      { type: "image_url", image_url: { url: session.imageUrl!, detail: "auto" } },
+                      { type: "image_url", image_url: { url: session.imageUrl!, detail: "low" } },
                     ],
                   },
                 ],
@@ -3918,6 +3938,12 @@ Return ONLY a JSON object with these exact fields:
           const msg = error?.message || "";
           if (msg.includes("ANALYSIS_QUEUE_BUSY")) {
             throw new Error("שירות הניתוח עמוס כרגע. נסו שוב בעוד כחצי דקה.");
+          }
+          if (msg.includes("ANALYSIS_QUEUE_TIMEOUT")) {
+            throw new Error("שירות הניתוח עמוס כרגע. נסו שוב בעוד כחצי דקה.");
+          }
+          if (msg.includes("timeout") || msg.includes("ECONNRESET") || msg.includes("ETIMEDOUT") || msg.includes("ECONNREFUSED")) {
+            throw new Error(`הניתוח לקח יותר מדי זמן. שגיאה: ${msg.substring(0, 200)}`);
           }
           throw new Error(`הניתוח נכשל. שגיאה: ${msg.substring(0, 200)}`);
         }
