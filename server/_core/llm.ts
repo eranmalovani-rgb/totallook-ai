@@ -1,3 +1,4 @@
+import sharp from "sharp";
 import { ENV } from "./env";
 
 export type Role = "system" | "user" | "assistant" | "tool" | "function";
@@ -129,13 +130,46 @@ async function imageUrlToBase64(url: string): Promise<string> {
       console.warn(`[LLM] Failed to fetch image for base64 conversion: ${response.status} ${url.substring(0, 100)}`);
       return url; // fallback to original URL
     }
-    const buffer = await response.arrayBuffer();
+    const buffer = Buffer.from(await response.arrayBuffer());
     const contentType = response.headers.get("content-type") || "image/jpeg";
-    const base64 = Buffer.from(buffer).toString("base64");
-    console.log(`[LLM] Converted image to base64 (${Math.round(buffer.byteLength / 1024)}KB, ${contentType})`);
-    return `data:${contentType};base64,${base64}`;
+
+    // Normalize large/unsupported images to keep vision calls fast and stable.
+    let normalizedBuffer = buffer;
+    let normalizedType = contentType;
+    try {
+      const metadata = await sharp(buffer).metadata();
+      const sourceWidth = metadata.width || 0;
+      const sourceHeight = metadata.height || 0;
+      const maxSide = Math.max(sourceWidth, sourceHeight);
+      const needsResize = maxSide > 1600;
+      const needsFormatNormalize = !contentType.includes("jpeg");
+
+      if (needsResize || needsFormatNormalize) {
+        normalizedBuffer = await sharp(buffer)
+          .rotate()
+          .resize({
+            width: needsResize ? 1600 : undefined,
+            height: needsResize ? 1600 : undefined,
+            fit: "inside",
+            withoutEnlargement: true,
+          })
+          .jpeg({ quality: 82, mozjpeg: true })
+          .toBuffer();
+        normalizedType = "image/jpeg";
+      }
+    } catch (imgErr: any) {
+      throw new Error(`INVALID_IMAGE_INPUT: ${imgErr?.message || "image decode failed"}`);
+    }
+
+    const base64 = normalizedBuffer.toString("base64");
+    console.log(`[LLM] Converted image to base64 (${Math.round(normalizedBuffer.byteLength / 1024)}KB, ${normalizedType})`);
+    return `data:${normalizedType};base64,${base64}`;
   } catch (err: any) {
-    console.warn(`[LLM] Error converting image to base64: ${err.message}`);
+    const message = String(err?.message || "");
+    if (message.includes("INVALID_IMAGE_INPUT")) {
+      throw err;
+    }
+    console.warn(`[LLM] Error converting image to base64: ${message}`);
     return url; // fallback to original URL
   }
 }
@@ -286,8 +320,9 @@ const getProvider = (): {
     return {
       apiUrl: "https://api.openai.com/v1/chat/completions",
       apiKey: openaiKey,
-      model: "gpt-5-mini",
-      fallbackModel: "gpt-4o",
+      // Vision + JSON analysis is faster and more stable on gpt-4o here.
+      model: "gpt-4o",
+      fallbackModel: "gpt-5-mini",
       useThinking: false,
     };
   }
@@ -301,7 +336,7 @@ const getProvider = (): {
   return {
     apiUrl: forgeUrl,
     apiKey: ENV.forgeApiKey,
-    model: "gpt-5-mini",
+    model: "gpt-4o",
     fallbackModel: "gemini-2.5-flash",
     useThinking: false,
   };
@@ -460,14 +495,28 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
       payload.max_tokens = requestedMaxTokens;
     }
 
-    const response = await fetch(provider.apiUrl, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        authorization: `Bearer ${provider.apiKey}`,
-      },
-      body: JSON.stringify(payload),
-    });
+    const timeoutMs = 45000;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    let response: Response;
+    try {
+      response = await fetch(provider.apiUrl, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${provider.apiKey}`,
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+    } catch (fetchErr: any) {
+      clearTimeout(timeoutId);
+      if (fetchErr?.name === "AbortError") {
+        throw new Error(`LLM invoke timeout after ${Math.round(timeoutMs / 1000)}s`);
+      }
+      throw fetchErr;
+    }
+    clearTimeout(timeoutId);
 
     if (response.ok) {
       if (i > 0) {
