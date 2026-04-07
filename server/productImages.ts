@@ -251,7 +251,7 @@ async function fetchImageBuffer(url: string): Promise<Buffer | null> {
 async function buildOutfitMosaic(imageUrls: string[]): Promise<Buffer | null> {
   const sharp = (await import("sharp")).default;
   const selected = imageUrls.filter(Boolean).slice(0, 4);
-  if (selected.length < 2) return null;
+  if (selected.length < 3) return null;
 
   const buffers = (await Promise.all(selected.map(fetchImageBuffer))).filter(Boolean) as Buffer[];
   if (buffers.length < 2) return null;
@@ -317,38 +317,45 @@ export async function generateOutfitLookFromMetadata(params: {
   }
   const candidates = Array.from(dedupMap.values()).sort((a, b) => b.score - a.score);
 
-  // Build desired outfit categories from items text
-  const desiredCategories = new Set<OutfitCategory>();
-  for (const item of outfit.items || []) {
-    const cat = detectFashionCategory(item);
-    if (cat !== "other") desiredCategories.add(cat);
-  }
-  // Encourage full-look diversity even if item parsing is weak
-  for (const fallbackCat of ["top", "bottom", "shoes", "outerwear"] as const) {
-    desiredCategories.add(fallbackCat);
-  }
-
   // Select links with strict diversity: max one per category in metadata mode
   const selected: typeof candidates = [];
   const usedCategories = new Set<OutfitCategory>();
   const usedDedupKeys = new Set<string>();
 
-  // Pass 1: pick best per desired category
-  for (const cat of desiredCategories) {
+  const prefersDress = /(dress|gown|שמלה|אוברול)/.test(outfitText);
+  const coreSlots: OutfitCategory[] = prefersDress
+    ? ["dress", "shoes", "outerwear"]
+    : ["top", "bottom", "shoes"];
+
+  const tryPickCategory = (cat: OutfitCategory) => {
+    if (selected.length >= 4) return;
     const found = candidates.find((c) => {
       if (c.category !== cat) return false;
       const key = buildCandidateDedupKey(c.link.label, c.link.url);
       return !usedDedupKeys.has(key) && !usedCategories.has(c.category);
     });
-    if (found) {
-      selected.push(found);
-      usedCategories.add(found.category);
-      usedDedupKeys.add(buildCandidateDedupKey(found.link.label, found.link.url));
-    }
-    if (selected.length >= 4) break;
+    if (!found) return;
+    selected.push(found);
+    usedCategories.add(found.category);
+    usedDedupKeys.add(buildCandidateDedupKey(found.link.label, found.link.url));
+  };
+
+  // Pass 1: strict full-look skeleton (core apparel first)
+  for (const cat of coreSlots) {
+    tryPickCategory(cat);
   }
 
-  // Pass 2: fill remaining slots with highest score from new categories
+  // Pass 2: ensure >=3 clothing categories (no accessories-only collage)
+  const apparelPriority: OutfitCategory[] = ["top", "bottom", "shoes", "outerwear", "dress"];
+  const apparelCount = () =>
+    selected.filter((s) => ["top", "bottom", "shoes", "outerwear", "dress"].includes(s.category)).length;
+  for (const cat of apparelPriority) {
+    if (apparelCount() >= 3) break;
+    if (usedCategories.has(cat)) continue;
+    tryPickCategory(cat);
+  }
+
+  // Pass 3: fill remaining slots with best non-duplicate categories
   if (selected.length < 4) {
     for (const c of candidates) {
       const key = buildCandidateDedupKey(c.link.label, c.link.url);
@@ -361,9 +368,12 @@ export async function generateOutfitLookFromMetadata(params: {
     }
   }
 
-  // If we couldn't build a diverse set, use AI fallback path instead of a broken-looking mosaic.
+  // If we couldn't build a full-look structure, use AI fallback instead of a broken mosaic.
   const distinctCategoryCount = new Set(selected.map((s) => s.category)).size;
-  if (selected.length < 3 || distinctCategoryCount < 3) {
+  const clothingCount = selected.filter((s) =>
+    ["top", "bottom", "shoes", "outerwear", "dress"].includes(s.category)
+  ).length;
+  if (selected.length < 3 || distinctCategoryCount < 3 || clothingCount < 3) {
     return null;
   }
 
@@ -386,7 +396,34 @@ export async function generateOutfitLookFromMetadata(params: {
     if (resolved.length >= 4) break;
   }
 
-  const mosaic = await buildOutfitMosaic(resolved.map(r => r.imageUrl));
+  const categoryRank: Record<OutfitCategory, number> = {
+    top: 1,
+    dress: 1,
+    outerwear: 2,
+    bottom: 3,
+    shoes: 4,
+    bag: 5,
+    watch: 6,
+    jewelry: 7,
+    accessory: 8,
+    other: 9,
+  };
+  const resolvedOrdered = resolved
+    .map((r) => {
+      const matched = selected.find((s) => s.link.label === r.label && s.link.url === r.url);
+      return { ...r, category: matched?.category || "other" as OutfitCategory };
+    })
+    .sort((a, b) => categoryRank[a.category] - categoryRank[b.category])
+    .slice(0, 4);
+
+  const resolvedOrderedClothingCount = resolvedOrdered.filter((r) =>
+    ["top", "bottom", "shoes", "outerwear", "dress"].includes(r.category)
+  ).length;
+  if (resolvedOrdered.length < 3 || resolvedOrderedClothingCount < 3) {
+    return null;
+  }
+
+  const mosaic = await buildOutfitMosaic(resolvedOrdered.map(r => r.imageUrl));
   if (!mosaic) return null;
 
   const { url: storedUrl } = await storagePut(
@@ -403,7 +440,10 @@ export async function generateOutfitLookFromMetadata(params: {
     categoryQuery: "outfit-metadata",
   }).catch(err => console.warn("[OutfitMetadata] Cache save failed:", err?.message));
 
-  return { imageUrl: storedUrl, storeLinks: resolved };
+  return {
+    imageUrl: storedUrl,
+    storeLinks: resolvedOrdered.map(({ category: _category, ...rest }) => rest),
+  };
 }
 
 /**
