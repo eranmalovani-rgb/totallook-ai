@@ -47,3 +47,9 @@
 - [ ] SEO optimization for public wardrobe pages
 - [ ] Progressive Web App (PWA) support
 - [ ] Accessibility improvements (WCAG compliance)
+
+## Environment Separation (Staging vs Production)
+- [x] Switch Manus staging to use built-in Manus DB (not Railway production DB)
+- [x] Run all 29 migrations on Manus built-in DB
+- [x] Verify dev server works with new staging DB
+- [x] Keep Railway as production — only push updates on explicit user request via GitHub
