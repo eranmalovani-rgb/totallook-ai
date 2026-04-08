@@ -113,3 +113,11 @@
 - [x] ReviewPage already has polling for pending/analyzing status — verified (3s polling)
 - [x] Add retry button on ReviewPage for failed analyses (already exists)
 - [x] Write tests for the new fire-and-forget analyze behavior (22 tests pass)
+
+## Stage 7 — Progressive Analysis & Fix Stuck Analysis
+- [x] Fix analysis getting stuck in background (added 2-min timeout safety net)
+- [x] Implement progressive analysis: fast Stage 1 (core items + score) saved immediately
+- [x] Background Stage 2 (shopping links, product images, outfits) continues after Stage 1 saved
+- [x] ReviewPage shows partial results immediately, loads enrichments progressively
+- [x] Add timeout safety net: if analysis doesn't complete in 2 minutes, mark as failed
+- [x] Write tests for progressive analysis flow (19 tests pass)

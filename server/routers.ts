@@ -3,7 +3,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, adminProcedure, router } from "./_core/trpc";
 import { z } from "zod";
-import { createReview, getReviewById, getReviewsByUserId, updateReviewAnalysis, updateReviewStatus, getUserProfile, upsertUserProfile, deleteAllReviewsByUserId, deleteUserAccount, addWardrobeItems, getWardrobeByUserId, deleteWardrobeItem, clearWardrobe, updateWardrobeItemImage, publishToFeed, getFeedPosts, deleteFeedPost, likeFeedPost, unlikeFeedPost, saveFeedPost, unsaveFeedPost, getUserFeedInteractions, getSavedPosts, isReviewPublished, followUser, unfollowUser, getFollowingIds, isFollowing, getFollowingFeedPosts, getFollowerCount, getFollowingCount, createNewPostNotifications, getUserNotifications, getUnreadNotificationCount, markNotificationsRead, getAllReviews, getAllUsers, getAdminStats, adminDeleteReview, getReviewCountsByUser, getFeedPostCountsByUser, addFeedComment, getFeedComments, getFeedCommentCount, deleteFeedComment, setWardrobeShareToken, getWardrobeByShareToken, getWardrobeShareToken, createCommentNotification, createReplyNotification, createLikeNotification, saveFixMyLookResult, getFixMyLookResult, getOccasionCounts, createGuestSession, getGuestSessionById, hasGuestUsedAnalysis, updateGuestSessionAnalysis, updateGuestSessionStatus, getGuestAnalytics, getAllGuestSessions, trackDemoView, markDemoSignupClick, getAllDemoViews, trackPageView, getFunnelStats, getDailyFunnelStats, getGuestAnalysisCount, saveGuestProfile, getGuestProfile, saveGuestEmail, getGuestWardrobe, getGuestSessionIdsByFingerprint, addGuestWardrobeItems, deleteGuestWardrobeItem, migrateGuestToUser, deleteReviewById, deleteGuestSession, upsertIgConnection, getIgConnection, disconnectIg, getStoryMentionsByUserId, getStoryMentionStats, getStyleDiary, saveStyleDiaryEntry, findUserByPhoneNumber, getGuestSessionByToken, markGuestSessionViewed, isPhoneTaken, logConsent, getUserConsents, getReviewByShareToken, setReviewShareToken, adminUpdateUser, getUserById } from "./db";
+import { createReview, getReviewById, getReviewsByUserId, updateReviewAnalysis, updateReviewStatus, savePartialAnalysis, savePartialGuestAnalysis, getUserProfile, upsertUserProfile, deleteAllReviewsByUserId, deleteUserAccount, addWardrobeItems, getWardrobeByUserId, deleteWardrobeItem, clearWardrobe, updateWardrobeItemImage, publishToFeed, getFeedPosts, deleteFeedPost, likeFeedPost, unlikeFeedPost, saveFeedPost, unsaveFeedPost, getUserFeedInteractions, getSavedPosts, isReviewPublished, followUser, unfollowUser, getFollowingIds, isFollowing, getFollowingFeedPosts, getFollowerCount, getFollowingCount, createNewPostNotifications, getUserNotifications, getUnreadNotificationCount, markNotificationsRead, getAllReviews, getAllUsers, getAdminStats, adminDeleteReview, getReviewCountsByUser, getFeedPostCountsByUser, addFeedComment, getFeedComments, getFeedCommentCount, deleteFeedComment, setWardrobeShareToken, getWardrobeByShareToken, getWardrobeShareToken, createCommentNotification, createReplyNotification, createLikeNotification, saveFixMyLookResult, getFixMyLookResult, getOccasionCounts, createGuestSession, getGuestSessionById, hasGuestUsedAnalysis, updateGuestSessionAnalysis, updateGuestSessionStatus, getGuestAnalytics, getAllGuestSessions, trackDemoView, markDemoSignupClick, getAllDemoViews, trackPageView, getFunnelStats, getDailyFunnelStats, getGuestAnalysisCount, saveGuestProfile, getGuestProfile, saveGuestEmail, getGuestWardrobe, getGuestSessionIdsByFingerprint, addGuestWardrobeItems, deleteGuestWardrobeItem, migrateGuestToUser, deleteReviewById, deleteGuestSession, upsertIgConnection, getIgConnection, disconnectIg, getStoryMentionsByUserId, getStoryMentionStats, getStyleDiary, saveStyleDiaryEntry, findUserByPhoneNumber, getGuestSessionByToken, markGuestSessionViewed, isPhoneTaken, logConsent, getUserConsents, getReviewByShareToken, setReviewShareToken, adminUpdateUser, getUserById } from "./db";
 import { storagePut } from "./storage";
 import { invokeLLM } from "./_core/llm";
 import { nanoid } from "nanoid";
@@ -2407,9 +2407,17 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
         // Capture user context before returning (ctx won't be available in background)
         const userId = ctx.user.id;
         // Launch background analysis (no await — fire and forget)
+        // Safety net: 2-minute timeout to prevent stuck analyses
+        const ANALYSIS_TIMEOUT_MS = 120_000;
         (async () => {
         try {
-          await withAnalysisSlot(`review:${input.reviewId}`, async () => {
+          const analysisPromise = withAnalysisSlot(`review:${input.reviewId}`, async () => {
+          // Set up timeout race
+          const timeoutPromise = new Promise<never>((_, reject) => {
+            setTimeout(() => reject(new Error("ANALYSIS_TIMEOUT: exceeded 2 minutes")), ANALYSIS_TIMEOUT_MS);
+          });
+          // Race the actual analysis against the timeout
+          await Promise.race([timeoutPromise, (async () => {
           // Fetch user profile and wardrobe items in parallel for speed
           const [profile, allWardrobeItems] = await Promise.all([
             getUserProfile(userId),
@@ -2510,6 +2518,19 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
             }
           }
           if (!analysisCore) throw new Error("Analysis failed after retries");
+
+          // ═══ PROGRESSIVE SAVE: Save Stage 1 results immediately so UI can show them ═══
+          const partialAnalysis = {
+            ...analysisCore,
+            _stage: "core" as const,
+            // Provide empty arrays for fields the UI expects
+            improvements: [] as any[],
+            outfitSuggestions: [] as any[],
+            trendSources: [] as any[],
+            influencerInsight: "",
+          };
+          await savePartialAnalysis(input.reviewId, analysisCore.overallScore, partialAnalysis);
+          console.log(`[Fashion Analysis] Review ${input.reviewId} Stage 1 saved (partial). Score: ${analysisCore.overallScore}`);
 
           // Stage 2: inspiration + recommendations (text-only from stage-1 output)
           const recommendationSeed = {
@@ -2921,7 +2942,8 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
             }
           }
 
-          // Save analysis to DB immediately (without waiting for product images)
+          // Save complete analysis to DB (with _stage marker for progressive UI)
+          (analysis as any)._stage = "complete";
           await updateReviewAnalysis(input.reviewId, analysis.overallScore, analysis);
 
           // Product images are now lazy-loaded per improvement category when the user scrolls to them.
@@ -2954,6 +2976,7 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
 
           // Analysis complete — result already saved to DB by updateReviewAnalysis above
           console.log(`[Fashion Analysis] Review ${input.reviewId} completed successfully`);
+          })()]);
           });
         } catch (error: any) {
           console.error("[Fashion Analysis] Background job failed:", error?.message);
@@ -4256,9 +4279,14 @@ Return ONLY a JSON object with these exact fields:
         if (session.status === "analyzing") return { success: true, sessionId: input.sessionId };
         // Fire-and-forget: mark as analyzing, return immediately, run in background
         await updateGuestSessionStatus(input.sessionId, "analyzing");
+        const GUEST_ANALYSIS_TIMEOUT_MS = 120_000;
         (async () => {
         try {
           await withAnalysisSlot(`guest:${input.sessionId}`, async () => {
+          const guestTimeoutPromise = new Promise<never>((_, reject) => {
+            setTimeout(() => reject(new Error("ANALYSIS_TIMEOUT: exceeded 2 minutes")), GUEST_ANALYSIS_TIMEOUT_MS);
+          });
+          await Promise.race([guestTimeoutPromise, (async () => {
           // Get guest profile if onboarding was completed
           const guestProfile = session.fingerprint ? await getGuestProfile(session.fingerprint) : null;
           // Get guest wardrobe items
@@ -4343,6 +4371,18 @@ Return ONLY a JSON object with these exact fields:
             }
           }
           if (!analysisCore) throw new Error("Analysis failed after retries");
+
+          // ═══ PROGRESSIVE SAVE: Save Stage 1 results immediately so UI can show them ═══
+          const guestPartialAnalysis = {
+            ...analysisCore,
+            _stage: "core" as const,
+            improvements: [] as any[],
+            outfitSuggestions: [] as any[],
+            trendSources: [] as any[],
+            influencerInsight: "",
+          };
+          await savePartialGuestAnalysis(input.sessionId, analysisCore.overallScore, guestPartialAnalysis);
+          console.log(`[Guest Analysis] Session ${input.sessionId} Stage 1 saved (partial). Score: ${analysisCore.overallScore}`);
 
           // Stage 2: inspiration + recommendations (text-only from stage-1 output)
           const recommendationSeed = {
@@ -4695,7 +4735,8 @@ Return ONLY a JSON object with these exact fields:
             }
           }
 
-          // Save analysis to DB immediately (without waiting for product images)
+          // Save complete analysis to DB (with _stage marker for progressive UI)
+          (analysis as any)._stage = "complete";
           await updateGuestSessionAnalysis(input.sessionId, analysis.overallScore, analysis);
 
           // Auto-save detected items to guest wardrobe
@@ -4736,6 +4777,7 @@ Return ONLY a JSON object with these exact fields:
           ).catch(() => {}); // swallow any unhandled rejection
 
           console.log(`[Guest Analysis] Session ${input.sessionId} completed successfully`);
+          })()]);
           });
         } catch (error: any) {
           console.error("[Guest Analysis] Background job failed:", error?.message);

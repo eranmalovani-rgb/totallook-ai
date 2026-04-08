@@ -950,7 +950,11 @@ export default function GuestReview() {
     );
   }
 
-  if (result.status === "analyzing" || result.status === "pending") {
+  // Progressive analysis: if analyzing but we have partial results (_stage === 'core'),
+  // show the core analysis while Stage 2 loads in background
+  const hasPartialResults: boolean = (result.status === "analyzing" || result.status === "pending") && !!analysis && (result.analysisJson as any)?._stage === "core";
+
+  if ((result.status === "analyzing" || result.status === "pending") && !hasPartialResults) {
     return (
       <div className="min-h-screen bg-background text-foreground flex items-center justify-center" dir={dir}>
         <div className="text-center space-y-4">
@@ -1103,6 +1107,19 @@ export default function GuestReview() {
   if (analysis.improvements.length > 0) {
     storyCards.push(
       <div key="upgrades" className="space-y-2">
+        {hasPartialResults && (
+          <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 flex items-center gap-3 mb-3 animate-pulse">
+            <Loader2 className="w-5 h-5 text-primary animate-spin shrink-0" />
+            <div>
+              <p className="text-sm font-bold text-primary">
+                {lang === "he" ? "טוען המלצות והשראה..." : "Loading recommendations & inspiration..."}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {lang === "he" ? "הניתוח הבסיסי מוכן — המלצות יופיעו בעוד כמה שניות" : "Core analysis is ready — recommendations will appear in a few seconds"}
+              </p>
+            </div>
+          </div>
+        )}
         {detectedCountry && (
           <div className="flex items-center gap-2 mb-3">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-xs text-primary font-medium">

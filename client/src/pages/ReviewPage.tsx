@@ -1177,7 +1177,11 @@ export default function ReviewPage() {
     );
   }
 
-  if (review.status === "pending" || review.status === "analyzing") {
+  // Progressive analysis: if status is analyzing but we have partial results (_stage === 'core'),
+  // show the core analysis while Stage 2 (recommendations) loads in background
+  const hasPartialResults: boolean = review.status === "analyzing" && !!review.analysisJson && (review.analysisJson as any)?._stage === "core";
+
+  if ((review.status === "pending" || review.status === "analyzing") && !hasPartialResults) {
     return (
       <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center gap-6" dir={dir}>
         <Navbar />
@@ -1521,7 +1525,7 @@ export default function ReviewPage() {
             {hasInfluencerInsight && (
               <div className="rounded-2xl border border-white/10 bg-background p-5">
                 {/* Best matching influencer — hero style with large avatar */}
-                {(() => {
+                {((): React.ReactNode => {
                   const influencerMentions = mentions.filter(m => m.type === "influencer");
                   const bestMatch = influencerMentions.length > 0
                     ? POPULAR_INFLUENCERS.find(inf => inf.name === influencerMentions[0].text)
@@ -1568,6 +1572,19 @@ export default function ReviewPage() {
             {/* ── CARD 3: Upgrades ── */}
             {/* (was Card 2, now Card 3 after inserting Influencer) */}
             <div className="rounded-2xl border border-white/10 bg-background p-5">
+              {hasPartialResults && (
+                <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 flex items-center gap-3 mb-4 animate-pulse">
+                  <Loader2 className="w-5 h-5 text-primary animate-spin shrink-0" />
+                  <div>
+                    <p className="text-sm font-bold text-primary">
+                      {lang === "he" ? "טוען המלצות והשראה..." : "Loading recommendations & inspiration..."}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {lang === "he" ? "הניתוח הבסיסי מוכן — המלצות יופיעו בעוד כמה שניות" : "Core analysis is ready — recommendations will appear in a few seconds"}
+                    </p>
+                  </div>
+                </div>
+              )}
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-bold flex items-center gap-2">
                   <Sparkles className="w-5 h-5 text-primary" />
