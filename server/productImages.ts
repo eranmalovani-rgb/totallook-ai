@@ -152,7 +152,7 @@ function detectFashionCategoryFromQuery(query: string): string {
   if (/(coat|jacket|blazer|hoodie|cardigan|trench|bomber|vest|\u05de\u05e2\u05d9\u05dc|\u05d6\u05e7\u05d8|\u05d1\u05dc\u05d9\u05d9\u05d6\u05e8)/.test(t)) return "outerwear";
   if (/(dress|gown|\u05e9\u05de\u05dc\u05d4)/.test(t)) return "dress";
   if (/(jumpsuit|romper|overall|\u05d0\u05d5\u05d1\u05e8\u05d5\u05dc|\u05e1\u05e8\u05d1\u05dc)/.test(t)) return "onepiece";
-  if (/(shirt|blouse|top|tee|t-shirt|polo|sweater|\u05d7\u05d5\u05dc\u05e6)/.test(t)) return "top";
+  if (/(shirt|sweatshirt|blouse|top|tee|t-shirt|polo|sweater|knitwear|crewneck|\u05d7\u05d5\u05dc\u05e6|\u05e1\u05d5\u05d5\u05d8\u05e9\u05d9\u05e8\u05d8)/.test(t)) return "top";
   if (/(pants|jeans|trouser|chino|shorts|skirt|\u05de\u05db\u05e0\u05e1|\u05d2\u05d9\u05e0\u05e1|\u05d7\u05e6\u05d0\u05d9\u05ea)/.test(t)) return "bottom";
   if (/(watch|bracelet|ring|necklace|earring|belt|bag|hat|cap|scarf|sunglass)/.test(t)) return "accessory";
   return "other";
@@ -531,7 +531,7 @@ function detectFashionCategory(text: string): OutfitCategory {
   if (/(bag|backpack|purse|tote|תיק)/.test(t)) return "bag";
   if (/(coat|jacket|blazer|hoodie|cardigan|trench|מעיל|זקט|ז'קט|בלייזר|קפוצ)/.test(t)) return "outerwear";
   if (/(dress|gown|שמלה|אוברול)/.test(t)) return "dress";
-  if (/(shirt|tee|t-shirt|polo|blouse|top|חולצ|טי שירט|גופיה)/.test(t)) return "top";
+  if (/(shirt|sweatshirt|sweater|tee|t-shirt|polo|blouse|top|knitwear|crewneck|חולצ|סווטשירט|טי שירט|גופיה)/.test(t)) return "top";
   if (/(jeans|pants|trouser|chino|shorts|skirt|מכנס|גינס|ג׳ינס|חצאית|שורט)/.test(t)) return "bottom";
   if (/(necklace|bracelet|ring|earring|שרשר|צמיד|טבעת|עגיל)/.test(t)) return "jewelry";
   if (/(hat|cap|belt|scarf|sunglass|משקפ|כובע|חגורה|צעיף)/.test(t)) return "accessory";

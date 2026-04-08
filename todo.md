@@ -265,3 +265,9 @@
 - [x] 13b.7: Fix guest.generateProductImages — apply normalizeImprovementShoppingLinks before generating images (guest)
 - [x] 13b.8: Fix review.generateAllProductImages — apply normalizeImprovementShoppingLinks before batch generating images
 - [x] 13b.9: Verified in browser: review 90024 now shows Farfetch + ASOS + ZARA (3 different stores) per improvement
+
+## Stage 15b — Cross-Category Product Image Mismatch (User-reported)
+- [x] 15b.1: Root cause: "שדרוג חלק עליון" (top upgrade) improvement card shows pants images instead of tops/sweatshirts — crossCategoryPenalty was only -5 (too weak)
+- [x] 15b.2: Fix: strengthened crossCategoryPenalty from -5 to -50 (hard rejection) in both braveImageSearch.ts and googleImageSearch.ts, added +3 bonus for matching category
+- [x] 15b.3: Fix: added sweatshirt/crewneck/knitwear to top category keywords in all 4 detection functions (braveImageSearch, googleImageSearch, productImages x2)
+- [x] 15b.4: 3 new vitest tests (hard-reject pants for tops, hard-reject tops for bottoms, category bonus). All 765/769 pass (4 pre-existing API failures)

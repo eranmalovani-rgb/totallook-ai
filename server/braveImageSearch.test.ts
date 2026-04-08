@@ -170,6 +170,36 @@ describe("pickBestBraveImage", () => {
     const best = await pickBestBraveImage(results, undefined, "shirt");
     expect(best).toBe("https://b.com/shirt.jpg");
   });
+
+  it("hard-rejects pants images when searching for tops/sweatshirts even with high confidence", async () => {
+    const results: BraveImageResult[] = [
+      makeResult({ url: "https://a.com/pants1.jpg", width: 600, height: 800, confidence: "high", title: "Men's Black Slim Fit Pants" }),
+      makeResult({ url: "https://b.com/pants2.jpg", width: 500, height: 700, confidence: "high", title: "Navy Chino Trousers" }),
+      makeResult({ url: "https://c.com/sweatshirt.jpg", width: 300, height: 400, confidence: "low", title: "Grey Crewneck Sweatshirt" }),
+    ];
+    // Even though pants have higher confidence and better dimensions, sweatshirt should win for top category
+    const best = await pickBestBraveImage(results, undefined, "sweatshirt");
+    expect(best).toBe("https://c.com/sweatshirt.jpg");
+  });
+
+  it("hard-rejects top images when searching for bottoms", async () => {
+    const results: BraveImageResult[] = [
+      makeResult({ url: "https://a.com/shirt.jpg", width: 600, height: 800, confidence: "high", title: "Men's White Polo Shirt" }),
+      makeResult({ url: "https://b.com/jeans.jpg", width: 300, height: 400, confidence: "low", title: "Slim Fit Denim Jeans" }),
+    ];
+    const best = await pickBestBraveImage(results, undefined, "jeans");
+    expect(best).toBe("https://b.com/jeans.jpg");
+  });
+
+  it("gives bonus to images matching expected category", async () => {
+    const results: BraveImageResult[] = [
+      makeResult({ url: "https://a.com/generic.jpg", width: 500, height: 600, confidence: "high", title: "Fashion Product" }),
+      makeResult({ url: "https://b.com/shirt.jpg", width: 500, height: 600, confidence: "high", title: "Cotton T-Shirt" }),
+    ];
+    // Both have same dimensions and confidence, but the shirt title should get a category bonus
+    const best = await pickBestBraveImage(results, undefined, "shirt");
+    expect(best).toBe("https://b.com/shirt.jpg");
+  });
 });
 
 /* ------------------------------------------------------------------ */

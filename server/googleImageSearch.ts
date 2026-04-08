@@ -181,7 +181,7 @@ export function buildProductSearchQuery(label: string, categoryQuery: string, ge
  * NO HEAD checks — trust Google's results for speed.
  */
 const CATEGORY_KEYWORDS: Record<string, RegExp> = {
-  top: /\b(shirt|blouse|top|tee|t-shirt|polo|sweater|hoodie|pullover|henley|tank|jersey|tunic)\b/i,
+  top: /\b(shirt|blouse|top|tee|t-shirt|polo|sweater|sweatshirt|hoodie|pullover|henley|tank|jersey|tunic|crewneck|knitwear)\b/i,
   bottom: /\b(pants|jeans|trouser|chino|shorts|skirt|legging|jogger|cargo|denim|slacks)\b/i,
   outerwear: /\b(coat|jacket|blazer|cardigan|trench|bomber|vest|parka|windbreaker|anorak)\b/i,
   shoes: /\b(shoe|sneaker|boot|loafer|heel|sandal|slipper|mule|oxford|derby|trainer)\b/i,
@@ -200,10 +200,14 @@ function detectQueryCategory(query: string): string | null {
 function crossCategoryPenalty(title: string, expectedCategory: string | null): number {
   if (!expectedCategory || !title) return 0;
   const t = title.toLowerCase();
+  const matchesExpected = CATEGORY_KEYWORDS[expectedCategory]?.test(t) ?? false;
+  // Bonus for matching the expected category
+  if (matchesExpected) return 3;
+  // Hard penalty if title matches a DIFFERENT category (e.g. pants in a top search)
   for (const [cat, re] of Object.entries(CATEGORY_KEYWORDS)) {
     if (cat === expectedCategory) continue;
-    if (re.test(t) && !CATEGORY_KEYWORDS[expectedCategory]?.test(t)) {
-      return -5;
+    if (re.test(t)) {
+      return -50;
     }
   }
   return 0;
