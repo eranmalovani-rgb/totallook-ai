@@ -15,12 +15,19 @@ import { useLanguage } from "@/i18n";
 import { Button } from "@/components/ui/button";
 import {
   MessageCircle, Sparkles, ExternalLink, TrendingUp, Users,
-  Star, ShoppingBag, BookOpen,
+  Star, ShoppingBag, BookOpen, Loader2, ChevronDown,
 } from "lucide-react";
 import { getLoginUrl } from "@/const";
 import type { FashionAnalysis, LinkedMention, ShoppingLink, Improvement, OutfitSuggestion } from "../../../shared/fashionTypes";
 import { BRAND_URLS, POPULAR_INFLUENCERS } from "../../../shared/fashionTypes";
 import InfluencerAvatar from "@/components/InfluencerAvatar";
+import StoreLogo, { extractStoreFromUrl, extractStoreFromLabel } from "@/components/StoreLogo";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 /* ═══════════════════════════════════════════════════════════════
    SHARED SUB-COMPONENTS
@@ -500,11 +507,19 @@ export default function WhatsAppReview() {
   // Try guest session first, then registered review share token
   const guestQuery = trpc.guest.getByToken.useQuery(
     { token: token || "" },
-    { enabled: !!token }
+    { enabled: !!token, refetchInterval: (query) => {
+      const d = query.state.data as any;
+      if (d && (d.status === "analyzing" || d.status === "pending")) return 3000;
+      return false;
+    }}
   );
   const reviewQuery = trpc.review.getByShareToken.useQuery(
     { token: token || "" },
-    { enabled: !!token && !guestQuery.isLoading && !guestQuery.data }
+    { enabled: !!token && !guestQuery.isLoading && !guestQuery.data, refetchInterval: (query) => {
+      const d = query.state.data as any;
+      if (d && (d.status === "analyzing" || d.status === "pending")) return 3000;
+      return false;
+    }}
   );
 
   // Use whichever query returned data
@@ -569,8 +584,14 @@ export default function WhatsAppReview() {
     );
   }
 
-  // Still analyzing
-  if (data && data.status === "analyzing") {
+  // Check for partial results (Stage 1 complete, Stage 2 in progress)
+  const hasPartialResults = Boolean(
+    data && data.status === "analyzing" && data.analysisJson &&
+    typeof data.analysisJson === "object" && (data.analysisJson as any)._stage === "core"
+  );
+
+  // Still analyzing with NO partial results
+  if (data && data.status === "analyzing" && !hasPartialResults) {
     return (
       <div className="min-h-screen bg-background text-foreground" dir={dir}>
         <WhatsAppHeader isHe={isHe} />
@@ -579,9 +600,6 @@ export default function WhatsAppReview() {
           <p className="text-muted-foreground text-sm">
             {isHe ? "הניתוח עדיין בתהליך... נסה שוב בעוד כמה שניות" : "Analysis still in progress..."}
           </p>
-          <Button variant="outline" onClick={() => window.location.reload()} className="mt-2">
-            {isHe ? "רענן" : "Refresh"}
-          </Button>
         </div>
       </div>
     );
@@ -730,57 +748,142 @@ export default function WhatsAppReview() {
     );
   }
 
-  // 4. Improvements Card (limited — first 2 + CTA)
+  // 4. Improvements Card (FULL — same as GuestReview)
   if (analysis.improvements.length > 0) {
     cardLabels.push(isHe ? "שדרוגים" : "Upgrades");
     cardIcons.push("💡");
     cards.push(
-      <div key="improvements" className="rounded-2xl border border-white/5 bg-card p-5 space-y-4">
-        <h3 className="text-lg font-bold text-center mb-2">
-          <Sparkles className={`w-5 h-5 text-primary inline-block ${dir === "rtl" ? "ml-1.5" : "mr-1.5"}`} />
-          {isHe ? "טיפים לשדרוג" : "Upgrade Tips"}
-        </h3>
-        {analysis.improvements.slice(0, 2).map((imp, i) => (
-          <div key={i} className="p-4 rounded-xl bg-white/[0.02] border border-white/5">
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
-                <TrendingUp className="w-4 h-4 text-primary" />
-              </div>
-              <div>
-                <h4 className="font-semibold text-sm mb-1">{imp.title}</h4>
-                <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3">{imp.description}</p>
-              </div>
+      <div key="improvements" className="space-y-2">
+        {hasPartialResults && (
+          <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 flex items-center gap-3 mb-3 animate-pulse">
+            <Loader2 className="w-5 h-5 text-primary animate-spin shrink-0" />
+            <div>
+              <p className="text-sm font-bold text-primary">
+                {isHe ? "טוען המלצות והשראה..." : "Loading recommendations & inspiration..."}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {isHe ? "הניתוח הבסיסי מוכן — המלצות יופיעו בעוד כמה שניות" : "Core analysis is ready — recommendations will appear in a few seconds"}
+              </p>
             </div>
-            {/* Show first shopping link if available */}
-            {imp.shoppingLinks?.slice(0, 1).map((link, j) => (
-              <a key={j} href={link.url} target="_blank" rel="noopener noreferrer"
-                className="mt-3 flex items-center gap-2 text-xs text-primary hover:text-amber-300 transition-colors">
-                <ShoppingBag className="w-3.5 h-3.5" />
-<span>{link.label || getStoreName(link.url)}</span>
-                <ExternalLink className="w-3 h-3 opacity-50" />
-              </a>
-            ))}
-          </div>
-        ))}
-        {analysis.improvements.length > 2 && (
-          <div className="text-center pt-2">
-            <p className="text-xs text-muted-foreground mb-2">
-              {isHe
-                ? `עוד ${analysis.improvements.length - 2} טיפים + המלצות קניות`
-                : `${analysis.improvements.length - 2} more tips + shopping recommendations`}
-            </p>
-            <Button size="sm" variant="outline" asChild>
-              <a href={getLoginUrl()}>
-                {isHe ? "הירשם/י לצפייה" : "Sign up to view"}
-              </a>
-            </Button>
           </div>
         )}
+        <Accordion type="multiple" className="space-y-2">
+          {analysis.improvements.map((imp, i) => (
+            <AccordionItem key={i} value={`imp-${i}`} className="rounded-2xl border border-white/10 bg-background overflow-hidden">
+              <AccordionTrigger className="px-4 py-3 hover:no-underline [&[data-state=open]>svg]:rotate-180">
+                <div className="flex items-center gap-3 text-left">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <TrendingUp className="w-4 h-4 text-primary" />
+                  </div>
+                  <div className="min-w-0">
+                    <h4 className="font-semibold text-sm">{imp.title}</h4>
+                    <p className="text-[11px] text-muted-foreground line-clamp-1">{imp.description}</p>
+                  </div>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="px-4 pb-4">
+                <p className="text-xs text-muted-foreground leading-relaxed mb-3">
+                  <LinkedText text={imp.description} mentions={mentions} />
+                </p>
+                {imp.shoppingLinks && imp.shoppingLinks.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-[11px] font-medium text-muted-foreground">
+                      {isHe ? "קנה כאן:" : "Shop here:"}
+                    </p>
+                    {imp.shoppingLinks.map((link, j) => {
+                      const storeName = link.label || getStoreName(link.url);
+                      return (
+                        <a key={j} href={link.url} target="_blank" rel="noopener noreferrer"
+                          className="flex items-center gap-3 p-2.5 rounded-xl border border-white/5 bg-white/[0.02] hover:border-primary/20 hover:bg-primary/5 transition-all">
+                          <StoreLogo name={extractStoreFromUrl(link.url) || extractStoreFromLabel(storeName) || storeName} size="sm" />
+                          <div className="flex-1 min-w-0">
+                            <span className="text-xs font-medium">{storeName}</span>
+                          </div>
+                          <ExternalLink className="w-3.5 h-3.5 text-muted-foreground" />
+                        </a>
+                      );
+                    })}
+                  </div>
+                )}
+              </AccordionContent>
+            </AccordionItem>
+          ))}
+        </Accordion>
       </div>
     );
   }
 
-  // 5. Influencer Card (if influencer insight exists)
+  // 5. Outfit Suggestions Card
+  if (analysis.outfitSuggestions && analysis.outfitSuggestions.length > 0) {
+    cardLabels.push(isHe ? "לוקים" : "Looks");
+    cardIcons.push("👗");
+    cards.push(
+      <div key="outfits" className="space-y-4">
+        <div className="grid grid-cols-1 gap-4">
+          {analysis.outfitSuggestions.map((outfit, i) => (
+            <div key={i} className="rounded-2xl border border-white/10 bg-background overflow-hidden">
+              <div className="p-4">
+                <h4 className="font-bold text-sm mb-1">{outfit.name}</h4>
+                <p className="text-[11px] text-primary mb-2">{outfit.occasion}</p>
+                <p className="text-xs text-muted-foreground leading-relaxed mb-3">
+                  <LinkedText text={outfit.inspirationNote} mentions={mentions} />
+                </p>
+                {outfit.items && outfit.items.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mb-3">
+                    {outfit.items.map((item: string, j: number) => (
+                      <span key={j} className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-primary/10 text-[10px] text-primary border border-primary/20">
+                        {item}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {outfit.colors && outfit.colors.length > 0 && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] text-muted-foreground">{isHe ? "צבעים:" : "Colors:"}</span>
+                    {outfit.colors.map((color: string, j: number) => (
+                      <span key={j} className="text-[10px] px-2 py-0.5 rounded-full bg-white/5 border border-white/10">
+                        {color}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // 6. Trends & Sources Card
+  if (analysis.trendSources && analysis.trendSources.length > 0) {
+    cardLabels.push(isHe ? "טרנדים" : "Trends");
+    cardIcons.push("📈");
+    cards.push(
+      <div key="trends" className="space-y-4">
+        <div className="grid gap-4">
+          {analysis.trendSources.map((src, i) => (
+            <a key={i} href={src.url} target="_blank" rel="noopener noreferrer"
+              className="group p-5 rounded-2xl border border-white/10 bg-background hover:border-primary/20 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300">
+              <div className="flex items-center gap-2 mb-2">
+                <TrendingUp className="w-4 h-4 text-primary" />
+                <span className="text-sm font-bold group-hover:text-primary transition-colors">{src.source}</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary">{src.season}</span>
+              </div>
+              <h4 className="text-sm font-medium mb-2 line-clamp-2">{src.title}</h4>
+              <p className="text-xs text-muted-foreground line-clamp-2 mb-3">{src.relevance}</p>
+              <div className="flex items-center gap-1.5 mt-3 text-[11px] text-primary/70 group-hover:text-primary transition-colors">
+                <span>{getStoreName(src.url)}</span>
+                <ExternalLink className="w-3 h-3" />
+              </div>
+            </a>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // 7. Influencer Card (if influencer insight exists)
   if (analysis.influencerInsight) {
     // Try to find matching influencer
     const influencer = analysis.matchedInfluencer

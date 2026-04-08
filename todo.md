@@ -128,3 +128,11 @@
 - [x] Diversify fallback shopping links: 5 rotating store pools (15 different stores)
 - [x] Verified Stage 2 auto-starts after Stage 1 (runs immediately in background)
 - [x] Tests: 746 pass, 4 pre-existing API failures (google-cse, imagegen, openai)
+
+## Stage 9 — Preferred Stores in Recommendations & WhatsApp Guest Parity
+- [x] Fallback shopping links use user's preferred stores from profile/onboarding
+- [x] Guest with onboarding (has preferred stores) gets store-matched recommendations
+- [x] Only truly anonymous guests (no onboarding) get generic store fallbacks
+- [x] WhatsApp guest review page matches registered user review page (full improvements with accordion, outfits, trends, progressive loading)
+- [x] Verified preferred stores flow: profile → profileForPrompt → sanitizeRecommendationsPayload → buildFallbackShoppingLinks
+- [x] Tests: 758 pass, 4 pre-existing API failures

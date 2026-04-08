@@ -197,8 +197,74 @@ const FALLBACK_STORE_POOLS = [
 ];
 let fallbackPoolIndex = 0;
 
-function buildFallbackShoppingLinks(query: string): ShoppingLink[] {
+// Map store names (from onboarding) to search URL patterns
+const STORE_NAME_TO_URL: Record<string, (q: string) => string> = {
+  "Shein": (q) => `https://www.shein.com/pdsearch/${q}/`,
+  "H&M": (q) => `https://www2.hm.com/en_us/search-results.html?q=${q}`,
+  "Primark": (q) => `https://www.primark.com/en/search?q=${q}`,
+  "Pull & Bear": (q) => `https://www.pullandbear.com/us/search?query=${q}`,
+  "Bershka": (q) => `https://www.bershka.com/us/search?query=${q}`,
+  "Forever 21": (q) => `https://www.forever21.com/us/search/${q}`,
+  "Zara": (q) => `https://www.zara.com/us/en/search?searchTerm=${q}`,
+  "Mango": (q) => `https://shop.mango.com/en/search?kw=${q}`,
+  "ASOS": (q) => `https://www.asos.com/search/?q=${q}`,
+  "Massimo Dutti": (q) => `https://www.massimodutti.com/us/search?query=${q}`,
+  "COS": (q) => `https://www.cos.com/en_usd/search.html?q=${q}`,
+  "Uniqlo": (q) => `https://www.uniqlo.com/us/en/search?q=${q}`,
+  "Urban Outfitters": (q) => `https://www.urbanoutfitters.com/search?q=${q}`,
+  "AllSaints": (q) => `https://www.allsaints.com/search?q=${q}`,
+  "Reiss": (q) => `https://www.reiss.com/search?q=${q}`,
+  "Ted Baker": (q) => `https://www.tedbaker.com/search?q=${q}`,
+  "& Other Stories": (q) => `https://www.stories.com/en/search.html?q=${q}`,
+  "Arket": (q) => `https://www.arket.com/en/search.html?q=${q}`,
+  "Sandro": (q) => `https://us.sandro-paris.com/en/search?q=${q}`,
+  "Maje": (q) => `https://us.maje.com/en/search?q=${q}`,
+  "NET-A-PORTER": (q) => `https://www.net-a-porter.com/en-us/shop/search/${q}`,
+  "Farfetch": (q) => `https://www.farfetch.com/shopping/search/items.aspx?q=${q}`,
+  "SSENSE": (q) => `https://www.ssense.com/en-us/men?q=${q}`,
+  "Mr Porter": (q) => `https://www.mrporter.com/en-us/mens/search?query=${q}`,
+  "MatchesFashion": (q) => `https://www.matchesfashion.com/us/search?q=${q}`,
+  "Nordstrom": (q) => `https://www.nordstrom.com/sr?keyword=${q}`,
+  "Nike": (q) => `https://www.nike.com/w?q=${q}`,
+  "Adidas": (q) => `https://www.adidas.com/us/search?q=${q}`,
+  "Revolve": (q) => `https://www.revolve.com/r/Search.jsp?search=${q}`,
+  "END.": (q) => `https://www.endclothing.com/us/catalogsearch/result/?q=${q}`,
+  "TerminalX": (q) => `https://www.terminalx.com/search?q=${q}`,
+  "Factory 54": (q) => `https://www.factory54.co.il/catalogsearch/result/?q=${q}`,
+};
+
+/**
+ * Build fallback shopping links from the user's preferred stores (if available),
+ * otherwise fall back to the rotating generic store pools.
+ */
+function buildFallbackShoppingLinks(query: string, preferredStores?: string | null): ShoppingLink[] {
   const encoded = encodeURIComponent(query).replace(/%20/g, "+");
+  
+  // If user has preferred stores, use them
+  if (preferredStores) {
+    const storeNames = preferredStores.split(",").map(s => s.trim()).filter(Boolean);
+    const matchedStores: { name: string; url: (q: string) => string }[] = [];
+    for (const name of storeNames) {
+      const urlFn = STORE_NAME_TO_URL[name];
+      if (urlFn) matchedStores.push({ name, url: urlFn });
+    }
+    if (matchedStores.length >= 2) {
+      // Rotate through user's preferred stores (pick 3 at a time)
+      const startIdx = fallbackPoolIndex % matchedStores.length;
+      fallbackPoolIndex++;
+      const picked: typeof matchedStores = [];
+      for (let i = 0; i < 3 && i < matchedStores.length; i++) {
+        picked.push(matchedStores[(startIdx + i) % matchedStores.length]);
+      }
+      return picked.map(store => ({
+        label: `${query} — ${store.name}`,
+        url: store.url(encoded),
+        imageUrl: "",
+      }));
+    }
+  }
+  
+  // No preferred stores or not enough matched — use generic rotating pools
   const pool = FALLBACK_STORE_POOLS[fallbackPoolIndex % FALLBACK_STORE_POOLS.length];
   fallbackPoolIndex++;
   return pool.map(store => ({
@@ -1912,6 +1978,7 @@ function sanitizeOutfitSuggestionsForProfileGender(
 function normalizeImprovementShoppingLinks(
   imp: Improvement,
   lang: "he" | "en",
+  preferredStores?: string | null,
 ): Improvement {
   const isHebrew = lang === "he";
   const fallbackQuery =
@@ -1932,7 +1999,7 @@ function normalizeImprovementShoppingLinks(
     });
   }
   if (deduped.length < 3) {
-    const fallbackLinks = buildFallbackShoppingLinks(fallbackQuery);
+    const fallbackLinks = buildFallbackShoppingLinks(fallbackQuery, preferredStores);
     for (const fb of fallbackLinks) {
       const key = (fb.url || "").trim().toLowerCase();
       if (!key || seen.has(key)) continue;
@@ -1997,20 +2064,21 @@ function sanitizeRecommendationsPayload(
   occasion?: string | null,
   userGender?: string | null,
   preferredInfluencers?: string | null,
+  preferredStores?: string | null,
 ): FashionRecommendationsPayload {
-  const fallback = buildFallbackRecommendationsFromCore(core, lang, occasion, userGender, preferredInfluencers);
+  const fallback = buildFallbackRecommendationsFromCore(core, lang, occasion, userGender, preferredInfluencers, preferredStores);
   if (shouldFallbackRecommendationsForLanguage(rec, lang)) {
     return fallback;
   }
 
   let improvements = Array.isArray(rec.improvements) ? rec.improvements : [];
-  improvements = improvements.map((imp) => normalizeImprovementShoppingLinks(imp, lang));
+  improvements = improvements.map((imp) => normalizeImprovementShoppingLinks(imp, lang, preferredStores));
   if (improvements.length < 4) {
     const needed = 4 - improvements.length;
     improvements = [...improvements, ...fallback.improvements.slice(0, needed)];
   }
   if (improvements.length > 5) improvements = improvements.slice(0, 5);
-  improvements = improvements.map((imp) => normalizeImprovementShoppingLinks(imp, lang));
+  improvements = improvements.map((imp) => normalizeImprovementShoppingLinks(imp, lang, preferredStores));
 
   // Global deduplication: remove duplicate shopping links across all improvements
   // Track by URL, store domain, and product search query to ensure true diversity
@@ -2065,7 +2133,7 @@ function sanitizeRecommendationsPayload(
     let finalLinks = uniqueLinks;
     if (finalLinks.length < 3) {
       const query = imp.productSearchQuery || imp.afterLabel || imp.title || "fashion upgrade";
-      const freshLinks = buildFallbackShoppingLinks(query).filter((fb) => {
+      const freshLinks = buildFallbackShoppingLinks(query, preferredStores).filter((fb) => {
         const key = (fb.url || "").trim().toLowerCase();
         if (!key || globalSeenUrls.has(key)) return false;
         const domain = extractStoreDomain(key);
@@ -2131,6 +2199,7 @@ function buildFallbackRecommendationsFromCore(
   occasion?: string | null,
   userGender?: string | null,
   preferredInfluencers?: string | null,
+  preferredStores?: string | null,
 ): FashionRecommendationsPayload {
   const isHebrew = lang === "he";
   const improvements: Improvement[] = [
@@ -2188,7 +2257,7 @@ function buildFallbackRecommendationsFromCore(
   ).insight;
 
   return {
-    improvements: improvements.map((imp) => normalizeImprovementShoppingLinks(imp, lang)),
+    improvements: improvements.map((imp) => normalizeImprovementShoppingLinks(imp, lang, preferredStores)),
     outfitSuggestions: sanitizeOutfitSuggestionsForProfileGender(outfitSuggestions, userGender, lang),
     trendSources,
     influencerInsight,
@@ -2673,6 +2742,7 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
             review.occasion,
             profileContext?.gender || null,
             review.influencers || profileContext?.favoriteInfluencers || null,
+            profileContext?.preferredStores || null,
           );
           let analysis: FashionAnalysis = {
             ...analysisCore,
@@ -4365,6 +4435,7 @@ Return ONLY a JSON object with these exact fields:
             occupation: guestProfile.occupation || undefined,
             budgetLevel: guestProfile.budgetLevel || undefined,
             stylePreference: guestProfile.stylePreference || undefined,
+            preferredStores: guestProfile.preferredStores || undefined,
           } : null;
 
           const prompt = buildFashionPrompt(
@@ -4525,6 +4596,7 @@ Return ONLY a JSON object with these exact fields:
             input.occasion,
             profileForPrompt?.gender || null,
             guestProfile?.favoriteInfluencers || null,
+            guestProfile?.preferredStores || null,
           );
           let analysis: FashionAnalysis = {
             ...analysisCore,
