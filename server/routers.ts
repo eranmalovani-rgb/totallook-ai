@@ -167,25 +167,45 @@ function detectImprovementCategory(imp: Improvement): ClothingCategory {
   return detectClothingCategory(`${imp.title || ""} ${imp.beforeLabel || ""} ${imp.afterLabel || ""} ${imp.productSearchQuery || ""}`);
 }
 
+// Rotating store pools for diverse fallback links across improvements
+const FALLBACK_STORE_POOLS = [
+  [
+    { name: "ASOS", url: (q: string) => `https://www.asos.com/search/?q=${q}` },
+    { name: "Nordstrom", url: (q: string) => `https://www.nordstrom.com/sr?keyword=${q}` },
+    { name: "SSENSE", url: (q: string) => `https://www.ssense.com/en-us/men?q=${q}` },
+  ],
+  [
+    { name: "Zara", url: (q: string) => `https://www.zara.com/us/en/search?searchTerm=${q}` },
+    { name: "COS", url: (q: string) => `https://www.cos.com/en_usd/search.html?q=${q}` },
+    { name: "Farfetch", url: (q: string) => `https://www.farfetch.com/shopping/men/search/items.aspx?q=${q}` },
+  ],
+  [
+    { name: "H&M", url: (q: string) => `https://www2.hm.com/en_us/search-results.html?q=${q}` },
+    { name: "Mango", url: (q: string) => `https://shop.mango.com/en/search?kw=${q}` },
+    { name: "END.", url: (q: string) => `https://www.endclothing.com/us/catalogsearch/result/?q=${q}` },
+  ],
+  [
+    { name: "Uniqlo", url: (q: string) => `https://www.uniqlo.com/us/en/search?q=${q}` },
+    { name: "AllSaints", url: (q: string) => `https://www.allsaints.com/search?q=${q}` },
+    { name: "Massimo Dutti", url: (q: string) => `https://www.massimodutti.com/us/search?query=${q}` },
+  ],
+  [
+    { name: "Urban Outfitters", url: (q: string) => `https://www.urbanoutfitters.com/search?q=${q}` },
+    { name: "Revolve", url: (q: string) => `https://www.revolve.com/r/Search.jsp?search=${q}` },
+    { name: "Nike", url: (q: string) => `https://www.nike.com/w?q=${q}` },
+  ],
+];
+let fallbackPoolIndex = 0;
+
 function buildFallbackShoppingLinks(query: string): ShoppingLink[] {
   const encoded = encodeURIComponent(query).replace(/%20/g, "+");
-  return [
-    {
-      label: `${query} - ASOS`,
-      url: `https://www.asos.com/search/?q=${encoded}`,
-      imageUrl: "",
-    },
-    {
-      label: `${query} - Zara`,
-      url: `https://www.zara.com/us/en/search?searchTerm=${encoded}`,
-      imageUrl: "",
-    },
-    {
-      label: `${query} - H&M`,
-      url: `https://www2.hm.com/en_us/search-results.html?q=${encoded}`,
-      imageUrl: "",
-    },
-  ];
+  const pool = FALLBACK_STORE_POOLS[fallbackPoolIndex % FALLBACK_STORE_POOLS.length];
+  fallbackPoolIndex++;
+  return pool.map(store => ({
+    label: `${query} — ${store.name}`,
+    url: store.url(encoded),
+    imageUrl: "",
+  }));
 }
 
 function buildFallbackImprovement(category: Exclude<ClothingCategory, "accessory" | "other">, isHebrew: boolean): Improvement {
@@ -1993,22 +2013,51 @@ function sanitizeRecommendationsPayload(
   improvements = improvements.map((imp) => normalizeImprovementShoppingLinks(imp, lang));
 
   // Global deduplication: remove duplicate shopping links across all improvements
+  // Track by URL, store domain, and product search query to ensure true diversity
   const globalSeenUrls = new Set<string>();
   const globalSeenTitles = new Set<string>();
-  improvements = improvements.map((imp) => {
+  const globalSeenStoreDomainByImp = new Map<number, Set<string>>(); // per-improvement store tracking
+  const globalStoreDomainCounts = new Map<string, number>(); // how many times each store appears across all improvements
+
+  // Helper to extract store domain from URL
+  const extractStoreDomain = (url: string): string => {
+    try {
+      const hostname = new URL(url).hostname.replace("www.", "").replace("www2.", "");
+      return hostname;
+    } catch {
+      return "";
+    }
+  };
+
+  // Reset fallback pool index for this analysis to ensure consistent rotation
+  fallbackPoolIndex = 0;
+
+  improvements = improvements.map((imp, impIdx) => {
     // Deduplicate by title (case-insensitive)
     const titleKey = (imp.title || "").trim().toLowerCase();
     if (titleKey && globalSeenTitles.has(titleKey)) {
-      // Skip duplicate improvement entirely — replace with a unique fallback
+      // Skip duplicate improvement entirely
       return null as any;
     }
     if (titleKey) globalSeenTitles.add(titleKey);
 
-    // Deduplicate shopping links across improvements
+    const impStoreDomains = new Set<string>();
+    globalSeenStoreDomainByImp.set(impIdx, impStoreDomains);
+
+    // Deduplicate shopping links: by URL and limit same store domain to max 1 per improvement
     const uniqueLinks = (imp.shoppingLinks || []).filter((link) => {
       const urlKey = (link.url || "").trim().toLowerCase();
       if (!urlKey || globalSeenUrls.has(urlKey)) return false;
+      const domain = extractStoreDomain(urlKey);
+      // Skip if this store already appears in THIS improvement
+      if (domain && impStoreDomains.has(domain)) return false;
+      // Skip if this store already appears 2+ times across ALL improvements
+      if (domain && (globalStoreDomainCounts.get(domain) || 0) >= 2) return false;
       globalSeenUrls.add(urlKey);
+      if (domain) {
+        impStoreDomains.add(domain);
+        globalStoreDomainCounts.set(domain, (globalStoreDomainCounts.get(domain) || 0) + 1);
+      }
       return true;
     });
 
@@ -2019,7 +2068,14 @@ function sanitizeRecommendationsPayload(
       const freshLinks = buildFallbackShoppingLinks(query).filter((fb) => {
         const key = (fb.url || "").trim().toLowerCase();
         if (!key || globalSeenUrls.has(key)) return false;
+        const domain = extractStoreDomain(key);
+        if (domain && impStoreDomains.has(domain)) return false;
+        if (domain && (globalStoreDomainCounts.get(domain) || 0) >= 2) return false;
         globalSeenUrls.add(key);
+        if (domain) {
+          impStoreDomains.add(domain);
+          globalStoreDomainCounts.set(domain, (globalStoreDomainCounts.get(domain) || 0) + 1);
+        }
         return true;
       });
       finalLinks = [...finalLinks, ...freshLinks];
@@ -2461,7 +2517,7 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
             try {
               if (attempt > 0) {
                 // Faster retry cadence: 2s, 4s
-                const delay = 1500 * Math.pow(2, attempt - 1);
+                const delay = 800 * Math.pow(2, attempt - 1);
                 console.log(`[Fashion Analysis] Retry attempt ${attempt + 1}/${MAX_RETRIES} after ${delay / 1000}s...`);
                 await new Promise(resolve => setTimeout(resolve, delay));
               }
@@ -2496,7 +2552,7 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
                     schema: analysisCoreJsonSchema,
                   },
                 },
-                maxTokens: 2800,
+                maxTokens: 2200,
               });
               analysisCore = parseFashionAnalysisCorePayload(llmResult);
               break; // Success
@@ -4326,7 +4382,7 @@ Return ONLY a JSON object with these exact fields:
           for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
             try {
               if (attempt > 0) {
-                const delay = 1500 * Math.pow(2, attempt - 1);
+                const delay = 800 * Math.pow(2, attempt - 1);
                 console.log(`[Guest Analysis] Retry attempt ${attempt + 1}/${MAX_RETRIES} after ${delay / 1000}s...`);
                 await new Promise(resolve => setTimeout(resolve, delay));
               }
@@ -4349,7 +4405,7 @@ Return ONLY a JSON object with these exact fields:
                     schema: analysisCoreJsonSchema,
                   },
                 },
-                maxTokens: 2800,
+                maxTokens: 2200,
               });
               analysisCore = parseFashionAnalysisCorePayload(llmResult);
               break;

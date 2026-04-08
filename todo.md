@@ -121,3 +121,10 @@
 - [x] ReviewPage shows partial results immediately, loads enrichments progressively
 - [x] Add timeout safety net: if analysis doesn't complete in 2 minutes, mark as failed
 - [x] Write tests for progressive analysis flow (19 tests pass)
+
+## Stage 8 — Speed Up Stage 1, Fix Duplicate Products, Auto-Start Stage 2
+- [x] Optimize Stage 1: reduced max_tokens to 2200, faster retry cadence (800ms)
+- [x] Fix duplicate products: enhanced dedup (store domain tracking, max 2 per store globally, max 1 per improvement)
+- [x] Diversify fallback shopping links: 5 rotating store pools (15 different stores)
+- [x] Verified Stage 2 auto-starts after Stage 1 (runs immediately in background)
+- [x] Tests: 746 pass, 4 pre-existing API failures (google-cse, imagegen, openai)
