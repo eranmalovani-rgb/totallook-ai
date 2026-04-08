@@ -101,13 +101,20 @@ export async function searchGoogleImages(
  *   buildProductSearchQuery("Levi's 501 Original — ASOS", "jeans")
  *   → "Levi's 501 Original jeans product photo"
  */
-export function buildProductSearchQuery(label: string, categoryQuery: string): string {
+export function buildProductSearchQuery(label: string, categoryQuery: string, gender?: string): string {
   // Strip store name after dash/em-dash
   const [productNameRaw] = label.split(/\s*[—–-]\s*/);
   const productName = (productNameRaw || label).trim();
 
   // Combine product name with category, add "product photo" for better results
-  const parts = [productName];
+  const parts: string[] = [];
+  // Add gender prefix to get gender-appropriate product images
+  if (gender === "male" && !/(men|גבר)/i.test(productName)) {
+    parts.push("men's");
+  } else if (gender === "female" && !/(women|נש)/i.test(productName)) {
+    parts.push("women's");
+  }
+  parts.push(productName);
   if (categoryQuery && !productName.toLowerCase().includes(categoryQuery.toLowerCase())) {
     parts.push(categoryQuery);
   }

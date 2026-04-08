@@ -27,6 +27,77 @@ const MAX_CONCURRENT = 5;
 const CACHE_TTL_DAYS = 30;
 
 /**
+ * Category-aware placeholder image URLs.
+ * These are high-quality stock photos from Unsplash that represent each clothing category.
+ * Used as last-resort fallback when cache, store OG, Brave, Google, and AI all fail.
+ */
+const CATEGORY_PLACEHOLDER_IMAGES: Record<string, string[]> = {
+  top: [
+    "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=400&h=400&fit=crop", // white shirt
+    "https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=400&h=400&fit=crop", // t-shirt
+    "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=400&h=400&fit=crop", // dress shirt
+  ],
+  bottom: [
+    "https://images.unsplash.com/photo-1542272604-787c3835535d?w=400&h=400&fit=crop", // jeans
+    "https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?w=400&h=400&fit=crop", // chinos
+    "https://images.unsplash.com/photo-1473966968600-fa801b869a1a?w=400&h=400&fit=crop", // pants
+  ],
+  outerwear: [
+    "https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=400&h=400&fit=crop", // jacket
+    "https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=400&h=400&fit=crop", // blazer
+    "https://images.unsplash.com/photo-1548883354-94bcfe321cbb?w=400&h=400&fit=crop", // coat
+  ],
+  shoes: [
+    "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&h=400&fit=crop", // sneakers
+    "https://images.unsplash.com/photo-1549298916-b41d501d3772?w=400&h=400&fit=crop", // shoes
+    "https://images.unsplash.com/photo-1460353581641-37baddab0fa2?w=400&h=400&fit=crop", // running shoes
+  ],
+  dress: [
+    "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=400&h=400&fit=crop", // dress
+    "https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?w=400&h=400&fit=crop", // dress 2
+    "https://images.unsplash.com/photo-1612336307429-8a898d10e223?w=400&h=400&fit=crop", // dress 3
+  ],
+  onepiece: [
+    "https://images.unsplash.com/photo-1583496661160-fb5886a0aaaa?w=400&h=400&fit=crop", // jumpsuit
+    "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=400&h=400&fit=crop", // overall
+  ],
+  accessory: [
+    "https://images.unsplash.com/photo-1523170335258-f5ed11844a49?w=400&h=400&fit=crop", // watch
+    "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&h=400&fit=crop", // bag
+    "https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=400&h=400&fit=crop", // sunglasses
+  ],
+  other: [
+    "https://images.unsplash.com/photo-1558171813-01ed3d751c0e?w=400&h=400&fit=crop", // fashion generic
+    "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=400&h=400&fit=crop", // fashion 2
+  ],
+};
+
+/**
+ * Get a smart placeholder image URL based on the product category.
+ * Uses a round-robin index to avoid showing the same placeholder for all links in an improvement.
+ */
+export function getCategoryPlaceholder(categoryQuery: string, index: number = 0): string {
+  const category = detectFashionCategoryFromQuery(categoryQuery);
+  const images = CATEGORY_PLACEHOLDER_IMAGES[category] || CATEGORY_PLACEHOLDER_IMAGES.other;
+  return images[index % images.length];
+}
+
+/**
+ * Detect fashion category from a search query string.
+ */
+function detectFashionCategoryFromQuery(query: string): string {
+  const t = (query || "").toLowerCase();
+  if (/(shoe|sneaker|boot|loafer|heel|sandal|\u05e0\u05e2\u05dc|\u05e1\u05e0\u05d9\u05e7\u05e8)/.test(t)) return "shoes";
+  if (/(coat|jacket|blazer|hoodie|cardigan|trench|bomber|vest|\u05de\u05e2\u05d9\u05dc|\u05d6\u05e7\u05d8|\u05d1\u05dc\u05d9\u05d9\u05d6\u05e8)/.test(t)) return "outerwear";
+  if (/(dress|gown|\u05e9\u05de\u05dc\u05d4)/.test(t)) return "dress";
+  if (/(jumpsuit|romper|overall|\u05d0\u05d5\u05d1\u05e8\u05d5\u05dc|\u05e1\u05e8\u05d1\u05dc)/.test(t)) return "onepiece";
+  if (/(shirt|blouse|top|tee|t-shirt|polo|sweater|\u05d7\u05d5\u05dc\u05e6)/.test(t)) return "top";
+  if (/(pants|jeans|trouser|chino|shorts|skirt|\u05de\u05db\u05e0\u05e1|\u05d2\u05d9\u05e0\u05e1|\u05d7\u05e6\u05d0\u05d9\u05ea)/.test(t)) return "bottom";
+  if (/(watch|bracelet|ring|necklace|earring|belt|bag|hat|cap|scarf|sunglass)/.test(t)) return "accessory";
+  return "other";
+}
+
+/**
  * Simple concurrency limiter — runs tasks with at most `limit` concurrent executions.
  */
 async function runWithConcurrency<T>(
@@ -185,7 +256,7 @@ async function resolveShoppingLinkImage(params: {
 
   // --- Step 3b: Try Google Image Search (fallback) ---
   try {
-    const googleQuery = buildProductSearchQuery(label, categoryQuery);
+    const googleQuery = buildProductSearchQuery(label, categoryQuery, gender);
     const googleResults = await searchGoogleImages(googleQuery, 5);
     if (googleResults.length > 0) {
       const bestImage = await pickBestProductImage(googleResults);
@@ -231,24 +302,52 @@ async function resolveShoppingLinkImage(params: {
   return generatedUrl;
 }
 
+/**
+ * Extract domain from a URL for domain-level deduplication.
+ */
+function extractDomain(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "").toLowerCase();
+  } catch {
+    return "";
+  }
+}
+
 async function ensureUniqueImageWithinImprovement(params: {
   resolvedUrl: string;
   usedImageUrls: Set<string>;
+  usedImageDomains?: Map<string, number>;
   label: string;
   url: string;
   categoryQuery: string;
   logPrefix: string;
   gender?: string;
+  maxPerDomain?: number;
 }): Promise<string> {
-  const { resolvedUrl, usedImageUrls, label, url, categoryQuery, logPrefix, gender } = params;
+  const {
+    resolvedUrl, usedImageUrls, usedImageDomains,
+    label, url, categoryQuery, logPrefix, gender,
+    maxPerDomain = 1,
+  } = params;
   const normalized = resolvedUrl.trim().toLowerCase();
-  if (!normalized || !usedImageUrls.has(normalized)) {
-    if (normalized) usedImageUrls.add(normalized);
+  const domain = extractDomain(resolvedUrl);
+
+  // Check both exact URL and domain-level duplication
+  const isExactDupe = normalized && usedImageUrls.has(normalized);
+  const isDomainOverused = domain && usedImageDomains
+    && (usedImageDomains.get(domain) || 0) >= maxPerDomain;
+
+  if (!normalized || (!isExactDupe && !isDomainOverused)) {
+    if (normalized) {
+      usedImageUrls.add(normalized);
+      if (domain && usedImageDomains) {
+        usedImageDomains.set(domain, (usedImageDomains.get(domain) || 0) + 1);
+      }
+    }
     return resolvedUrl;
   }
 
-  // Same image URL appeared again in the same improvement.
-  // Force AI-only regeneration attempts with prompt salt to avoid duplicate cards.
+  // Duplicate detected — try Brave/Google with different query variations
   for (let attempt = 1; attempt <= 2; attempt += 1) {
     const regenerated = await resolveShoppingLinkImage({
       label,
@@ -257,13 +356,21 @@ async function ensureUniqueImageWithinImprovement(params: {
       logPrefix: `${logPrefix} [dedupe:${attempt}]`,
       skipCache: true,
       skipStoreImage: true,
-      allowAIFallback: true,
+      allowAIFallback: attempt === 2, // Only use AI on second attempt
       promptSalt: `dedupe-${attempt}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       gender,
     });
     const regeneratedKey = (regenerated || "").trim().toLowerCase();
-    if (regeneratedKey && !usedImageUrls.has(regeneratedKey)) {
+    const regeneratedDomain = extractDomain(regenerated || "");
+    const isNewExact = regeneratedKey && !usedImageUrls.has(regeneratedKey);
+    const isNewDomain = !usedImageDomains || !regeneratedDomain
+      || (usedImageDomains.get(regeneratedDomain) || 0) < maxPerDomain;
+
+    if (isNewExact && isNewDomain) {
       usedImageUrls.add(regeneratedKey);
+      if (regeneratedDomain && usedImageDomains) {
+        usedImageDomains.set(regeneratedDomain, (usedImageDomains.get(regeneratedDomain) || 0) + 1);
+      }
       return regenerated;
     }
   }
@@ -664,21 +771,27 @@ export async function enrichAnalysisWithProductImages(
           }
         }
       } else {
-        enrichedImprovements[impIdx].shoppingLinks[linkIdx].imageUrl = "";
+        // Use category-aware placeholder instead of empty string
+        const placeholder = getCategoryPlaceholder(categoryQuery, linkIdx);
+        enrichedImprovements[impIdx].shoppingLinks[linkIdx].imageUrl = placeholder;
+        console.log(`[ProductImages] Using placeholder for [${impIdx}][${linkIdx}]: category="${categoryQuery}"`);
       }
     } catch (err: any) {
       console.warn(`[ProductImages] ✗ Failed [${impIdx}][${linkIdx}]:`, err?.message || err);
-      enrichedImprovements[impIdx].shoppingLinks[linkIdx].imageUrl = "";
+      // Use category-aware placeholder instead of empty string
+      const placeholder = getCategoryPlaceholder(categoryQuery, linkIdx);
+      enrichedImprovements[impIdx].shoppingLinks[linkIdx].imageUrl = placeholder;
     }
   });
 
   await runWithConcurrency(taskFns, MAX_CONCURRENT);
 
   // Enforce image diversity per improvement:
-  // if multiple links ended up with the same image URL, force AI-only regeneration for duplicates.
+  // if multiple links ended up with the same image URL or same domain, force regeneration.
   for (let impIdx = 0; impIdx < enrichedImprovements.length; impIdx += 1) {
     const imp = enrichedImprovements[impIdx];
     const usedImageUrls = new Set<string>();
+    const usedImageDomains = new Map<string, number>();
     for (let linkIdx = 0; linkIdx < imp.shoppingLinks.length; linkIdx += 1) {
       const link = imp.shoppingLinks[linkIdx];
       const current = (link.imageUrl || "").trim();
@@ -686,11 +799,13 @@ export async function enrichAnalysisWithProductImages(
       const unique = await ensureUniqueImageWithinImprovement({
         resolvedUrl: current,
         usedImageUrls,
+        usedImageDomains,
         label: link.label,
         url: link.url,
         categoryQuery: imp.productSearchQuery || "",
         logPrefix: `[ProductImages] [${impIdx}][${linkIdx}]`,
         gender,
+        maxPerDomain: 2, // Allow max 2 images from same domain per improvement
       });
       if (!unique) {
         link.imageUrl = "";
@@ -750,17 +865,24 @@ export async function generateImagesForImprovement(
       });
       if (resolvedUrl) {
         links[linkIdx].imageUrl = resolvedUrl;
+
+        // Progressive DB update
         if (onImageReady) {
           try { await onImageReady(linkIdx, resolvedUrl); } catch (dbErr: any) {
-            console.warn(`[ProductImages] Lazy: DB update failed:`, dbErr?.message);
+            console.warn(`[ProductImages] Lazy: DB update failed for [${linkIdx}]:`, dbErr?.message);
           }
         }
       } else {
-        links[linkIdx].imageUrl = "";
+        // Use category-aware placeholder instead of empty string
+        const placeholder = getCategoryPlaceholder(improvement.productSearchQuery || "", linkIdx);
+        links[linkIdx].imageUrl = placeholder;
+        console.log(`[ProductImages] Lazy: using placeholder for [${linkIdx}]`);
       }
     } catch (err: any) {
       console.warn(`[ProductImages] Lazy: failed [${linkIdx}]:`, err?.message || err);
-      links[linkIdx].imageUrl = "";
+      // Use category-aware placeholder instead of empty string
+      const placeholder = getCategoryPlaceholder(improvement.productSearchQuery || "", linkIdx);
+      links[linkIdx].imageUrl = placeholder;
     }
   });
 
@@ -768,6 +890,7 @@ export async function generateImagesForImprovement(
 
   // Enforce image diversity inside this single improvement payload.
   const usedImageUrls = new Set<string>();
+  const usedImageDomains = new Map<string, number>();
   for (let linkIdx = 0; linkIdx < links.length; linkIdx += 1) {
     const link = links[linkIdx];
     const current = (link.imageUrl || "").trim();
@@ -775,11 +898,13 @@ export async function generateImagesForImprovement(
     const unique = await ensureUniqueImageWithinImprovement({
       resolvedUrl: current,
       usedImageUrls,
+      usedImageDomains,
       label: link.label,
       url: link.url,
       categoryQuery: improvement.productSearchQuery || "",
       logPrefix: `[ProductImages] Lazy [${linkIdx}]`,
       gender,
+      maxPerDomain: 2,
     });
     if (!unique) {
       links[linkIdx].imageUrl = "";

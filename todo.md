@@ -146,3 +146,10 @@
 - [x] 9.8: 9 new vitest tests for personalized recommendations (all pass)
 - [x] 9.9: Updated analysis-prompt.test.ts for optimized prompt (82 tests pass)
 - [x] 9.10: Full suite: 705/709 tests pass (4 pre-existing API failures)
+
+## Stage 10 — Product Image Fixes (User-reported)
+- [x] 10.1: Fix missing product images — improved LLM prompt for specific productSearchQuery, added validateAndFixProductSearchQuery server-side validation, gender-aware Google/Brave search queries
+- [x] 10.2: Fix wrong category images — validateAndFixProductSearchQuery detects cross-category contamination (e.g. pants in top improvement) and rebuilds query with correct category keywords
+- [x] 10.3: Improve product image diversity — domain-level deduplication (max 2 per domain per improvement), improved ensureUniqueImageWithinImprovement with domain tracking
+- [x] 10.4: Smart category-aware placeholders (Unsplash) — imageUrl never empty, getCategoryPlaceholder returns shoes/top/bottom/outerwear/dress images based on category
+- [x] 10.5: 31 new vitest tests for Stage 10 (all pass), full suite 736/740 (4 pre-existing API failures)

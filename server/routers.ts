@@ -878,7 +878,7 @@ Respond with valid JSON matching this schema:
   "summary": "<4-5 sentence expert summary in ${langLabel}: compliment strongest element, identify style direction, reference 2025-2026 trend, name the aesthetic, suggest one upgrade. No brand names in summary.>",
   "items": [{ "name": "<item name in ${langLabel}, no brand>", "description": "<material, color shade, construction details in ${langLabel}. No brand names.>", "color": "<main color>", "score": <5-10>, "verdict": "<${isHebrew ? "בחירה מצוינת/ניגודיות טובה/יש פוטנציאל/ניתן לשדרג" : "Excellent choice/Good contrast/Has potential/Can be upgraded"}>", "analysis": "<3-4 sentences: material ID, 2025-2026 trend connection, design philosophy, what would make it a 10. No brand names.>", "icon": "<👕/👖/👟/💍/🧥/👔/⌚/🕶️/👜/🧢/💿>" }],
   "scores": [{ "category": "<in ${langLabel}>", "score": <5-10 or null>, "explanation": "<1-2 sentences WHY this score>", "recommendation": "<if null, suggest what fits>" }],
-  "improvements": [{ "title": "<in ${langLabel}>", "description": "<2-3 sentences>", "beforeLabel": "<now>", "afterLabel": "<suggested>", "productSearchQuery": "<specific English query for image gen>", "shoppingLinks": [{ "label": "<product+brand+store>", "url": "<SEARCH URL ONLY — use store search endpoint like ?q=brand+product+color. NEVER use /product/ URLs.>", "imageUrl": "" }] }],
+  "improvements": [{ "title": "<in ${langLabel}>", "description": "<2-3 sentences>", "beforeLabel": "<now>", "afterLabel": "<suggested>", "productSearchQuery": "<CRITICAL for image search — MUST be a specific English product search query. ALWAYS include: 1) gender prefix (men's/women's), 2) color, 3) specific garment type (NOT generic like 'top' — use 'polo shirt', 'crew neck t-shirt', 'oxford shirt', etc.), 4) style/fit. Example: men's navy slim fit chino pants, women's white oversized cotton button-down shirt. NEVER use Hebrew. NEVER use generic words like 'upgrade' or 'improve'.>", "shoppingLinks": [{ "label": "<product+brand+store>", "url": "<SEARCH URL ONLY — use store search endpoint like ?q=brand+product+color. NEVER use /product/ URLs.>", "imageUrl": "" }] }],
   "outfitSuggestions": [{ "name": "<in ${langLabel}>", "occasion": "<when>", "items": ["<brand+model+color+price>"], "colors": ["<hex>"], "lookDescription": "<English flat-lay moodboard description for image gen>", "inspirationNote": "<in ${langLabel}>" }],
   "trendSources": [{ "source": "<name>", "title": "<article title>", "url": "<real URL from Vogue/GQ/SSENSE/MR PORTER/Hypebeast/Highsnobiety>", "relevance": "<in ${langLabel}>", "season": "<e.g. SS2026>" }],
   "influencerInsight": "<3-4 sentences in ${langLabel}. Write influencer names in English always.>",
@@ -1357,7 +1357,8 @@ function buildRecommendationsPromptFromCore(
 כללים:
 - התבסס על פריטי הלבוש, הציונים והסיכום משלב 1.
 - שמור על התאמה לאירוע ולסגנון המשתמש.
-- improvements: 3 המלצות שדרוג (קטגוריות שונות). כל improvement עם 2 shoppingLinks (כתובות חיפוש תקינות).
+- improvements: 3 המלצות שדרוג (קטגוריות שונות: חלק עליון, חלק תחתון, נעליים/אקססוריז). כל improvement עם 2 shoppingLinks (כתובות חיפוש תקינות).
+- productSearchQuery חייב להיות באנגלית וספציפי: קטגוריה + צבע + סגנון + מגדר. דוגמה: "men's navy slim fit chino pants". ה-productSearchQuery חייב להתאים לקטגוריית ה-improvement (אם ה-title הוא שדרוג חלק עליון, ה-query חייב להיות של חולצה/חלק עליון).
 - outfitSuggestions: 2 לוקים שלמים (חלק עליון+תחתון+נעליים). כל לוק עם שם מותג+צבע+מחיר.
 - trendSources: 2-3 מקורות רלוונטיים.
 - influencerInsight: 2-3 משפטים עם 2 שמות משפיענים.
@@ -1380,7 +1381,8 @@ Task: return JSON with fields only:
 Rules:
 - Base recommendations on stage-1 items, scores, and summary.
 - Keep suggestions occasion-aware and style-consistent.
-- improvements: 3 upgrade suggestions (different categories). Each with 2 shoppingLinks (valid search URLs).
+- improvements: 3 upgrade suggestions (different categories: top, bottom, shoes/accessories). Each with 2 shoppingLinks (valid search URLs).
+- productSearchQuery MUST be specific English: category + color + style + gender. Example: "men's navy slim fit chino pants". The productSearchQuery MUST match the improvement category (if title is about tops, query must be for a top/shirt/blouse).
 - outfitSuggestions: 2 complete looks (top+bottom+shoes). Each item with brand+color+price.
 - trendSources: 2-3 relevant sources.
 - influencerInsight: 2-3 sentences with 2 influencer names.
@@ -1595,6 +1597,94 @@ function hasCoreItemReferenceInInsight(
     });
 }
 
+/**
+ * Validate and fix productSearchQuery to ensure it matches the improvement's category.
+ * If the LLM returned a generic or mismatched query (e.g. "pants" for a top improvement),
+ * this function rebuilds a proper query from the improvement's title/afterLabel.
+ */
+function validateAndFixProductSearchQuery(
+  imp: Improvement,
+  userGender?: string | null,
+): string {
+  const query = (imp.productSearchQuery || "").trim();
+  const impCategory = detectImprovementCategory(imp);
+
+  // Category-specific keywords that MUST appear in the query
+  const categoryKeywords: Record<ClothingCategory, RegExp> = {
+    top: /(shirt|blouse|top|tee|t-shirt|polo|sweater|hoodie|sweatshirt|henley|tank|camisole|crop|tunic|חולצ)/i,
+    bottom: /(pants|jeans|trouser|chino|shorts|skirt|legging|מכנס|גינס|חצאית|שורט)/i,
+    outerwear: /(jacket|coat|blazer|cardigan|parka|trench|bomber|vest|windbreaker|מעיל|זקט|בלייזר|קרדיגן)/i,
+    shoes: /(shoe|sneaker|boot|loafer|heel|sandal|oxford|derby|mule|slipper|נעל|סניקר)/i,
+    dress: /(dress|gown|maxi|midi|mini|שמלה)/i,
+    onepiece: /(jumpsuit|romper|overall|playsuit|אוברול|סרבל)/i,
+    accessory: /(watch|bracelet|ring|necklace|earring|belt|bag|hat|cap|scarf|sunglass|שעון|צמיד|טבעת|שרשר|עגיל|חגורה|תיק|כובע|צעיף|משקפ)/i,
+    other: /./i,
+  };
+
+  // Category-specific fallback terms for building a proper query
+  const categoryFallbackTerms: Record<string, string> = {
+    top: "structured button-down shirt",
+    bottom: "tailored chino pants",
+    outerwear: "structured blazer jacket",
+    shoes: "leather dress shoes",
+    dress: "flattering midi dress",
+    onepiece: "tailored jumpsuit",
+    accessory: "premium accessory",
+    other: "fashion item",
+  };
+
+  // Check if query contains Hebrew (should be English only)
+  const hasHebrew = /[\u0590-\u05FF]/.test(query);
+
+  // Check if query is too generic (just "upgrade" or "improve" etc.)
+  const isTooGeneric = !query || query.length < 8 || /^(upgrade|improve|שדרוג|שיפור)/i.test(query);
+
+  // Check if query matches the improvement's category
+  const matchesCategory = impCategory === "other" || categoryKeywords[impCategory]?.test(query);
+
+  // Check for cross-category contamination (e.g. "pants" in a top improvement)
+  const hasCrossCategory = impCategory !== "other" && Object.entries(categoryKeywords)
+    .filter(([cat]) => cat !== impCategory && cat !== "other" && cat !== "accessory")
+    .some(([_cat, regex]) => regex.test(query) && !categoryKeywords[impCategory].test(query));
+
+  if (!hasHebrew && !isTooGeneric && matchesCategory && !hasCrossCategory) {
+    // Query looks good — just ensure gender prefix
+    const genderPrefix = userGender === "female" ? "women's" : "men's";
+    if (!/(men|women|גבר|נש)/i.test(query)) {
+      return `${genderPrefix} ${query}`;
+    }
+    return query;
+  }
+
+  // Rebuild query from improvement metadata
+  const genderPrefix = userGender === "female" ? "women's" : "men's";
+  const afterLabel = (imp.afterLabel || "").replace(/[\u0590-\u05FF]+/g, "").trim();
+  const title = (imp.title || "").replace(/[\u0590-\u05FF]+/g, "").trim();
+
+  // Try to extract useful info from existing query (color, style words)
+  const colorMatch = query.match(/(black|white|navy|blue|grey|gray|brown|beige|cream|green|red|pink|olive|khaki|tan|burgundy|maroon|camel)/i);
+  const color = colorMatch ? colorMatch[1].toLowerCase() : "";
+
+  // Try to extract style words
+  const styleMatch = query.match(/(slim fit|regular fit|oversized|tailored|structured|casual|formal|classic|modern|minimalist|relaxed)/i);
+  const style = styleMatch ? styleMatch[1].toLowerCase() : "";
+
+  // Build the fixed query
+  const baseTerm = categoryFallbackTerms[impCategory] || "fashion item";
+  const parts = [genderPrefix];
+  if (color) parts.push(color);
+  if (style) parts.push(style);
+
+  // If afterLabel has useful English content, prefer it
+  if (afterLabel.length > 5 && /[a-zA-Z]/.test(afterLabel)) {
+    parts.push(afterLabel);
+  } else {
+    parts.push(baseTerm);
+  }
+
+  return parts.join(" ");
+}
+
 function sanitizeRecommendationsPayload(
   rec: FashionRecommendationsPayload,
   core: FashionAnalysisCorePayload,
@@ -1609,6 +1699,11 @@ function sanitizeRecommendationsPayload(
   }
 
   let improvements = Array.isArray(rec.improvements) ? rec.improvements : [];
+  // Validate and fix productSearchQuery for each improvement
+  improvements = improvements.map((imp) => ({
+    ...imp,
+    productSearchQuery: validateAndFixProductSearchQuery(imp, userGender),
+  }));
   improvements = improvements.map((imp) => normalizeImprovementShoppingLinks(imp, lang));
   if (improvements.length < 4) {
     const needed = 4 - improvements.length;
