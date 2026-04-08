@@ -98,3 +98,11 @@
 - [x] 4.3: Speed up responses — wardrobe save fire-and-forget, parallel outfit image resolution in generateOutfitLookFromMetadata, reduced testImageUrl timeout 5s→3s
 - [x] 4.4: Verified generateTotalLook flow — uses Brave Image Search via resolveShoppingLinkImage, falls back to AI generation. Code is correct.
 - [x] 4.5: TypeScript 0 errors, 682/686 tests pass (4 pre-existing failures: Google CSE 403 + OpenAI key)
+
+## Stage 5 — Critical Fixes (User-reported bugs)
+- [x] 5.1: Ensure 3 unique shopping links per improvement category (existing logic + global dedup)
+- [x] 5.2: Remove duplicate items across categories — added global deduplication in sanitizeRecommendationsPayload
+- [x] 5.3: Add gender filtering to Brave Image Search (men's/women's prefix in search query)
+- [x] 5.4: Improved outfit combination quality — enhanced LLM prompts with gender awareness, style coherence, color harmony
+- [x] 5.5: Pass user gender through entire pipeline (resolveShoppingLinkImage, enrichAnalysis, generateImages, generateOutfitLook)
+- [x] 5.6: 13 new tests (gender filtering + global dedup), 705/709 tests pass

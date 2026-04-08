@@ -1287,7 +1287,7 @@ REQUIREMENTS:
 - Provide at least 4-6 items (MUST include every visible accessory as a separate item)
 - Provide 8 score categories including "אקססוריז ותכשיטים" and "זיהוי מותגים"
 - Provide 4-5 improvements with 2-3 shopping links each
-- Provide 3 outfit suggestions relevant to the occasion context
+- Provide 3 outfit suggestions relevant to the occasion context. Each outfit MUST be a COMPLETE, COHERENT look — not random items. Think like a professional stylist creating a capsule wardrobe look.
 - Each improvement MUST have a specific "productSearchQuery" for image generation
 - EVERY shopping link URL MUST be a SEARCH URL using the store's search endpoint — NEVER a direct product page URL
 - NEVER generate URLs with /product/, /item/, /p/, or product slugs — these are FICTIONAL and will 404
@@ -1308,6 +1308,14 @@ REQUIREMENTS:
 - Shopping links MUST use the correct gender category ({men|women}) matching the user's gender from their profile
 - Each outfitSuggestion MUST include a detailed 'lookDescription' in English for AI image generation of the complete look as a flat-lay mood board
 - outfitSuggestion items MUST list specific brands with model names and approximate prices, not generic descriptions
+- CRITICAL OUTFIT COMBINATION RULES:
+  * Each outfit MUST have a clear STYLE DIRECTION (e.g. smart casual, streetwear, minimalist, business casual)
+  * Items within an outfit MUST work together aesthetically — matching formality level, color harmony, and style cohesion
+  * The 3 outfits MUST be DISTINCT from each other (different occasions, different styles, different color palettes)
+  * Include the user's GENDER-APPROPRIATE items (${userGender === 'female' ? "women's" : "men's"} clothing and accessories)
+  * Each outfit should include: top + bottom + shoes + at least 1 accessory
+  * Colors in the outfit MUST be harmonious — use complementary or analogous color schemes
+  * DO NOT mix formal and casual items randomly (e.g. no blazer with flip-flops, no suit pants with a hoodie)
 
 CRITICAL — PRODUCT VARIETY WITHIN SHOPPING LINKS:
 - When an improvement recommends a specific product category (e.g. necklaces, sneakers, jackets), the 2-3 shopping links MUST show DIVERSE options within that category:
@@ -1707,14 +1715,22 @@ function buildRecommendationsPromptFromCore(
 - התבסס על פריטי הלבוש, הציונים והסיכום משלב 1.
 - שמור על התאמה לאירוע ולסגנון המשתמש.
 - improvements חייב לכלול המלצות לביגוד לביש (לא רק אביזרים).
-- החזר בין 4 ל-5 improvements.
-- לכל improvement חייבים להיות לפחות 3 shoppingLinks.
+- החזר בין 4 ל-5 improvements. כל improvement חייב להיות שונה מהאחרים (קטגוריה שונה: חולצה, מכנסיים, נעליים, שכבה עליונה, אקססורי).
+- לכל improvement חייבים להיות לפחות 3 shoppingLinks עם מוצרים שונים (מותגים שונים, סגנונות שונים, טווחי מחירים שונים).
 - shoppingLinks חייבים להיות כתובות חיפוש תקינות (לא /product/ ישיר).
 - trendSources חייב להיות רלוונטי לפריטים שזוהו.
 - influencerInsight חייב להיות מפורט (לפחות 4-6 משפטים), ספציפי ללוק של המשתמש, ולהסביר: מה בלוק הנוכחי מזכיר את המשפיענים ומה חסר כדי להתיישר לסגנון שלהם.
 - influencerInsight חייב להזכיר לפחות 2 שמות משפיענים רלוונטיים (שמות באנגלית, הסבר בעברית).
 - כל הטקסטים בתשובה חייבים להיות בעברית תקינה בלבד.
 - החזר JSON בלבד, ללא markdown.
+
+outfitSuggestions — כללי קומבינציות:
+- כל outfit חייב להיות לוק שלם וקוהרנטי (לא פריטים אקראיים).
+- כל outfit חייב לכלול: חלק עליון + חלק תחתון + נעליים + לפחות אקססורי אחד.
+- 3 הלוקים חייבים להיות שונים זה מזה: אירועים שונים, סגנונות שונים, פלטות צבע שונות.
+- הצבעים בכל outfit חייבים להיות הרמוניים — משלימים או אנלוגיים.
+- אל תערבב פריטים פורמליים עם קז'ואל באופן אקראי.
+- כל פריט חייב לכלול שם מותג ספציפי + דגם + צבע + טווח מחיר.
 
 ${genderLine}
 ${preferredInfluencersLine}
@@ -1731,14 +1747,22 @@ Rules:
 - Base recommendations on stage-1 items, scores, and summary.
 - Keep suggestions occasion-aware and style-consistent.
 - improvements must include wearable clothing upgrades (not accessories-only).
-- Return 4-5 improvements.
-- Every improvement must include at least 3 shoppingLinks.
+- Return 4-5 improvements. Each improvement MUST target a different category (top, bottom, shoes, outerwear, accessory).
+- Every improvement must include at least 3 shoppingLinks with DIVERSE products (different brands, styles, price ranges).
 - shoppingLinks must be valid search URLs (never direct /product/ URLs).
 - trendSources must be relevant to identified items.
 - influencerInsight should be detailed (at least 4-6 sentences), specific to the user's actual outfit, and explain both alignment and gaps versus the influencer style.
 - influencerInsight must include at least 2 relevant influencer names.
 - All user-facing text must be in English only.
 - Return JSON only, no markdown.
+
+outfitSuggestions — Combination Rules:
+- Each outfit MUST be a COMPLETE, COHERENT look (not random items). Think like a professional stylist.
+- Each outfit MUST include: top + bottom + shoes + at least 1 accessory.
+- The 3 outfits MUST be DISTINCT: different occasions, different styles, different color palettes.
+- Colors within each outfit MUST be harmonious — complementary or analogous color schemes.
+- DO NOT mix formal and casual items randomly (no blazer with flip-flops, no suit pants with a hoodie).
+- Every item MUST include specific brand name + model + color + price range.
 
 ${genderLine}
 ${preferredInfluencersLine}
@@ -1967,6 +1991,42 @@ function sanitizeRecommendationsPayload(
   }
   if (improvements.length > 5) improvements = improvements.slice(0, 5);
   improvements = improvements.map((imp) => normalizeImprovementShoppingLinks(imp, lang));
+
+  // Global deduplication: remove duplicate shopping links across all improvements
+  const globalSeenUrls = new Set<string>();
+  const globalSeenTitles = new Set<string>();
+  improvements = improvements.map((imp) => {
+    // Deduplicate by title (case-insensitive)
+    const titleKey = (imp.title || "").trim().toLowerCase();
+    if (titleKey && globalSeenTitles.has(titleKey)) {
+      // Skip duplicate improvement entirely — replace with a unique fallback
+      return null as any;
+    }
+    if (titleKey) globalSeenTitles.add(titleKey);
+
+    // Deduplicate shopping links across improvements
+    const uniqueLinks = (imp.shoppingLinks || []).filter((link) => {
+      const urlKey = (link.url || "").trim().toLowerCase();
+      if (!urlKey || globalSeenUrls.has(urlKey)) return false;
+      globalSeenUrls.add(urlKey);
+      return true;
+    });
+
+    // Post-dedup refill: ensure at least 3 unique shopping links per improvement
+    let finalLinks = uniqueLinks;
+    if (finalLinks.length < 3) {
+      const query = imp.productSearchQuery || imp.afterLabel || imp.title || "fashion upgrade";
+      const freshLinks = buildFallbackShoppingLinks(query).filter((fb) => {
+        const key = (fb.url || "").trim().toLowerCase();
+        if (!key || globalSeenUrls.has(key)) return false;
+        globalSeenUrls.add(key);
+        return true;
+      });
+      finalLinks = [...finalLinks, ...freshLinks];
+    }
+
+    return { ...imp, shoppingLinks: finalLinks.slice(0, 3) };
+  }).filter(Boolean);
 
   let outfitSuggestions = Array.isArray(rec.outfitSuggestions) ? rec.outfitSuggestions : [];
   if (outfitSuggestions.length < 2) {
@@ -2951,6 +3011,11 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
         const analysis = review.analysisJson as FashionAnalysis;
         if (!analysis) throw new Error("No analysis available");
 
+        // Get user gender for gender-appropriate image search
+        const profile = await getUserProfile(ctx.user.id);
+        const userGender = profile?.gender || "male";
+        const genderLabel = userGender === "female" ? "women's" : "men's";
+
         // Build a detailed prompt from the analysis data
         const improvementItems = (analysis.improvements || []).map((imp: Improvement) => imp.title).join(", ");
         const outfitItems = (analysis.outfitSuggestions || []).slice(0, 1).flatMap((s: OutfitSuggestion) => s.items).join(", ");
@@ -2963,18 +3028,19 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
             analysis,
             outfit: firstOutfit,
             outfitIndex: 0,
+            gender: userGender,
           });
           if (metadataLook?.imageUrl) {
             return { imageUrl: metadataLook.imageUrl };
           }
         }
 
-        const prompt = `Fashion mood board / flat lay photograph showing a complete outfit look. Professional editorial style, clean white marble background, luxury fashion photography.
+        const prompt = `Fashion mood board / flat lay photograph showing a complete ${genderLabel} outfit look. Professional editorial style, clean white marble background, luxury fashion photography.
 
 Items to include: ${outfitItems || improvementItems || existingItems}.
 Color palette: ${colors || "neutral tones, black, white"}.
 
-Style: High-end fashion editorial flat lay, items arranged aesthetically like a magazine spread. Include shoes, clothing items, accessories, and a watch or jewelry if relevant. No mannequin, no model, just the items laid out beautifully. Crisp lighting, soft shadows, luxury feel.`;
+Style: High-end ${genderLabel} fashion editorial flat lay, items arranged aesthetically like a magazine spread. Include shoes, clothing items, accessories, and a watch or jewelry if relevant. No mannequin, no model, just the items laid out beautifully. Crisp lighting, soft shadows, luxury feel.`;
 
         try {
           const { url } = await generateImage({ prompt });
@@ -3251,29 +3317,31 @@ Return ONLY the JSON object, no markdown.`;
         const analysis = review.analysisJson as FashionAnalysis;
         if (!analysis) throw new Error("No analysis available");
 
-        const outfit = analysis.outfitSuggestions?.[input.outfitIndex];
+          const outfit = analysis.outfitSuggestions?.[input.outfitIndex];
         if (!outfit) throw new Error("Outfit suggestion not found");
+
+        // Get user gender for gender-appropriate image search
+        const outfitProfile = await getUserProfile(ctx.user.id);
+        const outfitGender = outfitProfile?.gender || "male";
+        const outfitGenderLabel = outfitGender === "female" ? "women's" : "men's";
 
         const metadataLook = await generateOutfitLookFromMetadata({
           analysis,
           outfit,
           outfitIndex: input.outfitIndex,
+          gender: outfitGender,
         });
         if (metadataLook?.imageUrl) {
           return { imageUrl: metadataLook.imageUrl };
         }
-
         // Use the lookDescription from AI if available, otherwise build from items
         const lookDesc = outfit.lookDescription || outfit.items.join(", ");
         const colors = outfit.colors?.join(", ") || "neutral tones";
-
-        const prompt = `Professional fashion flat lay / mood board photograph. Clean white marble background, luxury editorial style photography.
+        const prompt = `Professional ${outfitGenderLabel} fashion flat lay / mood board photograph. Clean white marble background, luxury editorial style photography.
 Outfit card variation index: ${input.outfitIndex + 1}. Keep this variation visually distinct from other outfit cards.
-
-Complete outfit: ${lookDesc}.
+Complete ${outfitGenderLabel} outfit: ${lookDesc}.
 Color palette: ${colors}.
-
-Style: High-end fashion editorial flat lay, all items arranged aesthetically like a magazine spread. Include every piece: clothing, shoes, accessories, watch/jewelry. No mannequin, no model — just the items laid out beautifully with crisp lighting, soft shadows, and a luxury feel. Each item clearly visible and identifiable.`;
+Style: High-end ${outfitGenderLabel} fashion editorial flat lay, all items arranged aesthetically like a magazine spread. Include every piece: clothing, shoes, accessories, watch/jewelry. No mannequin, no model — just the items laid out beautifully with crisp lighting, soft shadows, and a luxury feel. Each item clearly visible and identifiable.`;
 
         try {
           const { url } = await generateImage({ prompt });
@@ -3290,12 +3358,13 @@ Style: High-end fashion editorial flat lay, all items arranged aesthetically lik
           outfit,
           outfitIndex: input.outfitIndex,
           allowAIFallbackForLinks: true,
+          gender: outfitGender,
         });
         if (resilientMetadataLook?.imageUrl) {
           return { imageUrl: resilientMetadataLook.imageUrl };
         }
 
-        // Last-resort fallback: never fail the card, show original image.
+        // If all else fails, return the original uploaded photo as a reference
         if (review.imageUrl) {
           return { imageUrl: review.imageUrl };
         }
@@ -3503,6 +3572,10 @@ Return ONLY a JSON object with these exact fields:
         const imp = analysis.improvements[input.improvementIndex];
         const impIdx = input.improvementIndex;
 
+        // Get user gender for gender-appropriate image search
+        const profile = await getUserProfile(ctx.user.id);
+        const userGender = profile?.gender || "male";
+
         // Generate images for this single improvement category
         const updatedLinks = await generateImagesForImprovement(imp, async (linkIdx, imageUrl) => {
           try {
@@ -3517,11 +3590,9 @@ Return ONLY a JSON object with these exact fields:
           } catch (dbErr: any) {
             console.warn(`[Lazy ProductImages] DB update failed:`, dbErr?.message);
           }
-        });
-
+        }, userGender);
         return { links: updatedLinks };
       }),
-
     deleteAll: protectedProcedure
       .mutation(async ({ ctx }) => {
         await deleteAllReviewsByUserId(ctx.user.id);
@@ -4697,7 +4768,7 @@ Return ONLY a JSON object with these exact fields:
         };
       }),
 
-    /** Lazy load: generate product images for a specific improvement category (guest) */
+     /** Lazy load: generate product images for a specific improvement category (guest) */
     generateProductImages: publicProcedure
       .input(z.object({ sessionId: z.number(), improvementIndex: z.number() }))
       .mutation(async ({ input }) => {
@@ -4711,6 +4782,9 @@ Return ONLY a JSON object with these exact fields:
         const imp = analysis.improvements[input.improvementIndex];
         const impIdx = input.improvementIndex;
 
+        // Get guest gender from session record
+        const guestGender = (session as any).gender || "male";
+
         const updatedLinks = await generateImagesForImprovement(imp, async (linkIdx, imageUrl) => {
           try {
             const currentSession = await getGuestSessionById(input.sessionId);
@@ -4721,14 +4795,12 @@ Return ONLY a JSON object with these exact fields:
                 await updateGuestSessionAnalysis(input.sessionId, currentAnalysis.overallScore, currentAnalysis);
               }
             }
-          } catch (dbErr: any) {
+           } catch (dbErr: any) {
             console.warn(`[Guest Lazy ProductImages] DB update failed:`, dbErr?.message);
           }
-        });
-
+        }, guestGender);
         return { links: updatedLinks };
       }),
-
     /** Generate outfit look image for guest session */
     generateOutfitLook: publicProcedure
       .input(z.object({ sessionId: z.number(), outfitIndex: z.number() }))
@@ -4738,29 +4810,29 @@ Return ONLY a JSON object with these exact fields:
         if (session.status !== "completed") throw new Error("Analysis not completed");
         const analysis = session.analysisJson as FashionAnalysis;
         if (!analysis) throw new Error("No analysis available");
-
         const outfit = analysis.outfitSuggestions?.[input.outfitIndex];
         if (!outfit) throw new Error("Outfit suggestion not found");
+
+        // Get guest gender from session record
+        const guestGender = (session as any).gender || "male";
+        const genderLabel = guestGender === "female" ? "women's" : "men's";
 
         const metadataLook = await generateOutfitLookFromMetadata({
           analysis,
           outfit,
           outfitIndex: input.outfitIndex,
+          gender: guestGender,
         });
         if (metadataLook?.imageUrl) {
           return { imageUrl: metadataLook.imageUrl };
         }
-
         const lookDesc = outfit.lookDescription || outfit.items.join(", ");
         const colors = outfit.colors?.join(", ") || "neutral tones";
-
-        const prompt = `Professional fashion flat lay / mood board photograph. Clean white marble background, luxury editorial style photography.
+        const prompt = `Professional ${genderLabel} fashion flat lay / mood board photograph. Clean white marble background, luxury editorial style photography.
 Outfit card variation index: ${input.outfitIndex + 1}. Keep this variation visually distinct from other outfit cards.
-
-Complete outfit: ${lookDesc}.
+Complete ${genderLabel} outfit: ${lookDesc}.
 Color palette: ${colors}.
-
-Style: High-end fashion editorial flat lay, all items arranged aesthetically like a magazine spread. Include every piece: clothing, shoes, accessories, watch/jewelry. No mannequin, no model — just the items laid out beautifully with crisp lighting, soft shadows, and a luxury feel. Each item clearly visible and identifiable.`;
+Style: High-end ${genderLabel} fashion editorial flat lay, all items arranged aesthetically like a magazine spread. Include every piece: clothing, shoes, accessories, watch/jewelry. No mannequin, no model — just the items laid out beautifully with crisp lighting, soft shadows, and a luxury feel. Each item clearly visible and identifiable.`;
 
         try {
           const { url } = await generateImage({ prompt });
@@ -4776,6 +4848,7 @@ Style: High-end fashion editorial flat lay, all items arranged aesthetically lik
           outfit,
           outfitIndex: input.outfitIndex,
           allowAIFallbackForLinks: true,
+          gender: guestGender,
         });
         if (resilientMetadataLook?.imageUrl) {
           return { imageUrl: resilientMetadataLook.imageUrl };

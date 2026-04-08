@@ -119,6 +119,7 @@ async function resolveShoppingLinkImage(params: {
   skipCache?: boolean;
   skipStoreImage?: boolean;
   promptSalt?: string;
+  gender?: string;
 }): Promise<string> {
   const {
     label,
@@ -129,6 +130,7 @@ async function resolveShoppingLinkImage(params: {
     skipCache = false,
     skipStoreImage = false,
     promptSalt,
+    gender,
   } = params;
   const cacheKey = normalizeProductKey(label, categoryQuery, url);
   if (!skipCache) {
@@ -159,7 +161,7 @@ async function resolveShoppingLinkImage(params: {
 
   // --- Step 3: Try Brave Image Search (primary) ---
   try {
-    const braveQuery = buildBraveSearchQuery(label, categoryQuery);
+    const braveQuery = buildBraveSearchQuery(label, categoryQuery, gender);
     const braveResults = await searchBraveImages(braveQuery, 5);
     if (braveResults.length > 0) {
       const bestImage = await pickBestBraveImage(braveResults);
@@ -236,8 +238,9 @@ async function ensureUniqueImageWithinImprovement(params: {
   url: string;
   categoryQuery: string;
   logPrefix: string;
+  gender?: string;
 }): Promise<string> {
-  const { resolvedUrl, usedImageUrls, label, url, categoryQuery, logPrefix } = params;
+  const { resolvedUrl, usedImageUrls, label, url, categoryQuery, logPrefix, gender } = params;
   const normalized = resolvedUrl.trim().toLowerCase();
   if (!normalized || !usedImageUrls.has(normalized)) {
     if (normalized) usedImageUrls.add(normalized);
@@ -256,6 +259,7 @@ async function ensureUniqueImageWithinImprovement(params: {
       skipStoreImage: true,
       allowAIFallback: true,
       promptSalt: `dedupe-${attempt}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      gender,
     });
     const regeneratedKey = (regenerated || "").trim().toLowerCase();
     if (regeneratedKey && !usedImageUrls.has(regeneratedKey)) {
@@ -407,8 +411,9 @@ export async function generateOutfitLookFromMetadata(params: {
   outfit: OutfitSuggestion;
   outfitIndex: number;
   allowAIFallbackForLinks?: boolean;
+  gender?: string;
 }): Promise<{ imageUrl: string; storeLinks: Array<{ label: string; url: string; imageUrl: string }> } | null> {
-  const { analysis, outfit, outfitIndex, allowAIFallbackForLinks = false } = params;
+  const { analysis, outfit, outfitIndex, allowAIFallbackForLinks = false, gender } = params;
   const cacheKey = buildOutfitCacheKey(outfit, outfitIndex);
   const cached = await getCachedProductImage(cacheKey, CACHE_TTL_DAYS);
   if (cached && isValidImageUrl(cached)) {
@@ -530,6 +535,7 @@ export async function generateOutfitLookFromMetadata(params: {
         categoryQuery: item.categoryQuery || "outfit",
         logPrefix: `[OutfitMetadata] [${outfitIndex}]`,
         allowAIFallback: allowAIFallbackForLinks,
+        gender,
       });
       if (resolvedUrl && isValidImageUrl(resolvedUrl)) {
         return { label: item.link.label, url: item.link.url, imageUrl: resolvedUrl };
@@ -600,6 +606,7 @@ export async function generateOutfitLookFromMetadata(params: {
 export async function enrichAnalysisWithProductImages(
   analysis: FashionAnalysis,
   onImageReady?: OnImageReady,
+  gender?: string,
 ): Promise<FashionAnalysis> {
   if (!analysis.improvements || analysis.improvements.length === 0) {
     console.log("[ProductImages] No improvements to enrich");
@@ -645,6 +652,7 @@ export async function enrichAnalysisWithProductImages(
         url,
         categoryQuery,
         logPrefix: `[ProductImages] [${impIdx}][${linkIdx}]`,
+        gender,
       });
       if (resolvedUrl) {
         enrichedImprovements[impIdx].shoppingLinks[linkIdx].imageUrl = resolvedUrl;
@@ -682,6 +690,7 @@ export async function enrichAnalysisWithProductImages(
         url: link.url,
         categoryQuery: imp.productSearchQuery || "",
         logPrefix: `[ProductImages] [${impIdx}][${linkIdx}]`,
+        gender,
       });
       if (!unique) {
         link.imageUrl = "";
@@ -715,6 +724,7 @@ export async function enrichAnalysisWithProductImages(
 export async function generateImagesForImprovement(
   improvement: { shoppingLinks: Array<{ label: string; url: string; imageUrl?: string }>; productSearchQuery: string },
   onImageReady?: (linkIdx: number, imageUrl: string) => Promise<void>,
+  gender?: string,
 ): Promise<Array<{ label: string; url: string; imageUrl?: string }>> {
   const links = improvement.shoppingLinks.map(link => ({ ...link }));
   
@@ -736,6 +746,7 @@ export async function generateImagesForImprovement(
         url: link.url,
         categoryQuery: improvement.productSearchQuery,
         logPrefix: `[ProductImages] Lazy [${linkIdx}]`,
+        gender,
       });
       if (resolvedUrl) {
         links[linkIdx].imageUrl = resolvedUrl;
@@ -768,6 +779,7 @@ export async function generateImagesForImprovement(
       url: link.url,
       categoryQuery: improvement.productSearchQuery || "",
       logPrefix: `[ProductImages] Lazy [${linkIdx}]`,
+      gender,
     });
     if (!unique) {
       links[linkIdx].imageUrl = "";

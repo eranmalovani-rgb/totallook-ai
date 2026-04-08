@@ -100,14 +100,21 @@ export async function searchBraveImages(
 
 /**
  * Build a product-focused search query from a shopping link label and category.
- * Same logic as Google version but can be tuned for Brave.
+ * Gender-aware: prepends "men's" or "women's" to get gender-appropriate results.
  */
-export function buildBraveSearchQuery(label: string, categoryQuery: string): string {
+export function buildBraveSearchQuery(label: string, categoryQuery: string, gender?: string): string {
   // Strip store name after dash/em-dash
   const [productNameRaw] = label.split(/\s*[—–-]\s*/);
   const productName = (productNameRaw || label).trim();
 
-  const parts = [productName];
+  const parts: string[] = [];
+  // Add gender prefix to get gender-appropriate product images
+  if (gender === "male" && !/(men|גבר)/i.test(productName)) {
+    parts.push("men's");
+  } else if (gender === "female" && !/(women|נש)/i.test(productName)) {
+    parts.push("women's");
+  }
+  parts.push(productName);
   if (categoryQuery && !productName.toLowerCase().includes(categoryQuery.toLowerCase())) {
     parts.push(categoryQuery);
   }
