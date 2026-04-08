@@ -344,7 +344,11 @@ function ImprovementCard({
   onInfluencerClick?: (name: string, handle?: string, igUrl?: string) => void;
   t: (ns: string, key: string) => string;
 }) {
-  const [localLinks, setLocalLinks] = useState(imp.shoppingLinks || []);
+  // Progressive image loading: server saves each image to DB as it resolves.
+  // The parent review.get query polls every 3s and passes fresh imp.shoppingLinks.
+  // We also use local state from mutation results for immediate updates.
+  const serverLinks = imp.shoppingLinks || [];
+  const [localLinks, setLocalLinks] = useState<any[] | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [hasTriggered, setHasTriggered] = useState(false);
   const [closetPopupOpen, setClosetPopupOpen] = useState(false);
@@ -384,54 +388,81 @@ function ImprovementCard({
     return cm;
   }, [imp]);
 
-  const utils = trpc.useUtils();
-  const hasEmptyImages = localLinks.some((l: any) => !l.imageUrl || l.imageUrl.length < 5);
+  // Check if a URL is from our own storage (safe to display) vs external CDN (may be blocked)
+  const isOwnStorageUrl = (url: string) => {
+    if (!url) return false;
+    try {
+      const h = new URL(url).hostname;
+      return h.includes('cloudfront') || h.includes('r2.') || h.includes('manus') || h.includes('pub-') || h.includes('unsplash') || h.includes('openai');
+    } catch { return false; }
+  };
 
+  // Merge: prefer local mutation results, but also accept server polling updates
+  const links = useMemo(() => {
+    if (!localLinks) return serverLinks;
+    return serverLinks.map((sl: any, i: number) => {
+      const ll = localLinks[i];
+      if (!ll) return sl;
+      if (ll.imageUrl && ll.imageUrl.length > 5 && (!sl.imageUrl || sl.imageUrl.length < 5)) return ll;
+      if (sl.imageUrl && sl.imageUrl.length > 5) return sl;
+      return ll;
+    });
+  }, [serverLinks, localLinks]);
+
+  const hasEmptyImages = links.some((l: any) => !l.imageUrl || l.imageUrl.length < 5);
+  const hasExternalImages = links.some((l: any) => l.imageUrl && l.imageUrl.length > 5 && !isOwnStorageUrl(l.imageUrl));
+  const allImagesLoaded = links.length > 0 && links.every((l: any) => l.imageUrl && l.imageUrl.length > 5) && !hasExternalImages;
+
+  // Track images that failed to load in browser (e.g. blocked CDNs)
+  const [failedImages, setFailedImages] = useState<Set<number>>(new Set());
+  const onImageError = useCallback((linkIndex: number) => {
+    setFailedImages(prev => {
+      const next = new Set(prev);
+      next.add(linkIndex);
+      return next;
+    });
+  }, []);
+  const hasFailedImages = failedImages.size > 0;
+
+  // If server already has all images on safe domains, mark as triggered
   useEffect(() => {
-    if (imp.shoppingLinks) {
-      const serverHasImages = imp.shoppingLinks.some((l: any) => l.imageUrl && l.imageUrl.length > 5);
-      if (serverHasImages) {
-        setLocalLinks(imp.shoppingLinks);
-        // If server already has images, mark as triggered so we don't re-fetch
-        if (!hasTriggered) setHasTriggered(true);
-      }
-    }
-  }, [imp.shoppingLinks]);
+    if (allImagesLoaded && !hasTriggered) setHasTriggered(true);
+  }, [allImagesLoaded]);
 
+  // Trigger generation and USE the result immediately
   const triggerGeneration = useCallback(() => {
-    if (hasTriggered || !hasEmptyImages) return;
+    if (hasTriggered) return;
     setHasTriggered(true);
     setIsGenerating(true);
     generateMutation.mutateAsync({ reviewId, improvementIndex: index })
-      .then((result) => {
-        if (result?.links) setLocalLinks(result.links);
-        utils.review.get.invalidate({ id: reviewId });
+      .then((res) => {
+        if (res?.links && Array.isArray(res.links)) {
+          setLocalLinks(res.links);
+        }
       })
       .catch((err) => console.warn(`[ImprovementCard] Image generation failed for index ${index}:`, err))
       .finally(() => setIsGenerating(false));
-  }, [hasTriggered, hasEmptyImages, reviewId, index]);
+  }, [hasTriggered, reviewId, index]);
 
   const handleRetryImages = useCallback(() => {
+    setFailedImages(new Set());
     setIsGenerating(true);
     generateMutation.mutateAsync({ reviewId, improvementIndex: index })
-      .then((result) => {
-        if (result?.links) setLocalLinks(result.links);
-        utils.review.get.invalidate({ id: reviewId });
+      .then((res) => {
+        if (res?.links && Array.isArray(res.links)) {
+          setLocalLinks(res.links);
+        }
       })
       .catch((err) => console.warn(`[ImprovementCard] Retry image generation failed for index ${index}:`, err))
       .finally(() => setIsGenerating(false));
   }, [reviewId, index]);
 
+  // Auto-trigger generation immediately on mount if images are missing or from external CDNs
   useEffect(() => {
-    if (hasTriggered || !hasEmptyImages) return;
-    const observer = new IntersectionObserver(
-      (entries) => { if (entries[0]?.isIntersecting) triggerGeneration(); },
-      { threshold: 0.05, rootMargin: "200px" }
-    );
-    if (cardRef.current) observer.observe(cardRef.current);
-    const fallbackTimer = setTimeout(() => { triggerGeneration(); }, 0);
-    return () => { observer.disconnect(); clearTimeout(fallbackTimer); };
-  }, [hasTriggered, hasEmptyImages, triggerGeneration]);
+    if (hasTriggered || allImagesLoaded) return;
+    // Trigger if: empty images, external CDN images, or browser-failed images
+    triggerGeneration();
+  }, [hasTriggered, allImagesLoaded, triggerGeneration]);
 
   return (
     <div ref={cardRef} className="space-y-3">
@@ -486,7 +517,7 @@ function ImprovementCard({
         </div>
       </div>
 
-      {localLinks && localLinks.length > 0 && (
+      {links && links.length > 0 && (
         <div className="pt-2">
           <div className="flex items-center justify-between mb-2">
             <p className="text-[10px] text-muted-foreground font-medium flex items-center gap-1">
@@ -501,8 +532,8 @@ function ImprovementCard({
             )}
           </div>
           <div className="grid grid-cols-3 gap-2">
-            {localLinks.map((link: any, j: number) => (
-              <ProductCard key={j} link={link} lang={lang} isGeneratingImages={isGenerating} />
+            {links.map((link: any, j: number) => (
+              <ProductCard key={j} link={link} lang={lang} isGeneratingImages={isGenerating || (!allImagesLoaded && hasTriggered)} />
             ))}
           </div>
         </div>
@@ -1127,11 +1158,11 @@ export default function ReviewPage() {
     { enabled: reviewId > 0, refetchInterval: (query) => {
       const status = (query.state.data as any)?.status;
       if (status === "pending" || status === "analyzing") return 3000;
-      const analysis = (query.state.data as any)?.analysis;
-      const hasEmptyImages = analysis?.improvements?.some((imp: any) =>
+      const analysisData = (query.state.data as any)?.analysisJson;
+      const hasEmptyImages = analysisData?.improvements?.some((imp: any) =>
         imp.shoppingLinks?.some((link: any) => !link.imageUrl || link.imageUrl.length < 5)
       );
-      if ((status === "done" || status === "completed") && hasEmptyImages) return 5000;
+      if ((status === "done" || status === "completed") && hasEmptyImages) return 3000;
       return false;
     }}
   );

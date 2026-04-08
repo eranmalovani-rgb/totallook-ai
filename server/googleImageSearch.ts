@@ -124,7 +124,13 @@ export async function searchGoogleImages(
 export function buildProductSearchQuery(label: string, categoryQuery: string, gender?: string): string {
   // Strip store name after dash/em-dash
   const [productNameRaw] = label.split(/\s*[—–-]\s*/);
-  const productName = (productNameRaw || label).trim();
+  let productName = (productNameRaw || label).trim();
+
+  // If productName contains Hebrew characters, prefer the English categoryQuery for better search results
+  const hasHebrew = /[\u0590-\u05FF]/.test(productName);
+  if (hasHebrew && categoryQuery && /^[a-zA-Z0-9\s'"\-]+$/.test(categoryQuery)) {
+    productName = categoryQuery;
+  }
 
   // Combine product name with category, add "product photo" for better results
   const parts: string[] = [];
@@ -135,7 +141,8 @@ export function buildProductSearchQuery(label: string, categoryQuery: string, ge
     parts.push("women's");
   }
   parts.push(productName);
-  if (categoryQuery && !productName.toLowerCase().includes(categoryQuery.toLowerCase())) {
+  // Don't append categoryQuery again if we already used it as productName
+  if (!hasHebrew && categoryQuery && !productName.toLowerCase().includes(categoryQuery.toLowerCase())) {
     parts.push(categoryQuery);
   }
   parts.push("product photo");

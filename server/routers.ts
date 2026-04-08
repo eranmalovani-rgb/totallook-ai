@@ -1353,6 +1353,8 @@ function buildRecommendationsPromptFromCore(
 - התבסס על פריטי הלבוש, הציונים והסיכום משלב 1.
 - שמור על התאמה לאירוע ולסגנון המשתמש.
 - improvements: 3 המלצות שדרוג (קטגוריות שונות: חלק עליון, חלק תחתון, נעליים/אקססוריז). כל improvement חייב לכלול בדיוק 3 shoppingLinks (כתובות חיפוש תקינות בחנויות אמיתיות). אל תחזיר פחות מ-3.
+- חובה: כל 3 ה-shoppingLinks בכל improvement חייבים להיות מ-3 חנויות שונות! לדוגמה: ASOS, Zara, H&M — לא 3 לינקים לאותה חנות.
+- פורמט label חובה: "תיאור מוצר ספציפי — שם חנות". לדוגמה: "חולצת פולו כחולה slim fit — ASOS", "מכנסי צ'ינו בז' — Zara". אסור label שמכיל רק שם חנות!
 - productSearchQuery חייב להיות באנגלית וספציפי: קטגוריה + צבע + סגנון + מגדר. דוגמה: "men's navy slim fit chino pants". ה-productSearchQuery חייב להתאים לקטגוריית ה-improvement (אם ה-title הוא שדרוג חלק עליון, ה-query חייב להיות של חולצה/חלק עליון).
 - outfitSuggestions: 2 לוקים שלמים (חלק עליון+תחתון+נעליים). כל לוק עם שם מותג+צבע+מחיר.
 - trendSources: 2-3 מקורות רלוונטיים.
@@ -1377,6 +1379,8 @@ Rules:
 - Base recommendations on stage-1 items, scores, and summary.
 - Keep suggestions occasion-aware and style-consistent.
 - improvements: 3 upgrade suggestions (different categories: top, bottom, shoes/accessories). Each improvement MUST include exactly 3 shoppingLinks (valid search URLs to real stores). Never return fewer than 3.
+- MANDATORY: Each improvement's 3 shoppingLinks MUST be from 3 DIFFERENT stores! Example: ASOS, Zara, H&M — never 3 links to the same store.
+- MANDATORY label format: "specific product description — store name". Example: "Navy slim fit polo shirt — ASOS", "Beige chino pants — Zara". NEVER use just the store name as label!
 - productSearchQuery MUST be specific English: category + color + style + gender. Example: "men's navy slim fit chino pants". The productSearchQuery MUST match the improvement category (if title is about tops, query must be for a top/shirt/blouse).
 - outfitSuggestions: 2 complete looks (top+bottom+shoes). Each item with brand+color+price.
 - trendSources: 2-3 relevant sources.
@@ -1544,13 +1548,46 @@ function normalizeImprovementShoppingLinks(
     }
   }
 
+  // Enforce store diversity: ensure links come from different stores
+  const finalLinks = deduped.slice(0, 3);
+  const extractDomain = (url: string) => {
+    try { return new URL(url).hostname.replace(/^www\./, "").split(".")[0].toLowerCase(); } catch { return ""; }
+  };
+  const domains = finalLinks.map((l) => extractDomain(l.url)).filter(Boolean);
+  const uniqueDomains = new Set(domains);
+  console.log(`[StoreDiversity] imp="${(imp.title || "").substring(0, 40)}" domains=[${domains.join(",")}] unique=${uniqueDomains.size}/${finalLinks.length} labels=[${finalLinks.map(l => (l.label || "").substring(0, 30)).join(", ")}]`);
+  
+  if (uniqueDomains.size < finalLinks.length && finalLinks.length >= 2) {
+    // Some or all links go to the same store — replace duplicates with diverse fallbacks
+    const diverseLinks = buildFallbackShoppingLinks(fallbackQuery);
+    const usedDomains = new Set<string>();
+    // First pass: keep one link per unique domain
+    for (let i = 0; i < finalLinks.length; i++) {
+      const domain = extractDomain(finalLinks[i].url);
+      if (domain && usedDomains.has(domain)) {
+        // Replace with a fallback from a different store
+        const replacement = diverseLinks.find(fb => {
+          const fbDomain = extractDomain(fb.url);
+          return fbDomain && !usedDomains.has(fbDomain);
+        });
+        if (replacement) {
+          console.log(`[StoreDiversity] Replacing duplicate ${domain} link[${i}] with ${extractDomain(replacement.url)}`);
+          finalLinks[i] = { ...replacement, imageUrl: "" };
+          usedDomains.add(extractDomain(replacement.url));
+        }
+      } else if (domain) {
+        usedDomains.add(domain);
+      }
+    }
+  }
+
   return {
     title: (imp.title || (isHebrew ? "שדרוג לבוש" : "Wardrobe upgrade")).trim(),
     description: (imp.description || (isHebrew ? "התאמה לשדרוג הלוק." : "Upgrade to improve overall look coherence.")).trim(),
     beforeLabel: (imp.beforeLabel || (isHebrew ? "לפני" : "Before")).trim(),
     afterLabel: (imp.afterLabel || (isHebrew ? "אחרי" : "After")).trim(),
     productSearchQuery: fallbackQuery,
-    shoppingLinks: deduped.slice(0, 3),
+    shoppingLinks: finalLinks,
     closetMatch: imp.closetMatch,
   };
 }

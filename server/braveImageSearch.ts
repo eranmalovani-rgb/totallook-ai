@@ -149,9 +149,35 @@ export async function searchBraveImages(
  * Gender-aware: prepends "men's" or "women's" to get gender-appropriate results.
  */
 export function buildBraveSearchQuery(label: string, categoryQuery: string, gender?: string): string {
-  // Strip store name after dash/em-dash
-  const [productNameRaw] = label.split(/\s*[—–-]\s*/);
-  const productName = (productNameRaw || label).trim();
+  // Strip store name from label (handles both "Store - Product" and "Product — Store")
+  const STORE_NAMES = /^(farfetch|asos|zara|h&m|nordstrom|uniqlo|mango|cos|massimo dutti|pull&bear|bershka|shein|boohoo|net-a-porter|ssense|mr porter|revolve|topshop|primark|gap|old navy|banana republic|j\.?\s*crew|ralph lauren|tommy hilfiger|calvin klein|hugo boss|ted baker|reiss|nike|adidas|puma|new balance|reebok|converse|vans|gucci|prada|louis vuitton|burberry|balenciaga|valentino|versace|fendi|dior|celine|saint laurent|bottega veneta|loewe|givenchy|alexander mcqueen|off-white|moncler|canada goose|the north face|patagonia|columbia|common projects|golden goose|axel arigato|acne studios|ami paris|maison margiela|thom browne|brunello cucinelli|loro piana|ermenegildo zegna|canali|hugo boss|sandro|maje|zadig & voltaire|the kooples|theory|helmut lang|rag & bone|everlane|reformation|anthropologie|lululemon|under armour|champion|carhartt|stussy|supreme|fear of god|essentials|yoox|luisaviaroma|mytheresa|matchesfashion|24s|cettire|terminalx|ksp|factory54|shoesonline|urbanica|castro|renuar|golf|honigman|fox|american eagle|next|river island|topman|apc|cos|arket|weekday|monki|selected|jack & jones|scotch & soda|superdry|diesel|replay|g-star|barbour|woolrich|herno|stone island|cp company|church's|tod's|salvatore ferragamo|cole haan|clarks|ecco|birkenstock|dr\.?\s*martens|timberland|red wing|allen edmonds)$/i;
+  const segments = label.split(/\s*[—–-]\s*/);
+  let productName: string;
+  if (segments.length >= 2) {
+    const firstIsStore = STORE_NAMES.test(segments[0].trim());
+    const lastIsStore = STORE_NAMES.test(segments[segments.length - 1].trim());
+    if (firstIsStore && !lastIsStore) {
+      productName = segments.slice(1).join(' ').trim();
+    } else if (lastIsStore && !firstIsStore) {
+      productName = segments.slice(0, -1).join(' ').trim();
+    } else {
+      // Pick the longer part (more likely product description)
+      productName = segments.reduce((a, b) => a.length >= b.length ? a : b).trim();
+    }
+  } else {
+    productName = label.trim();
+  }
+
+  // If productName is just a store name (no product description), use categoryQuery instead
+  if (STORE_NAMES.test(productName.trim())) {
+    productName = categoryQuery || productName;
+  }
+
+  // If productName contains Hebrew characters, prefer the English categoryQuery for better search results
+  const hasHebrew = /[\u0590-\u05FF]/.test(productName);
+  if (hasHebrew && categoryQuery && /^[a-zA-Z0-9\s'"\-]+$/.test(categoryQuery)) {
+    productName = categoryQuery;
+  }
 
   const parts: string[] = [];
   // Add gender prefix to get gender-appropriate product images
@@ -161,7 +187,8 @@ export function buildBraveSearchQuery(label: string, categoryQuery: string, gend
     parts.push("women's");
   }
   parts.push(productName);
-  if (categoryQuery && !productName.toLowerCase().includes(categoryQuery.toLowerCase())) {
+  // Don't append categoryQuery again if we already used it as productName
+  if (!hasHebrew && categoryQuery && !productName.toLowerCase().includes(categoryQuery.toLowerCase())) {
     parts.push(categoryQuery);
   }
   parts.push("product photo");

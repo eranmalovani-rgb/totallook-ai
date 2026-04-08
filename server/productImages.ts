@@ -27,6 +27,67 @@ const MAX_CONCURRENT = 5;
 const CACHE_TTL_DAYS = 30;
 
 /**
+ * Download an image from an external URL and re-upload it to our S3 bucket.
+ * Returns the S3 public URL so the browser never hits a hotlink-protected CDN.
+ * Falls back to the original URL if the proxy fails.
+ */
+async function proxyImageToS3(imageUrl: string): Promise<string> {
+  // Skip if already on our S3 / known-safe domains
+  if (!imageUrl || !imageUrl.startsWith('http')) return imageUrl;
+  try {
+    const u = new URL(imageUrl);
+    // Already on our storage — no need to proxy
+    if (u.hostname.includes('r2.cloudflarestorage') || u.hostname.includes('manus') || u.hostname.includes('pub-')) return imageUrl;
+    // Our own CDN
+    if (u.hostname.includes('totallook')) return imageUrl;
+    // AI-generated images are already on a safe CDN
+    if (u.hostname.includes('oaidalleapiprodscus') || u.hostname.includes('openai')) return imageUrl;
+    // Unsplash images are safe to use directly
+    if (u.hostname.includes('unsplash')) return imageUrl;
+    // Cloudfront CDN images are safe
+    if (u.hostname.includes('cloudfront.net')) return imageUrl;
+  } catch { return ''; }
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    const resp = await fetch(imageUrl, {
+      signal: controller.signal,
+      headers: {
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+        'referer': new URL(imageUrl).origin + '/',
+      },
+    });
+    clearTimeout(timeoutId);
+    if (!resp.ok) {
+      console.warn(`[ProxyS3] fetch failed ${resp.status} for ${imageUrl.substring(0, 80)} — returning empty to trigger fallback`);
+      return '';
+    }
+    const contentType = resp.headers.get('content-type') || 'image/jpeg';
+    // If response is not an image (e.g. HTML error page), reject
+    if (!contentType.startsWith('image/')) {
+      console.warn(`[ProxyS3] not an image (${contentType}) for ${imageUrl.substring(0, 80)} — returning empty`);
+      return '';
+    }
+    const buf = Buffer.from(await resp.arrayBuffer());
+    if (buf.length < 500) {
+      console.warn(`[ProxyS3] image too small (${buf.length}b), returning empty to trigger fallback`);
+      return '';
+    }
+    const ext = contentType.includes('png') ? 'png' : contentType.includes('webp') ? 'webp' : 'jpg';
+    const hash = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    const key = `product-images/${hash}.${ext}`;
+    const { url: s3Url } = await storagePut(key, buf, contentType);
+    console.log(`[ProxyS3] proxied to S3: ${imageUrl.substring(0, 60)} → ${s3Url.substring(0, 60)}`);
+    return s3Url;
+  } catch (err: any) {
+    console.warn(`[ProxyS3] proxy failed: ${err?.message} — returning empty to trigger fallback`);
+    return '';
+  }
+}
+
+/**
  * Category-aware placeholder image URLs.
  * These are high-quality stock photos from Unsplash that represent each clothing category.
  * Used as last-resort fallback when cache, store OG, Brave, Google, and AI all fail.
@@ -219,7 +280,11 @@ async function resolveShoppingLinkImage(params: {
         console.log(`${logPrefix} cache hit but duplicate — skipping to search: "${label}"`);
       } else {
         console.log(`${logPrefix} cache hit: "${label}"`);
-        return cachedUrl;
+        const proxiedCached = await proxyImageToS3(cachedUrl);
+        if (proxiedCached && isValidImageUrl(proxiedCached)) {
+          return proxiedCached;
+        }
+        console.log(`${logPrefix} cache hit but proxy failed, continuing to search: "${label}"`);
       }
     }
   }
@@ -229,13 +294,17 @@ async function resolveShoppingLinkImage(params: {
     const storeImageUrl = await fetchStoreImageUrl(url);
     if (storeImageUrl && isValidImageUrl(storeImageUrl)) {
       console.log(`${logPrefix} store image: "${label}"`);
-      saveProductImageToCache({
-        productKey: cacheKey,
-        imageUrl: storeImageUrl,
-        originalLabel: label,
-        categoryQuery,
-      }).catch(err => console.warn("[ProductImages] Cache save failed:", err?.message));
-      return storeImageUrl;
+      const proxiedStoreUrl = await proxyImageToS3(storeImageUrl);
+      if (proxiedStoreUrl && isValidImageUrl(proxiedStoreUrl)) {
+        saveProductImageToCache({
+          productKey: cacheKey,
+          imageUrl: proxiedStoreUrl,
+          originalLabel: label,
+          categoryQuery,
+        }).catch(err => console.warn("[ProductImages] Cache save failed:", err?.message));
+        return proxiedStoreUrl;
+      }
+      console.log(`${logPrefix} store image proxy failed, continuing to Brave search`);
     }
   }
 
@@ -250,13 +319,35 @@ async function resolveShoppingLinkImage(params: {
       const bestImage = await pickBestBraveImage(braveResults, usedImageUrls, categoryQuery);
       if (bestImage && isValidImageUrl(bestImage)) {
         console.log(`${logPrefix} Brave Image: "${label}"`);
-        saveProductImageToCache({
-          productKey: cacheKey,
-          imageUrl: bestImage,
-          originalLabel: label,
-          categoryQuery,
-        }).catch(err => console.warn("[ProductImages] Cache save failed:", err?.message));
-        return bestImage;
+        const proxiedBraveUrl = await proxyImageToS3(bestImage);
+        if (proxiedBraveUrl && isValidImageUrl(proxiedBraveUrl)) {
+          saveProductImageToCache({
+            productKey: cacheKey,
+            imageUrl: proxiedBraveUrl,
+            originalLabel: label,
+            categoryQuery,
+          }).catch(err => console.warn("[ProductImages] Cache save failed:", err?.message));
+          return proxiedBraveUrl;
+        }
+        // Brave image proxy failed — try next Brave results before falling through
+        console.log(`${logPrefix} Brave image proxy failed, trying other Brave results...`);
+        for (const altResult of braveResults.slice(0, 6)) {
+          const altUrl = altResult.url || altResult.thumbnailUrl;
+          if (!altUrl || altUrl === bestImage) continue;
+          if (usedImageUrls && usedImageUrls.has(altUrl.trim().toLowerCase())) continue;
+          const altProxied = await proxyImageToS3(altUrl);
+          if (altProxied && isValidImageUrl(altProxied)) {
+            console.log(`${logPrefix} Brave alt image proxied OK: "${label}"`);
+            saveProductImageToCache({
+              productKey: cacheKey,
+              imageUrl: altProxied,
+              originalLabel: label,
+              categoryQuery,
+            }).catch(err => console.warn("[ProductImages] Cache save failed:", err?.message));
+            return altProxied;
+          }
+        }
+        console.log(`${logPrefix} all Brave images failed proxy, falling through to Google`);
       }
     }
   } catch (braveErr: any) {
@@ -274,13 +365,35 @@ async function resolveShoppingLinkImage(params: {
       const bestImage = await pickBestProductImage(googleResults, usedImageUrls, categoryQuery);
       if (bestImage && isValidImageUrl(bestImage)) {
         console.log(`${logPrefix} Google Image: "${label}"`);
-        saveProductImageToCache({
-          productKey: cacheKey,
-          imageUrl: bestImage,
-          originalLabel: label,
-          categoryQuery,
-        }).catch(err => console.warn("[ProductImages] Cache save failed:", err?.message));
-        return bestImage;
+        const proxiedGoogleUrl = await proxyImageToS3(bestImage);
+        if (proxiedGoogleUrl && isValidImageUrl(proxiedGoogleUrl)) {
+          saveProductImageToCache({
+            productKey: cacheKey,
+            imageUrl: proxiedGoogleUrl,
+            originalLabel: label,
+            categoryQuery,
+          }).catch(err => console.warn("[ProductImages] Cache save failed:", err?.message));
+          return proxiedGoogleUrl;
+        }
+        // Google image proxy failed — try other Google results
+        console.log(`${logPrefix} Google image proxy failed, trying other Google results...`);
+        for (const altResult of googleResults.slice(0, 6)) {
+          const altUrl = altResult.link;
+          if (!altUrl || altUrl === bestImage) continue;
+          if (usedImageUrls && usedImageUrls.has(altUrl.trim().toLowerCase())) continue;
+          const altProxied = await proxyImageToS3(altUrl);
+          if (altProxied && isValidImageUrl(altProxied)) {
+            console.log(`${logPrefix} Google alt image proxied OK: "${label}"`);
+            saveProductImageToCache({
+              productKey: cacheKey,
+              imageUrl: altProxied,
+              originalLabel: label,
+              categoryQuery,
+            }).catch(err => console.warn("[ProductImages] Cache save failed:", err?.message));
+            return altProxied;
+          }
+        }
+        console.log(`${logPrefix} all Google images failed proxy, falling through to AI`);
       }
     }
   } catch (googleErr: any) {
@@ -302,13 +415,14 @@ async function resolveShoppingLinkImage(params: {
     return "";
   }
   console.log(`${logPrefix} AI done in ${elapsed}ms: "${label}"`);
+  const proxiedAIUrl = await proxyImageToS3(generatedUrl);
   saveProductImageToCache({
     productKey: cacheKey,
-    imageUrl: generatedUrl,
+    imageUrl: proxiedAIUrl,
     originalLabel: label,
     categoryQuery,
   }).catch(err => console.warn("[ProductImages] Cache save failed:", err?.message));
-  return generatedUrl;
+  return proxiedAIUrl;
 }
 
 /**
@@ -884,10 +998,41 @@ export async function generateImagesForImprovement(
   const categoryQuery = improvement.productSearchQuery || "";
   const linksNeedingImages: number[] = [];
 
-  // First pass: check which links already have valid images
+  // Helper: check if URL is already on our own storage (safe to display in browser)
+  const isOwnStorageUrl = (url: string) => {
+    if (!url) return false;
+    try {
+      const h = new URL(url).hostname;
+      return h.includes('cloudfront') || h.includes('r2.') || h.includes('manus') || h.includes('pub-') || h.includes('unsplash') || h.includes('openai');
+    } catch { return false; }
+  };
+
+  // First pass: check which links already have valid images on our storage
   for (let linkIdx = 0; linkIdx < links.length; linkIdx += 1) {
     const link = links[linkIdx];
     if (link.imageUrl && isValidImageUrl(link.imageUrl)) {
+      // If image is from external CDN, proxy it to S3 first
+      if (!isOwnStorageUrl(link.imageUrl)) {
+        console.log(`[ProductImages] Lazy: external CDN image for [${linkIdx}], proxying to S3...`);
+        const proxiedUrl = await proxyImageToS3(link.imageUrl);
+        if (proxiedUrl !== link.imageUrl && isOwnStorageUrl(proxiedUrl)) {
+          // Successfully proxied — update the link and save to DB
+          link.imageUrl = proxiedUrl;
+          const normalizedExisting = proxiedUrl.trim().toLowerCase();
+          usedImageUrls.add(normalizedExisting);
+          if (onImageReady) {
+            try { await onImageReady(linkIdx, proxiedUrl); } catch (e: any) {
+              console.warn(`[ProductImages] DB update after proxy failed:`, e?.message);
+            }
+          }
+          console.log(`[ProductImages] Lazy: proxied [${linkIdx}] to S3 OK`);
+          continue;
+        }
+        // Proxy failed — treat as needing new image
+        console.log(`[ProductImages] Lazy: proxy failed for [${linkIdx}], will re-fetch`);
+        linksNeedingImages.push(linkIdx);
+        continue;
+      }
       const normalizedExisting = link.imageUrl.trim().toLowerCase();
       if (!usedImageUrls.has(normalizedExisting)) {
         console.log(`[ProductImages] Lazy: existing image OK for [${linkIdx}]: "${link.label}"`);

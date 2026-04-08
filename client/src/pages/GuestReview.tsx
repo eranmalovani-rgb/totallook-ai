@@ -255,44 +255,69 @@ function GuestImprovementAccordionCard({
   t: (ns: string, key: string) => string;
   closetMatch?: any;
 }) {
-  const [localLinks, setLocalLinks] = useState(imp.shoppingLinks || []);
+  // Progressive image loading: server saves each image to DB as it resolves.
+  // The parent guest session query polls and passes fresh imp.shoppingLinks.
+  // We also use local state from mutation results for immediate updates.
+  const serverLinks = imp.shoppingLinks || [];
+  const [localLinks, setLocalLinks] = useState<any[] | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [hasTriggered, setHasTriggered] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   const generateMutation = trpc.guest.generateProductImages.useMutation();
 
-  const hasEmptyImages = localLinks.some((l: any) => !l.imageUrl || l.imageUrl.length < 5);
+  // Check if a URL is from our own storage (safe to display) vs external CDN (may be blocked)
+  const isOwnStorageUrl = (url: string) => {
+    if (!url) return false;
+    try {
+      const h = new URL(url).hostname;
+      return h.includes('cloudfront') || h.includes('r2.') || h.includes('manus') || h.includes('pub-') || h.includes('unsplash') || h.includes('openai');
+    } catch { return false; }
+  };
 
+  // Merge: prefer local mutation results, but also accept server polling updates
+  const links = useMemo(() => {
+    if (!localLinks) return serverLinks;
+    // Merge: for each link, pick the one with a valid imageUrl
+    return serverLinks.map((sl: any, i: number) => {
+      const ll = localLinks[i];
+      if (!ll) return sl;
+      // If local has image and server doesn't, use local
+      if (ll.imageUrl && ll.imageUrl.length > 5 && (!sl.imageUrl || sl.imageUrl.length < 5)) return ll;
+      // If server has image (from polling), prefer server
+      if (sl.imageUrl && sl.imageUrl.length > 5) return sl;
+      return ll;
+    });
+  }, [serverLinks, localLinks]);
+
+  const hasEmptyImages = links.some((l: any) => !l.imageUrl || l.imageUrl.length < 5);
+  const hasExternalImages = links.some((l: any) => l.imageUrl && l.imageUrl.length > 5 && !isOwnStorageUrl(l.imageUrl));
+  const allImagesLoaded = links.length > 0 && links.every((l: any) => l.imageUrl && l.imageUrl.length > 5) && !hasExternalImages;
+
+  // If server already has all images on safe domains, mark as triggered
   useEffect(() => {
-    if (imp.shoppingLinks) {
-      const serverHasImages = imp.shoppingLinks.some((l: any) => l.imageUrl && l.imageUrl.length > 5);
-      if (serverHasImages) {
-        setLocalLinks(imp.shoppingLinks);
-        if (!hasTriggered) setHasTriggered(true);
-      }
-    }
-  }, [imp.shoppingLinks]);
+    if (allImagesLoaded && !hasTriggered) setHasTriggered(true);
+  }, [allImagesLoaded]);
 
+  // Trigger generation and USE the result immediately
   const triggerGeneration = useCallback(() => {
-    if (hasTriggered || !hasEmptyImages) return;
+    if (hasTriggered) return;
     setHasTriggered(true);
     setIsGenerating(true);
     generateMutation.mutateAsync({ sessionId, improvementIndex: index })
-      .then((result) => { if (result?.links) setLocalLinks(result.links); })
+      .then((res) => {
+        if (res?.links && Array.isArray(res.links)) {
+          setLocalLinks(res.links);
+        }
+      })
       .catch((err) => console.warn(`[GuestImprovementCard] Image generation failed:`, err))
       .finally(() => setIsGenerating(false));
-  }, [hasTriggered, hasEmptyImages, sessionId, index]);
+  }, [hasTriggered, sessionId, index]);
 
+  // Auto-trigger generation immediately on mount if images are missing or from external CDNs
   useEffect(() => {
-    if (hasTriggered || !hasEmptyImages) return;
-    const observer = new IntersectionObserver(
-      (entries) => { if (entries[0]?.isIntersecting) triggerGeneration(); },
-      { threshold: 0.05, rootMargin: "200px" }
-    );
-    if (cardRef.current) observer.observe(cardRef.current);
-    const fallbackTimer = setTimeout(() => { triggerGeneration(); }, 0);
-    return () => { observer.disconnect(); clearTimeout(fallbackTimer); };
-  }, [hasTriggered, hasEmptyImages, triggerGeneration]);
+    if (hasTriggered || allImagesLoaded) return;
+    triggerGeneration();
+  }, [hasTriggered, allImagesLoaded, triggerGeneration]);
 
   return (
     <div ref={cardRef}>
@@ -329,14 +354,14 @@ function GuestImprovementAccordionCard({
               </div>
             )}
 
-            {localLinks && localLinks.length > 0 && (
+            {links && links.length > 0 && (
               <div>
                 <p className="text-xs text-muted-foreground mb-3 font-medium flex items-center gap-1.5">
                   <ShoppingBag className="w-3.5 h-3.5" />{t("review", "recommendedProducts")}
                 </p>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {localLinks.map((link: any, j: number) => (
-                    <ProductCard key={j} link={link} lang={lang} isGeneratingImages={isGenerating} />
+                  {links.map((link: any, j: number) => (
+                    <ProductCard key={j} link={link} lang={lang} isGeneratingImages={isGenerating || (!allImagesLoaded && hasTriggered)} />
                   ))}
                 </div>
               </div>
@@ -864,7 +889,7 @@ export default function GuestReview() {
           const hasEmptyImages = a?.improvements?.some((imp: any) =>
             imp.shoppingLinks?.some((link: any) => !link.imageUrl || link.imageUrl.length < 5)
           );
-          if (hasEmptyImages) return 5000;
+          if (hasEmptyImages) return 3000;
         }
         return false;
       },

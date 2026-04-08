@@ -219,3 +219,30 @@
 - [x] 12.9: Fix dedup — when cache hit returns URL already in usedImageUrls, skip cache and try Brave/Google instead of expensive AI generation
 - [x] 12.10: Normalized guest Stage 2 maxTokens to 2000 for consistency
 - [x] 12.11: Updated performance test for 4s timeout (28/28 tests pass)
+
+## Stage 12b — Mandatory 3 Product Images Per Improvement (User-reported critical)
+- [x] 12b.1: Backend — guarantee 3 different images per improvement, aggressive fallback chain (cache → Brave → Google → AI → placeholder), never return empty imageUrl
+- [x] 12b.2: Backend — progressive DB updates: save each image to DB immediately as it resolves (not wait for all 3)
+- [x] 12b.3: Frontend — progressive loading: show each image as it arrives via polling/refetch, never show empty squares
+- [x] 12b.4: Frontend — images must match look/occasion/gender context
+- [x] 12b.5: Frontend — remove "refresh images" button dependency, images must auto-load
+- [x] 12b.6: Verify end-to-end: all 4 improvements × 3 images = 12 images loaded, no empty squares
+
+## Stage 13 — Store Diversity + Hebrew Search Fix (User-reported critical)
+- [x] 13.1: Fix Hebrew labels in Brave search — when label is Hebrew, use categoryQuery (English) instead of Hebrew text
+- [x] 13.2: Verify normalizeImprovementShoppingLinks runs and StoreDiversity logs appear after server restart
+- [x] 13.3: Ensure store diversity enforcement works — if all 3 links from same store, replace with ASOS/Zara/H&M fallbacks
+- [x] 13.4: Add more detailed logging to track LLM output → normalize → diversity → image search pipeline
+- [x] 13.5: Test end-to-end: run analysis and verify 3 different images from different stores per improvement
+- [x] 13.6: Update vitest tests for Hebrew label handling and store diversity
+
+## Stage 14 — Proxy Image Fix (Root cause of empty squares)
+- [x] 14.1: proxyImageToS3 now returns empty string on failure instead of original URL (prevents hotlink-blocked URLs from being saved to DB)
+- [x] 14.2: resolveShoppingLinkImage validates proxy results at every step — if proxy fails, continues to next fallback
+- [x] 14.3: When Brave best image fails proxy, tries up to 6 other Brave results before falling through to Google
+- [x] 14.4: When Google best image fails proxy, tries up to 6 other Google results before falling through to AI
+- [x] 14.5: Added safe domain list (totallook.ai, cloudfront.net, unsplash) to skip proxy entirely
+- [x] 14.6: Content-type validation — rejects non-image responses (HTML error pages) from proxy
+- [x] 14.7: Increased proxy timeout from 6s to 8s for slower CDNs
+- [x] 14.8: Cache hit also validates proxy result — if proxy fails on cached URL, continues to search
+- [x] 14.9: All 762/766 tests pass (4 pre-existing API failures), TS compiles clean

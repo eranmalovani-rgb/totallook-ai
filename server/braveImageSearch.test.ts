@@ -65,6 +65,25 @@ describe("buildBraveSearchQuery", () => {
     const q = buildBraveSearchQuery("White Shirt", "shirt", "female");
     expect(q).toContain("women's");
   });
+
+  it("uses English categoryQuery when label is Hebrew", () => {
+    const q = buildBraveSearchQuery("חולצה טי-שירט צווארון וי משי לבן — Farfetch", "men's white luxury silk v-neck t-shirt", "male");
+    expect(q).not.toMatch(/[\u0590-\u05FF]/); // No Hebrew characters
+    expect(q).toContain("men's white luxury silk v-neck t-shirt");
+    expect(q).toContain("product photo");
+  });
+
+  it("uses English categoryQuery for pure Hebrew label without store name", () => {
+    const q = buildBraveSearchQuery("שעון יוקרתי עם רצועת עור שחורה", "luxury leather watch black strap", "male");
+    expect(q).not.toMatch(/[\u0590-\u05FF]/); // No Hebrew characters
+    expect(q).toContain("luxury leather watch black strap");
+  });
+
+  it("does not replace English label with categoryQuery", () => {
+    const q = buildBraveSearchQuery("tailored shirt premium — Farfetch", "tailored shirt premium", "male");
+    expect(q).toContain("tailored shirt premium");
+    expect(q).not.toContain("Farfetch");
+  });
 });
 
 /* ------------------------------------------------------------------ */

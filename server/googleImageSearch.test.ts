@@ -43,6 +43,25 @@ describe("buildProductSearchQuery", () => {
     expect(q).toContain("dresses");
     expect(q).toContain("product photo");
   });
+
+  it("uses English categoryQuery when label is Hebrew", () => {
+    const q = buildProductSearchQuery("חולצה טי-שירט צווארון וי משי לבן — Farfetch", "men's white luxury silk v-neck t-shirt", "male");
+    expect(q).not.toMatch(/[\u0590-\u05FF]/); // No Hebrew characters
+    expect(q).toContain("men's white luxury silk v-neck t-shirt");
+    expect(q).toContain("product photo");
+  });
+
+  it("uses English categoryQuery for pure Hebrew label", () => {
+    const q = buildProductSearchQuery("שעון יוקרתי עם רצועת עור", "luxury leather watch", "male");
+    expect(q).not.toMatch(/[\u0590-\u05FF]/); // No Hebrew characters
+    expect(q).toContain("luxury leather watch");
+  });
+
+  it("does not replace English label with categoryQuery", () => {
+    const q = buildProductSearchQuery("tailored shirt premium — Farfetch", "tailored shirt premium", "male");
+    expect(q).toContain("tailored shirt premium");
+    expect(q).not.toContain("Farfetch");
+  });
 });
 
 // ── pickBestProductImage ─────────────────────────────────────────────────────
