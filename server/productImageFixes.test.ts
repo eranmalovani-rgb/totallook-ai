@@ -7,7 +7,7 @@
  * 3. Domain-level deduplication in ensureUniqueImageWithinImprovement
  * 4. Improved LLM prompt for productSearchQuery specificity
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach, beforeAll, afterAll } from "vitest";
 import { buildProductSearchQuery } from "./googleImageSearch";
 import { buildBraveSearchQuery } from "./braveImageSearch";
 
@@ -333,5 +333,133 @@ describe("Stage 10: Product Image Fixes", () => {
       // Should only have empty assignments in dedup section (not in main resolution)
       expect(emptyAssignments).toBeLessThanOrEqual(2); // Only in dedup sections
     });
+  });
+});
+
+// ===== Stage 10c: Cross-category filtering tests =====
+
+import { pickBestBraveImage, type BraveImageResult } from "./braveImageSearch";
+import { pickBestProductImage, type GoogleImageResult } from "./googleImageSearch";
+
+describe("Stage 10c: Cross-category filtering in Brave picker", () => {
+  const originalFetch = globalThis.fetch;
+  beforeAll(() => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      headers: { get: (h: string) => h === "content-type" ? "image/jpeg" : "" },
+    });
+  });
+  afterAll(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  it("penalizes pants results when searching for tops", async () => {
+    const results: BraveImageResult[] = [
+      { url: "https://example.com/pants.jpg", thumbnailUrl: "", width: 500, height: 700, title: "Men's Slim Fit Chino Pants", sourceUrl: "", confidence: "high" },
+      { url: "https://example.com/shirt.jpg", thumbnailUrl: "", width: 500, height: 700, title: "Men's Oxford Button-Down Shirt", sourceUrl: "", confidence: "medium" },
+    ];
+    const best = await pickBestBraveImage(results, undefined, "men's white oxford shirt");
+    expect(best).toBe("https://example.com/shirt.jpg");
+  });
+
+  it("penalizes shoes results when searching for outerwear", async () => {
+    const results: BraveImageResult[] = [
+      { url: "https://example.com/sneaker.jpg", thumbnailUrl: "", width: 500, height: 700, title: "Nike Air Max Sneaker", sourceUrl: "", confidence: "high" },
+      { url: "https://example.com/jacket.jpg", thumbnailUrl: "", width: 500, height: 700, title: "Men's Bomber Jacket", sourceUrl: "", confidence: "medium" },
+    ];
+    const best = await pickBestBraveImage(results, undefined, "men's black bomber jacket");
+    expect(best).toBe("https://example.com/jacket.jpg");
+  });
+
+  it("does not penalize matching category results", async () => {
+    const results: BraveImageResult[] = [
+      { url: "https://example.com/jeans1.jpg", thumbnailUrl: "", width: 500, height: 700, title: "Levi's 501 Original Jeans", sourceUrl: "", confidence: "high" },
+      { url: "https://example.com/jeans2.jpg", thumbnailUrl: "", width: 500, height: 700, title: "Wrangler Slim Fit Jeans", sourceUrl: "", confidence: "medium" },
+    ];
+    const best = await pickBestBraveImage(results, undefined, "men's blue slim jeans");
+    expect(best).toBe("https://example.com/jeans1.jpg");
+  });
+
+  it("respects usedUrls while also filtering by category", async () => {
+    const results: BraveImageResult[] = [
+      { url: "https://example.com/shirt1.jpg", thumbnailUrl: "", width: 500, height: 700, title: "White Dress Shirt", sourceUrl: "", confidence: "high" },
+      { url: "https://example.com/pants.jpg", thumbnailUrl: "", width: 500, height: 700, title: "Black Dress Pants", sourceUrl: "", confidence: "high" },
+      { url: "https://example.com/shirt2.jpg", thumbnailUrl: "", width: 500, height: 700, title: "Blue Polo Shirt", sourceUrl: "", confidence: "medium" },
+    ];
+    const usedUrls = new Set(["https://example.com/shirt1.jpg"]);
+    const best = await pickBestBraveImage(results, usedUrls, "men's polo shirt");
+    expect(best).toBe("https://example.com/shirt2.jpg");
+  });
+});
+
+describe("Stage 10c: Cross-category filtering in Google picker", () => {
+  const originalFetch2 = globalThis.fetch;
+  beforeAll(() => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      headers: { get: (h: string) => h === "content-type" ? "image/jpeg" : "" },
+    });
+  });
+  afterAll(() => {
+    globalThis.fetch = originalFetch2;
+  });
+
+  it("penalizes dress results when searching for shoes", async () => {
+    const results: GoogleImageResult[] = [
+      { link: "https://example.com/dress.jpg", thumbnailLink: "", width: 500, height: 700, title: "Summer Maxi Dress", contextLink: "" },
+      { link: "https://example.com/loafer.jpg", thumbnailLink: "", width: 500, height: 700, title: "Men's Leather Loafer", contextLink: "" },
+    ];
+    const best = await pickBestProductImage(results, undefined, "men's brown leather loafer");
+    expect(best).toBe("https://example.com/loafer.jpg");
+  });
+
+  it("penalizes accessory results when searching for bottoms", async () => {
+    const results: GoogleImageResult[] = [
+      { link: "https://example.com/watch.jpg", thumbnailLink: "", width: 500, height: 700, title: "Casio Digital Watch", contextLink: "" },
+      { link: "https://example.com/chinos.jpg", thumbnailLink: "", width: 500, height: 700, title: "Slim Fit Chino Pants", contextLink: "" },
+    ];
+    const best = await pickBestProductImage(results, undefined, "men's navy chino pants");
+    expect(best).toBe("https://example.com/chinos.jpg");
+  });
+
+  it("respects usedUrls and category filtering together", async () => {
+    const results: GoogleImageResult[] = [
+      { link: "https://example.com/shoe1.jpg", thumbnailLink: "", width: 500, height: 700, title: "Nike Running Shoe", contextLink: "" },
+      { link: "https://example.com/shirt.jpg", thumbnailLink: "", width: 500, height: 700, title: "Cotton T-Shirt", contextLink: "" },
+      { link: "https://example.com/shoe2.jpg", thumbnailLink: "", width: 500, height: 700, title: "Adidas Sneaker", contextLink: "" },
+    ];
+    const usedUrls = new Set(["https://example.com/shoe1.jpg"]);
+    const best = await pickBestProductImage(results, usedUrls, "men's running sneaker");
+    expect(best).toBe("https://example.com/shoe2.jpg");
+  });
+});
+
+describe("Stage 10c: Hybrid prefetch integration", () => {
+  it("productImages.ts should use prefetchedResults in resolveShoppingLinkImage", async () => {
+    const fs = await import("fs");
+    const path = await import("path");
+    const source = fs.readFileSync(
+      path.resolve(__dirname, "./productImages.ts"),
+      "utf-8",
+    );
+    expect(source).toContain("prefetchedResults");
+    expect(source).toContain("prefetchedResults?.braveResults");
+    expect(source).toContain("prefetchedResults?.googleResults");
+    expect(source).toContain("prefetchMap");
+    expect(source).toContain("PARALLEL PREFETCH");
+    expect(source).toContain("SEQUENTIAL SELECTION");
+  });
+
+  it("should have timing logs in routers.ts for both flows", async () => {
+    const fs = await import("fs");
+    const path = await import("path");
+    const source = fs.readFileSync(
+      path.resolve(__dirname, "./routers.ts"),
+      "utf-8",
+    );
+    const stage1TimingCount = (source.match(/\[Timing\] Stage 1 completed/g) || []).length;
+    const stage2TimingCount = (source.match(/\[Timing\] Stage 2 completed/g) || []).length;
+    expect(stage1TimingCount).toBe(2); // registered + guest
+    expect(stage2TimingCount).toBe(2); // registered + guest
   });
 });

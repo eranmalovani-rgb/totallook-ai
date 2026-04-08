@@ -193,6 +193,8 @@ async function resolveShoppingLinkImage(params: {
   gender?: string;
   /** URLs already used by other links in the same improvement — skip these in Brave/Google picks */
   usedImageUrls?: Set<string>;
+  /** Pre-fetched search results (if available, skip API calls for speed) */
+  prefetchedResults?: { braveResults: import('./braveImageSearch').BraveImageResult[]; googleResults: import('./googleImageSearch').GoogleImageResult[] };
 }): Promise<string> {
   const {
     label,
@@ -205,6 +207,7 @@ async function resolveShoppingLinkImage(params: {
     promptSalt,
     gender,
     usedImageUrls,
+    prefetchedResults,
   } = params;
   const cacheKey = normalizeProductKey(label, categoryQuery, url);
   if (!skipCache) {
@@ -235,11 +238,13 @@ async function resolveShoppingLinkImage(params: {
 
   // --- Step 3: Try Brave Image Search (primary) ---
   try {
-    const braveQuery = buildBraveSearchQuery(label, categoryQuery, gender);
-    const braveResults = await searchBraveImages(braveQuery, 8);
+    const braveResults = prefetchedResults?.braveResults ?? await (async () => {
+      const braveQuery = buildBraveSearchQuery(label, categoryQuery, gender);
+      return searchBraveImages(braveQuery, 8);
+    })();
     if (braveResults.length > 0) {
       // Pass usedImageUrls so picker skips images already chosen by other links
-      const bestImage = await pickBestBraveImage(braveResults, usedImageUrls);
+      const bestImage = await pickBestBraveImage(braveResults, usedImageUrls, categoryQuery);
       if (bestImage && isValidImageUrl(bestImage)) {
         const reachable = await testImageUrl(bestImage);
         if (reachable) {
@@ -260,11 +265,13 @@ async function resolveShoppingLinkImage(params: {
 
   // --- Step 3b: Try Google Image Search (fallback) ---
   try {
-    const googleQuery = buildProductSearchQuery(label, categoryQuery, gender);
-    const googleResults = await searchGoogleImages(googleQuery, 8);
+    const googleResults = prefetchedResults?.googleResults ?? await (async () => {
+      const googleQuery = buildProductSearchQuery(label, categoryQuery, gender);
+      return searchGoogleImages(googleQuery, 8);
+    })();
     if (googleResults.length > 0) {
       // Pass usedImageUrls so picker skips images already chosen by other links
-      const bestImage = await pickBestProductImage(googleResults, usedImageUrls);
+      const bestImage = await pickBestProductImage(googleResults, usedImageUrls, categoryQuery);
       if (bestImage && isValidImageUrl(bestImage)) {
         const reachable = await testImageUrl(bestImage);
         if (reachable) {
@@ -744,31 +751,60 @@ export async function enrichAnalysisWithProductImages(
     shoppingLinks: imp.shoppingLinks.map(link => ({ ...link })),
   }));
 
-  // Process each improvement's links SEQUENTIALLY within the improvement,
-  // sharing a usedImageUrls set so Brave/Google pickers skip already-chosen images.
-  // Different improvements run concurrently since they have different categories.
+  // HYBRID APPROACH: Prefetch search results in PARALLEL for speed,
+  // then pick images SEQUENTIALLY with usedImageUrls for uniqueness.
   const improvementTasks = enrichedImprovements.map((imp, impIdx) => async (): Promise<void> => {
     const usedImageUrls = new Set<string>();
+    const categoryQuery = imp.productSearchQuery || "";
+    const linksNeedingImages: number[] = [];
 
+    // First pass: check which links need new images
     for (let linkIdx = 0; linkIdx < imp.shoppingLinks.length; linkIdx += 1) {
       const link = imp.shoppingLinks[linkIdx];
-      const label = link.label;
-      const url = link.url;
-      const categoryQuery = imp.productSearchQuery || "";
-
-      // Skip if existing image is valid AND not already used
       const existingUrl = link.imageUrl;
       if (existingUrl && isValidImageUrl(existingUrl)) {
         const normalizedExisting = existingUrl.trim().toLowerCase();
         if (!usedImageUrls.has(normalizedExisting)) {
           const works = await testImageUrl(existingUrl);
           if (works) {
-            console.log(`[ProductImages] Existing image OK for [${impIdx}][${linkIdx}]: "${label}"`);
+            console.log(`[ProductImages] Existing image OK for [${impIdx}][${linkIdx}]: "${link.label}"`);
             usedImageUrls.add(normalizedExisting);
             continue;
           }
         }
       }
+      linksNeedingImages.push(linkIdx);
+    }
+
+    if (linksNeedingImages.length === 0) return;
+
+    // PARALLEL PREFETCH: Fetch Brave + Google results for ALL links that need images at once
+    const prefetchPromises = linksNeedingImages.map(async (linkIdx) => {
+      const link = imp.shoppingLinks[linkIdx];
+      const [braveResults, googleResults] = await Promise.all([
+        (async () => {
+          try {
+            const braveQuery = buildBraveSearchQuery(link.label, categoryQuery, gender);
+            return await searchBraveImages(braveQuery, 8);
+          } catch { return []; }
+        })(),
+        (async () => {
+          try {
+            const googleQuery = buildProductSearchQuery(link.label, categoryQuery, gender);
+            return await searchGoogleImages(googleQuery, 8);
+          } catch { return []; }
+        })(),
+      ]);
+      return { linkIdx, braveResults, googleResults };
+    });
+    const prefetchedAll = await Promise.all(prefetchPromises);
+    const prefetchMap = new Map(prefetchedAll.map(p => [p.linkIdx, { braveResults: p.braveResults, googleResults: p.googleResults }]));
+
+    // SEQUENTIAL SELECTION: Pick images one by one with shared usedImageUrls
+    for (const linkIdx of linksNeedingImages) {
+      const link = imp.shoppingLinks[linkIdx];
+      const label = link.label;
+      const url = link.url;
 
       try {
         const resolvedUrl = await resolveShoppingLinkImage({
@@ -777,7 +813,8 @@ export async function enrichAnalysisWithProductImages(
           categoryQuery,
           logPrefix: `[ProductImages] [${impIdx}][${linkIdx}]`,
           gender,
-          usedImageUrls, // <-- KEY: pass already-used URLs so pickers skip them
+          usedImageUrls,
+          prefetchedResults: prefetchMap.get(linkIdx),
         });
         if (resolvedUrl) {
           const normalizedResolved = resolvedUrl.trim().toLowerCase();
@@ -851,13 +888,14 @@ export async function generateImagesForImprovement(
   
   console.log(`[ProductImages] Lazy loading: generating ${links.length} images for category "${improvement.productSearchQuery}"`);
 
-  // Process links SEQUENTIALLY with shared usedImageUrls to ensure diversity
+  // HYBRID: prefetch + sequential selection for speed + uniqueness
   const usedImageUrls = new Set<string>();
+  const categoryQuery = improvement.productSearchQuery || "";
+  const linksNeedingImages: number[] = [];
 
+  // First pass: check which links already have valid images
   for (let linkIdx = 0; linkIdx < links.length; linkIdx += 1) {
     const link = links[linkIdx];
-
-    // Skip if already has a valid image AND not already used
     if (link.imageUrl && isValidImageUrl(link.imageUrl)) {
       const normalizedExisting = link.imageUrl.trim().toLowerCase();
       if (!usedImageUrls.has(normalizedExisting)) {
@@ -869,15 +907,45 @@ export async function generateImagesForImprovement(
         }
       }
     }
+    linksNeedingImages.push(linkIdx);
+  }
+
+  if (linksNeedingImages.length > 0) {
+    // PARALLEL PREFETCH: Fetch Brave + Google results for ALL links at once
+    const prefetchPromises = linksNeedingImages.map(async (linkIdx) => {
+      const link = links[linkIdx];
+      const [braveResults, googleResults] = await Promise.all([
+        (async () => {
+          try {
+            const braveQuery = buildBraveSearchQuery(link.label, categoryQuery, gender);
+            return await searchBraveImages(braveQuery, 8);
+          } catch { return []; }
+        })(),
+        (async () => {
+          try {
+            const googleQuery = buildProductSearchQuery(link.label, categoryQuery, gender);
+            return await searchGoogleImages(googleQuery, 8);
+          } catch { return []; }
+        })(),
+      ]);
+      return { linkIdx, braveResults, googleResults };
+    });
+    const prefetchedAll = await Promise.all(prefetchPromises);
+    const prefetchMap = new Map(prefetchedAll.map(p => [p.linkIdx, { braveResults: p.braveResults, googleResults: p.googleResults }]));
+
+  // SEQUENTIAL SELECTION: Pick images one by one with shared usedImageUrls
+  for (const linkIdx of linksNeedingImages) {
+    const link = links[linkIdx];
 
     try {
       const resolvedUrl = await resolveShoppingLinkImage({
         label: link.label,
         url: link.url,
-        categoryQuery: improvement.productSearchQuery,
+        categoryQuery,
         logPrefix: `[ProductImages] Lazy [${linkIdx}]`,
         gender,
-        usedImageUrls, // <-- KEY: pass already-used URLs
+        usedImageUrls,
+        prefetchedResults: prefetchMap.get(linkIdx),
       });
       if (resolvedUrl) {
         const normalizedResolved = resolvedUrl.trim().toLowerCase();
@@ -919,6 +987,7 @@ export async function generateImagesForImprovement(
       links[linkIdx].imageUrl = placeholder;
     }
   }
+  } // end if (linksNeedingImages.length > 0)
 
   return links;
 }

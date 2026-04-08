@@ -2161,10 +2161,11 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
             wardrobeCtx,
             input.lang,
           );
-          // Stage 1: core analysis + identification (image-based)
-          const MAX_RETRIES = 2;
-          let analysisCore: FashionAnalysisCorePayload | null = null;
-          for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+           // Stage 1: core analysis + identification (image-based)
+           const stage1Start = Date.now();
+           const MAX_RETRIES = 2;
+           let analysisCore: FashionAnalysisCorePayload | null = null;
+           for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
             try {
               if (attempt > 0) {
                 // Faster retry cadence: 2s, 4s
@@ -2224,10 +2225,11 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
               console.warn(`[Fashion Analysis] Attempt ${attempt + 1} failed (retryable): ${msg}`);
             }
           }
-          if (!analysisCore) throw new Error("Analysis failed after retries");
+           if (!analysisCore) throw new Error("Analysis failed after retries");
+           console.log(`[Timing] Stage 1 completed in ${Date.now() - stage1Start}ms`);
 
-
-          // Stage 2: inspiration + recommendations (text-only from stage-1 output)
+           // Stage 2: inspiration + recommendations (text-only from stage-1 output)
+           const stage2Start = Date.now();
           const recommendationSeed = {
             overallScore: analysisCore.overallScore,
             summary: analysisCore.summary,
@@ -2296,11 +2298,12 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
                 }
               }
             }
-          } catch (recErr: any) {
-            console.warn(`[Fashion Analysis] Stage-2 recommendations fallback: ${recErr?.message || recErr}`);
-          }
+           } catch (recErr: any) {
+             console.warn(`[Fashion Analysis] Stage-2 recommendations fallback: ${recErr?.message || recErr}`);
+           }
+           console.log(`[Timing] Stage 2 completed in ${Date.now() - stage2Start}ms`);
 
-          if (!recommendations) {
+           if (!recommendations) {
             recommendations = buildFallbackRecommendationsFromCore(
               analysisCore,
               input.lang,
@@ -4028,6 +4031,7 @@ Return ONLY a JSON object with these exact fields:
           );
 
           // Stage 1: core analysis + identification (image-based)
+          const stage1Start = Date.now();
           const MAX_RETRIES = 2;
           let analysisCore: FashionAnalysisCorePayload | null = null;
           for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
@@ -4077,9 +4081,11 @@ Return ONLY a JSON object with these exact fields:
               console.warn(`[Guest Analysis] Attempt ${attempt + 1} failed (retryable): ${msg}`);
             }
           }
-          if (!analysisCore) throw new Error("Analysis failed after retries");
+           if (!analysisCore) throw new Error("Analysis failed after retries");
+           console.log(`[Timing] Stage 1 completed in ${Date.now() - stage1Start}ms`);
 
-          // Stage 2: inspiration + recommendations (text-only from stage-1 output)
+           // Stage 2: inspiration + recommendations (text-only from stage-1 output)
+           const stage2Start = Date.now();
           const recommendationSeed = {
             overallScore: analysisCore.overallScore,
             summary: analysisCore.summary,
@@ -4148,10 +4154,11 @@ Return ONLY a JSON object with these exact fields:
                 }
               }
             }
-          } catch (recErr: any) {
-            console.warn(`[Guest Analysis] Stage-2 recommendations fallback: ${recErr?.message || recErr}`);
-          }
-          if (!recommendations) {
+           } catch (recErr: any) {
+             console.warn(`[Guest Analysis] Stage-2 recommendations fallback: ${recErr?.message || recErr}`);
+           }
+           console.log(`[Timing] Stage 2 completed in ${Date.now() - stage2Start}ms`);
+           if (!recommendations) {
             recommendations = buildFallbackRecommendationsFromCore(
               analysisCore,
               input.lang,

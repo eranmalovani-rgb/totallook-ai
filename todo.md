@@ -161,3 +161,13 @@
 - [x] 10b.4: Fix: refactored to SEQUENTIAL processing within each improvement with shared usedImageUrls Set passed to Brave/Google pickers; pickers now skip already-chosen URLs
 - [x] 10b.5: Fix: placeholder fallback via getCategoryPlaceholder when all sources fail; also increased search results from 5→8 for more diversity
 - [x] 10b.6: All 736/740 tests pass (4 pre-existing API failures), TS compiles clean
+
+## Stage 10c — Product Image Category Mismatch + Performance
+
+- [x] 10c.1: Fix wrong category images — added cross-category penalty scoring to Brave/Google pickers (CATEGORY_KEYWORDS map with -5 penalty for wrong category titles in both braveImageSearch.ts and googleImageSearch.ts)
+- [x] 10c.2: Speed optimization — HYBRID approach: parallel prefetch of Brave+Google results for all links at once, then sequential selection with usedImageUrls for uniqueness (both enrichAnalysisWithProductImages and generateImagesForImprovement)
+- [x] 10c.3: Added timing logs for Stage 1 and Stage 2 LLM calls (both registered user and guest flows) to identify bottlenecks
+- [x] 10c.4: All 739/743 tests pass (4 pre-existing API failures: google-cse, imagegen x2, openai), TS compiles clean
+- [x] 10c.5: Added 9 targeted unit tests for cross-category filtering in pickBestBraveImage and pickBestProductImage (all pass)
+- [x] 10c.6: Added regression tests for hybrid prefetch path (prefetchedResults, prefetchMap, PARALLEL PREFETCH, SEQUENTIAL SELECTION)
+- [x] 10c.7: Final clean vitest run: 748/752 tests pass (4 pre-existing API failures: google-cse, imagegen x2, openai)

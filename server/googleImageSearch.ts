@@ -131,11 +131,46 @@ export function buildProductSearchQuery(label: string, categoryQuery: string, ge
  *  2. Images that are roughly square or portrait (product-style)
  *  3. Images that are actually reachable (HEAD check)
  */
+/**
+ * Cross-category keyword sets for filtering out wrong-category images.
+ */
+const CATEGORY_KEYWORDS: Record<string, RegExp> = {
+  top: /\b(shirt|blouse|top|tee|t-shirt|polo|sweater|hoodie|pullover|henley|tank|jersey|tunic)\b/i,
+  bottom: /\b(pants|jeans|trouser|chino|shorts|skirt|legging|jogger|cargo|denim|slacks)\b/i,
+  outerwear: /\b(coat|jacket|blazer|cardigan|trench|bomber|vest|parka|windbreaker|anorak)\b/i,
+  shoes: /\b(shoe|sneaker|boot|loafer|heel|sandal|slipper|mule|oxford|derby|trainer)\b/i,
+  dress: /\b(dress|gown|maxi|midi|mini dress|romper|jumpsuit)\b/i,
+  accessory: /\b(watch|bracelet|ring|necklace|earring|belt|bag|hat|cap|scarf|sunglass|wallet|tie|cufflink)\b/i,
+};
+
+function detectQueryCategory(query: string): string | null {
+  const q = query.toLowerCase();
+  for (const [cat, re] of Object.entries(CATEGORY_KEYWORDS)) {
+    if (re.test(q)) return cat;
+  }
+  return null;
+}
+
+function crossCategoryPenalty(title: string, expectedCategory: string | null): number {
+  if (!expectedCategory || !title) return 0;
+  const t = title.toLowerCase();
+  for (const [cat, re] of Object.entries(CATEGORY_KEYWORDS)) {
+    if (cat === expectedCategory) continue;
+    if (re.test(t) && !CATEGORY_KEYWORDS[expectedCategory]?.test(t)) {
+      return -5;
+    }
+  }
+  return 0;
+}
+
 export async function pickBestProductImage(
   results: GoogleImageResult[],
   usedUrls?: Set<string>,
+  expectedCategoryQuery?: string,
 ): Promise<string> {
   if (results.length === 0) return "";
+
+  const expectedCategory = expectedCategoryQuery ? detectQueryCategory(expectedCategoryQuery) : null;
 
   // Score and sort candidates
   const scored = results
@@ -154,6 +189,8 @@ export async function pickBestProductImage(
       }
       // Penalize very small images
       if (r.width < 150 || r.height < 150) score -= 3;
+      // Penalize cross-category contamination
+      score += crossCategoryPenalty(r.title, expectedCategory);
       return { ...r, score };
     })
     .sort((a, b) => b.score - a.score);

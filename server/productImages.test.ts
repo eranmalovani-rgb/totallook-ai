@@ -315,9 +315,12 @@ describe("enrichAnalysisWithProductImages", () => {
 
   it("uses cached image when available instead of generating new one", async () => {
     mockGetCachedProductImage.mockResolvedValueOnce("https://cdn.totallook.ai/cached.png");
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      headers: { get: (h: string) => h === "content-type" ? "image/png" : "" },
+    // Mock fetch: return image for HEAD checks on the cached URL, reject everything else (Brave/Google API calls)
+    mockFetch.mockImplementation(async (url: string, opts?: any) => {
+      if (typeof url === 'string' && url.includes('cdn.totallook.ai')) {
+        return { ok: true, headers: { get: (h: string) => h === 'content-type' ? 'image/png' : '' } };
+      }
+      throw new Error('not found');
     });
 
     const analysis = makeAnalysis([
