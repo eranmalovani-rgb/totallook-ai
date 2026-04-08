@@ -181,3 +181,9 @@
 - [x] 11.5: Added batch endpoint generateAllProductImages (registered + guest) — one DB read, one profile read, all improvements in parallel
 - [x] 11.6: Frontend batch preloading — ReviewPage + GuestReview call generateAllProductImages immediately on analysis completion
 - [x] 11.7: All 748/752 tests pass (4 pre-existing API failures), TS compiles clean
+
+## Stage 11b — Fix React Error 310 (hooks after early returns)
+- [x] 11b.1: Moved batch preload hooks before all early returns in ReviewPage (use review data directly instead of analysis variable)
+- [x] 11b.2: Moved batch preload hooks before all early returns in GuestReview (parse analysisJson inline)
+- [x] 11b.3: TS compiles clean (npx tsc --noEmit = 0 errors), no React hooks ordering violations
+- [x] 11b.4: 748/752 tests pass (4 pre-existing API failures)
