@@ -125,10 +125,18 @@ export const BRAND_STYLES: Record<string, BrandStyle> = {
   "Zegna": { color: "#000000", weight: 400, transform: "uppercase", spacing: "0.12em" },
 };
 
+/** Actual logo images for key stores — served from CDN */
+export const STORE_LOGOS: Record<string, string> = {
+  "Farfetch": "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/farfetch-logo_8e83f58b.png",
+  "ASOS": "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/asos-logo_ede79658.png",
+  "Zara": "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/zara-logo_369273eb.png",
+  "H&M": "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/hm-logo_31f4f5a4.png",
+};
+
 const SIZE_MAP = {
-  sm: { container: "h-10 px-2", text: "text-[9px]" },
-  md: { container: "h-12 px-3", text: "text-[10px]" },
-  lg: { container: "h-14 px-4", text: "text-xs" },
+  sm: { container: "h-10 px-2", text: "text-[9px]", img: "h-5 max-w-[60px]" },
+  md: { container: "h-12 px-3", text: "text-[10px]", img: "h-6 max-w-[72px]" },
+  lg: { container: "h-14 px-4", text: "text-xs", img: "h-7 max-w-[84px]" },
 };
 
 /**
@@ -287,6 +295,21 @@ export function extractStoreFromLabel(label: string): string | null {
 export default function StoreLogo({ name, size = "md", selected = false }: StoreLogoProps) {
   const brand = BRAND_STYLES[name];
   const sizeClasses = SIZE_MAP[size];
+  const logoUrl = STORE_LOGOS[name];
+
+  // If we have an actual logo image, use it
+  if (logoUrl) {
+    return (
+      <div className={`${sizeClasses.container} flex items-center justify-center rounded-lg`}>
+        <img
+          src={logoUrl}
+          alt={name}
+          className={`${sizeClasses.img} object-contain`}
+          loading="lazy"
+        />
+      </div>
+    );
+  }
 
   if (!brand) {
     // Fallback: simple styled text for unknown stores

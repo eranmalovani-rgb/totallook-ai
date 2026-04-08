@@ -231,14 +231,13 @@ function ProductCard({ link, lang, isGeneratingImages }: { link: ShoppingLink; l
           </div>
         )}
       </div>
-      <div className="p-3">
+      <div className="p-2">
         {(() => {
           const storeName = extractStoreFromUrl(link.url) || extractStoreFromLabel(link.label);
           if (storeName) {
             return (
-              <div className="flex items-center justify-between">
-                <StoreLogo name={storeName} size="sm" />
-                <ExternalLink className="w-3 h-3 text-primary/50 group-hover:text-primary transition-colors" />
+              <div className="flex items-center justify-center py-1 rounded-lg bg-white/90 dark:bg-white/90 hover:bg-white dark:hover:bg-white transition-colors">
+                <StoreLogo name={storeName} size="md" />
               </div>
             );
           }

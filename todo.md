@@ -271,3 +271,9 @@
 - [x] 15b.2: Fix: strengthened crossCategoryPenalty from -5 to -50 (hard rejection) in both braveImageSearch.ts and googleImageSearch.ts, added +3 bonus for matching category
 - [x] 15b.3: Fix: added sweatshirt/crewneck/knitwear to top category keywords in all 4 detection functions (braveImageSearch, googleImageSearch, productImages x2)
 - [x] 15b.4: 3 new vitest tests (hard-reject pants for tops, hard-reject tops for bottoms, category bonus). All 765/769 pass (4 pre-existing API failures)
+
+## Stage 16 — Store Logo Buttons Below Product Images
+- [x] 16.1: Found and uploaded store logo assets for Farfetch, ASOS, ZARA, H&M to CDN
+- [x] 16.2: Replaced generic ExternalLink icon with white rounded button containing actual store logo image
+- [x] 16.3: Logo button is clickable (whole card links to store search page)
+- [x] 16.4: Verified in browser - ZARA, ASOS, FARFETCH logos display correctly on white button background
