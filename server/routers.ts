@@ -2743,6 +2743,13 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
           const published = await isReviewPublished(input.id, review.userId);
           if (!published) throw new Error("Unauthorized");
         }
+        // Re-apply store diversity normalization on read (fixes old analyses with all-same-store links)
+        if (review.analysisJson && (review.analysisJson as FashionAnalysis).improvements) {
+          const analysis = review.analysisJson as FashionAnalysis;
+          const lang: "he" | "en" = /[\u0590-\u05FF]/.test(analysis.summary || "") ? "he" : "en";
+          analysis.improvements = analysis.improvements.map((imp) => normalizeImprovementShoppingLinks(imp, lang));
+          review.analysisJson = analysis;
+        }
         return review;
       }),
 
@@ -2752,13 +2759,21 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
       .query(async ({ input }) => {
         const review = await getReviewByShareToken(input.token);
         if (!review) return null;
+        // Re-apply store diversity normalization on read
+        let analysisJson = review.analysisJson;
+        if (analysisJson && (analysisJson as FashionAnalysis).improvements) {
+          const analysis = analysisJson as FashionAnalysis;
+          const lang: "he" | "en" = /[\u0590-\u05FF]/.test(analysis.summary || "") ? "he" : "en";
+          analysis.improvements = analysis.improvements.map((imp) => normalizeImprovementShoppingLinks(imp, lang));
+          analysisJson = analysis;
+        }
         return {
           id: review.id,
           userId: review.userId,
           status: review.status,
           imageUrl: review.imageUrl,
           overallScore: review.overallScore,
-          analysisJson: review.analysisJson,
+          analysisJson,
           createdAt: review.createdAt,
         };
       }),
@@ -3334,7 +3349,9 @@ Return ONLY a JSON object with these exact fields:
         if (!analysis?.improvements?.[input.improvementIndex]) {
           throw new Error("Invalid improvement index");
         }
-        const imp = analysis.improvements[input.improvementIndex];
+        // Re-apply store diversity normalization before generating images
+        const lang: "he" | "en" = /[\u0590-\u05FF]/.test(analysis.summary || "") ? "he" : "en";
+        const imp = normalizeImprovementShoppingLinks(analysis.improvements[input.improvementIndex], lang);
         const impIdx = input.improvementIndex;
 
         // Get user gender for gender-appropriate image search
@@ -3369,10 +3386,11 @@ Return ONLY a JSON object with these exact fields:
         if (review.status !== "completed") throw new Error("Review not completed");
         const analysis = review.analysisJson as FashionAnalysis;
         if (!analysis?.improvements?.length) return { results: [] };
-
+        // Re-apply store diversity normalization before generating images
+        const batchLang: "he" | "en" = /[\u0590-\u05FF]/.test(analysis.summary || "") ? "he" : "en";
+        analysis.improvements = analysis.improvements.map((imp) => normalizeImprovementShoppingLinks(imp, batchLang));
         const profile = await getUserProfile(ctx.user.id);
         const userGender = profile?.gender || "male";
-
         // Process ALL improvements in parallel
         const results = await Promise.all(
           analysis.improvements.map(async (imp, impIdx) => {
@@ -4584,12 +4602,20 @@ Return ONLY a JSON object with these exact fields:
       .query(async ({ input }) => {
         const session = await getGuestSessionById(input.sessionId);
         if (!session) return null;
+        // Re-apply store diversity normalization on read
+        let analysisJson = session.analysisJson;
+        if (analysisJson && (analysisJson as FashionAnalysis).improvements) {
+          const analysis = analysisJson as FashionAnalysis;
+          const lang: "he" | "en" = /[\u0590-\u05FF]/.test(analysis.summary || "") ? "he" : "en";
+          analysis.improvements = analysis.improvements.map((imp) => normalizeImprovementShoppingLinks(imp, lang));
+          analysisJson = analysis;
+        }
         return {
           id: session.id,
           status: session.status,
           imageUrl: session.imageUrl,
           overallScore: session.overallScore,
-          analysisJson: session.analysisJson,
+          analysisJson,
           createdAt: session.createdAt,
         };
       }),
@@ -4605,7 +4631,9 @@ Return ONLY a JSON object with these exact fields:
         if (!analysis?.improvements?.[input.improvementIndex]) {
           throw new Error("Invalid improvement index");
         }
-        const imp = analysis.improvements[input.improvementIndex];
+        // Re-apply store diversity normalization before generating images
+        const lang: "he" | "en" = /[\u0590-\u05FF]/.test(analysis.summary || "") ? "he" : "en";
+        const imp = normalizeImprovementShoppingLinks(analysis.improvements[input.improvementIndex], lang);
         const impIdx = input.improvementIndex;
 
         // Get guest gender from session record
@@ -5018,12 +5046,20 @@ Style: High-end ${genderLabel} fashion editorial flat lay, all items arranged ae
         if (!session) return null;
         // Mark deep-link as viewed for WhatsApp follow-up suppression.
         markGuestSessionViewed(session.id).catch(() => {});
+        // Re-apply store diversity normalization on read
+        let analysisJson = session.analysisJson;
+        if (analysisJson && (analysisJson as FashionAnalysis).improvements) {
+          const analysis = analysisJson as FashionAnalysis;
+          const lang: "he" | "en" = /[\u0590-\u05FF]/.test(analysis.summary || "") ? "he" : "en";
+          analysis.improvements = analysis.improvements.map((imp) => normalizeImprovementShoppingLinks(imp, lang));
+          analysisJson = analysis;
+        }
         return {
           id: session.id,
           status: session.status,
           imageUrl: session.imageUrl,
           overallScore: session.overallScore,
-          analysisJson: session.analysisJson,
+          analysisJson,
           createdAt: session.createdAt,
           source: session.source,
           whatsappProfileName: session.whatsappProfileName,

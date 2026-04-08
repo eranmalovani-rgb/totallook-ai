@@ -270,7 +270,7 @@ function GuestImprovementAccordionCard({
     if (!url) return false;
     try {
       const h = new URL(url).hostname;
-      return h.includes('cloudfront') || h.includes('r2.') || h.includes('manus') || h.includes('pub-') || h.includes('unsplash') || h.includes('openai');
+      return h === 'd2xsxph8kpxj0f.cloudfront.net' || h.includes('r2.') || h.includes('manus') || h.includes('pub-') || h.includes('unsplash') || h.includes('openai');
     } catch { return false; }
   };
 

@@ -59,7 +59,7 @@ describe("Gender filtering in Brave Image Search", () => {
     const { buildBraveSearchQuery } = await import("./braveImageSearch");
     
     const query = buildBraveSearchQuery("Nike Air Max 90 — ASOS", "sneakers", "male");
-    expect(query).not.toContain("ASOS");
+    expect(query).toContain("ASOS"); // Store name kept for visual diversity
     expect(query).toContain("Nike Air Max 90");
   });
 

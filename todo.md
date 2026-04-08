@@ -246,3 +246,22 @@
 - [x] 14.7: Increased proxy timeout from 6s to 8s for slower CDNs
 - [x] 14.8: Cache hit also validates proxy result — if proxy fails on cached URL, continues to search
 - [x] 14.9: All 762/766 tests pass (4 pre-existing API failures), TS compiles clean
+
+## Stage 15 — Visual Image Diversity (User-reported critical)
+- [ ] 15.1: Root cause: all 3 links per improvement use same categoryQuery → Brave returns same top results → all 3 images look identical despite different URLs
+- [ ] 15.2: Fix: vary search query per link — add store name, style variation, or color to differentiate queries
+- [ ] 15.3: Fix: when picking images from Brave/Google results, skip images that are visually similar (same domain+path pattern) not just exact URL match
+- [ ] 15.4: Fix: use link-specific productName (from LLM label) as primary query, not just categoryQuery
+- [ ] 15.5: Test end-to-end: verify 3 visually different images per improvement
+- [ ] 15.6: Update vitest tests for query variation logic
+
+## Stage 13b — Store Diversity On-Read Fix (User-reported: all links showing same store)
+- [x] 13b.1: Root cause: review.get returns raw DB data without re-applying normalizeImprovementShoppingLinks, so old analyses with all-same-store links are never fixed
+- [x] 13b.2: Fix review.get — apply normalizeImprovementShoppingLinks on read (registered user path)
+- [x] 13b.3: Fix review.getByShareToken — apply normalizeImprovementShoppingLinks on read (shared review path)
+- [x] 13b.4: Fix guest.getResult — apply normalizeImprovementShoppingLinks on read (guest path)
+- [x] 13b.5: Fix guest.getByToken — apply normalizeImprovementShoppingLinks on read (WhatsApp deep-link path)
+- [x] 13b.6: Fix review.generateProductImages — apply normalizeImprovementShoppingLinks before generating images (registered user)
+- [x] 13b.7: Fix guest.generateProductImages — apply normalizeImprovementShoppingLinks before generating images (guest)
+- [x] 13b.8: Fix review.generateAllProductImages — apply normalizeImprovementShoppingLinks before batch generating images
+- [x] 13b.9: Verified in browser: review 90024 now shows Farfetch + ASOS + ZARA (3 different stores) per improvement

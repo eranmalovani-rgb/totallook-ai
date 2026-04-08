@@ -44,8 +44,8 @@ async function proxyImageToS3(imageUrl: string): Promise<string> {
     if (u.hostname.includes('oaidalleapiprodscus') || u.hostname.includes('openai')) return imageUrl;
     // Unsplash images are safe to use directly
     if (u.hostname.includes('unsplash')) return imageUrl;
-    // Cloudfront CDN images are safe
-    if (u.hostname.includes('cloudfront.net')) return imageUrl;
+    // Only OUR cloudfront CDN is safe — other cloudfront.net domains may block hotlinks
+    if (u.hostname === 'd2xsxph8kpxj0f.cloudfront.net') return imageUrl;
   } catch { return ''; }
 
   try {
@@ -1003,7 +1003,7 @@ export async function generateImagesForImprovement(
     if (!url) return false;
     try {
       const h = new URL(url).hostname;
-      return h.includes('cloudfront') || h.includes('r2.') || h.includes('manus') || h.includes('pub-') || h.includes('unsplash') || h.includes('openai');
+      return h === 'd2xsxph8kpxj0f.cloudfront.net' || h.includes('r2.') || h.includes('manus') || h.includes('pub-') || h.includes('unsplash') || h.includes('openai');
     } catch { return false; }
   };
 
@@ -1100,6 +1100,13 @@ export async function generateImagesForImprovement(
           } catch { /* AI failed */ }
           const placeholder = getCategoryPlaceholder(improvement.productSearchQuery || "", linkIdx);
           links[linkIdx].imageUrl = placeholder;
+          usedImageUrls.add(placeholder.trim().toLowerCase());
+          if (onImageReady) {
+            try { await onImageReady(linkIdx, placeholder); } catch (dbErr: any) {
+              console.warn(`[ProductImages] Lazy: DB update (placeholder) failed for [${linkIdx}]:`, dbErr?.message);
+            }
+          }
+          console.log(`[ProductImages] Lazy: using placeholder for duplicate [${linkIdx}]`);
         } else {
           links[linkIdx].imageUrl = resolvedUrl;
           usedImageUrls.add(normalizedResolved);
@@ -1112,12 +1119,24 @@ export async function generateImagesForImprovement(
       } else {
         const placeholder = getCategoryPlaceholder(improvement.productSearchQuery || "", linkIdx);
         links[linkIdx].imageUrl = placeholder;
+        usedImageUrls.add(placeholder.trim().toLowerCase());
+        if (onImageReady) {
+          try { await onImageReady(linkIdx, placeholder); } catch (dbErr: any) {
+            console.warn(`[ProductImages] Lazy: DB update (placeholder) failed for [${linkIdx}]:`, dbErr?.message);
+          }
+        }
         console.log(`[ProductImages] Lazy: using placeholder for [${linkIdx}]`);
       }
     } catch (err: any) {
       console.warn(`[ProductImages] Lazy: failed [${linkIdx}]:`, err?.message || err);
       const placeholder = getCategoryPlaceholder(improvement.productSearchQuery || "", linkIdx);
       links[linkIdx].imageUrl = placeholder;
+      usedImageUrls.add(placeholder.trim().toLowerCase());
+      if (onImageReady) {
+        try { await onImageReady(linkIdx, placeholder); } catch (dbErr: any) {
+          console.warn(`[ProductImages] Lazy: DB update (placeholder) failed for [${linkIdx}]:`, dbErr?.message);
+        }
+      }
     }
   }
   } // end if (linksNeedingImages.length > 0)

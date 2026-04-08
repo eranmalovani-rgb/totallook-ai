@@ -7,7 +7,7 @@ describe("buildProductSearchQuery", () => {
   it("strips store name after em-dash and appends 'product photo'", () => {
     const q = buildProductSearchQuery("Levi's 501 Original — ASOS", "jeans");
     expect(q).toContain("Levi's 501 Original");
-    expect(q).not.toContain("ASOS");
+    expect(q).toContain("ASOS"); // Store name kept for visual diversity
     expect(q).toContain("product photo");
   });
 
@@ -60,7 +60,7 @@ describe("buildProductSearchQuery", () => {
   it("does not replace English label with categoryQuery", () => {
     const q = buildProductSearchQuery("tailored shirt premium — Farfetch", "tailored shirt premium", "male");
     expect(q).toContain("tailored shirt premium");
-    expect(q).not.toContain("Farfetch");
+    expect(q).toContain("Farfetch"); // Store name kept for visual diversity
   });
 });
 

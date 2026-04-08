@@ -45,7 +45,7 @@ describe("Stage 10: Product Image Fixes", () => {
     it("should strip store name from label", () => {
       const query = buildProductSearchQuery("Levi's 501 — ASOS", "jeans", "male");
       expect(query).toContain("Levi's 501");
-      expect(query).not.toContain("ASOS");
+      expect(query).toContain("ASOS"); // Store name kept for visual diversity
     });
 
     it("should not duplicate category if already in product name", () => {

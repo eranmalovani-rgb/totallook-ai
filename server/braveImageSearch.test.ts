@@ -18,7 +18,7 @@ describe("buildBraveSearchQuery", () => {
   it("strips store name after dash", () => {
     const q = buildBraveSearchQuery("Levi's 501 Original - ASOS", "jeans");
     expect(q).toContain("Levi's 501 Original");
-    expect(q).not.toContain("ASOS");
+    expect(q).toContain("ASOS"); // Store name kept for visual diversity
     expect(q).toContain("jeans");
     expect(q).toContain("product photo");
   });
@@ -82,7 +82,7 @@ describe("buildBraveSearchQuery", () => {
   it("does not replace English label with categoryQuery", () => {
     const q = buildBraveSearchQuery("tailored shirt premium — Farfetch", "tailored shirt premium", "male");
     expect(q).toContain("tailored shirt premium");
-    expect(q).not.toContain("Farfetch");
+    expect(q).toContain("Farfetch"); // Store name kept for visual diversity
   });
 });
 

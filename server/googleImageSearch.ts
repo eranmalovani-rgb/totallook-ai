@@ -122,9 +122,31 @@ export async function searchGoogleImages(
  *   → "Levi's 501 Original jeans product photo"
  */
 export function buildProductSearchQuery(label: string, categoryQuery: string, gender?: string): string {
-  // Strip store name after dash/em-dash
-  const [productNameRaw] = label.split(/\s*[—–-]\s*/);
-  let productName = (productNameRaw || label).trim();
+  // Extract store name and product name from label
+  const STORE_NAMES = /^(farfetch|asos|zara|h&m|nordstrom|uniqlo|mango|cos|massimo dutti|pull&bear|bershka|shein|boohoo|net-a-porter|ssense|mr porter|revolve|topshop|primark|gap|old navy|banana republic|j\.?\s*crew|ralph lauren|tommy hilfiger|calvin klein|hugo boss|ted baker|reiss|nike|adidas|puma|new balance|reebok|converse|vans|gucci|prada|louis vuitton|burberry|balenciaga|valentino|versace|fendi|dior|celine|saint laurent|bottega veneta|loewe|givenchy|alexander mcqueen|off-white|moncler|canada goose|the north face|patagonia|columbia|common projects|golden goose|axel arigato|acne studios|ami paris|maison margiela|thom browne|brunello cucinelli|loro piana|ermenegildo zegna|canali|hugo boss|sandro|maje|zadig & voltaire|the kooples|theory|helmut lang|rag & bone|everlane|reformation|anthropologie|lululemon|under armour|champion|carhartt|stussy|supreme|fear of god|essentials|yoox|luisaviaroma|mytheresa|matchesfashion|24s|cettire|terminalx|ksp|factory54|shoesonline|urbanica|castro|renuar|golf|honigman|fox|american eagle|next|river island|topman|apc|cos|arket|weekday|monki|selected|jack & jones|scotch & soda|superdry|diesel|replay|g-star|barbour|woolrich|herno|stone island|cp company|church's|tod's|salvatore ferragamo|cole haan|clarks|ecco|birkenstock|dr\.?\s*martens|timberland|red wing|allen edmonds)$/i;
+  const segments = label.split(/\s*[—–-]\s*/);
+  let productName: string;
+  let storeName = '';
+  if (segments.length >= 2) {
+    const firstIsStore = STORE_NAMES.test(segments[0].trim());
+    const lastIsStore = STORE_NAMES.test(segments[segments.length - 1].trim());
+    if (firstIsStore && !lastIsStore) {
+      storeName = segments[0].trim();
+      productName = segments.slice(1).join(' ').trim();
+    } else if (lastIsStore && !firstIsStore) {
+      storeName = segments[segments.length - 1].trim();
+      productName = segments.slice(0, -1).join(' ').trim();
+    } else {
+      productName = segments.reduce((a, b) => a.length >= b.length ? a : b).trim();
+    }
+  } else {
+    productName = label.trim();
+  }
+
+  // If productName is just a store name, use categoryQuery instead
+  if (STORE_NAMES.test(productName.trim())) {
+    productName = categoryQuery || productName;
+  }
 
   // If productName contains Hebrew characters, prefer the English categoryQuery for better search results
   const hasHebrew = /[\u0590-\u05FF]/.test(productName);
@@ -141,6 +163,10 @@ export function buildProductSearchQuery(label: string, categoryQuery: string, ge
     parts.push("women's");
   }
   parts.push(productName);
+  // KEEP store name in query to get store-specific results → visual diversity across links
+  if (storeName) {
+    parts.push(storeName);
+  }
   // Don't append categoryQuery again if we already used it as productName
   if (!hasHebrew && categoryQuery && !productName.toLowerCase().includes(categoryQuery.toLowerCase())) {
     parts.push(categoryQuery);
