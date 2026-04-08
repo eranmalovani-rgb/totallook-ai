@@ -524,7 +524,7 @@ function getStoreName(url: string): string {
 }
 
 function RetryAnalyzeButton({ reviewId }: { reviewId: number }) {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const analyzeMutation = trpc.review.analyze.useMutation();
   const utils = trpc.useUtils();
   const [retrying, setRetrying] = useState(false);
@@ -533,18 +533,49 @@ function RetryAnalyzeButton({ reviewId }: { reviewId: number }) {
   const handleRetry = async () => {
     setRetrying(true);
     setRetryError(null);
-    try {
-      await analyzeMutation.mutateAsync({ reviewId });
-      utils.review.get.invalidate({ id: reviewId });
-    } catch (err: any) {
-      const msg = err.message || "";
-      if (msg.includes("exhausted") || msg.includes("quota") || msg.includes("עמוס")) {
-        setRetryError(t("upload", "rateLimitError"));
-      } else {
-        setRetryError(t("upload", "genericError"));
+
+    // Auto-retry: try up to 2 times on retryable errors
+    const MAX_RETRIES = 2;
+    let lastError: any = null;
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      try {
+        if (attempt > 0) await new Promise(r => setTimeout(r, 3000));
+        await analyzeMutation.mutateAsync({ reviewId });
+        utils.review.get.invalidate({ id: reviewId });
+        return; // success
+      } catch (err: any) {
+        lastError = err;
+        const msg = err?.message || "";
+        const isRetryable = msg.includes("timeout") || msg.includes("זמן") ||
+          msg.includes("ECONNRESET") || msg.includes("fetch failed") ||
+          msg.includes("נכשל") || msg.includes("500") || msg.includes("502") || msg.includes("503");
+        const isNonRetryable = msg.includes("in progress") || msg.includes("completed") ||
+          msg.includes("Unauthorized");
+        if (isNonRetryable || !isRetryable || attempt === MAX_RETRIES - 1) break;
+        console.warn(`[RetryAnalyze] Attempt ${attempt + 1} failed, auto-retrying: ${msg}`);
       }
-      setRetrying(false);
     }
+
+    // Show specific error message
+    const msg = lastError?.message || "";
+    if (msg.includes("exhausted") || msg.includes("quota") || msg.includes("עמוס") || msg.includes("429") || msg.includes("rate")) {
+      setRetryError(lang === "he"
+        ? "שירות הניתוח עמוס כרגע. נסה שוב בעוד חצי דקה."
+        : "Analysis service is busy. Try again in 30 seconds.");
+    } else if (msg.includes("timeout") || msg.includes("זמן") || msg.includes("ECONNRESET")) {
+      setRetryError(lang === "he"
+        ? "הניתוח לקח יותר מדי זמן. נסה שוב."
+        : "Analysis took too long. Please try again.");
+    } else if (msg.includes("in progress") || msg.includes("analyzing")) {
+      setRetryError(lang === "he"
+        ? "הניתוח כבר רץ. המתן דקה ונסה שוב."
+        : "Analysis is already running. Wait a moment and try again.");
+    } else {
+      setRetryError(lang === "he"
+        ? "אירעה שגיאה בניתוח. נסה שוב."
+        : "An error occurred during analysis. Please try again.");
+    }
+    setRetrying(false);
   };
 
   return (

@@ -119,6 +119,7 @@ export default function GuestUpload() {
   const [selectedOccasion, setSelectedOccasion] = useState("");
   const [retryReviewId, setRetryReviewId] = useState<number | null>(null);
   const [retryCountdown, setRetryCountdown] = useState(0);
+  const [analysisAttempt, setAnalysisAttempt] = useState(0); // track auto-retry attempts
   const [showEmailCta, setShowEmailCta] = useState(false);
   const [emailInput, setEmailInput] = useState("");
   const [emailSaving, setEmailSaving] = useState(false);
@@ -276,10 +277,11 @@ export default function GuestUpload() {
 
   const clearSecondFile = () => { setSecondFile(null); setSecondPreview(null); };
 
-  /* ─── Analyze ─── */
+  /* ─── Analyze (with auto-retry) ─── */
   const handleAnalyze = async () => {
     if (!file || !fingerprint) return;
     setError(null);
+    setAnalysisAttempt(0);
     try {
       let sessionId = retryReviewId;
       if (!sessionId) {
@@ -302,24 +304,65 @@ export default function GuestUpload() {
         setUploading(false);
       }
       setAnalyzing(true);
-      await analyzeMutation.mutateAsync({
-        sessionId,
-        lang,
-        occasion: selectedOccasion || undefined,
-      });
-      navigate(`/guest/review/${sessionId}`);
+
+      // Auto-retry: try up to 2 times on retryable errors
+      const MAX_AUTO_RETRIES = 2;
+      let lastError: any = null;
+      for (let attempt = 0; attempt < MAX_AUTO_RETRIES; attempt++) {
+        try {
+          setAnalysisAttempt(attempt);
+          if (attempt > 0) {
+            // Wait 3 seconds before auto-retry
+            await new Promise(r => setTimeout(r, 3000));
+          }
+          await analyzeMutation.mutateAsync({
+            sessionId,
+            lang,
+            occasion: selectedOccasion || undefined,
+          });
+          navigate(`/guest/review/${sessionId}`);
+          return; // success — exit
+        } catch (retryErr: any) {
+          lastError = retryErr;
+          const retryMsg = retryErr?.message || "";
+          // Don't auto-retry limit errors or non-retryable errors
+          const isRetryable = retryMsg.includes("timeout") || retryMsg.includes("זמן") ||
+            retryMsg.includes("ECONNRESET") || retryMsg.includes("fetch failed") ||
+            retryMsg.includes("נכשל") || retryMsg.includes("error") ||
+            retryMsg.includes("500") || retryMsg.includes("502") || retryMsg.includes("503");
+          const isNonRetryable = retryMsg.includes("limit") || retryMsg.includes("already") ||
+            retryMsg.includes("כבר") || retryMsg.includes("מגבלת") ||
+            retryMsg.includes("in progress") || retryMsg.includes("completed");
+          if (isNonRetryable || !isRetryable || attempt === MAX_AUTO_RETRIES - 1) {
+            throw retryErr;
+          }
+          console.warn(`[GuestAnalyze] Attempt ${attempt + 1} failed, auto-retrying: ${retryMsg}`);
+        }
+      }
+      if (lastError) throw lastError;
     } catch (err: any) {
       const msg = err.message || "";
       if (msg.includes("limit") || msg.includes("already") || msg.includes("כבר") || msg.includes("מגבלת")) {
         setLimitReached(true);
         setError(lang === "he" ? "הגעת למגבלת 5 ניתוחים. הכנס מייל לניתוחים ללא הגבלה!" : "You've reached the 5 analysis limit. Enter your email for unlimited analyses!");
-      } else if (msg.includes("quota") || msg.includes("412") || msg.includes("rate")) {
-        setError(t("upload", "rateLimitError"));
+      } else if (msg.includes("quota") || msg.includes("412") || msg.includes("rate") || msg.includes("עמוס") || msg.includes("429")) {
+        setError(lang === "he"
+          ? "שירות הניתוח עמוס כרגע. התמונה נשמרה — לחץ \"נסה שוב\" בעוד חצי דקה."
+          : "Analysis service is busy right now. Your image is saved — click \"Try Again\" in 30 seconds.");
         startRetryCountdown(30);
-      } else if (msg.includes("timeout")) {
-        setError(t("upload", "timeoutError"));
+      } else if (msg.includes("timeout") || msg.includes("זמן") || msg.includes("ECONNRESET")) {
+        setError(lang === "he"
+          ? "הניתוח לקח יותר מדי זמן. התמונה נשמרה — לחץ \"נסה שוב\"."
+          : "Analysis took too long. Your image is saved — click \"Try Again\".");
+      } else if (msg.includes("in progress") || msg.includes("analyzing")) {
+        setError(lang === "he"
+          ? "הניתוח כבר רץ ברקע. המתן דקה ונסה שוב."
+          : "Analysis is already running. Wait a minute and try again.");
+        startRetryCountdown(60);
       } else {
-        setError(t("upload", "genericError"));
+        setError(lang === "he"
+          ? "אירעה שגיאה בניתוח. התמונה נשמרה — לחץ \"נסה שוב\"."
+          : "An error occurred during analysis. Your image is saved — click \"Try Again\".");
       }
       setUploading(false);
       setAnalyzing(false);
@@ -1136,6 +1179,7 @@ export default function GuestUpload() {
                       selectedOccasion={selectedOccasion}
                       selectedInfluencers={selectedInfluencers}
                       imagePreview={preview}
+                      attempt={analysisAttempt}
                     />
                   </div>
                 )}

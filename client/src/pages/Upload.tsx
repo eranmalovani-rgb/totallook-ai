@@ -22,6 +22,7 @@ export default function Upload() {
   const [error, setError] = useState<string | null>(null);
   const [retryReviewId, setRetryReviewId] = useState<number | null>(null);
   const [retryCountdown, setRetryCountdown] = useState<number>(0);
+  const [analysisAttempt, setAnalysisAttempt] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const secondCameraRef = useRef<HTMLInputElement>(null);
@@ -140,6 +141,7 @@ export default function Upload() {
   const handleAnalyze = async () => {
     if (!file && !retryReviewId) return;
     setError(null);
+    setAnalysisAttempt(0);
 
     try {
       let reviewId = retryReviewId;
@@ -191,21 +193,55 @@ export default function Upload() {
       }
 
       setAnalyzing(true);
-      await analyzeMutation.mutateAsync({ reviewId, lang });
-      navigate(`/review/${reviewId}`);
+
+      // Auto-retry: try up to 2 times on retryable errors
+      const MAX_AUTO_RETRIES = 2;
+      let lastError: any = null;
+      for (let attempt = 0; attempt < MAX_AUTO_RETRIES; attempt++) {
+        try {
+          setAnalysisAttempt(attempt);
+          if (attempt > 0) {
+            await new Promise(r => setTimeout(r, 3000));
+          }
+          await analyzeMutation.mutateAsync({ reviewId, lang });
+          navigate(`/review/${reviewId}`);
+          return; // success
+        } catch (retryErr: any) {
+          lastError = retryErr;
+          const retryMsg = retryErr?.message || "";
+          const isRetryable = retryMsg.includes("timeout") || retryMsg.includes("זמן") ||
+            retryMsg.includes("ECONNRESET") || retryMsg.includes("fetch failed") ||
+            retryMsg.includes("נכשל") || retryMsg.includes("500") || retryMsg.includes("502") || retryMsg.includes("503");
+          const isNonRetryable = retryMsg.includes("in progress") || retryMsg.includes("completed") ||
+            retryMsg.includes("Unauthorized");
+          if (isNonRetryable || !isRetryable || attempt === MAX_AUTO_RETRIES - 1) {
+            throw retryErr;
+          }
+          console.warn(`[Upload] Attempt ${attempt + 1} failed, auto-retrying: ${retryMsg}`);
+        }
+      }
+      if (lastError) throw lastError;
     } catch (err: any) {
       const msg = err.message || "";
-      console.error("[Upload] Analysis error full:", JSON.stringify(err, null, 2));
-      console.error("[Upload] Error message:", msg);
-      console.error("[Upload] Error data:", err?.data);
-      console.error("[Upload] Error shape:", err?.shape);
+      console.error("[Upload] Analysis error:", msg);
       if (msg.includes("exhausted") || msg.includes("quota") || msg.includes("412") || msg.includes("rate limit") || msg.includes("rate_limit") || msg.includes("עמוס") || msg.includes("מכסת") || msg.includes("429")) {
-        setError(t("upload", "rateLimitError"));
+        setError(lang === "he"
+          ? "שירות הניתוח עמוס כרגע. התמונה נשמרה — לחץ \"נסה שוב\" בעוד חצי דקה."
+          : "Analysis service is busy. Your image is saved — click \"Try Again\" in 30 seconds.");
         startRetryCountdown(30);
-      } else if (msg.includes("timeout") || msg.includes("זמן")) {
-        setError(t("upload", "timeoutError"));
+      } else if (msg.includes("timeout") || msg.includes("זמן") || msg.includes("ECONNRESET")) {
+        setError(lang === "he"
+          ? "הניתוח לקח יותר מדי זמן. התמונה נשמרה — לחץ \"נסה שוב\"."
+          : "Analysis took too long. Your image is saved — click \"Try Again\".");
+      } else if (msg.includes("in progress") || msg.includes("analyzing")) {
+        setError(lang === "he"
+          ? "הניתוח כבר רץ ברקע. המתן דקה ונסה שוב."
+          : "Analysis is already running. Wait a minute and try again.");
+        startRetryCountdown(60);
       } else {
-        setError(t("upload", "genericError"));
+        setError(lang === "he"
+          ? "אירעה שגיאה בניתוח. התמונה נשמרה — לחץ \"נסה שוב\"."
+          : "An error occurred. Your image is saved — click \"Try Again\".");
       }
       setUploading(false);
       setAnalyzing(false);
@@ -645,6 +681,7 @@ export default function Upload() {
                   selectedOccasion={selectedOccasion}
                   selectedInfluencers={selectedInfluencers}
                   imagePreview={preview}
+                  attempt={analysisAttempt}
                 />
               </div>
             )}

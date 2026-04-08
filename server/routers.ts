@@ -2398,6 +2398,10 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
         const review = await getReviewById(input.reviewId);
         if (!review) throw new Error("Review not found");
         if (review.userId !== ctx.user.id) throw new Error("Unauthorized");
+        // Allow retrying failed reviews
+        if (review.status === "failed") {
+          await updateReviewStatus(input.reviewId, "pending");
+        }
         try {
           return await withAnalysisSlot(`review:${input.reviewId}`, async () => {
             await updateReviewStatus(input.reviewId, "analyzing");
@@ -4252,6 +4256,10 @@ Return ONLY a JSON object with these exact fields:
         if (!session) throw new Error("Session not found");
         if (session.status === "completed") throw new Error("Analysis already completed");
         if (session.status === "analyzing") throw new Error("Analysis in progress");
+        // Allow retrying failed sessions by resetting status
+        if (session.status === "failed") {
+          await updateGuestSessionStatus(input.sessionId, "pending");
+        }
 
         try {
           return await withAnalysisSlot(`guest:${input.sessionId}`, async () => {

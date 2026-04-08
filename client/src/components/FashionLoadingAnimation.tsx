@@ -8,9 +8,32 @@ interface Props {
   selectedOccasion: string;
   selectedInfluencers: string[];
   imagePreview?: string | null;
+  /** Current auto-retry attempt (0 = first try, 1 = auto-retry) */
+  attempt?: number;
 }
 
 const STEP_ICONS = ["👁️", "🎨", "✂️", "🔥", "💎", "🛍️", "✨"];
+
+/** Time-based stage definitions: each stage starts at a specific elapsed second */
+const STAGES_HE = [
+  { at: 0,  label: "סורק את התמונה", icon: "👁️" },
+  { at: 5,  label: "מזהה פריטי לבוש", icon: "🎨" },
+  { at: 12, label: "מנתח צבעים וסגנון", icon: "✂️" },
+  { at: 22, label: "בודק מותגים וטרנדים", icon: "🔥" },
+  { at: 35, label: "מחשב ציונים", icon: "💎" },
+  { at: 50, label: "מכין הצעות שדרוג", icon: "🛍️" },
+  { at: 65, label: "יוצר מודבורד השראה", icon: "✨" },
+];
+
+const STAGES_EN = [
+  { at: 0,  label: "Scanning the image", icon: "👁️" },
+  { at: 5,  label: "Identifying clothing items", icon: "🎨" },
+  { at: 12, label: "Analyzing colors & style", icon: "✂️" },
+  { at: 22, label: "Checking brands & trends", icon: "🔥" },
+  { at: 35, label: "Calculating scores", icon: "💎" },
+  { at: 50, label: "Preparing upgrade suggestions", icon: "🛍️" },
+  { at: 65, label: "Creating inspiration moodboard", icon: "✨" },
+];
 
 const FASHION_FACTS_HE = [
   "הצבע הכי פופולרי באופנת 2025 הוא בורגנדי 🍷",
@@ -48,65 +71,46 @@ export default function FashionLoadingAnimation({
   selectedOccasion,
   selectedInfluencers,
   imagePreview,
+  attempt = 0,
 }: Props) {
-  const [currentStep, setCurrentStep] = useState(0);
-  const [progress, setProgress] = useState(0);
+  const [elapsed, setElapsed] = useState(0);
   const [currentFact, setCurrentFact] = useState(0);
   const [factVisible, setFactVisible] = useState(true);
   const [scanPosition, setScanPosition] = useState(0);
   const { t, lang } = useLanguage();
 
-  const steps = (t("loading", "steps") as unknown as Array<string>);
+  const stages = lang === "he" ? STAGES_HE : STAGES_EN;
   const facts = lang === "he" ? FASHION_FACTS_HE : FASHION_FACTS_EN;
 
-  // Progress through analysis steps
+  // Elapsed time counter
   useEffect(() => {
-    if (!analyzing) return;
-
-    const stepInterval = setInterval(() => {
-      setCurrentStep((prev) => {
-        if (prev < STEP_ICONS.length - 1) return prev + 1;
-        return prev;
-      });
-    }, 5000);
-
-    return () => clearInterval(stepInterval);
+    if (!analyzing) { setElapsed(0); return; }
+    const timer = setInterval(() => setElapsed(prev => prev + 1), 1000);
+    return () => clearInterval(timer);
   }, [analyzing]);
 
-  // Smooth progress bar
-  useEffect(() => {
-    if (!analyzing) return;
+  // Current stage based on elapsed time
+  const currentStageIdx = stages.reduce((acc, stage, idx) => (elapsed >= stage.at ? idx : acc), 0);
+  const currentStage = stages[currentStageIdx];
 
-    const progressInterval = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 95) return prev;
-        if (prev >= 80) return prev + 0.2;
-        if (prev >= 60) return prev + 0.5;
-        return prev + 1;
-      });
-    }, 300);
-
-    return () => clearInterval(progressInterval);
-  }, [analyzing]);
+  // Progress: map elapsed to 0-95% based on stage progression
+  const nextStageAt = currentStageIdx < stages.length - 1 ? stages[currentStageIdx + 1].at : 90;
+  const stageProgress = currentStageIdx / (stages.length - 1);
+  const withinStageProgress = Math.min(1, (elapsed - currentStage.at) / Math.max(1, nextStageAt - currentStage.at));
+  const progress = Math.min(95, (stageProgress + withinStageProgress / (stages.length - 1)) * 95);
 
   // Scan line animation
   useEffect(() => {
     if (!analyzing || !imagePreview) return;
-
     const scanInterval = setInterval(() => {
-      setScanPosition((prev) => {
-        if (prev >= 100) return 0;
-        return prev + 0.5;
-      });
+      setScanPosition((prev) => (prev >= 100 ? 0 : prev + 0.5));
     }, 30);
-
     return () => clearInterval(scanInterval);
   }, [analyzing, imagePreview]);
 
   // Rotate fashion facts
   useEffect(() => {
     if (!analyzing) return;
-
     const factInterval = setInterval(() => {
       setFactVisible(false);
       setTimeout(() => {
@@ -114,12 +118,16 @@ export default function FashionLoadingAnimation({
         setFactVisible(true);
       }, 400);
     }, 5000);
-
     return () => clearInterval(factInterval);
   }, [analyzing, facts.length]);
 
-  const getOccasionLabel = (occId: string) => {
-    return t("occasions", occId) || occId;
+  const getOccasionLabel = (occId: string) => t("occasions", occId) || occId;
+
+  // Format elapsed time
+  const formatTime = (s: number) => {
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return m > 0 ? `${m}:${sec.toString().padStart(2, "0")}` : `${sec}s`;
   };
 
   if (uploading) {
@@ -139,10 +147,18 @@ export default function FashionLoadingAnimation({
 
   return (
     <div className="py-6 space-y-6">
+      {/* Auto-retry indicator */}
+      {attempt > 0 && (
+        <div className="max-w-sm mx-auto px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-center">
+          <p className="text-xs text-amber-400">
+            {lang === "he" ? "🔄 מנסה שוב אוטומטית..." : "🔄 Auto-retrying..."}
+          </p>
+        </div>
+      )}
+
       {/* Image scan area */}
       {imagePreview ? (
         <div className="relative max-w-sm mx-auto rounded-2xl overflow-hidden border border-primary/20 shadow-lg shadow-primary/5">
-          {/* The uploaded image with slight dark overlay */}
           <div className="relative">
             <img
               src={imagePreview}
@@ -151,7 +167,7 @@ export default function FashionLoadingAnimation({
               style={{ filter: "brightness(0.7) contrast(1.1)" }}
             />
 
-            {/* Scan line — glowing horizontal line moving down */}
+            {/* Scan line */}
             <div
               className="absolute left-0 right-0 pointer-events-none"
               style={{
@@ -163,7 +179,7 @@ export default function FashionLoadingAnimation({
               }}
             />
 
-            {/* Scan glow area above the line */}
+            {/* Scan glow */}
             <div
               className="absolute left-0 right-0 pointer-events-none"
               style={{
@@ -174,24 +190,24 @@ export default function FashionLoadingAnimation({
               }}
             />
 
-            {/* Corner brackets — scanning frame */}
+            {/* Corner brackets */}
             <div className="absolute top-3 left-3 w-6 h-6 border-t-2 border-l-2 border-primary/60" />
             <div className="absolute top-3 right-3 w-6 h-6 border-t-2 border-r-2 border-primary/60" />
             <div className="absolute bottom-3 left-3 w-6 h-6 border-b-2 border-l-2 border-primary/60" />
             <div className="absolute bottom-3 right-3 w-6 h-6 border-b-2 border-r-2 border-primary/60" />
 
-            {/* Detection labels that appear as scan progresses */}
-            {currentStep >= 1 && (
+            {/* Detection labels */}
+            {currentStageIdx >= 1 && (
               <div className="absolute top-4 right-10 px-2 py-0.5 rounded bg-primary/80 text-black text-[10px] font-bold animate-in fade-in zoom-in duration-500">
                 {lang === "he" ? "מזהה פריטים" : "Detecting items"} 👁️
               </div>
             )}
-            {currentStep >= 3 && (
+            {currentStageIdx >= 3 && (
               <div className="absolute bottom-12 left-4 px-2 py-0.5 rounded bg-rose-500/80 text-white text-[10px] font-bold animate-in fade-in zoom-in duration-500">
                 {lang === "he" ? "מנתח סגנון" : "Analyzing style"} 🔥
               </div>
             )}
-            {currentStep >= 5 && (
+            {currentStageIdx >= 5 && (
               <div className="absolute top-1/2 left-4 px-2 py-0.5 rounded bg-emerald-500/80 text-white text-[10px] font-bold animate-in fade-in zoom-in duration-500">
                 {lang === "he" ? "מתאים המלצות" : "Matching recs"} 💎
               </div>
@@ -199,29 +215,31 @@ export default function FashionLoadingAnimation({
           </div>
         </div>
       ) : (
-        /* Fallback: animated icon if no image */
         <div className="relative flex flex-col items-center">
           <div className="relative w-28 h-28 mb-4">
             <div className="absolute inset-0 rounded-full bg-primary/10 animate-ping" style={{ animationDuration: "2s" }} />
             <div className="absolute inset-2 rounded-full border-2 border-primary/30 animate-spin" style={{ animationDuration: "8s" }} />
             <div className="absolute inset-4 rounded-full border-2 border-dashed border-rose-400/30 animate-spin" style={{ animationDuration: "6s", animationDirection: "reverse" }} />
             <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-4xl transition-all duration-500" style={{ transform: `scale(${currentStep % 2 === 0 ? 1 : 1.1})` }}>
-                {STEP_ICONS[currentStep] || "✨"}
+              <span className="text-4xl transition-all duration-500" style={{ transform: `scale(${currentStageIdx % 2 === 0 ? 1 : 1.1})` }}>
+                {currentStage.icon}
               </span>
             </div>
           </div>
         </div>
       )}
 
-      {/* Current step text */}
+      {/* Current stage text + elapsed time */}
       <div className="text-center">
         <p className="text-lg font-semibold text-foreground mb-1 transition-all duration-500">
-          {(Array.isArray(steps) ? steps[currentStep] : null) || t("loading", "analyzing")}
+          {currentStage.label}
+        </p>
+        <p className="text-xs text-muted-foreground/60 tabular-nums">
+          {formatTime(elapsed)}
         </p>
 
         {/* Context info */}
-        <div className="text-sm text-muted-foreground space-y-0.5">
+        <div className="text-sm text-muted-foreground space-y-0.5 mt-1">
           {selectedOccasion && (
             <p className="flex items-center justify-center gap-1.5">
               <span>{OCCASIONS.find((o) => o.id === selectedOccasion)?.icon}</span>
@@ -248,24 +266,24 @@ export default function FashionLoadingAnimation({
             style={{ width: `${progress}%` }}
           />
         </div>
-        {/* Step indicators */}
+        {/* Stage indicators */}
         <div className="flex justify-between px-1">
-          {STEP_ICONS.map((icon, i) => (
+          {stages.map((stage, i) => (
             <div
               key={i}
               className={`w-6 h-6 rounded-full flex items-center justify-center text-xs transition-all duration-300 ${
-                i <= currentStep
+                i <= currentStageIdx
                   ? "bg-primary/20 text-primary scale-110"
                   : "bg-white/5 text-muted-foreground"
               }`}
             >
-              {i < currentStep ? "✓" : icon}
+              {i < currentStageIdx ? "✓" : stage.icon}
             </div>
           ))}
         </div>
       </div>
 
-      {/* Fashion fact card — rotating */}
+      {/* Fashion fact card */}
       <div
         className={`max-w-sm mx-auto p-4 rounded-xl border border-primary/10 bg-primary/5 text-center transition-all duration-400 ${
           factVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"
@@ -278,7 +296,7 @@ export default function FashionLoadingAnimation({
 
       {/* Time estimate */}
       <p className="text-center text-xs text-muted-foreground">
-        {t("loading", "estimatedTime")}
+        {lang === "he" ? "זמן משוער: 30-60 שניות" : "Estimated time: 30-60 seconds"}
       </p>
 
       {/* Tips accordion */}

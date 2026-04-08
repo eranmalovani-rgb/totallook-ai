@@ -115,3 +115,13 @@
 - [x] Reduce retry delays: Stage 1 800ms (was 1500ms), Stage 2 600ms (was 1200ms)
 - [x] Reduce LLM timeout 30s (was 40s), image fetch 5s (was 8s)
 - [x] Tests: 706 pass, 4 pre-existing API failures (google-cse, imagegen x2, openai)
+
+## Stage 7 — Analysis Reliability & Performance (5 improvements)
+- [x] 7.1: LLM timeout increased from 30s to 45s for Vision calls (parallel Stage 1+2 not possible — Stage 2 depends on Stage 1 output)
+- [x] 7.2: Client-side tRPC fetch timeout increased to 120s (was browser default ~10s)
+- [x] 7.3: Auto-retry (up to 2 attempts) on retryable errors in GuestUpload.tsx and Upload.tsx
+- [x] 7.4: Specific Hebrew/English error messages for timeout, rate-limit, in-progress, and generic errors
+- [x] 7.5: Time-based progress stages in FashionLoadingAnimation with elapsed timer and auto-retry indicator
+- [x] 7.6: Server-side retry support — reset failed guest sessions and reviews to allow re-analysis
+- [x] 7.7: 14 new vitest tests for all Stage 7 improvements (all pass)
+- [x] 7.8: RetryAnalyzeButton in ReviewPage.tsx updated with auto-retry, specific error messages (timeout, rate-limit, in-progress)

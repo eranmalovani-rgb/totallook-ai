@@ -43,10 +43,19 @@ const trpcClient = trpc.createClient({
       url: "/api/trpc",
       transformer: superjson,
       fetch(input, init) {
+        // Use 120s timeout for long-running analysis mutations
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 120_000);
+        // Combine with any existing signal from tRPC
+        const existingSignal = init?.signal;
+        if (existingSignal) {
+          existingSignal.addEventListener('abort', () => controller.abort());
+        }
         return globalThis.fetch(input, {
           ...(init ?? {}),
           credentials: "include",
-        });
+          signal: controller.signal,
+        }).finally(() => clearTimeout(timeoutId));
       },
     }),
   ],
