@@ -289,3 +289,9 @@
 - [x] 18.1: Root cause: generateOutfitLookFromMetadata (mosaic from individual items) ran BEFORE AI image generation, so it always returned a mosaic instead of a full look
 - [x] 18.2: Swapped priority order in all 3 generateOutfitLook mutations (registered, guest, pre-analysis): AI full look FIRST, metadata mosaic as FALLBACK
 - [x] 18.3: 0 TS errors, 765/769 tests pass (4 pre-existing API failures)
+
+## Stage 19 — Fix Duplicate Images + Budget-Aware Fallback Stores
+- [x] 19.1: Fix: added usedSourceUrls (pre-proxy) tracking — Brave/Google pickers now filter by original source URLs, not S3 proxy URLs
+- [x] 19.2: Added getBudgetFallbackStores() with 3 tiers: luxury (Mr Porter, SSENSE, Mytheresa, NET-A-PORTER), mid (ASOS, Mango, COS), budget (H&M, Zara, Uniqlo)
+- [x] 19.3: Passed budgetLevel through full chain: normalizeImprovementShoppingLinks → buildFallbackShoppingLinks → getBudgetFallbackStores
+- [x] 19.4: 765/769 tests pass (4 pre-existing API failures), 0 new TS errors

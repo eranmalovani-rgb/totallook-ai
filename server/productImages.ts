@@ -254,6 +254,8 @@ async function resolveShoppingLinkImage(params: {
   gender?: string;
   /** URLs already used by other links in the same improvement — skip these in Brave/Google picks */
   usedImageUrls?: Set<string>;
+  /** Source URLs (pre-proxy) already used — for dedup in Brave/Google pickers */
+  usedSourceUrls?: Set<string>;
   /** Pre-fetched search results (if available, skip API calls for speed) */
   prefetchedResults?: { braveResults: import('./braveImageSearch').BraveImageResult[]; googleResults: import('./googleImageSearch').GoogleImageResult[] };
 }): Promise<string> {
@@ -268,8 +270,11 @@ async function resolveShoppingLinkImage(params: {
     promptSalt,
     gender,
     usedImageUrls,
+    usedSourceUrls,
     prefetchedResults,
   } = params;
+  // For Brave/Google pickers, prefer usedSourceUrls (pre-proxy) if available
+  const pickerDedup = usedSourceUrls || usedImageUrls;
   const cacheKey = normalizeProductKey(label, categoryQuery, url);
   if (!skipCache) {
     const cachedUrl = await getCachedProductImage(cacheKey, CACHE_TTL_DAYS);
@@ -278,10 +283,13 @@ async function resolveShoppingLinkImage(params: {
       // and try Brave/Google instead of falling through to expensive AI generation
       if (usedImageUrls && usedImageUrls.has(cachedUrl.trim().toLowerCase())) {
         console.log(`${logPrefix} cache hit but duplicate — skipping to search: "${label}"`);
+      } else if (usedSourceUrls && usedSourceUrls.has(cachedUrl.trim().toLowerCase())) {
+        console.log(`${logPrefix} cache hit but source duplicate — skipping to search: "${label}"`);
       } else {
         console.log(`${logPrefix} cache hit: "${label}"`);
         const proxiedCached = await proxyImageToS3(cachedUrl);
         if (proxiedCached && isValidImageUrl(proxiedCached)) {
+          if (usedSourceUrls) usedSourceUrls.add(cachedUrl.trim().toLowerCase());
           return proxiedCached;
         }
         console.log(`${logPrefix} cache hit but proxy failed, continuing to search: "${label}"`);
@@ -316,11 +324,12 @@ async function resolveShoppingLinkImage(params: {
     })();
     if (braveResults.length > 0) {
       // Pass usedImageUrls so picker skips images already chosen by other links
-      const bestImage = await pickBestBraveImage(braveResults, usedImageUrls, categoryQuery);
+      const bestImage = await pickBestBraveImage(braveResults, pickerDedup, categoryQuery);
       if (bestImage && isValidImageUrl(bestImage)) {
         console.log(`${logPrefix} Brave Image: "${label}"`);
         const proxiedBraveUrl = await proxyImageToS3(bestImage);
         if (proxiedBraveUrl && isValidImageUrl(proxiedBraveUrl)) {
+          if (usedSourceUrls) usedSourceUrls.add(bestImage.trim().toLowerCase());
           saveProductImageToCache({
             productKey: cacheKey,
             imageUrl: proxiedBraveUrl,
@@ -334,10 +343,11 @@ async function resolveShoppingLinkImage(params: {
         for (const altResult of braveResults.slice(0, 6)) {
           const altUrl = altResult.url || altResult.thumbnailUrl;
           if (!altUrl || altUrl === bestImage) continue;
-          if (usedImageUrls && usedImageUrls.has(altUrl.trim().toLowerCase())) continue;
+          if (pickerDedup && pickerDedup.has(altUrl.trim().toLowerCase())) continue;
           const altProxied = await proxyImageToS3(altUrl);
           if (altProxied && isValidImageUrl(altProxied)) {
             console.log(`${logPrefix} Brave alt image proxied OK: "${label}"`);
+            if (usedSourceUrls) usedSourceUrls.add(altUrl.trim().toLowerCase());
             saveProductImageToCache({
               productKey: cacheKey,
               imageUrl: altProxied,
@@ -362,11 +372,12 @@ async function resolveShoppingLinkImage(params: {
     })();
     if (googleResults.length > 0) {
       // Pass usedImageUrls so picker skips images already chosen by other links
-      const bestImage = await pickBestProductImage(googleResults, usedImageUrls, categoryQuery);
+      const bestImage = await pickBestProductImage(googleResults, pickerDedup, categoryQuery);
       if (bestImage && isValidImageUrl(bestImage)) {
         console.log(`${logPrefix} Google Image: "${label}"`);
         const proxiedGoogleUrl = await proxyImageToS3(bestImage);
         if (proxiedGoogleUrl && isValidImageUrl(proxiedGoogleUrl)) {
+          if (usedSourceUrls) usedSourceUrls.add(bestImage.trim().toLowerCase());
           saveProductImageToCache({
             productKey: cacheKey,
             imageUrl: proxiedGoogleUrl,
@@ -380,10 +391,11 @@ async function resolveShoppingLinkImage(params: {
         for (const altResult of googleResults.slice(0, 6)) {
           const altUrl = altResult.link;
           if (!altUrl || altUrl === bestImage) continue;
-          if (usedImageUrls && usedImageUrls.has(altUrl.trim().toLowerCase())) continue;
+          if (pickerDedup && pickerDedup.has(altUrl.trim().toLowerCase())) continue;
           const altProxied = await proxyImageToS3(altUrl);
           if (altProxied && isValidImageUrl(altProxied)) {
             console.log(`${logPrefix} Google alt image proxied OK: "${label}"`);
+            if (usedSourceUrls) usedSourceUrls.add(altUrl.trim().toLowerCase());
             saveProductImageToCache({
               productKey: cacheKey,
               imageUrl: altProxied,
@@ -863,6 +875,7 @@ export async function enrichAnalysisWithProductImages(
   // then pick images SEQUENTIALLY with usedImageUrls for uniqueness.
   const improvementTasks = enrichedImprovements.map((imp, impIdx) => async (): Promise<void> => {
     const usedImageUrls = new Set<string>();
+    const usedSourceUrls = new Set<string>(); // Track pre-proxy URLs for Brave/Google dedup
     const categoryQuery = imp.productSearchQuery || "";
     const linksNeedingImages: number[] = [];
 
@@ -919,6 +932,7 @@ export async function enrichAnalysisWithProductImages(
           logPrefix: `[ProductImages] [${impIdx}][${linkIdx}]`,
           gender,
           usedImageUrls,
+          usedSourceUrls,
           prefetchedResults: prefetchMap.get(linkIdx),
         });
         if (resolvedUrl) {
@@ -995,6 +1009,7 @@ export async function generateImagesForImprovement(
 
   // HYBRID: prefetch + sequential selection for speed + uniqueness
   const usedImageUrls = new Set<string>();
+  const usedSourceUrls = new Set<string>(); // Track pre-proxy URLs for Brave/Google dedup
   const categoryQuery = improvement.productSearchQuery || "";
   const linksNeedingImages: number[] = [];
 
@@ -1078,6 +1093,7 @@ export async function generateImagesForImprovement(
         logPrefix: `[ProductImages] Lazy [${linkIdx}]`,
         gender,
         usedImageUrls,
+        usedSourceUrls,
         prefetchedResults: prefetchMap.get(linkIdx),
       });
       if (resolvedUrl) {

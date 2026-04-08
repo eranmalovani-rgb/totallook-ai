@@ -167,10 +167,39 @@ function detectImprovementCategory(imp: Improvement): ClothingCategory {
   return detectClothingCategory(`${imp.title || ""} ${imp.beforeLabel || ""} ${imp.afterLabel || ""} ${imp.productSearchQuery || ""}`);
 }
 
+/** Return budget-tier-appropriate fallback stores */
+function getBudgetFallbackStores(encoded: string, query: string, budgetLevel?: string | null): ShoppingLink[] {
+  const tier = (budgetLevel || "").toLowerCase();
+  if (tier === "luxury" || tier === "high") {
+    return [
+      { label: `${query} - Farfetch`, url: `https://www.farfetch.com/shopping/men/search/items.aspx?q=${encoded}`, imageUrl: "" },
+      { label: `${query} - Mr Porter`, url: `https://www.mrporter.com/en-us/mens/search?query=${encoded}`, imageUrl: "" },
+      { label: `${query} - SSENSE`, url: `https://www.ssense.com/en-us/men?q=${encoded}`, imageUrl: "" },
+      { label: `${query} - Mytheresa`, url: `https://www.mytheresa.com/int/en/men/search?term=${encoded}`, imageUrl: "" },
+    ];
+  }
+  if (tier === "budget" || tier === "low") {
+    return [
+      { label: `${query} - H&M`, url: `https://www2.hm.com/en_us/search-results.html?q=${encoded}`, imageUrl: "" },
+      { label: `${query} - Uniqlo`, url: `https://www.uniqlo.com/us/en/search?q=${encoded}`, imageUrl: "" },
+      { label: `${query} - Zara`, url: `https://www.zara.com/us/en/search?searchTerm=${encoded}`, imageUrl: "" },
+      { label: `${query} - SHEIN`, url: `https://us.shein.com/pdsearch/${encoded}/`, imageUrl: "" },
+    ];
+  }
+  // Default: mid-range
+  return [
+    { label: `${query} - ASOS`, url: `https://www.asos.com/search/?q=${encoded}`, imageUrl: "" },
+    { label: `${query} - Zara`, url: `https://www.zara.com/us/en/search?searchTerm=${encoded}`, imageUrl: "" },
+    { label: `${query} - Mango`, url: `https://shop.mango.com/en/search?kw=${encoded}`, imageUrl: "" },
+    { label: `${query} - H&M`, url: `https://www2.hm.com/en_us/search-results.html?q=${encoded}`, imageUrl: "" },
+  ];
+}
+
 function buildFallbackShoppingLinks(
   query: string,
   preferredStores?: string | null,
   gender: GenderCategory = "male",
+  budgetLevel?: string | null,
 ): ShoppingLink[] {
   const encoded = encodeURIComponent(query).replace(/%20/g, "+");
 
@@ -193,14 +222,10 @@ function buildFallbackShoppingLinks(
         }
         if (links.length >= 4) break;
       }
-      // If user has fewer than 3 preferred stores, pad with defaults
+      // If user has fewer than 3 preferred stores, pad with budget-appropriate defaults
       if (links.length < 3) {
         const usedDomains = new Set(links.map(l => { try { return new URL(l.url).hostname.replace(/^www\./, ""); } catch { return ""; } }));
-        const defaults = [
-          { label: `${query} - ASOS`, url: `https://www.asos.com/search/?q=${encoded}`, imageUrl: "" },
-          { label: `${query} - Zara`, url: `https://www.zara.com/us/en/search?searchTerm=${encoded}`, imageUrl: "" },
-          { label: `${query} - H&M`, url: `https://www2.hm.com/en_us/search-results.html?q=${encoded}`, imageUrl: "" },
-        ];
+        const defaults = getBudgetFallbackStores(encoded, query, budgetLevel);
         for (const d of defaults) {
           const dom = new URL(d.url).hostname.replace(/^www\./, "");
           if (!usedDomains.has(dom)) { links.push(d); usedDomains.add(dom); }
@@ -211,12 +236,8 @@ function buildFallbackShoppingLinks(
     }
   }
 
-  // Default fallback (no preferred stores)
-  return [
-    { label: `${query} - ASOS`, url: `https://www.asos.com/search/?q=${encoded}`, imageUrl: "" },
-    { label: `${query} - Zara`, url: `https://www.zara.com/us/en/search?searchTerm=${encoded}`, imageUrl: "" },
-    { label: `${query} - H&M`, url: `https://www2.hm.com/en_us/search-results.html?q=${encoded}`, imageUrl: "" },
-  ];
+  // Default fallback (no preferred stores) — use budget-appropriate stores
+  return getBudgetFallbackStores(encoded, query, budgetLevel);
 }
 
 function buildFallbackImprovement(category: Exclude<ClothingCategory, "accessory" | "other">, isHebrew: boolean): Improvement {
@@ -1551,6 +1572,7 @@ function normalizeImprovementShoppingLinks(
   lang: "he" | "en",
   preferredStores?: string | null,
   gender: GenderCategory = "male",
+  budgetLevel?: string | null,
 ): Improvement {
   const isHebrew = lang === "he";
   const fallbackQuery =
@@ -1571,7 +1593,7 @@ function normalizeImprovementShoppingLinks(
     });
   }
   if (deduped.length < 3) {
-    const fallbackLinks = buildFallbackShoppingLinks(fallbackQuery, preferredStores, gender);
+    const fallbackLinks = buildFallbackShoppingLinks(fallbackQuery, preferredStores, gender, budgetLevel);
     for (const fb of fallbackLinks) {
       const key = (fb.url || "").trim().toLowerCase();
       if (!key || seen.has(key)) continue;
@@ -1592,7 +1614,7 @@ function normalizeImprovementShoppingLinks(
   
   if (uniqueDomains.size < finalLinks.length && finalLinks.length >= 2) {
     // Some or all links go to the same store — replace duplicates with user's preferred stores or defaults
-    const diverseLinks = buildFallbackShoppingLinks(fallbackQuery, preferredStores, gender);
+    const diverseLinks = buildFallbackShoppingLinks(fallbackQuery, preferredStores, gender, budgetLevel);
     const usedDomains = new Set<string>();
     // First pass: keep one link per unique domain
     for (let i = 0; i < finalLinks.length; i++) {
@@ -1758,9 +1780,10 @@ function sanitizeRecommendationsPayload(
   userGender?: string | null,
   preferredInfluencers?: string | null,
   preferredStores?: string | null,
+  budgetLevel?: string | null,
 ): FashionRecommendationsPayload {
   const genderCat: GenderCategory = userGender === "female" ? "female" : userGender === "unisex" ? "unisex" : "male";
-  const fallback = buildFallbackRecommendationsFromCore(core, lang, occasion, userGender, preferredInfluencers, preferredStores);
+  const fallback = buildFallbackRecommendationsFromCore(core, lang, occasion, userGender, preferredInfluencers, preferredStores, budgetLevel);
   if (shouldFallbackRecommendationsForLanguage(rec, lang)) {
     return fallback;
   }
@@ -1771,13 +1794,13 @@ function sanitizeRecommendationsPayload(
     ...imp,
     productSearchQuery: validateAndFixProductSearchQuery(imp, userGender),
   }));
-  improvements = improvements.map((imp) => normalizeImprovementShoppingLinks(imp, lang, preferredStores, genderCat));
-  if (improvements.length < 4) {
+  improvements = improvements.map((imp) => normalizeImprovementShoppingLinks(imp, lang, preferredStores, genderCat, budgetLevel));
+  if (improvements.length < 4 && fallback) {
     const needed = 4 - improvements.length;
     improvements = [...improvements, ...fallback.improvements.slice(0, needed)];
   }
   if (improvements.length > 5) improvements = improvements.slice(0, 5);
-  improvements = improvements.map((imp) => normalizeImprovementShoppingLinks(imp, lang, preferredStores, genderCat));
+  improvements = improvements.map((imp) => normalizeImprovementShoppingLinks(imp, lang, preferredStores, genderCat, budgetLevel));
 
   // Global deduplication: remove duplicate shopping links across all improvements
   const globalSeenUrls = new Set<string>();
@@ -1863,6 +1886,7 @@ function buildFallbackRecommendationsFromCore(
   userGender?: string | null,
   preferredInfluencers?: string | null,
   preferredStores?: string | null,
+  budgetLevel?: string | null,
 ): FashionRecommendationsPayload {
   const genderCat: GenderCategory = userGender === "female" ? "female" : userGender === "unisex" ? "unisex" : "male";
   const isHebrew = lang === "he";
@@ -1921,7 +1945,7 @@ function buildFallbackRecommendationsFromCore(
   ).insight;
 
   return {
-    improvements: improvements.map((imp) => normalizeImprovementShoppingLinks(imp, lang, preferredStores, genderCat)),
+    improvements: improvements.map((imp) => normalizeImprovementShoppingLinks(imp, lang, preferredStores, genderCat, budgetLevel)),
     outfitSuggestions: sanitizeOutfitSuggestionsForProfileGender(outfitSuggestions, userGender, lang),
     trendSources,
     influencerInsight,
@@ -2390,6 +2414,7 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
             profileContext?.gender || null,
             review.influencers || profileContext?.favoriteInfluencers || null,
             profileContext?.preferredStores || null,
+            profileContext?.budgetLevel || null,
           );
           let analysis: FashionAnalysis = {
             ...analysisCore,
@@ -2788,7 +2813,7 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
           const lang: "he" | "en" = /[\u0590-\u05FF]/.test(analysis.summary || "") ? "he" : "en";
           const profile = await getUserProfile(review.userId);
           const genderCat: GenderCategory = profile?.gender === "female" ? "female" : profile?.gender === "unisex" ? "unisex" : "male";
-          analysis.improvements = analysis.improvements.map((imp) => normalizeImprovementShoppingLinks(imp, lang, profile?.preferredStores || null, genderCat));
+          analysis.improvements = analysis.improvements.map((imp) => normalizeImprovementShoppingLinks(imp, lang, profile?.preferredStores || null, genderCat, profile?.budgetLevel || null));
           review.analysisJson = analysis;
         }
         return review;
@@ -2807,11 +2832,10 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
           const lang: "he" | "en" = /[\u0590-\u05FF]/.test(analysis.summary || "") ? "he" : "en";
           const profile = review.userId ? await getUserProfile(review.userId) : null;
           const genderCat: GenderCategory = profile?.gender === "female" ? "female" : profile?.gender === "unisex" ? "unisex" : "male";
-          analysis.improvements = analysis.improvements.map((imp) => normalizeImprovementShoppingLinks(imp, lang, profile?.preferredStores || null, genderCat));
+          analysis.improvements = analysis.improvements.map((imp) => normalizeImprovementShoppingLinks(imp, lang, profile?.preferredStores || null, genderCat, profile?.budgetLevel || null));
           analysisJson = analysis;
         }
         return {
-          id: review.id,
           userId: review.userId,
           status: review.status,
           imageUrl: review.imageUrl,
@@ -3405,7 +3429,7 @@ Return ONLY a JSON object with these exact fields:
         const profile = await getUserProfile(ctx.user.id);
         const userGender = profile?.gender || "male";
         const genderCat: GenderCategory = userGender === "female" ? "female" : userGender === "unisex" ? "unisex" : "male";
-        const imp = normalizeImprovementShoppingLinks(analysis.improvements[input.improvementIndex], lang, profile?.preferredStores || null, genderCat);
+        const imp = normalizeImprovementShoppingLinks(analysis.improvements[input.improvementIndex], lang, profile?.preferredStores || null, genderCat, profile?.budgetLevel || null);
         const impIdx = input.improvementIndex;;
 
         // Generate images for this single improvement category
@@ -3441,7 +3465,7 @@ Return ONLY a JSON object with these exact fields:
         const profile = await getUserProfile(ctx.user.id);
         const userGender = profile?.gender || "male";
         const batchGenderCat: GenderCategory = userGender === "female" ? "female" : userGender === "unisex" ? "unisex" : "male";
-        analysis.improvements = analysis.improvements.map((imp) => normalizeImprovementShoppingLinks(imp, batchLang, profile?.preferredStores || null, batchGenderCat));
+        analysis.improvements = analysis.improvements.map((imp) => normalizeImprovementShoppingLinks(imp, batchLang, profile?.preferredStores || null, batchGenderCat, profile?.budgetLevel || null));
         // Process ALL improvements in parallel
         const results = await Promise.all(
           analysis.improvements.map(async (imp, impIdx) => {
@@ -4322,6 +4346,7 @@ Return ONLY a JSON object with these exact fields:
             profileForPrompt?.gender || null,
             guestProfile?.favoriteInfluencers || null,
             guestProfile?.preferredStores || null,
+            guestProfile?.budgetLevel || null,
           );
           let analysis: FashionAnalysis = {
             ...analysisCore,
@@ -4662,7 +4687,7 @@ Return ONLY a JSON object with these exact fields:
           const lang: "he" | "en" = /[\u0590-\u05FF]/.test(analysis.summary || "") ? "he" : "en";
           const guestProfile = session.fingerprint ? await getGuestProfile(session.fingerprint) : null;
           const guestGenderCat: GenderCategory = guestProfile?.gender === "female" ? "female" : guestProfile?.gender === "unisex" ? "unisex" : "male";
-          analysis.improvements = analysis.improvements.map((imp) => normalizeImprovementShoppingLinks(imp, lang, guestProfile?.preferredStores || null, guestGenderCat));
+          analysis.improvements = analysis.improvements.map((imp) => normalizeImprovementShoppingLinks(imp, lang, guestProfile?.preferredStores || null, guestGenderCat, guestProfile?.budgetLevel || null));
           analysisJson = analysis;
         }
         return {
@@ -4692,7 +4717,7 @@ Return ONLY a JSON object with these exact fields:
         const guestProfile = session.fingerprint ? await getGuestProfile(session.fingerprint) : null;
         const guestGender = guestProfile?.gender || (session as any).gender || "male";
         const guestGenderCat: GenderCategory = guestGender === "female" ? "female" : guestGender === "unisex" ? "unisex" : "male";
-        const imp = normalizeImprovementShoppingLinks(analysis.improvements[input.improvementIndex], lang, guestProfile?.preferredStores || null, guestGenderCat);
+        const imp = normalizeImprovementShoppingLinks(analysis.improvements[input.improvementIndex], lang, guestProfile?.preferredStores || null, guestGenderCat, guestProfile?.budgetLevel || null);
         const impIdx = input.improvementIndex;;
 
         const updatedLinks = await generateImagesForImprovement(imp, async (linkIdx, imageUrl) => {
@@ -5112,7 +5137,7 @@ Style: High-end ${genderLabel} fashion editorial flat lay, all items arranged ae
           const lang: "he" | "en" = /[\u0590-\u05FF]/.test(analysis.summary || "") ? "he" : "en";
           const guestProfile = session.fingerprint ? await getGuestProfile(session.fingerprint) : null;
           const guestGenderCat: GenderCategory = guestProfile?.gender === "female" ? "female" : guestProfile?.gender === "unisex" ? "unisex" : "male";
-          analysis.improvements = analysis.improvements.map((imp) => normalizeImprovementShoppingLinks(imp, lang, guestProfile?.preferredStores || null, guestGenderCat));
+          analysis.improvements = analysis.improvements.map((imp) => normalizeImprovementShoppingLinks(imp, lang, guestProfile?.preferredStores || null, guestGenderCat, guestProfile?.budgetLevel || null));
           analysisJson = analysis;
         }
         return {
