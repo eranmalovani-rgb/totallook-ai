@@ -136,3 +136,8 @@
 - [x] WhatsApp guest review page matches registered user review page (full improvements with accordion, outfits, trends, progressive loading)
 - [x] Verified preferred stores flow: profile → profileForPrompt → sanitizeRecommendationsPayload → buildFallbackShoppingLinks
 - [x] Tests: 758 pass, 4 pre-existing API failures
+
+## Stage 10 — Analysis Not Working (Bug Fix)
+- [x] Debug why analysis is not working on deployed site (onboarding redirect + no client timeout)
+- [x] Fix: prevent onboarding redirect during upload/analyze, add 10s client timeout, add server logging
+- [x] Verify fix by running tests for Upload/GuestUpload timeout and redirect guard (11 tests pass)

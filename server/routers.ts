@@ -2520,15 +2520,23 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
     analyze: protectedProcedure
       .input(z.object({ reviewId: z.number(), lang: z.enum(["he", "en"]).optional().default("he") }))
       .mutation(async ({ ctx, input }) => {
+        console.log(`[Analyze] Start reviewId=${input.reviewId} userId=${ctx.user.id}`);
         const review = await getReviewById(input.reviewId);
         if (!review) throw new Error("Review not found");
         if (review.userId !== ctx.user.id) throw new Error("Unauthorized");
         // If already analyzing or completed, just return success (idempotent)
-        if (review.status === "analyzing") return { success: true, reviewId: input.reviewId };
-        if (review.status === "completed") return { success: true, reviewId: input.reviewId };
+        if (review.status === "analyzing") {
+          console.log(`[Analyze] Already analyzing reviewId=${input.reviewId}, returning immediately`);
+          return { success: true, reviewId: input.reviewId };
+        }
+        if (review.status === "completed") {
+          console.log(`[Analyze] Already completed reviewId=${input.reviewId}, returning immediately`);
+          return { success: true, reviewId: input.reviewId };
+        }
         // Fire-and-forget: mark as analyzing, return immediately, run analysis in background.
         // The client navigates to ReviewPage which polls every 3s for status updates.
         await updateReviewStatus(input.reviewId, "analyzing");
+        console.log(`[Analyze] Marked as analyzing, returning immediately. Background job starting for reviewId=${input.reviewId}`);
         // Capture user context before returning (ctx won't be available in background)
         const userId = ctx.user.id;
         // Launch background analysis (no await — fire and forget)

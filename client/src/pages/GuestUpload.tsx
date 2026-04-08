@@ -304,12 +304,16 @@ export default function GuestUpload() {
       setAnalyzing(true);
       // Fire-and-forget: trigger analysis and navigate immediately.
       // Guest ReviewPage polls for status updates.
+      // Use a 10s timeout so we navigate even if the server is slow to respond.
       try {
-        await analyzeMutation.mutateAsync({
-          sessionId,
-          lang,
-          occasion: selectedOccasion || undefined,
-        });
+        await Promise.race([
+          analyzeMutation.mutateAsync({
+            sessionId,
+            lang,
+            occasion: selectedOccasion || undefined,
+          }),
+          new Promise((resolve) => setTimeout(resolve, 10_000)),
+        ]);
       } catch (analyzeErr: any) {
         // Even if the mutation call fails, the server may still be processing.
         // Navigate to ReviewPage anyway — it handles all status states.

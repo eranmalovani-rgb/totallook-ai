@@ -193,8 +193,12 @@ export default function Upload() {
       setAnalyzing(true);
       // Fire-and-forget: trigger analysis and navigate immediately.
       // ReviewPage polls every 3s for status updates (pending/analyzing/completed/failed).
+      // Use a 10s timeout so we navigate even if the server is slow to respond.
       try {
-        await analyzeMutation.mutateAsync({ reviewId, lang });
+        await Promise.race([
+          analyzeMutation.mutateAsync({ reviewId, lang }),
+          new Promise((resolve) => setTimeout(resolve, 10_000)),
+        ]);
       } catch (analyzeErr: any) {
         // Even if the mutation call fails, the server may still be processing.
         // Navigate to ReviewPage anyway — it handles all status states.
@@ -246,13 +250,15 @@ export default function Upload() {
   };
 
   useEffect(() => {
+    // Don't redirect during upload or analysis — it would cancel the flow
+    if (uploading || analyzing) return;
     if (authLoading || profileQueryLoading || !profileFetched) return;
     if (!isAuthenticated) return;
     const onboarded = !!profile?.onboardingCompleted;
     if (profile === null || !onboarded) {
       window.location.href = "/onboarding";
     }
-  }, [authLoading, profileQueryLoading, profileFetched, isAuthenticated, profile, navigate]);
+  }, [authLoading, profileQueryLoading, profileFetched, isAuthenticated, profile, navigate, uploading, analyzing]);
 
   if (authLoading) {
     return (
