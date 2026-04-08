@@ -1187,6 +1187,7 @@ export const analysisJsonSchema = {
           productSearchQuery: { type: "string" as const },
           shoppingLinks: {
             type: "array" as const,
+            minItems: 3,
             items: {
               type: "object" as const,
               properties: {
@@ -1351,7 +1352,7 @@ function buildRecommendationsPromptFromCore(
 כללים:
 - התבסס על פריטי הלבוש, הציונים והסיכום משלב 1.
 - שמור על התאמה לאירוע ולסגנון המשתמש.
-- improvements: 3 המלצות שדרוג (קטגוריות שונות: חלק עליון, חלק תחתון, נעליים/אקססוריז). כל improvement עם 2 shoppingLinks (כתובות חיפוש תקינות).
+- improvements: 3 המלצות שדרוג (קטגוריות שונות: חלק עליון, חלק תחתון, נעליים/אקססוריז). כל improvement חייב לכלול בדיוק 3 shoppingLinks (כתובות חיפוש תקינות בחנויות אמיתיות). אל תחזיר פחות מ-3.
 - productSearchQuery חייב להיות באנגלית וספציפי: קטגוריה + צבע + סגנון + מגדר. דוגמה: "men's navy slim fit chino pants". ה-productSearchQuery חייב להתאים לקטגוריית ה-improvement (אם ה-title הוא שדרוג חלק עליון, ה-query חייב להיות של חולצה/חלק עליון).
 - outfitSuggestions: 2 לוקים שלמים (חלק עליון+תחתון+נעליים). כל לוק עם שם מותג+צבע+מחיר.
 - trendSources: 2-3 מקורות רלוונטיים.
@@ -1375,7 +1376,7 @@ Task: return JSON with fields only:
 Rules:
 - Base recommendations on stage-1 items, scores, and summary.
 - Keep suggestions occasion-aware and style-consistent.
-- improvements: 3 upgrade suggestions (different categories: top, bottom, shoes/accessories). Each with 2 shoppingLinks (valid search URLs).
+- improvements: 3 upgrade suggestions (different categories: top, bottom, shoes/accessories). Each improvement MUST include exactly 3 shoppingLinks (valid search URLs to real stores). Never return fewer than 3.
 - productSearchQuery MUST be specific English: category + color + style + gender. Example: "men's navy slim fit chino pants". The productSearchQuery MUST match the improvement category (if title is about tops, query must be for a top/shirt/blouse).
 - outfitSuggestions: 2 complete looks (top+bottom+shoes). Each item with brand+color+price.
 - trendSources: 2-3 relevant sources.

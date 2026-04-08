@@ -71,8 +71,8 @@ describe("Performance optimizations", () => {
       expect(productImagesSource).toContain("searchGoogleImages");
     });
 
-    it("should use 8s timeout for store image fetching", () => {
-      expect(productImagesSource).toContain("setTimeout(() => controller.abort(), 8000)");
+    it("should use 4s timeout for store image fetching", () => {
+      expect(productImagesSource).toContain("setTimeout(() => controller.abort(), 4000)");
     });
   });
 });

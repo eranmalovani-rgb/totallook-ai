@@ -206,3 +206,16 @@
 - [x] 11e.1: Investigated crash — analysis was failing because maxTokens was reduced too aggressively in Stage 11 (1600 tokens insufficient for Stage 1 JSON output with brand details)
 - [x] 11e.2: Root cause: registered user path had maxTokens=1600 for both stages (Stage 11 change), while guest path still had 2200/2500. 1600 tokens caused JSON truncation → parse failure → crash after timeout
 - [x] 11e.3: Fix: restored Stage 1 maxTokens to 2200, Stage 2 to 2000 (both registered + guest paths now consistent). Verified: Stage 1 completes in ~16s, Stage 2 in ~19s, total ~35s. 756/760 tests pass, TS compiles clean.
+
+## Stage 12 — Product Image Reliability + Speed (User-reported)
+- [x] 12.1: Root cause: Stage 2 prompt requested only 2 shoppingLinks (not 3), normalizeImprovementShoppingLinks filled 3rd with fallback
+- [x] 12.2: Root cause: fetchStoreImageUrl (8s timeout) called even when prefetched results exist; Brave 12 parallel calls overwhelm API
+- [x] 12.3: Fix prompt — changed from 2 to 3 shoppingLinks in both Hebrew and English Stage 2 prompts
+- [x] 12.4: Fix schema — added minItems: 3 to shoppingLinks JSON schema to enforce 3 items
+- [x] 12.5: Fix speed — skip fetchStoreImageUrl when prefetched results exist (search URLs, not product pages)
+- [x] 12.6: Fix speed — reduced fetchStoreImageUrl timeout from 8s to 4s
+- [x] 12.7: Fix speed — added Brave API concurrency limiter (max 4 parallel requests) to avoid rate limiting
+- [x] 12.8: Fix frontend — improved state sync in ImprovementCard (ReviewPage + GuestReview) to always update localLinks when server returns images
+- [x] 12.9: Fix dedup — when cache hit returns URL already in usedImageUrls, skip cache and try Brave/Google instead of expensive AI generation
+- [x] 12.10: Normalized guest Stage 2 maxTokens to 2000 for consistency
+- [x] 12.11: Updated performance test for 4s timeout (28/28 tests pass)

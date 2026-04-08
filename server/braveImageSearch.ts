@@ -17,6 +17,25 @@ let braveDisabled = false;
 let braveDisabledAt = 0;
 const CIRCUIT_BREAKER_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
 
+/** Simple concurrency limiter to avoid overwhelming Brave API */
+let activeBraveRequests = 0;
+const MAX_CONCURRENT_BRAVE = 4;
+const braveQueue: Array<() => void> = [];
+function acquireBraveSlot(): Promise<void> {
+  if (activeBraveRequests < MAX_CONCURRENT_BRAVE) {
+    activeBraveRequests++;
+    return Promise.resolve();
+  }
+  return new Promise<void>((resolve) => {
+    braveQueue.push(() => { activeBraveRequests++; resolve(); });
+  });
+}
+function releaseBraveSlot() {
+  activeBraveRequests--;
+  const next = braveQueue.shift();
+  if (next) next();
+}
+
 /** Reset circuit breaker state (for testing) */
 export function resetBraveCircuitBreaker() {
   braveDisabled = false;
@@ -72,6 +91,8 @@ export async function searchBraveImages(
 
   const url = `https://api.search.brave.com/res/v1/images/search?${params}`;
 
+  // Concurrency limiter: max 4 parallel Brave requests
+  await acquireBraveSlot();
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5_000); // Reduced from 10s to 5s
@@ -92,16 +113,18 @@ export async function searchBraveImages(
         braveDisabledAt = Date.now();
         console.warn(`[BraveSearch] Circuit breaker triggered (HTTP 429) — disabling for 5 minutes`);
       }
+      releaseBraveSlot();
       return [];
     }
 
     const data = await res.json();
 
     if (!data.results || !Array.isArray(data.results)) {
+      releaseBraveSlot();
       return [];
     }
 
-    return data.results.map((item: any) => ({
+    const results = data.results.map((item: any) => ({
       url: item.properties?.url ?? "",
       thumbnailUrl: item.thumbnail?.src ?? "",
       width: item.properties?.width ?? item.thumbnail?.width ?? 0,
@@ -110,7 +133,10 @@ export async function searchBraveImages(
       sourceUrl: item.url ?? "",
       confidence: item.confidence ?? "",
     }));
+    releaseBraveSlot();
+    return results;
   } catch (err: any) {
+    releaseBraveSlot();
     if (err?.name === "AbortError") {
       console.warn(`[BraveSearch] Timeout for query "${query}"`);
     }

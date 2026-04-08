@@ -160,7 +160,7 @@ function extractMetaImageFromHtml(html: string, pageUrl: string): string | null 
 async function fetchStoreImageUrl(productUrl: string): Promise<string | null> {
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
     const response = await fetch(productUrl, {
       method: "GET",
       redirect: "follow",
@@ -213,13 +213,19 @@ async function resolveShoppingLinkImage(params: {
   if (!skipCache) {
     const cachedUrl = await getCachedProductImage(cacheKey, CACHE_TTL_DAYS);
     if (cachedUrl && isValidImageUrl(cachedUrl)) {
-      console.log(`${logPrefix} cache hit: "${label}"`);
-      return cachedUrl;
+      // If the cached URL is already used by another link in this improvement, skip cache
+      // and try Brave/Google instead of falling through to expensive AI generation
+      if (usedImageUrls && usedImageUrls.has(cachedUrl.trim().toLowerCase())) {
+        console.log(`${logPrefix} cache hit but duplicate — skipping to search: "${label}"`);
+      } else {
+        console.log(`${logPrefix} cache hit: "${label}"`);
+        return cachedUrl;
+      }
     }
   }
 
-  // --- Step 2: Try store OG image ---
-  if (!skipStoreImage) {
+  // --- Step 2: Try store OG image (skip when prefetched results exist — URLs are search pages, not product pages) ---
+  if (!skipStoreImage && !prefetchedResults) {
     const storeImageUrl = await fetchStoreImageUrl(url);
     if (storeImageUrl && isValidImageUrl(storeImageUrl)) {
       console.log(`${logPrefix} store image: "${label}"`);

@@ -266,7 +266,10 @@ function GuestImprovementAccordionCard({
   useEffect(() => {
     if (imp.shoppingLinks) {
       const serverHasImages = imp.shoppingLinks.some((l: any) => l.imageUrl && l.imageUrl.length > 5);
-      if (serverHasImages) setLocalLinks(imp.shoppingLinks);
+      if (serverHasImages) {
+        setLocalLinks(imp.shoppingLinks);
+        if (!hasTriggered) setHasTriggered(true);
+      }
     }
   }, [imp.shoppingLinks]);
 
