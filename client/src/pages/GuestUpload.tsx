@@ -302,34 +302,22 @@ export default function GuestUpload() {
         setUploading(false);
       }
       setAnalyzing(true);
-      // Fire-and-forget: trigger analysis and navigate immediately.
-      // Guest ReviewPage polls for status updates.
-      try {
-        await analyzeMutation.mutateAsync({
-          sessionId,
-          lang,
-          occasion: selectedOccasion || undefined,
-        });
-      } catch (analyzeErr: any) {
-        // Even if the mutation call fails, the server may still be processing.
-        // Navigate to ReviewPage anyway — it handles all status states.
-        const analyzeMsg = analyzeErr?.message || "";
-        // Only block navigation for actual limit errors
-        if (analyzeMsg.includes("limit") || analyzeMsg.includes("already") || analyzeMsg.includes("כבר") || analyzeMsg.includes("מגבלת")) {
-          setLimitReached(true);
-          setError(lang === "he" ? "הגעת למגבלת 5 ניתוחים. הכנס מייל לניתוחים ללא הגבלה!" : "You've reached the 5 analysis limit. Enter your email for unlimited analyses!");
-          setUploading(false);
-          setAnalyzing(false);
-          return;
-        }
-        console.warn("[GuestUpload] Analyze call error (navigating anyway):", analyzeMsg);
-      }
+      await analyzeMutation.mutateAsync({
+        sessionId,
+        lang,
+        occasion: selectedOccasion || undefined,
+      });
       navigate(`/guest/review/${sessionId}`);
     } catch (err: any) {
       const msg = err.message || "";
-      if (msg.includes("quota") || msg.includes("412") || msg.includes("rate")) {
+      if (msg.includes("limit") || msg.includes("already") || msg.includes("כבר") || msg.includes("מגבלת")) {
+        setLimitReached(true);
+        setError(lang === "he" ? "הגעת למגבלת 5 ניתוחים. הכנס מייל לניתוחים ללא הגבלה!" : "You've reached the 5 analysis limit. Enter your email for unlimited analyses!");
+      } else if (msg.includes("quota") || msg.includes("412") || msg.includes("rate")) {
         setError(t("upload", "rateLimitError"));
         startRetryCountdown(30);
+      } else if (msg.includes("timeout")) {
+        setError(t("upload", "timeoutError"));
       } else {
         setError(t("upload", "genericError"));
       }

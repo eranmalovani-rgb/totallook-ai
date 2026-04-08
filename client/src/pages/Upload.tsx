@@ -191,22 +191,19 @@ export default function Upload() {
       }
 
       setAnalyzing(true);
-      // Fire-and-forget: trigger analysis and navigate immediately.
-      // ReviewPage polls every 3s for status updates (pending/analyzing/completed/failed).
-      try {
-        await analyzeMutation.mutateAsync({ reviewId, lang });
-      } catch (analyzeErr: any) {
-        // Even if the mutation call fails, the server may still be processing.
-        // Navigate to ReviewPage anyway — it handles all status states.
-        console.warn("[Upload] Analyze call error (navigating anyway):", analyzeErr?.message);
-      }
+      await analyzeMutation.mutateAsync({ reviewId, lang });
       navigate(`/review/${reviewId}`);
     } catch (err: any) {
       const msg = err.message || "";
-      console.error("[Upload] Upload error:", msg);
+      console.error("[Upload] Analysis error full:", JSON.stringify(err, null, 2));
+      console.error("[Upload] Error message:", msg);
+      console.error("[Upload] Error data:", err?.data);
+      console.error("[Upload] Error shape:", err?.shape);
       if (msg.includes("exhausted") || msg.includes("quota") || msg.includes("412") || msg.includes("rate limit") || msg.includes("rate_limit") || msg.includes("עמוס") || msg.includes("מכסת") || msg.includes("429")) {
         setError(t("upload", "rateLimitError"));
         startRetryCountdown(30);
+      } else if (msg.includes("timeout") || msg.includes("זמן")) {
+        setError(t("upload", "timeoutError"));
       } else {
         setError(t("upload", "genericError"));
       }

@@ -3,7 +3,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, adminProcedure, router } from "./_core/trpc";
 import { z } from "zod";
-import { createReview, getReviewById, getReviewsByUserId, updateReviewAnalysis, updateReviewStatus, savePartialAnalysis, savePartialGuestAnalysis, getUserProfile, upsertUserProfile, deleteAllReviewsByUserId, deleteUserAccount, addWardrobeItems, getWardrobeByUserId, deleteWardrobeItem, clearWardrobe, updateWardrobeItemImage, publishToFeed, getFeedPosts, deleteFeedPost, likeFeedPost, unlikeFeedPost, saveFeedPost, unsaveFeedPost, getUserFeedInteractions, getSavedPosts, isReviewPublished, followUser, unfollowUser, getFollowingIds, isFollowing, getFollowingFeedPosts, getFollowerCount, getFollowingCount, createNewPostNotifications, getUserNotifications, getUnreadNotificationCount, markNotificationsRead, getAllReviews, getAllUsers, getAdminStats, adminDeleteReview, getReviewCountsByUser, getFeedPostCountsByUser, addFeedComment, getFeedComments, getFeedCommentCount, deleteFeedComment, setWardrobeShareToken, getWardrobeByShareToken, getWardrobeShareToken, createCommentNotification, createReplyNotification, createLikeNotification, saveFixMyLookResult, getFixMyLookResult, getOccasionCounts, createGuestSession, getGuestSessionById, hasGuestUsedAnalysis, updateGuestSessionAnalysis, updateGuestSessionStatus, getGuestAnalytics, getAllGuestSessions, trackDemoView, markDemoSignupClick, getAllDemoViews, trackPageView, getFunnelStats, getDailyFunnelStats, getGuestAnalysisCount, saveGuestProfile, getGuestProfile, saveGuestEmail, getGuestWardrobe, getGuestSessionIdsByFingerprint, addGuestWardrobeItems, deleteGuestWardrobeItem, migrateGuestToUser, deleteReviewById, deleteGuestSession, upsertIgConnection, getIgConnection, disconnectIg, getStoryMentionsByUserId, getStoryMentionStats, getStyleDiary, saveStyleDiaryEntry, findUserByPhoneNumber, getGuestSessionByToken, markGuestSessionViewed, isPhoneTaken, logConsent, getUserConsents, getReviewByShareToken, setReviewShareToken, adminUpdateUser, getUserById } from "./db";
+import { createReview, getReviewById, getReviewsByUserId, updateReviewAnalysis, updateReviewStatus, getUserProfile, upsertUserProfile, deleteAllReviewsByUserId, deleteUserAccount, addWardrobeItems, getWardrobeByUserId, deleteWardrobeItem, clearWardrobe, updateWardrobeItemImage, publishToFeed, getFeedPosts, deleteFeedPost, likeFeedPost, unlikeFeedPost, saveFeedPost, unsaveFeedPost, getUserFeedInteractions, getSavedPosts, isReviewPublished, followUser, unfollowUser, getFollowingIds, isFollowing, getFollowingFeedPosts, getFollowerCount, getFollowingCount, createNewPostNotifications, getUserNotifications, getUnreadNotificationCount, markNotificationsRead, getAllReviews, getAllUsers, getAdminStats, adminDeleteReview, getReviewCountsByUser, getFeedPostCountsByUser, addFeedComment, getFeedComments, getFeedCommentCount, deleteFeedComment, setWardrobeShareToken, getWardrobeByShareToken, getWardrobeShareToken, createCommentNotification, createReplyNotification, createLikeNotification, saveFixMyLookResult, getFixMyLookResult, getOccasionCounts, createGuestSession, getGuestSessionById, hasGuestUsedAnalysis, updateGuestSessionAnalysis, updateGuestSessionStatus, getGuestAnalytics, getAllGuestSessions, trackDemoView, markDemoSignupClick, getAllDemoViews, trackPageView, getFunnelStats, getDailyFunnelStats, getGuestAnalysisCount, saveGuestProfile, getGuestProfile, saveGuestEmail, getGuestWardrobe, getGuestSessionIdsByFingerprint, addGuestWardrobeItems, deleteGuestWardrobeItem, migrateGuestToUser, deleteReviewById, deleteGuestSession, upsertIgConnection, getIgConnection, disconnectIg, getStoryMentionsByUserId, getStoryMentionStats, getStyleDiary, saveStyleDiaryEntry, findUserByPhoneNumber, getGuestSessionByToken, markGuestSessionViewed, isPhoneTaken, logConsent, getUserConsents, getReviewByShareToken, setReviewShareToken, adminUpdateUser, getUserById } from "./db";
 import { storagePut } from "./storage";
 import { invokeLLM } from "./_core/llm";
 import { nanoid } from "nanoid";
@@ -167,45 +167,25 @@ function detectImprovementCategory(imp: Improvement): ClothingCategory {
   return detectClothingCategory(`${imp.title || ""} ${imp.beforeLabel || ""} ${imp.afterLabel || ""} ${imp.productSearchQuery || ""}`);
 }
 
-// Rotating store pools for diverse fallback links across improvements
-const FALLBACK_STORE_POOLS = [
-  [
-    { name: "ASOS", url: (q: string) => `https://www.asos.com/search/?q=${q}` },
-    { name: "Nordstrom", url: (q: string) => `https://www.nordstrom.com/sr?keyword=${q}` },
-    { name: "SSENSE", url: (q: string) => `https://www.ssense.com/en-us/men?q=${q}` },
-  ],
-  [
-    { name: "Zara", url: (q: string) => `https://www.zara.com/us/en/search?searchTerm=${q}` },
-    { name: "COS", url: (q: string) => `https://www.cos.com/en_usd/search.html?q=${q}` },
-    { name: "Farfetch", url: (q: string) => `https://www.farfetch.com/shopping/men/search/items.aspx?q=${q}` },
-  ],
-  [
-    { name: "H&M", url: (q: string) => `https://www2.hm.com/en_us/search-results.html?q=${q}` },
-    { name: "Mango", url: (q: string) => `https://shop.mango.com/en/search?kw=${q}` },
-    { name: "END.", url: (q: string) => `https://www.endclothing.com/us/catalogsearch/result/?q=${q}` },
-  ],
-  [
-    { name: "Uniqlo", url: (q: string) => `https://www.uniqlo.com/us/en/search?q=${q}` },
-    { name: "AllSaints", url: (q: string) => `https://www.allsaints.com/search?q=${q}` },
-    { name: "Massimo Dutti", url: (q: string) => `https://www.massimodutti.com/us/search?query=${q}` },
-  ],
-  [
-    { name: "Urban Outfitters", url: (q: string) => `https://www.urbanoutfitters.com/search?q=${q}` },
-    { name: "Revolve", url: (q: string) => `https://www.revolve.com/r/Search.jsp?search=${q}` },
-    { name: "Nike", url: (q: string) => `https://www.nike.com/w?q=${q}` },
-  ],
-];
-let fallbackPoolIndex = 0;
-
 function buildFallbackShoppingLinks(query: string): ShoppingLink[] {
   const encoded = encodeURIComponent(query).replace(/%20/g, "+");
-  const pool = FALLBACK_STORE_POOLS[fallbackPoolIndex % FALLBACK_STORE_POOLS.length];
-  fallbackPoolIndex++;
-  return pool.map(store => ({
-    label: `${query} — ${store.name}`,
-    url: store.url(encoded),
-    imageUrl: "",
-  }));
+  return [
+    {
+      label: `${query} - ASOS`,
+      url: `https://www.asos.com/search/?q=${encoded}`,
+      imageUrl: "",
+    },
+    {
+      label: `${query} - Zara`,
+      url: `https://www.zara.com/us/en/search?searchTerm=${encoded}`,
+      imageUrl: "",
+    },
+    {
+      label: `${query} - H&M`,
+      url: `https://www2.hm.com/en_us/search-results.html?q=${encoded}`,
+      imageUrl: "",
+    },
+  ];
 }
 
 function buildFallbackImprovement(category: Exclude<ClothingCategory, "accessory" | "other">, isHebrew: boolean): Improvement {
@@ -2013,51 +1993,22 @@ function sanitizeRecommendationsPayload(
   improvements = improvements.map((imp) => normalizeImprovementShoppingLinks(imp, lang));
 
   // Global deduplication: remove duplicate shopping links across all improvements
-  // Track by URL, store domain, and product search query to ensure true diversity
   const globalSeenUrls = new Set<string>();
   const globalSeenTitles = new Set<string>();
-  const globalSeenStoreDomainByImp = new Map<number, Set<string>>(); // per-improvement store tracking
-  const globalStoreDomainCounts = new Map<string, number>(); // how many times each store appears across all improvements
-
-  // Helper to extract store domain from URL
-  const extractStoreDomain = (url: string): string => {
-    try {
-      const hostname = new URL(url).hostname.replace("www.", "").replace("www2.", "");
-      return hostname;
-    } catch {
-      return "";
-    }
-  };
-
-  // Reset fallback pool index for this analysis to ensure consistent rotation
-  fallbackPoolIndex = 0;
-
-  improvements = improvements.map((imp, impIdx) => {
+  improvements = improvements.map((imp) => {
     // Deduplicate by title (case-insensitive)
     const titleKey = (imp.title || "").trim().toLowerCase();
     if (titleKey && globalSeenTitles.has(titleKey)) {
-      // Skip duplicate improvement entirely
+      // Skip duplicate improvement entirely — replace with a unique fallback
       return null as any;
     }
     if (titleKey) globalSeenTitles.add(titleKey);
 
-    const impStoreDomains = new Set<string>();
-    globalSeenStoreDomainByImp.set(impIdx, impStoreDomains);
-
-    // Deduplicate shopping links: by URL and limit same store domain to max 1 per improvement
+    // Deduplicate shopping links across improvements
     const uniqueLinks = (imp.shoppingLinks || []).filter((link) => {
       const urlKey = (link.url || "").trim().toLowerCase();
       if (!urlKey || globalSeenUrls.has(urlKey)) return false;
-      const domain = extractStoreDomain(urlKey);
-      // Skip if this store already appears in THIS improvement
-      if (domain && impStoreDomains.has(domain)) return false;
-      // Skip if this store already appears 2+ times across ALL improvements
-      if (domain && (globalStoreDomainCounts.get(domain) || 0) >= 2) return false;
       globalSeenUrls.add(urlKey);
-      if (domain) {
-        impStoreDomains.add(domain);
-        globalStoreDomainCounts.set(domain, (globalStoreDomainCounts.get(domain) || 0) + 1);
-      }
       return true;
     });
 
@@ -2068,14 +2019,7 @@ function sanitizeRecommendationsPayload(
       const freshLinks = buildFallbackShoppingLinks(query).filter((fb) => {
         const key = (fb.url || "").trim().toLowerCase();
         if (!key || globalSeenUrls.has(key)) return false;
-        const domain = extractStoreDomain(key);
-        if (domain && impStoreDomains.has(domain)) return false;
-        if (domain && (globalStoreDomainCounts.get(domain) || 0) >= 2) return false;
         globalSeenUrls.add(key);
-        if (domain) {
-          impStoreDomains.add(domain);
-          globalStoreDomainCounts.set(domain, (globalStoreDomainCounts.get(domain) || 0) + 1);
-        }
         return true;
       });
       finalLinks = [...finalLinks, ...freshLinks];
@@ -2454,30 +2398,13 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
         const review = await getReviewById(input.reviewId);
         if (!review) throw new Error("Review not found");
         if (review.userId !== ctx.user.id) throw new Error("Unauthorized");
-        // If already analyzing or completed, just return success (idempotent)
-        if (review.status === "analyzing") return { success: true, reviewId: input.reviewId };
-        if (review.status === "completed") return { success: true, reviewId: input.reviewId };
-        // Fire-and-forget: mark as analyzing, return immediately, run analysis in background.
-        // The client navigates to ReviewPage which polls every 3s for status updates.
-        await updateReviewStatus(input.reviewId, "analyzing");
-        // Capture user context before returning (ctx won't be available in background)
-        const userId = ctx.user.id;
-        // Launch background analysis (no await — fire and forget)
-        // Safety net: 2-minute timeout to prevent stuck analyses
-        const ANALYSIS_TIMEOUT_MS = 120_000;
-        (async () => {
         try {
-          const analysisPromise = withAnalysisSlot(`review:${input.reviewId}`, async () => {
-          // Set up timeout race
-          const timeoutPromise = new Promise<never>((_, reject) => {
-            setTimeout(() => reject(new Error("ANALYSIS_TIMEOUT: exceeded 2 minutes")), ANALYSIS_TIMEOUT_MS);
-          });
-          // Race the actual analysis against the timeout
-          await Promise.race([timeoutPromise, (async () => {
+          return await withAnalysisSlot(`review:${input.reviewId}`, async () => {
+            await updateReviewStatus(input.reviewId, "analyzing");
           // Fetch user profile and wardrobe items in parallel for speed
           const [profile, allWardrobeItems] = await Promise.all([
-            getUserProfile(userId),
-            getWardrobeByUserId(userId, MAX_WARDROBE_ITEMS_FOR_ANALYSIS),
+            getUserProfile(ctx.user.id),
+            getWardrobeByUserId(ctx.user.id, MAX_WARDROBE_ITEMS_FOR_ANALYSIS),
           ]);
           const profileContext: ProfileContext | null = profile ? {
             ageRange: profile.ageRange ?? undefined,
@@ -2517,7 +2444,7 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
             try {
               if (attempt > 0) {
                 // Faster retry cadence: 2s, 4s
-                const delay = 800 * Math.pow(2, attempt - 1);
+                const delay = 1500 * Math.pow(2, attempt - 1);
                 console.log(`[Fashion Analysis] Retry attempt ${attempt + 1}/${MAX_RETRIES} after ${delay / 1000}s...`);
                 await new Promise(resolve => setTimeout(resolve, delay));
               }
@@ -2552,7 +2479,7 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
                     schema: analysisCoreJsonSchema,
                   },
                 },
-                maxTokens: 2200,
+                maxTokens: 2800,
               });
               analysisCore = parseFashionAnalysisCorePayload(llmResult);
               break; // Success
@@ -2574,19 +2501,6 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
             }
           }
           if (!analysisCore) throw new Error("Analysis failed after retries");
-
-          // ═══ PROGRESSIVE SAVE: Save Stage 1 results immediately so UI can show them ═══
-          const partialAnalysis = {
-            ...analysisCore,
-            _stage: "core" as const,
-            // Provide empty arrays for fields the UI expects
-            improvements: [] as any[],
-            outfitSuggestions: [] as any[],
-            trendSources: [] as any[],
-            influencerInsight: "",
-          };
-          await savePartialAnalysis(input.reviewId, analysisCore.overallScore, partialAnalysis);
-          console.log(`[Fashion Analysis] Review ${input.reviewId} Stage 1 saved (partial). Score: ${analysisCore.overallScore}`);
 
           // Stage 2: inspiration + recommendations (text-only from stage-1 output)
           const recommendationSeed = {
@@ -2998,8 +2912,7 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
             }
           }
 
-          // Save complete analysis to DB (with _stage marker for progressive UI)
-          (analysis as any)._stage = "complete";
+          // Save analysis to DB immediately (without waiting for product images)
           await updateReviewAnalysis(input.reviewId, analysis.overallScore, analysis);
 
           // Product images are now lazy-loaded per improvement category when the user scrolls to them.
@@ -3010,7 +2923,7 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
           if (profile && profile.saveToWardrobe) {
             const wardrobeImageUrl = review.imageUrl;
             const wardrobeEntries = analysis.items.map((item) => ({
-              userId: userId,
+              userId: ctx.user.id,
               itemType: item.icon || "clothing",
               name: item.name,
               color: item.color || null,
@@ -3030,22 +2943,29 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
             }
           }
 
-          // Analysis complete — result already saved to DB by updateReviewAnalysis above
-          console.log(`[Fashion Analysis] Review ${input.reviewId} completed successfully`);
-          })()]);
+          return { success: true, analysis };
           });
         } catch (error: any) {
-          console.error("[Fashion Analysis] Background job failed:", error?.message);
+          console.error("[Fashion Analysis] Failed:", error);
+          console.error("[Fashion Analysis] Error message:", error?.message);
           console.error("[Fashion Analysis] Error status:", error?.status || error?.statusCode);
           console.error("[Fashion Analysis] Error stack:", error?.stack?.substring(0, 500));
-          await updateReviewStatus(input.reviewId, "failed").catch(() => {});
+          await updateReviewStatus(input.reviewId, "failed");
+          const msg = error?.message || "";
+          if (msg.includes("exhausted") || msg.includes("412") || msg.includes("quota") || msg.includes("rate limit") || msg.includes("rate_limit") || msg.includes("429")) {
+            throw new Error(`שירות הניתוח עמוס כרגע. שגיאה: ${msg.substring(0, 200)}`);
+          }
+          if (msg.includes("timeout") || msg.includes("ECONNRESET") || msg.includes("ETIMEDOUT") || msg.includes("ECONNREFUSED")) {
+            throw new Error(`הניתוח לקח יותר מדי זמן. שגיאה: ${msg.substring(0, 200)}`);
+          }
+          if (msg.includes("ANALYSIS_QUEUE_BUSY")) {
+            throw new Error("שירות הניתוח עמוס כרגע. נסו שוב בעוד כחצי דקה.");
+          }
+          if (msg.includes("ANALYSIS_QUEUE_TIMEOUT")) {
+            throw new Error("שירות הניתוח עמוס כרגע. נסו שוב בעוד כחצי דקה.");
+          }
+          throw new Error(`הניתוח נכשל. שגיאה: ${msg.substring(0, 200)}`);
         }
-        })().catch((bgErr) => {
-          console.error("[Fashion Analysis] Unhandled background error:", bgErr?.message);
-          updateReviewStatus(input.reviewId, "failed").catch(() => {});
-        });
-        // Return immediately — client will poll ReviewPage for status
-        return { success: true, reviewId: input.reviewId };
       }),
 
     get: protectedProcedure
@@ -4330,19 +4250,12 @@ Return ONLY a JSON object with these exact fields:
       .mutation(async ({ input }) => {
         const session = await getGuestSessionById(input.sessionId);
         if (!session) throw new Error("Session not found");
-        // Idempotent: if already analyzing or completed, return success
-        if (session.status === "completed") return { success: true, sessionId: input.sessionId };
-        if (session.status === "analyzing") return { success: true, sessionId: input.sessionId };
-        // Fire-and-forget: mark as analyzing, return immediately, run in background
-        await updateGuestSessionStatus(input.sessionId, "analyzing");
-        const GUEST_ANALYSIS_TIMEOUT_MS = 120_000;
-        (async () => {
+        if (session.status === "completed") throw new Error("Analysis already completed");
+        if (session.status === "analyzing") throw new Error("Analysis in progress");
+
         try {
-          await withAnalysisSlot(`guest:${input.sessionId}`, async () => {
-          const guestTimeoutPromise = new Promise<never>((_, reject) => {
-            setTimeout(() => reject(new Error("ANALYSIS_TIMEOUT: exceeded 2 minutes")), GUEST_ANALYSIS_TIMEOUT_MS);
-          });
-          await Promise.race([guestTimeoutPromise, (async () => {
+          return await withAnalysisSlot(`guest:${input.sessionId}`, async () => {
+          await updateGuestSessionStatus(input.sessionId, "analyzing");
           // Get guest profile if onboarding was completed
           const guestProfile = session.fingerprint ? await getGuestProfile(session.fingerprint) : null;
           // Get guest wardrobe items
@@ -4382,7 +4295,7 @@ Return ONLY a JSON object with these exact fields:
           for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
             try {
               if (attempt > 0) {
-                const delay = 800 * Math.pow(2, attempt - 1);
+                const delay = 1500 * Math.pow(2, attempt - 1);
                 console.log(`[Guest Analysis] Retry attempt ${attempt + 1}/${MAX_RETRIES} after ${delay / 1000}s...`);
                 await new Promise(resolve => setTimeout(resolve, delay));
               }
@@ -4405,7 +4318,7 @@ Return ONLY a JSON object with these exact fields:
                     schema: analysisCoreJsonSchema,
                   },
                 },
-                maxTokens: 2200,
+                maxTokens: 2800,
               });
               analysisCore = parseFashionAnalysisCorePayload(llmResult);
               break;
@@ -4427,18 +4340,6 @@ Return ONLY a JSON object with these exact fields:
             }
           }
           if (!analysisCore) throw new Error("Analysis failed after retries");
-
-          // ═══ PROGRESSIVE SAVE: Save Stage 1 results immediately so UI can show them ═══
-          const guestPartialAnalysis = {
-            ...analysisCore,
-            _stage: "core" as const,
-            improvements: [] as any[],
-            outfitSuggestions: [] as any[],
-            trendSources: [] as any[],
-            influencerInsight: "",
-          };
-          await savePartialGuestAnalysis(input.sessionId, analysisCore.overallScore, guestPartialAnalysis);
-          console.log(`[Guest Analysis] Session ${input.sessionId} Stage 1 saved (partial). Score: ${analysisCore.overallScore}`);
 
           // Stage 2: inspiration + recommendations (text-only from stage-1 output)
           const recommendationSeed = {
@@ -4791,8 +4692,7 @@ Return ONLY a JSON object with these exact fields:
             }
           }
 
-          // Save complete analysis to DB (with _stage marker for progressive UI)
-          (analysis as any)._stage = "complete";
+          // Save analysis to DB immediately (without waiting for product images)
           await updateGuestSessionAnalysis(input.sessionId, analysis.overallScore, analysis);
 
           // Auto-save detected items to guest wardrobe
@@ -4832,20 +4732,24 @@ Return ONLY a JSON object with these exact fields:
             analysis.summary || null,
           ).catch(() => {}); // swallow any unhandled rejection
 
-          console.log(`[Guest Analysis] Session ${input.sessionId} completed successfully`);
-          })()]);
+          return { success: true, analysis };
           });
         } catch (error: any) {
-          console.error("[Guest Analysis] Background job failed:", error?.message);
+          console.error("[Guest Analysis] Failed:", error?.message);
           console.error("[Guest Analysis] Error status:", error?.status || error?.statusCode);
-          await updateGuestSessionStatus(input.sessionId, "failed").catch(() => {});
+          await updateGuestSessionStatus(input.sessionId, "failed");
+          const msg = error?.message || "";
+          if (msg.includes("ANALYSIS_QUEUE_BUSY")) {
+            throw new Error("שירות הניתוח עמוס כרגע. נסו שוב בעוד כחצי דקה.");
+          }
+          if (msg.includes("ANALYSIS_QUEUE_TIMEOUT")) {
+            throw new Error("שירות הניתוח עמוס כרגע. נסו שוב בעוד כחצי דקה.");
+          }
+          if (msg.includes("timeout") || msg.includes("ECONNRESET") || msg.includes("ETIMEDOUT") || msg.includes("ECONNREFUSED")) {
+            throw new Error(`הניתוח לקח יותר מדי זמן. שגיאה: ${msg.substring(0, 200)}`);
+          }
+          throw new Error(`הניתוח נכשל. שגיאה: ${msg.substring(0, 200)}`);
         }
-        })().catch((bgErr) => {
-          console.error("[Guest Analysis] Unhandled background error:", bgErr?.message);
-          updateGuestSessionStatus(input.sessionId, "failed").catch(() => {});
-        });
-        // Return immediately — client will poll for status
-        return { success: true, sessionId: input.sessionId };
       }),
 
     /** Get guest analysis result */
