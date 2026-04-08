@@ -106,3 +106,10 @@
 - [x] 5.4: Improved outfit combination quality — enhanced LLM prompts with gender awareness, style coherence, color harmony
 - [x] 5.5: Pass user gender through entire pipeline (resolveShoppingLinkImage, enrichAnalysis, generateImages, generateOutfitLook)
 - [x] 5.6: 13 new tests (gender filtering + global dedup), 705/709 tests pass
+
+## Stage 6 — Analysis Timeout Fix
+- [x] Convert analyze mutation to fire-and-forget (return immediately, run analysis in background)
+- [x] Upload.tsx: navigate to ReviewPage immediately after analyze call
+- [x] ReviewPage already has polling for pending/analyzing status — verified (3s polling)
+- [x] Add retry button on ReviewPage for failed analyses (already exists)
+- [x] Write tests for the new fire-and-forget analyze behavior (22 tests pass)

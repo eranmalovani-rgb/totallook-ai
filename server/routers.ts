@@ -2398,13 +2398,22 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
         const review = await getReviewById(input.reviewId);
         if (!review) throw new Error("Review not found");
         if (review.userId !== ctx.user.id) throw new Error("Unauthorized");
+        // If already analyzing or completed, just return success (idempotent)
+        if (review.status === "analyzing") return { success: true, reviewId: input.reviewId };
+        if (review.status === "completed") return { success: true, reviewId: input.reviewId };
+        // Fire-and-forget: mark as analyzing, return immediately, run analysis in background.
+        // The client navigates to ReviewPage which polls every 3s for status updates.
+        await updateReviewStatus(input.reviewId, "analyzing");
+        // Capture user context before returning (ctx won't be available in background)
+        const userId = ctx.user.id;
+        // Launch background analysis (no await — fire and forget)
+        (async () => {
         try {
-          return await withAnalysisSlot(`review:${input.reviewId}`, async () => {
-            await updateReviewStatus(input.reviewId, "analyzing");
+          await withAnalysisSlot(`review:${input.reviewId}`, async () => {
           // Fetch user profile and wardrobe items in parallel for speed
           const [profile, allWardrobeItems] = await Promise.all([
-            getUserProfile(ctx.user.id),
-            getWardrobeByUserId(ctx.user.id, MAX_WARDROBE_ITEMS_FOR_ANALYSIS),
+            getUserProfile(userId),
+            getWardrobeByUserId(userId, MAX_WARDROBE_ITEMS_FOR_ANALYSIS),
           ]);
           const profileContext: ProfileContext | null = profile ? {
             ageRange: profile.ageRange ?? undefined,
@@ -2923,7 +2932,7 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
           if (profile && profile.saveToWardrobe) {
             const wardrobeImageUrl = review.imageUrl;
             const wardrobeEntries = analysis.items.map((item) => ({
-              userId: ctx.user.id,
+              userId: userId,
               itemType: item.icon || "clothing",
               name: item.name,
               color: item.color || null,
@@ -2943,29 +2952,21 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
             }
           }
 
-          return { success: true, analysis };
+          // Analysis complete — result already saved to DB by updateReviewAnalysis above
+          console.log(`[Fashion Analysis] Review ${input.reviewId} completed successfully`);
           });
         } catch (error: any) {
-          console.error("[Fashion Analysis] Failed:", error);
-          console.error("[Fashion Analysis] Error message:", error?.message);
+          console.error("[Fashion Analysis] Background job failed:", error?.message);
           console.error("[Fashion Analysis] Error status:", error?.status || error?.statusCode);
           console.error("[Fashion Analysis] Error stack:", error?.stack?.substring(0, 500));
-          await updateReviewStatus(input.reviewId, "failed");
-          const msg = error?.message || "";
-          if (msg.includes("exhausted") || msg.includes("412") || msg.includes("quota") || msg.includes("rate limit") || msg.includes("rate_limit") || msg.includes("429")) {
-            throw new Error(`שירות הניתוח עמוס כרגע. שגיאה: ${msg.substring(0, 200)}`);
-          }
-          if (msg.includes("timeout") || msg.includes("ECONNRESET") || msg.includes("ETIMEDOUT") || msg.includes("ECONNREFUSED")) {
-            throw new Error(`הניתוח לקח יותר מדי זמן. שגיאה: ${msg.substring(0, 200)}`);
-          }
-          if (msg.includes("ANALYSIS_QUEUE_BUSY")) {
-            throw new Error("שירות הניתוח עמוס כרגע. נסו שוב בעוד כחצי דקה.");
-          }
-          if (msg.includes("ANALYSIS_QUEUE_TIMEOUT")) {
-            throw new Error("שירות הניתוח עמוס כרגע. נסו שוב בעוד כחצי דקה.");
-          }
-          throw new Error(`הניתוח נכשל. שגיאה: ${msg.substring(0, 200)}`);
+          await updateReviewStatus(input.reviewId, "failed").catch(() => {});
         }
+        })().catch((bgErr) => {
+          console.error("[Fashion Analysis] Unhandled background error:", bgErr?.message);
+          updateReviewStatus(input.reviewId, "failed").catch(() => {});
+        });
+        // Return immediately — client will poll ReviewPage for status
+        return { success: true, reviewId: input.reviewId };
       }),
 
     get: protectedProcedure
@@ -4250,12 +4251,14 @@ Return ONLY a JSON object with these exact fields:
       .mutation(async ({ input }) => {
         const session = await getGuestSessionById(input.sessionId);
         if (!session) throw new Error("Session not found");
-        if (session.status === "completed") throw new Error("Analysis already completed");
-        if (session.status === "analyzing") throw new Error("Analysis in progress");
-
+        // Idempotent: if already analyzing or completed, return success
+        if (session.status === "completed") return { success: true, sessionId: input.sessionId };
+        if (session.status === "analyzing") return { success: true, sessionId: input.sessionId };
+        // Fire-and-forget: mark as analyzing, return immediately, run in background
+        await updateGuestSessionStatus(input.sessionId, "analyzing");
+        (async () => {
         try {
-          return await withAnalysisSlot(`guest:${input.sessionId}`, async () => {
-          await updateGuestSessionStatus(input.sessionId, "analyzing");
+          await withAnalysisSlot(`guest:${input.sessionId}`, async () => {
           // Get guest profile if onboarding was completed
           const guestProfile = session.fingerprint ? await getGuestProfile(session.fingerprint) : null;
           // Get guest wardrobe items
@@ -4732,24 +4735,19 @@ Return ONLY a JSON object with these exact fields:
             analysis.summary || null,
           ).catch(() => {}); // swallow any unhandled rejection
 
-          return { success: true, analysis };
+          console.log(`[Guest Analysis] Session ${input.sessionId} completed successfully`);
           });
         } catch (error: any) {
-          console.error("[Guest Analysis] Failed:", error?.message);
+          console.error("[Guest Analysis] Background job failed:", error?.message);
           console.error("[Guest Analysis] Error status:", error?.status || error?.statusCode);
-          await updateGuestSessionStatus(input.sessionId, "failed");
-          const msg = error?.message || "";
-          if (msg.includes("ANALYSIS_QUEUE_BUSY")) {
-            throw new Error("שירות הניתוח עמוס כרגע. נסו שוב בעוד כחצי דקה.");
-          }
-          if (msg.includes("ANALYSIS_QUEUE_TIMEOUT")) {
-            throw new Error("שירות הניתוח עמוס כרגע. נסו שוב בעוד כחצי דקה.");
-          }
-          if (msg.includes("timeout") || msg.includes("ECONNRESET") || msg.includes("ETIMEDOUT") || msg.includes("ECONNREFUSED")) {
-            throw new Error(`הניתוח לקח יותר מדי זמן. שגיאה: ${msg.substring(0, 200)}`);
-          }
-          throw new Error(`הניתוח נכשל. שגיאה: ${msg.substring(0, 200)}`);
+          await updateGuestSessionStatus(input.sessionId, "failed").catch(() => {});
         }
+        })().catch((bgErr) => {
+          console.error("[Guest Analysis] Unhandled background error:", bgErr?.message);
+          updateGuestSessionStatus(input.sessionId, "failed").catch(() => {});
+        });
+        // Return immediately — client will poll for status
+        return { success: true, sessionId: input.sessionId };
       }),
 
     /** Get guest analysis result */
