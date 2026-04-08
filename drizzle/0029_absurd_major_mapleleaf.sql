@@ -1,1 +1,0 @@
-ALTER TABLE `guestSessions` ADD `lastViewedAt` timestamp;

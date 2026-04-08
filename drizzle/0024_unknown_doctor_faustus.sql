@@ -1,1 +1,0 @@
-ALTER TABLE `userProfiles` ADD `phoneNumber` varchar(32);

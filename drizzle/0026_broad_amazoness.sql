@@ -1,1 +1,0 @@
-ALTER TABLE `guestSessions` ADD `followUpSentAt` timestamp;

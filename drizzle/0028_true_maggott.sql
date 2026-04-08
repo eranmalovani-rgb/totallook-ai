@@ -1,1 +1,0 @@
-ALTER TABLE `reviews` ADD `shareToken` varchar(64);

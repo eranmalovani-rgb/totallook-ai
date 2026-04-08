@@ -38,34 +38,9 @@ class OAuthService {
     }
   }
 
-  /**
-   * Decode the OAuth state parameter.
-   * Supports two formats:
-   *  - Legacy: base64-encoded plain redirect URI string
-   *  - New:    base64-encoded JSON { redirectUri, returnOrigin, returnPath }
-   */
-  decodeState(state: string): { redirectUri: string; returnOrigin?: string; returnPath?: string } {
-    let decoded: string;
-    try {
-      decoded = atob(state);
-    } catch {
-      // Malformed base64 — return empty redirect URI so the caller can handle it
-      console.warn("[OAuth] Failed to decode state (malformed base64)");
-      return { redirectUri: "" };
-    }
-    try {
-      const parsed = JSON.parse(decoded);
-      if (parsed && typeof parsed.redirectUri === "string") {
-        return {
-          redirectUri: parsed.redirectUri,
-          returnOrigin: parsed.returnOrigin || undefined,
-          returnPath: parsed.returnPath || "/",
-        };
-      }
-    } catch {
-      // Not JSON — legacy plain string format
-    }
-    return { redirectUri: decoded };
+  private decodeState(state: string): string {
+    const redirectUri = atob(state);
+    return redirectUri;
   }
 
   async getTokenByCode(
@@ -76,7 +51,7 @@ class OAuthService {
       clientId: ENV.appId,
       grantType: "authorization_code",
       code,
-      redirectUri: this.decodeState(state).redirectUri,
+      redirectUri: this.decodeState(state),
     };
 
     const { data } = await this.client.post<ExchangeTokenResponse>(
@@ -136,13 +111,6 @@ class SDKServer {
     if (set.has("REGISTERED_PLATFORM_GITHUB")) return "github";
     const first = Array.from(set)[0];
     return first ? first.toLowerCase() : null;
-  }
-
-  /**
-   * Decode the OAuth state parameter to extract redirect URI and return origin.
-   */
-  decodeOAuthState(state: string): { redirectUri: string; returnOrigin?: string; returnPath?: string } {
-    return this.oauthService.decodeState(state);
   }
 
   /**
