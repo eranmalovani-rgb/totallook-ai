@@ -201,3 +201,8 @@
 - [x] 11d.2: Removed batch preload from GuestReview — same progressive approach
 - [x] 11d.3: Set fallback timer to 0ms (immediate) — all improvements start loading simultaneously, each updates UI as soon as its images are ready
 - [x] 11d.4: 756/760 tests pass (4 pre-existing API failures), TS compiles clean (0 errors)
+
+## Stage 11e — Fix Analysis Crash (Critical Bug)
+- [x] 11e.1: Investigated crash — analysis was failing because maxTokens was reduced too aggressively in Stage 11 (1600 tokens insufficient for Stage 1 JSON output with brand details)
+- [x] 11e.2: Root cause: registered user path had maxTokens=1600 for both stages (Stage 11 change), while guest path still had 2200/2500. 1600 tokens caused JSON truncation → parse failure → crash after timeout
+- [x] 11e.3: Fix: restored Stage 1 maxTokens to 2200, Stage 2 to 2000 (both registered + guest paths now consistent). Verified: Stage 1 completes in ~16s, Stage 2 in ~19s, total ~35s. 756/760 tests pass, TS compiles clean.

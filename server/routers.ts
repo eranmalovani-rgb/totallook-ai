@@ -2198,7 +2198,7 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
                     schema: analysisCoreJsonSchema,
                   },
                 },
-                maxTokens: 1600,
+                maxTokens: 2200,
               });
               analysisCore = parseFashionAnalysisCorePayload(llmResult);
               break; // Success
@@ -2272,7 +2272,7 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
                       schema: recommendationsJsonSchema,
                     },
                   },
-                  maxTokens: 1600,
+                  maxTokens: 2000,
                 });
                 recommendations = parseFashionRecommendationsPayload(recResult);
                 break;
@@ -4173,7 +4173,7 @@ Return ONLY a JSON object with these exact fields:
                       schema: recommendationsJsonSchema,
                     },
                   },
-                  maxTokens: 2500,
+                  maxTokens: 2000,
                 });
                 recommendations = parseFashionRecommendationsPayload(recResult);
                 break;
