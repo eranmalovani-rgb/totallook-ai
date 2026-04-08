@@ -213,11 +213,8 @@ async function resolveShoppingLinkImage(params: {
   if (!skipCache) {
     const cachedUrl = await getCachedProductImage(cacheKey, CACHE_TTL_DAYS);
     if (cachedUrl && isValidImageUrl(cachedUrl)) {
-      const works = await testImageUrl(cachedUrl);
-      if (works) {
-        console.log(`${logPrefix} cache hit: "${label}"`);
-        return cachedUrl;
-      }
+      console.log(`${logPrefix} cache hit: "${label}"`);
+      return cachedUrl;
     }
   }
 
@@ -246,17 +243,14 @@ async function resolveShoppingLinkImage(params: {
       // Pass usedImageUrls so picker skips images already chosen by other links
       const bestImage = await pickBestBraveImage(braveResults, usedImageUrls, categoryQuery);
       if (bestImage && isValidImageUrl(bestImage)) {
-        const reachable = await testImageUrl(bestImage);
-        if (reachable) {
-          console.log(`${logPrefix} Brave Image: "${label}"`);
-          saveProductImageToCache({
-            productKey: cacheKey,
-            imageUrl: bestImage,
-            originalLabel: label,
-            categoryQuery,
-          }).catch(err => console.warn("[ProductImages] Cache save failed:", err?.message));
-          return bestImage;
-        }
+        console.log(`${logPrefix} Brave Image: "${label}"`);
+        saveProductImageToCache({
+          productKey: cacheKey,
+          imageUrl: bestImage,
+          originalLabel: label,
+          categoryQuery,
+        }).catch(err => console.warn("[ProductImages] Cache save failed:", err?.message));
+        return bestImage;
       }
     }
   } catch (braveErr: any) {
@@ -273,17 +267,14 @@ async function resolveShoppingLinkImage(params: {
       // Pass usedImageUrls so picker skips images already chosen by other links
       const bestImage = await pickBestProductImage(googleResults, usedImageUrls, categoryQuery);
       if (bestImage && isValidImageUrl(bestImage)) {
-        const reachable = await testImageUrl(bestImage);
-        if (reachable) {
-          console.log(`${logPrefix} Google Image: "${label}"`);
-          saveProductImageToCache({
-            productKey: cacheKey,
-            imageUrl: bestImage,
-            originalLabel: label,
-            categoryQuery,
-          }).catch(err => console.warn("[ProductImages] Cache save failed:", err?.message));
-          return bestImage;
-        }
+        console.log(`${logPrefix} Google Image: "${label}"`);
+        saveProductImageToCache({
+          productKey: cacheKey,
+          imageUrl: bestImage,
+          originalLabel: label,
+          categoryQuery,
+        }).catch(err => console.warn("[ProductImages] Cache save failed:", err?.message));
+        return bestImage;
       }
     }
   } catch (googleErr: any) {
@@ -536,10 +527,7 @@ export async function generateOutfitLookFromMetadata(params: {
   const cacheKey = buildOutfitCacheKey(outfit, outfitIndex);
   const cached = await getCachedProductImage(cacheKey, CACHE_TTL_DAYS);
   if (cached && isValidImageUrl(cached)) {
-    const works = await testImageUrl(cached);
-    if (works) {
-      return { imageUrl: cached, storeLinks: [] };
-    }
+    return { imageUrl: cached, storeLinks: [] };
   }
 
   const outfitText = `${outfit.name} ${outfit.occasion} ${(outfit.items || []).join(" ")}`.toLowerCase();
@@ -765,12 +753,9 @@ export async function enrichAnalysisWithProductImages(
       if (existingUrl && isValidImageUrl(existingUrl)) {
         const normalizedExisting = existingUrl.trim().toLowerCase();
         if (!usedImageUrls.has(normalizedExisting)) {
-          const works = await testImageUrl(existingUrl);
-          if (works) {
-            console.log(`[ProductImages] Existing image OK for [${impIdx}][${linkIdx}]: "${link.label}"`);
-            usedImageUrls.add(normalizedExisting);
-            continue;
-          }
+          console.log(`[ProductImages] Existing image OK for [${impIdx}][${linkIdx}]: "${link.label}"`);
+          usedImageUrls.add(normalizedExisting);
+          continue;
         }
       }
       linksNeedingImages.push(linkIdx);
@@ -899,12 +884,9 @@ export async function generateImagesForImprovement(
     if (link.imageUrl && isValidImageUrl(link.imageUrl)) {
       const normalizedExisting = link.imageUrl.trim().toLowerCase();
       if (!usedImageUrls.has(normalizedExisting)) {
-        const works = await testImageUrl(link.imageUrl);
-        if (works) {
-          console.log(`[ProductImages] Lazy: existing image OK for [${linkIdx}]: "${link.label}"`);
-          usedImageUrls.add(normalizedExisting);
-          continue;
-        }
+        console.log(`[ProductImages] Lazy: existing image OK for [${linkIdx}]: "${link.label}"`);
+        usedImageUrls.add(normalizedExisting);
+        continue;
       }
     }
     linksNeedingImages.push(linkIdx);

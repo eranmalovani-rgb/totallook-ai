@@ -215,28 +215,23 @@ describe("enrichAnalysisWithProductImages", () => {
     expect(result.improvements[0].shoppingLinks[0].imageUrl).toBe("https://cdn.totallook.ai/existing.jpg");
   });
 
-  it("generates new image when existing URL returns 404", async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: false,
-      headers: { get: () => "" },
-    });
-    mockGenerateImage.mockResolvedValueOnce({ url: "https://cdn.totallook.ai/new.png" });
-
+  it("keeps existing valid image URL without HEAD check", async () => {
     const analysis = makeAnalysis([
       {
         title: "Shoes",
         description: "Better shoes",
         productSearchQuery: "shoes",
         shoppingLinks: [
-          { label: "Nike — SSENSE", url: "https://ssense.com/search", imageUrl: "https://cdn.totallook.ai/broken.jpg" },
+          { label: "Nike — SSENSE", url: "https://ssense.com/search", imageUrl: "https://cdn.totallook.ai/existing.jpg" },
         ],
       },
     ]);
 
     const result = await enrichAnalysisWithProductImages(analysis);
 
-    expect(mockGenerateImage).toHaveBeenCalledTimes(1);
-    expect(result.improvements[0].shoppingLinks[0].imageUrl).toBe("https://cdn.totallook.ai/new.png");
+    // No HEAD check, no AI generation — existing valid URL is kept
+    expect(mockGenerateImage).not.toHaveBeenCalled();
+    expect(result.improvements[0].shoppingLinks[0].imageUrl).toBe("https://cdn.totallook.ai/existing.jpg");
   });
 
   it("does not mutate the original analysis object", async () => {

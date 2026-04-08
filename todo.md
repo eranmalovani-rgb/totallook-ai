@@ -187,3 +187,11 @@
 - [x] 11b.2: Moved batch preload hooks before all early returns in GuestReview (parse analysisJson inline)
 - [x] 11b.3: TS compiles clean (npx tsc --noEmit = 0 errors), no React hooks ordering violations
 - [x] 11b.4: 748/752 tests pass (4 pre-existing API failures)
+
+## Stage 11c — Fix Slow Product Image Loading
+- [x] 11c.1: Investigated logs — Google CSE returns 403 on all calls (wasted time), Brave HEAD checks add ~0.5-3s per image
+- [x] 11c.2: Added circuit breaker for both Google CSE (403/429) and Brave (429) — 5 min cooldown
+- [x] 11c.3: Removed ALL HEAD checks from pipeline — 6 testImageUrl calls eliminated (cache, Brave, Google, existing images)
+- [x] 11c.4: Reduced Brave API timeout from 10s to 5s, Google CSE timeout from 10s to 5s
+- [x] 11c.5: Added resetGoogleCircuitBreaker export + 5 targeted Google circuit breaker tests (all pass)
+- [x] 11c.6: Final verification: 756/760 tests pass (4 pre-existing API failures), npx tsc --noEmit = 0 errors

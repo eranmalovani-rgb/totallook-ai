@@ -461,3 +461,123 @@ describe("Stage 10c: Hybrid prefetch integration", () => {
     expect(stage2TimingCount).toBe(2); // registered + guest
   });
 });
+
+
+/* ------------------------------------------------------------------ */
+/*  Google CSE Circuit Breaker Tests                                    */
+/* ------------------------------------------------------------------ */
+import { searchGoogleImages, resetGoogleCircuitBreaker } from "./googleImageSearch";
+
+describe("Google CSE Circuit Breaker", () => {
+  const originalFetch = globalThis.fetch;
+  const originalEnv = { ...process.env };
+
+  beforeEach(() => {
+    process.env.GOOGLE_CSE_API_KEY = "test-google-key";
+    process.env.GOOGLE_CSE_CX = "test-cx";
+    resetGoogleCircuitBreaker();
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+    process.env = { ...originalEnv };
+  });
+
+  it("should disable after 403 response and return empty on subsequent calls", async () => {
+    let callCount = 0;
+    globalThis.fetch = vi.fn().mockImplementation(() => {
+      callCount++;
+      return Promise.resolve({
+        ok: false,
+        status: 403,
+        text: () => Promise.resolve("Forbidden"),
+      });
+    });
+
+    // First call triggers circuit breaker
+    const result1 = await searchGoogleImages("test query");
+    expect(result1).toEqual([]);
+    expect(callCount).toBe(1);
+
+    // Second call should NOT make a fetch — circuit breaker is active
+    const result2 = await searchGoogleImages("another query");
+    expect(result2).toEqual([]);
+    expect(callCount).toBe(1); // Still 1, no new fetch
+  });
+
+  it("should disable after 429 response", async () => {
+    let callCount = 0;
+    globalThis.fetch = vi.fn().mockImplementation(() => {
+      callCount++;
+      return Promise.resolve({
+        ok: false,
+        status: 429,
+        text: () => Promise.resolve("Rate limited"),
+      });
+    });
+
+    await searchGoogleImages("test");
+    expect(callCount).toBe(1);
+
+    await searchGoogleImages("test2");
+    expect(callCount).toBe(1); // Circuit breaker active
+  });
+
+  it("should reset after resetGoogleCircuitBreaker is called", async () => {
+    let callCount = 0;
+    globalThis.fetch = vi.fn().mockImplementation(() => {
+      callCount++;
+      return Promise.resolve({
+        ok: false,
+        status: 403,
+        text: () => Promise.resolve("Forbidden"),
+      });
+    });
+
+    // Trigger circuit breaker
+    await searchGoogleImages("test");
+    expect(callCount).toBe(1);
+
+    // Reset
+    resetGoogleCircuitBreaker();
+
+    // Should make a new fetch
+    await searchGoogleImages("test2");
+    expect(callCount).toBe(2);
+  });
+
+  it("should return empty when API keys are missing", async () => {
+    process.env.GOOGLE_CSE_API_KEY = "";
+    process.env.GOOGLE_CSE_CX = "";
+
+    const result = await searchGoogleImages("test");
+    expect(result).toEqual([]);
+  });
+
+  it("should return results on successful response", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          items: [
+            {
+              link: "https://example.com/image.jpg",
+              title: "Blue Shirt",
+              image: {
+                thumbnailLink: "https://example.com/thumb.jpg",
+                width: 500,
+                height: 600,
+                contextLink: "https://example.com/page",
+              },
+            },
+          ],
+        }),
+    });
+
+    const results = await searchGoogleImages("blue shirt");
+    expect(results).toHaveLength(1);
+    expect(results[0].link).toBe("https://example.com/image.jpg");
+    expect(results[0].width).toBe(500);
+    expect(results[0].height).toBe(600);
+  });
+});

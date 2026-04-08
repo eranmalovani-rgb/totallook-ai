@@ -7,6 +7,7 @@ import {
   buildBraveSearchQuery,
   pickBestBraveImage,
   searchBraveImages,
+  resetBraveCircuitBreaker,
   type BraveImageResult,
 } from "./braveImageSearch";
 
@@ -54,26 +55,22 @@ describe("buildBraveSearchQuery", () => {
     expect(q).toContain("Red Dress");
     expect(q).toContain("product photo");
   });
+
+  it("adds gender prefix for male", () => {
+    const q = buildBraveSearchQuery("White Shirt", "shirt", "male");
+    expect(q).toContain("men's");
+  });
+
+  it("adds gender prefix for female", () => {
+    const q = buildBraveSearchQuery("White Shirt", "shirt", "female");
+    expect(q).toContain("women's");
+  });
 });
 
 /* ------------------------------------------------------------------ */
-/*  pickBestBraveImage                                                 */
+/*  pickBestBraveImage (no HEAD checks — pure scoring)                 */
 /* ------------------------------------------------------------------ */
 describe("pickBestBraveImage", () => {
-  const originalFetch = globalThis.fetch;
-
-  beforeEach(() => {
-    // Mock fetch for HEAD checks — always return image/jpeg
-    globalThis.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      headers: new Headers({ "content-type": "image/jpeg" }),
-    });
-  });
-
-  afterEach(() => {
-    globalThis.fetch = originalFetch;
-  });
-
   const makeResult = (overrides: Partial<BraveImageResult> = {}): BraveImageResult => ({
     url: "https://example.com/product.jpg",
     thumbnailUrl: "https://example.com/thumb.jpg",
@@ -119,45 +116,40 @@ describe("pickBestBraveImage", () => {
     expect(best).toBe("");
   });
 
-  it("falls back to thumbnail when main URL fails HEAD check", async () => {
-    let callCount = 0;
-    globalThis.fetch = vi.fn().mockImplementation((url: string) => {
-      callCount++;
-      if (typeof url === "string" && url.includes("main.jpg")) {
-        return Promise.resolve({ ok: false, headers: new Headers() });
-      }
-      return Promise.resolve({
-        ok: true,
-        headers: new Headers({ "content-type": "image/jpeg" }),
-      });
-    });
+  it("returns best URL directly without HEAD check (no fetch calls)", async () => {
+    const originalFetch = globalThis.fetch;
+    const mockFetch = vi.fn();
+    globalThis.fetch = mockFetch;
 
     const results: BraveImageResult[] = [
-      makeResult({
-        url: "https://a.com/main.jpg",
-        thumbnailUrl: "https://a.com/thumb.jpg",
-        width: 500,
-        height: 600,
-        confidence: "high",
-      }),
+      makeResult({ url: "https://a.com/img.jpg", width: 500, height: 600, confidence: "high" }),
     ];
     const best = await pickBestBraveImage(results);
-    expect(best).toBe("https://a.com/thumb.jpg");
+    expect(best).toBe("https://a.com/img.jpg");
+    // No HEAD checks should be made
+    expect(mockFetch).not.toHaveBeenCalled();
+
+    globalThis.fetch = originalFetch;
   });
 
-  it("returns first URL as last resort when all HEAD checks fail", async () => {
-    globalThis.fetch = vi.fn().mockResolvedValue({
-      ok: false,
-      headers: new Headers(),
-    });
-
+  it("returns empty string when all results are in usedUrls", async () => {
     const results: BraveImageResult[] = [
-      makeResult({ url: "https://a.com/img1.jpg", width: 500, height: 600, confidence: "high" }),
-      makeResult({ url: "https://b.com/img2.jpg", width: 400, height: 500, confidence: "medium" }),
+      makeResult({ url: "https://a.com/img1.jpg" }),
+      makeResult({ url: "https://b.com/img2.jpg" }),
     ];
-    const best = await pickBestBraveImage(results);
-    // Should return the highest-scored URL even though HEAD failed
-    expect(best).toBe("https://a.com/img1.jpg");
+    const used = new Set(["https://a.com/img1.jpg", "https://b.com/img2.jpg"]);
+    const best = await pickBestBraveImage(results, used);
+    expect(best).toBe("");
+  });
+
+  it("applies cross-category penalty for wrong category images", async () => {
+    const results: BraveImageResult[] = [
+      makeResult({ url: "https://a.com/pants.jpg", width: 500, height: 600, confidence: "high", title: "Blue Jeans Slim Fit" }),
+      makeResult({ url: "https://b.com/shirt.jpg", width: 400, height: 500, confidence: "medium", title: "White Cotton Shirt" }),
+    ];
+    // When searching for shirts, pants should be penalized
+    const best = await pickBestBraveImage(results, undefined, "shirt");
+    expect(best).toBe("https://b.com/shirt.jpg");
   });
 });
 
@@ -170,6 +162,7 @@ describe("searchBraveImages", () => {
 
   beforeEach(() => {
     process.env.BRAVE_SEARCH_API_KEY = "test-brave-key-123";
+    resetBraveCircuitBreaker();
   });
 
   afterEach(() => {

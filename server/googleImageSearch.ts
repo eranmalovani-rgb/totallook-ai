@@ -12,6 +12,17 @@
 const GOOGLE_CSE_API_KEY = process.env.GOOGLE_CSE_API_KEY ?? "";
 const GOOGLE_CSE_CX = process.env.GOOGLE_CSE_CX ?? "";
 
+/** Circuit breaker: if Google CSE returns 403/429, disable for this process lifetime */
+let googleCseDisabled = false;
+let googleCseDisabledAt = 0;
+const CIRCUIT_BREAKER_COOLDOWN_MS = 10 * 60 * 1000; // 10 minutes
+
+/** Reset circuit breaker state (for testing) */
+export function resetGoogleCircuitBreaker() {
+  googleCseDisabled = false;
+  googleCseDisabledAt = 0;
+}
+
 export interface GoogleImageResult {
   /** Direct link to the image file */
   link: string;
@@ -39,8 +50,16 @@ export async function searchGoogleImages(
   num: number = 3,
 ): Promise<GoogleImageResult[]> {
   if (!GOOGLE_CSE_API_KEY || !GOOGLE_CSE_CX) {
-    console.warn("[GoogleCSE] Missing API key or CX — skipping Google Image Search");
     return [];
+  }
+
+  // Circuit breaker: skip if recently disabled
+  if (googleCseDisabled) {
+    if (Date.now() - googleCseDisabledAt < CIRCUIT_BREAKER_COOLDOWN_MS) {
+      return [];
+    }
+    // Try again after cooldown
+    googleCseDisabled = false;
   }
 
   const params = new URLSearchParams({
@@ -58,21 +77,24 @@ export async function searchGoogleImages(
 
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10_000);
+    const timeoutId = setTimeout(() => controller.abort(), 5_000); // Reduced from 10s to 5s
 
     const res = await fetch(url, { signal: controller.signal });
     clearTimeout(timeoutId);
 
     if (!res.ok) {
-      const body = await res.text().catch(() => "");
-      console.warn(`[GoogleCSE] HTTP ${res.status} for query "${query}": ${body.slice(0, 200)}`);
+      // Circuit breaker: disable on 403 (quota exceeded) or 429 (rate limit)
+      if (res.status === 403 || res.status === 429) {
+        googleCseDisabled = true;
+        googleCseDisabledAt = Date.now();
+        console.warn(`[GoogleCSE] Circuit breaker triggered (HTTP ${res.status}) — disabling for 10 minutes`);
+      }
       return [];
     }
 
     const data = await res.json();
 
     if (!data.items || !Array.isArray(data.items)) {
-      console.log(`[GoogleCSE] No items for query "${query}"`);
       return [];
     }
 
@@ -87,8 +109,6 @@ export async function searchGoogleImages(
   } catch (err: any) {
     if (err?.name === "AbortError") {
       console.warn(`[GoogleCSE] Timeout for query "${query}"`);
-    } else {
-      console.warn(`[GoogleCSE] Error for query "${query}":`, err?.message ?? err);
     }
     return [];
   }
@@ -125,14 +145,7 @@ export function buildProductSearchQuery(label: string, categoryQuery: string, ge
 
 /**
  * Pick the best image from Google results for a product card.
- *
- * Prefers:
- *  1. Images with reasonable dimensions (not tiny icons, not huge banners)
- *  2. Images that are roughly square or portrait (product-style)
- *  3. Images that are actually reachable (HEAD check)
- */
-/**
- * Cross-category keyword sets for filtering out wrong-category images.
+ * NO HEAD checks — trust Google's results for speed.
  */
 const CATEGORY_KEYWORDS: Record<string, RegExp> = {
   top: /\b(shirt|blouse|top|tee|t-shirt|polo|sweater|hoodie|pullover|henley|tank|jersey|tunic)\b/i,
@@ -178,50 +191,19 @@ export async function pickBestProductImage(
     .filter((r) => !usedUrls || !usedUrls.has(r.link))
     .map((r) => {
       let score = 0;
-      // Prefer reasonable sizes (300–1500px wide)
       if (r.width >= 300 && r.width <= 1500) score += 3;
       else if (r.width >= 200) score += 1;
-      // Prefer roughly square or portrait aspect ratio
       if (r.height > 0 && r.width > 0) {
         const ratio = r.width / r.height;
-        if (ratio >= 0.5 && ratio <= 1.2) score += 2; // portrait or square
+        if (ratio >= 0.5 && ratio <= 1.2) score += 2;
         else if (ratio >= 0.3 && ratio <= 2.0) score += 1;
       }
-      // Penalize very small images
       if (r.width < 150 || r.height < 150) score -= 3;
-      // Penalize cross-category contamination
       score += crossCategoryPenalty(r.title, expectedCategory);
       return { ...r, score };
     })
     .sort((a, b) => b.score - a.score);
 
-  // Try top candidates with a HEAD check
-  for (const candidate of scored.slice(0, 5)) {
-    const reachable = await isImageReachable(candidate.link);
-    if (reachable) {
-      return candidate.link;
-    }
-  }
-
-  // Fallback: return the first result without checking
+  // Return best scoring result directly — NO HEAD checks for speed
   return scored[0]?.link ?? "";
-}
-
-async function isImageReachable(url: string): Promise<boolean> {
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5_000);
-    const res = await fetch(url, {
-      method: "HEAD",
-      signal: controller.signal,
-      headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; TotalLookBot/1.0)",
-      },
-    });
-    clearTimeout(timeoutId);
-    const ct = (res.headers.get("content-type") ?? "").toLowerCase();
-    return res.ok && ct.startsWith("image/");
-  } catch {
-    return false;
-  }
 }

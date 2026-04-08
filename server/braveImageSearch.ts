@@ -12,6 +12,17 @@
 
 const BRAVE_API_KEY = process.env.BRAVE_SEARCH_API_KEY ?? "";
 
+/** Circuit breaker: if Brave returns 429, disable temporarily */
+let braveDisabled = false;
+let braveDisabledAt = 0;
+const CIRCUIT_BREAKER_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
+
+/** Reset circuit breaker state (for testing) */
+export function resetBraveCircuitBreaker() {
+  braveDisabled = false;
+  braveDisabledAt = 0;
+}
+
 export interface BraveImageResult {
   /** Direct link to the image file */
   url: string;
@@ -45,6 +56,14 @@ export async function searchBraveImages(
     return [];
   }
 
+  // Circuit breaker: skip if recently disabled
+  if (braveDisabled) {
+    if (Date.now() - braveDisabledAt < CIRCUIT_BREAKER_COOLDOWN_MS) {
+      return [];
+    }
+    braveDisabled = false;
+  }
+
   const params = new URLSearchParams({
     q: query,
     count: String(Math.min(Math.max(count, 1), 20)),
@@ -55,7 +74,7 @@ export async function searchBraveImages(
 
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10_000);
+    const timeoutId = setTimeout(() => controller.abort(), 5_000); // Reduced from 10s to 5s
 
     const res = await fetch(url, {
       signal: controller.signal,
@@ -67,15 +86,18 @@ export async function searchBraveImages(
     clearTimeout(timeoutId);
 
     if (!res.ok) {
-      const body = await res.text().catch(() => "");
-      console.warn(`[BraveSearch] HTTP ${res.status} for query "${query}": ${body.slice(0, 200)}`);
+      // Circuit breaker on rate limit
+      if (res.status === 429) {
+        braveDisabled = true;
+        braveDisabledAt = Date.now();
+        console.warn(`[BraveSearch] Circuit breaker triggered (HTTP 429) — disabling for 5 minutes`);
+      }
       return [];
     }
 
     const data = await res.json();
 
     if (!data.results || !Array.isArray(data.results)) {
-      console.log(`[BraveSearch] No results for query "${query}"`);
       return [];
     }
 
@@ -91,8 +113,6 @@ export async function searchBraveImages(
   } catch (err: any) {
     if (err?.name === "AbortError") {
       console.warn(`[BraveSearch] Timeout for query "${query}"`);
-    } else {
-      console.warn(`[BraveSearch] Error for query "${query}":`, err?.message ?? err);
     }
     return [];
   }
@@ -125,16 +145,8 @@ export function buildBraveSearchQuery(label: string, categoryQuery: string, gend
 
 /**
  * Pick the best image from Brave results for a product card.
- *
- * Prefers:
- *  1. High confidence results
- *  2. Images with reasonable dimensions (not tiny icons, not huge banners)
- *  3. Images that are roughly square or portrait (product-style)
- *  4. Images that are actually reachable (HEAD check)
- */
-/**
- * Cross-category keyword sets for filtering out wrong-category images.
- * If searching for "top" category, penalize results whose title mentions "pants", "jeans", etc.
+ * NO HEAD checks — trust Brave's results for speed.
+ * Uses thumbnail as fast fallback if main URL looks unreliable.
  */
 const CATEGORY_KEYWORDS: Record<string, RegExp> = {
   top: /\b(shirt|blouse|top|tee|t-shirt|polo|sweater|hoodie|pullover|henley|tank|jersey|tunic)\b/i,
@@ -145,9 +157,6 @@ const CATEGORY_KEYWORDS: Record<string, RegExp> = {
   accessory: /\b(watch|bracelet|ring|necklace|earring|belt|bag|hat|cap|scarf|sunglass|wallet|tie|cufflink)\b/i,
 };
 
-/**
- * Detect the expected category from a search query.
- */
 function detectQueryCategory(query: string): string | null {
   const q = query.toLowerCase();
   for (const [cat, re] of Object.entries(CATEGORY_KEYWORDS)) {
@@ -156,17 +165,13 @@ function detectQueryCategory(query: string): string | null {
   return null;
 }
 
-/**
- * Check if a result title suggests a DIFFERENT category than expected.
- * Returns a penalty score (negative) if cross-category contamination is detected.
- */
 function crossCategoryPenalty(title: string, expectedCategory: string | null): number {
   if (!expectedCategory || !title) return 0;
   const t = title.toLowerCase();
   for (const [cat, re] of Object.entries(CATEGORY_KEYWORDS)) {
     if (cat === expectedCategory) continue;
     if (re.test(t) && !CATEGORY_KEYWORDS[expectedCategory]?.test(t)) {
-      return -5; // Heavy penalty for wrong category
+      return -5;
     }
   }
   return 0;
@@ -187,60 +192,24 @@ export async function pickBestBraveImage(
     .filter((r) => !usedUrls || !usedUrls.has(r.url))
     .map((r) => {
       let score = 0;
-      // Prefer high confidence
       if (r.confidence === "high") score += 3;
       else if (r.confidence === "medium") score += 1;
-      // Prefer reasonable sizes (300–1500px wide)
       if (r.width >= 300 && r.width <= 1500) score += 3;
       else if (r.width >= 200) score += 1;
-      // Prefer roughly square or portrait aspect ratio
       if (r.height > 0 && r.width > 0) {
         const ratio = r.width / r.height;
-        if (ratio >= 0.5 && ratio <= 1.2) score += 2; // portrait or square
+        if (ratio >= 0.5 && ratio <= 1.2) score += 2;
         else if (ratio >= 0.3 && ratio <= 2.0) score += 1;
       }
-      // Penalize very small images
       if (r.width < 150 || r.height < 150) score -= 3;
-      // Penalize cross-category contamination (e.g. pants in a "top" search)
       score += crossCategoryPenalty(r.title, expectedCategory);
       return { ...r, score };
     })
     .sort((a, b) => b.score - a.score);
 
-  // Try top candidates with a HEAD check
-  for (const candidate of scored.slice(0, 5)) {
-    const reachable = await isBraveImageReachable(candidate.url);
-    if (reachable) {
-      return candidate.url;
-    }
-    // Fallback to thumbnail if main URL fails
-    if (candidate.thumbnailUrl) {
-      const thumbReachable = await isBraveImageReachable(candidate.thumbnailUrl);
-      if (thumbReachable) {
-        return candidate.thumbnailUrl;
-      }
-    }
-  }
-
-  // Last resort: return the first result URL without checking
-  return scored[0]?.url ?? "";
-}
-
-async function isBraveImageReachable(url: string): Promise<boolean> {
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5_000);
-    const res = await fetch(url, {
-      method: "HEAD",
-      signal: controller.signal,
-      headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; TotalLookBot/1.0)",
-      },
-    });
-    clearTimeout(timeoutId);
-    const ct = (res.headers.get("content-type") ?? "").toLowerCase();
-    return res.ok && ct.startsWith("image/");
-  } catch {
-    return false;
-  }
+  // Return best scoring result directly — NO HEAD checks for speed
+  // Prefer main URL, fallback to thumbnail
+  const best = scored[0];
+  if (!best) return "";
+  return best.url || best.thumbnailUrl || "";
 }
