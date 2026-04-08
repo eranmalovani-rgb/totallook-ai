@@ -872,24 +872,20 @@ Scan hands, wrists, neck, ears, face for: rings, bracelets, watches, necklaces, 
 Reference 2025-2026 trends from Vogue, GQ, SSENSE, MR PORTER, Milan/Paris Fashion Week, and street style.
 ${influencerSection}${styleNotesSection}${occasionSection}${profileSection}${wardrobeSection}
 
+THIS IS STAGE 1 ONLY — return ONLY: overallScore, summary, items, scores, linkedMentions. Do NOT return improvements, outfitSuggestions, trendSources, or influencerInsight (those come in Stage 2).
+
 Respond with valid JSON matching this schema:
 {
   "overallScore": <5-10>,
   "summary": "<4-5 sentence expert summary in ${langLabel}: compliment strongest element, identify style direction, reference 2025-2026 trend, name the aesthetic, suggest one upgrade. No brand names in summary.>",
-  "items": [{ "name": "<item name in ${langLabel}, no brand>", "description": "<material, color shade, construction details in ${langLabel}. No brand names.>", "color": "<main color>", "score": <5-10>, "verdict": "<${isHebrew ? "בחירה מצוינת/ניגודיות טובה/יש פוטנציאל/ניתן לשדרג" : "Excellent choice/Good contrast/Has potential/Can be upgraded"}>", "analysis": "<3-4 sentences: material ID, 2025-2026 trend connection, design philosophy, what would make it a 10. No brand names.>", "icon": "<👕/👖/👟/💍/🧥/👔/⌚/🕶️/👜/🧢/💿>" }],
-  "scores": [{ "category": "<in ${langLabel}>", "score": <5-10 or null>, "explanation": "<1-2 sentences WHY this score>", "recommendation": "<if null, suggest what fits>" }],
-  "improvements": [{ "title": "<in ${langLabel}>", "description": "<2-3 sentences>", "beforeLabel": "<now>", "afterLabel": "<suggested>", "productSearchQuery": "<CRITICAL for image search — MUST be a specific English product search query. ALWAYS include: 1) gender prefix (men's/women's), 2) color, 3) specific garment type (NOT generic like 'top' — use 'polo shirt', 'crew neck t-shirt', 'oxford shirt', etc.), 4) style/fit. Example: men's navy slim fit chino pants, women's white oversized cotton button-down shirt. NEVER use Hebrew. NEVER use generic words like 'upgrade' or 'improve'.>", "shoppingLinks": [{ "label": "<product+brand+store>", "url": "<SEARCH URL ONLY — use store search endpoint like ?q=brand+product+color. NEVER use /product/ URLs.>", "imageUrl": "" }] }],
-  "outfitSuggestions": [{ "name": "<in ${langLabel}>", "occasion": "<when>", "items": ["<brand+model+color+price>"], "colors": ["<hex>"], "lookDescription": "<English flat-lay moodboard description for image gen>", "inspirationNote": "<in ${langLabel}>" }],
-  "trendSources": [{ "source": "<name>", "title": "<article title>", "url": "<real URL from Vogue/GQ/SSENSE/MR PORTER/Hypebeast/Highsnobiety>", "relevance": "<in ${langLabel}>", "season": "<e.g. SS2026>" }],
-  "influencerInsight": "<3-4 sentences in ${langLabel}. Write influencer names in English always.>",
+  "items": [{ "name": "<item name in ${langLabel}, no brand>", "description": "<material, color shade, construction details in ${langLabel}. No brand names.>", "color": "<main color>", "score": <5-10>, "verdict": "<${isHebrew ? "בחירה מצוינת/ניגודיות טובה/יש פוטנציאל/ניתן לשדרג" : "Excellent choice/Good contrast/Has potential/Can be upgraded"}>", "analysis": "<2-3 sentences: material ID, trend connection, what would make it a 10. No brand names.>", "icon": "<👕/👖/👟/💍/🧥/👔/⌚/🕶️/👜/🧢/💿>" }],
+  "scores": [{ "category": "<in ${langLabel}>", "score": <5-10 or null>, "explanation": "<1 sentence WHY this score>", "recommendation": "<if null, suggest what fits>" }],
   "linkedMentions": [{ "text": "<exact name as in analysis>", "type": "<brand/influencer/item/store>", "url": "<official URL or Instagram>" }]
 }
 
-SHOPPING URL RULES: ONLY use search URLs (e.g. ssense.com/en-us/{men|women}?q=, mrporter.com/.../search?query=, asos.com/.../search/?q=, nordstrom.com/sr?keyword=, nike.com/w?q=, zara.com/.../search?searchTerm=). NEVER use /product/ or /item/ URLs.
-
 Score categories (in ${langLabel}): ${isHebrew ? "איכות הפריטים, התאמת גזרה, צבעוניות, שכבתיות, אקססוריז ותכשיטים, התאמה לגיל ולסגנון, נעליים, זיהוי מותגים" : "Item Quality, Fit, Color Palette, Layering, Accessories & Jewelry, Age & Style Match, Footwear, Brand Recognition"}. Phone case doesn't affect Accessories score.
 
-SCORING: 5-10 range. Differentiate scores (not all 7-8). Justify each score concretely. Explain what would earn missing points. Be encouraging.
+SCORING: 5-10 range. Differentiate scores (not all 7-8). Justify concretely. Be encouraging.
 BRAND IDENTIFICATION — ZERO TOLERANCE FOR EMPTY BRANDS (CRITICAL):
 This is the #1 premium feature of our app. You MUST identify or guess a brand for EVERY SINGLE ITEM. Empty brand fields are UNACCEPTABLE.
 
@@ -934,11 +930,9 @@ CONTEXT-AWARE SCORING:
 - If image is blurry/cropped, note it in the summary and suggest a better photo.
 
 REQUIREMENTS:
-- 4-6 items (include every visible accessory). 8 score categories. 4-5 improvements with 2-3 shopping links each. 3 outfit suggestions. 4+ trend sources.
-- Shopping links: diverse styles/prices/brands per improvement. Use ${userGender === 'female' ? "women's" : "men's"} category.
-- Outfits: coherent style direction, harmonious colors, gender-appropriate, top+bottom+shoes+accessory minimum. 3 distinct looks.
-- Influencer names always in English. linkedMentions for every brand/influencer/store mentioned.
-- Brand confidence: HIGH (logo visible), MEDIUM (strong cues), LOW (educated guess). For MEDIUM/LOW use hedging language in analysis.
+- 4-6 items (include every visible accessory). 8 score categories.
+- linkedMentions for every brand/influencer/store mentioned.
+- Brand confidence: HIGH (logo visible), MEDIUM (strong cues), LOW (educated guess). For MEDIUM/LOW use hedging language.
 
 IMPORTANT: Return ONLY the JSON object, no markdown, no code fences, no explanation.`;
 }
@@ -2204,7 +2198,7 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
                     schema: analysisCoreJsonSchema,
                   },
                 },
-                maxTokens: 2200,
+                maxTokens: 1600,
               });
               analysisCore = parseFashionAnalysisCorePayload(llmResult);
               break; // Success
@@ -2278,7 +2272,7 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
                       schema: recommendationsJsonSchema,
                     },
                   },
-                  maxTokens: 2500,
+                  maxTokens: 1600,
                 });
                 recommendations = parseFashionRecommendationsPayload(recResult);
                 break;
@@ -3326,6 +3320,51 @@ Return ONLY a JSON object with these exact fields:
         }, userGender);
         return { links: updatedLinks };
       }),
+
+    /** Batch: generate product images for ALL improvements in one call */
+    generateAllProductImages: protectedProcedure
+      .input(z.object({ reviewId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const review = await getReviewById(input.reviewId);
+        if (!review) throw new Error("Review not found");
+        if (review.userId !== ctx.user.id) throw new Error("Unauthorized");
+        if (review.status !== "completed") throw new Error("Review not completed");
+        const analysis = review.analysisJson as FashionAnalysis;
+        if (!analysis?.improvements?.length) return { results: [] };
+
+        const profile = await getUserProfile(ctx.user.id);
+        const userGender = profile?.gender || "male";
+
+        // Process ALL improvements in parallel
+        const results = await Promise.all(
+          analysis.improvements.map(async (imp, impIdx) => {
+            const hasEmptyImages = imp.shoppingLinks?.some(l => !l.imageUrl || l.imageUrl.length < 5);
+            if (!hasEmptyImages) return { index: impIdx, links: imp.shoppingLinks };
+            try {
+              const updatedLinks = await generateImagesForImprovement(imp, async (linkIdx, imageUrl) => {
+                try {
+                  const currentReview = await getReviewById(input.reviewId);
+                  if (currentReview?.analysisJson) {
+                    const currentAnalysis = currentReview.analysisJson as FashionAnalysis;
+                    if (currentAnalysis.improvements?.[impIdx]?.shoppingLinks?.[linkIdx]) {
+                      currentAnalysis.improvements[impIdx].shoppingLinks[linkIdx].imageUrl = imageUrl;
+                      await updateReviewAnalysis(input.reviewId, currentAnalysis.overallScore, currentAnalysis);
+                    }
+                  }
+                } catch (dbErr: any) {
+                  console.warn(`[Batch ProductImages] DB update failed:`, dbErr?.message);
+                }
+              }, userGender);
+              return { index: impIdx, links: updatedLinks };
+            } catch (err: any) {
+              console.warn(`[Batch ProductImages] Failed for improvement ${impIdx}:`, err?.message);
+              return { index: impIdx, links: imp.shoppingLinks };
+            }
+          })
+        );
+        return { results };
+      }),
+
     deleteAll: protectedProcedure
       .mutation(async ({ ctx }) => {
         await deleteAllReviewsByUserId(ctx.user.id);
@@ -4550,6 +4589,48 @@ Return ONLY a JSON object with these exact fields:
         }, guestGender);
         return { links: updatedLinks };
       }),
+
+    /** Batch: generate product images for ALL improvements in one call (guest) */
+    generateAllProductImages: publicProcedure
+      .input(z.object({ sessionId: z.number() }))
+      .mutation(async ({ input }) => {
+        const session = await getGuestSessionById(input.sessionId);
+        if (!session) throw new Error("Session not found");
+        if (session.status !== "completed") throw new Error("Session not completed");
+        const analysis = session.analysisJson as FashionAnalysis;
+        if (!analysis?.improvements?.length) return { results: [] };
+
+        const guestGender = (session as any).gender || "male";
+
+        const results = await Promise.all(
+          analysis.improvements.map(async (imp, impIdx) => {
+            const hasEmptyImages = imp.shoppingLinks?.some(l => !l.imageUrl || l.imageUrl.length < 5);
+            if (!hasEmptyImages) return { index: impIdx, links: imp.shoppingLinks };
+            try {
+              const updatedLinks = await generateImagesForImprovement(imp, async (linkIdx, imageUrl) => {
+                try {
+                  const currentSession = await getGuestSessionById(input.sessionId);
+                  if (currentSession?.analysisJson) {
+                    const currentAnalysis = currentSession.analysisJson as FashionAnalysis;
+                    if (currentAnalysis.improvements?.[impIdx]?.shoppingLinks?.[linkIdx]) {
+                      currentAnalysis.improvements[impIdx].shoppingLinks[linkIdx].imageUrl = imageUrl;
+                      await updateGuestSessionAnalysis(input.sessionId, currentAnalysis.overallScore, currentAnalysis);
+                    }
+                  }
+                } catch (dbErr: any) {
+                  console.warn(`[Guest Batch ProductImages] DB update failed:`, dbErr?.message);
+                }
+              }, guestGender);
+              return { index: impIdx, links: updatedLinks };
+            } catch (err: any) {
+              console.warn(`[Guest Batch ProductImages] Failed for improvement ${impIdx}:`, err?.message);
+              return { index: impIdx, links: imp.shoppingLinks };
+            }
+          })
+        );
+        return { results };
+      }),
+
     /** Generate outfit look image for guest session */
     generateOutfitLook: publicProcedure
       .input(z.object({ sessionId: z.number(), outfitIndex: z.number() }))

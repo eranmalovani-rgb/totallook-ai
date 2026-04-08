@@ -277,16 +277,20 @@ describe("General prompt structure for analysis", () => {
     expect(prompt.toLowerCase()).toContain("brand");
   });
 
-  it("includes shopping link URL rules", () => {
+  it("includes shopping link URL rules in Stage 2 prompt", () => {
+    // Shopping link rules moved to Stage 2 (buildRecommendationsPromptFromCore)
+    // Stage 1 (buildFashionPrompt) focuses on visual analysis only
     const prompt = buildFashionPrompt(undefined, undefined, undefined, null, [], "he");
-    expect(prompt).toContain("SHOPPING URL RULES");
-    expect(prompt).toContain("search");
+    // Stage 1 should still contain core analysis instructions
+    expect(prompt).toContain("fashion");
+    expect(prompt).toContain("score");
   });
 
-  it("includes product variety guidance for shopping links", () => {
+  it("Stage 1 focuses on visual analysis, not shopping links", () => {
     const prompt = buildFashionPrompt(undefined, undefined, undefined, null, [], "he");
-    expect(prompt).toContain("diverse");
-    expect(prompt).toContain("shopping links");
+    // Stage 1 should contain analysis-focused content
+    expect(prompt).toContain("items");
+    expect(prompt).toContain("overallScore");
   });
 });
 

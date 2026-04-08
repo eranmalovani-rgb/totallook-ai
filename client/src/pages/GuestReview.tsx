@@ -287,7 +287,7 @@ function GuestImprovementAccordionCard({
       { threshold: 0.05, rootMargin: "200px" }
     );
     if (cardRef.current) observer.observe(cardRef.current);
-    const fallbackTimer = setTimeout(() => { triggerGeneration(); }, 3000);
+    const fallbackTimer = setTimeout(() => { triggerGeneration(); }, 500);
     return () => { observer.disconnect(); clearTimeout(fallbackTimer); };
   }, [hasTriggered, hasEmptyImages, triggerGeneration]);
 
@@ -1274,6 +1274,25 @@ export default function GuestReview() {
     ? ["פריטים", ...(hasInfluencerInsight ? ["משפיענים"] : []), "שדרוגים", "לוקים", "טרנדים"]
     : ["Items", ...(hasInfluencerInsight ? ["Influencers"] : []), "Upgrades", "Looks", "Trends"];
   const guestCardIcons = ["🎯", ...(hasInfluencerInsight ? ["👥"] : []), "✨", "👗", "📚"];
+
+  // ── Batch preload ALL product images immediately when analysis is ready ──
+  const batchPreloadTriggeredRef = useRef(false);
+  const guestBatchMutation = trpc.guest.generateAllProductImages.useMutation();
+  const guestUtils = trpc.useUtils();
+  useEffect(() => {
+    if (batchPreloadTriggeredRef.current) return;
+    if (result?.status !== "completed" || !analysis?.improvements?.length) return;
+    const hasAnyEmptyImages = analysis.improvements.some((imp: any) =>
+      imp.shoppingLinks?.some((link: any) => !link.imageUrl || link.imageUrl.length < 5)
+    );
+    if (!hasAnyEmptyImages) return;
+    batchPreloadTriggeredRef.current = true;
+    guestBatchMutation.mutateAsync({ sessionId })
+      .then(() => {
+        guestUtils.guest.getResult.invalidate({ sessionId });
+      })
+      .catch((err: any) => console.warn("[GuestReview] Batch product image preload failed:", err));
+  }, [result?.status, analysis?.improvements, sessionId]);
 
   return (
     <div className="min-h-screen bg-background text-foreground" dir={dir}>

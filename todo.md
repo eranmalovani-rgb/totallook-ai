@@ -171,3 +171,13 @@
 - [x] 10c.5: Added 9 targeted unit tests for cross-category filtering in pickBestBraveImage and pickBestProductImage (all pass)
 - [x] 10c.6: Added regression tests for hybrid prefetch path (prefetchedResults, prefetchMap, PARALLEL PREFETCH, SEQUENTIAL SELECTION)
 - [x] 10c.7: Final clean vitest run: 748/752 tests pass (4 pre-existing API failures: google-cse, imagegen x2, openai)
+
+## Stage 11 — Aggressive Speed Optimization (target: <30s analysis, <5s images)
+
+- [x] 11.1: Timing analysis — review.analyze = ~37s (Stage 1 ~18s + Stage 2 ~19s), product images lazy loaded per improvement
+- [x] 11.2: Reduced maxTokens — Stage 1: 2200→1600, Stage 2: 2500→1600 (both registered + guest flows)
+- [x] 11.3: Trimmed Stage 1 prompt — removed improvements/outfitSuggestions/trendSources/influencerInsight instructions (Stage 1 only returns overallScore/summary/items/scores/linkedMentions)
+- [x] 11.4: Frontend optimized — fallback timer 3000ms→500ms (ReviewPage + GuestReview)
+- [x] 11.5: Added batch endpoint generateAllProductImages (registered + guest) — one DB read, one profile read, all improvements in parallel
+- [x] 11.6: Frontend batch preloading — ReviewPage + GuestReview call generateAllProductImages immediately on analysis completion
+- [x] 11.7: All 748/752 tests pass (4 pre-existing API failures), TS compiles clean

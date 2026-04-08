@@ -186,12 +186,10 @@ describe("Stage 10: Product Image Fixes", () => {
         "utf-8",
       );
 
-      // Check that the prompt instructs for specific English queries
-      expect(routersSource).toContain("CRITICAL for image search");
-      expect(routersSource).toContain("gender prefix (men's/women's)");
-      expect(routersSource).toContain("specific garment type");
-      expect(routersSource).toContain("NEVER use Hebrew");
-      expect(routersSource).toContain("NEVER use generic words");
+      // Check that the Stage 2 prompt instructs for specific English queries
+      expect(routersSource).toContain("productSearchQuery MUST be specific English");
+      expect(routersSource).toContain("category + color + style + gender");
+      expect(routersSource).toContain("productSearchQuery MUST match the improvement category");
     });
   });
 

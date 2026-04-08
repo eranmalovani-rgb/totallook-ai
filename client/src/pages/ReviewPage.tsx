@@ -425,7 +425,7 @@ function ImprovementCard({
       { threshold: 0.05, rootMargin: "200px" }
     );
     if (cardRef.current) observer.observe(cardRef.current);
-    const fallbackTimer = setTimeout(() => { triggerGeneration(); }, 3000);
+    const fallbackTimer = setTimeout(() => { triggerGeneration(); }, 500);
     return () => { observer.disconnect(); clearTimeout(fallbackTimer); };
   }, [hasTriggered, hasEmptyImages, triggerGeneration]);
 
@@ -1318,6 +1318,24 @@ export default function ReviewPage() {
     <ShoppingBag className="w-3.5 h-3.5" key="outfits" />,
     <BookOpen className="w-3.5 h-3.5" key="trends" />,
   ];
+
+  // ── Batch preload ALL product images immediately when analysis is ready ──
+  const batchPreloadTriggeredRef = useRef(false);
+  const batchMutation = trpc.review.generateAllProductImages.useMutation();
+  useEffect(() => {
+    if (batchPreloadTriggeredRef.current) return;
+    if (review?.status !== "completed" || !analysis?.improvements?.length) return;
+    const hasAnyEmptyImages = analysis.improvements.some((imp: any) =>
+      imp.shoppingLinks?.some((link: any) => !link.imageUrl || link.imageUrl.length < 5)
+    );
+    if (!hasAnyEmptyImages) return;
+    batchPreloadTriggeredRef.current = true;
+    batchMutation.mutateAsync({ reviewId })
+      .then(() => {
+        utils.review.get.invalidate({ id: reviewId });
+      })
+      .catch((err: any) => console.warn("[ReviewPage] Batch product image preload failed:", err));
+  }, [review?.status, analysis?.improvements, reviewId]);
 
   return (
     <div className="min-h-screen bg-background text-foreground" dir={dir}>
