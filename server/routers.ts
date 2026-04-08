@@ -2844,8 +2844,21 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
         const outfitItems = (analysis.outfitSuggestions || []).slice(0, 1).flatMap((s: OutfitSuggestion) => s.items).join(", ");
         const colors = (analysis.outfitSuggestions || []).slice(0, 1).flatMap((s: OutfitSuggestion) => s.colors).join(", ");
         const existingItems = (analysis.items || []).map(item => item.name).join(", ");
-        const firstOutfit = (analysis.outfitSuggestions || [])[0];
-
+         const firstOutfit = (analysis.outfitSuggestions || [])[0];
+        // PRIMARY: Generate a full outfit look image via AI (complete head-to-toe look)
+        const prompt = `Fashion mood board / flat lay photograph showing a complete ${genderLabel} outfit look. Professional editorial style, clean white marble background, luxury fashion photography.
+Items to include: ${outfitItems || improvementItems || existingItems}.
+Color palette: ${colors || "neutral tones, black, white"}.
+Style: High-end ${genderLabel} fashion editorial flat lay, items arranged aesthetically like a magazine spread. Include shoes, clothing items, accessories, and a watch or jewelry if relevant. No mannequin, no model, just the items laid out beautifully. Crisp lighting, soft shadows, luxury feel.`;
+        try {
+          const { url } = await generateImage({ prompt });
+          if (url && url.trim().length > 0) {
+            return { imageUrl: url };
+          }
+        } catch (err: any) {
+          console.error("[LookImage] AI image generation failed, falling back to metadata mosaic:", err);
+        }
+        // FALLBACK: Build a mosaic from product images (metadata-based)
         if (firstOutfit) {
           const metadataLook = await generateOutfitLookFromMetadata({
             analysis,
@@ -2857,17 +2870,9 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
             return { imageUrl: metadataLook.imageUrl };
           }
         }
-
-        const prompt = `Fashion mood board / flat lay photograph showing a complete ${genderLabel} outfit look. Professional editorial style, clean white marble background, luxury fashion photography.
-
-Items to include: ${outfitItems || improvementItems || existingItems}.
-Color palette: ${colors || "neutral tones, black, white"}.
-
-Style: High-end ${genderLabel} fashion editorial flat lay, items arranged aesthetically like a magazine spread. Include shoes, clothing items, accessories, and a watch or jewelry if relevant. No mannequin, no model, just the items laid out beautifully. Crisp lighting, soft shadows, luxury feel.`;
-
         try {
-          const { url } = await generateImage({ prompt });
-          return { imageUrl: url || "" };
+          const { url: retryUrl } = await generateImage({ prompt });
+          return { imageUrl: retryUrl || "" };
         } catch (err: any) {
           console.error("[Total Look] Image generation failed:", err);
           throw new Error("יצירת תמונת הלוק נכשלה. נסה שוב.");
@@ -3148,16 +3153,7 @@ Return ONLY the JSON object, no markdown.`;
         const outfitGender = outfitProfile?.gender || "male";
         const outfitGenderLabel = outfitGender === "female" ? "women's" : "men's";
 
-        const metadataLook = await generateOutfitLookFromMetadata({
-          analysis,
-          outfit,
-          outfitIndex: input.outfitIndex,
-          gender: outfitGender,
-        });
-        if (metadataLook?.imageUrl) {
-          return { imageUrl: metadataLook.imageUrl };
-        }
-        // Use the lookDescription from AI if available, otherwise build from items
+        // PRIMARY: Generate a full outfit look image via AI (complete head-to-toe look)
         const lookDesc = outfit.lookDescription || outfit.items.join(", ");
         const colors = outfit.colors?.join(", ") || "neutral tones";
         const prompt = `Professional ${outfitGenderLabel} fashion flat lay / mood board photograph. Clean white marble background, luxury editorial style photography.
@@ -3172,10 +3168,21 @@ Style: High-end ${outfitGenderLabel} fashion editorial flat lay, all items arran
             return { imageUrl: url };
           }
         } catch (err: any) {
-          console.error("[Outfit Look] Image generation failed:", err);
+          console.error("[Outfit Look] AI image generation failed, falling back to metadata mosaic:", err);
         }
 
-        // Slow but resilient fallback: allow AI-generated product images for metadata mosaic.
+        // FALLBACK 1: Build a mosaic from product images (metadata-based)
+        const metadataLook = await generateOutfitLookFromMetadata({
+          analysis,
+          outfit,
+          outfitIndex: input.outfitIndex,
+          gender: outfitGender,
+        });
+        if (metadataLook?.imageUrl) {
+          return { imageUrl: metadataLook.imageUrl };
+        }
+
+        // FALLBACK 2: Metadata mosaic with AI-generated product images
         const resilientMetadataLook = await generateOutfitLookFromMetadata({
           analysis,
           outfit,
@@ -4762,6 +4769,24 @@ Return ONLY a JSON object with these exact fields:
         const guestGender = (session as any).gender || "male";
         const genderLabel = guestGender === "female" ? "women's" : "men's";
 
+        // PRIMARY: Generate a full outfit look image via AI (complete head-to-toe look)
+        const lookDesc = outfit.lookDescription || outfit.items.join(", ");
+        const colors = outfit.colors?.join(", ") || "neutral tones";
+        const prompt = `Professional ${genderLabel} fashion flat lay / mood board photograph. Clean white marble background, luxury editorial style photography.
+Outfit card variation index: ${input.outfitIndex + 1}. Keep this variation visually distinct from other outfit cards.
+Complete ${genderLabel} outfit: ${lookDesc}.
+Color palette: ${colors}.
+Style: High-end ${genderLabel} fashion editorial flat lay, all items arranged aesthetically like a magazine spread. Include every piece: clothing, shoes, accessories, watch/jewelry. No mannequin, no model — just the items laid out beautifully with crisp lighting, soft shadows, and a luxury feel. Each item clearly visible and identifiable.`;
+        try {
+          const { url } = await generateImage({ prompt });
+          if (url && url.trim().length > 0) {
+            return { imageUrl: url };
+          }
+        } catch (err: any) {
+          console.error("[Guest Outfit Look] AI image generation failed, falling back to metadata mosaic:", err);
+        }
+
+        // FALLBACK 1: Build a mosaic from product images (metadata-based)
         const metadataLook = await generateOutfitLookFromMetadata({
           analysis,
           outfit,
@@ -4771,23 +4796,8 @@ Return ONLY a JSON object with these exact fields:
         if (metadataLook?.imageUrl) {
           return { imageUrl: metadataLook.imageUrl };
         }
-        const lookDesc = outfit.lookDescription || outfit.items.join(", ");
-        const colors = outfit.colors?.join(", ") || "neutral tones";
-        const prompt = `Professional ${genderLabel} fashion flat lay / mood board photograph. Clean white marble background, luxury editorial style photography.
-Outfit card variation index: ${input.outfitIndex + 1}. Keep this variation visually distinct from other outfit cards.
-Complete ${genderLabel} outfit: ${lookDesc}.
-Color palette: ${colors}.
-Style: High-end ${genderLabel} fashion editorial flat lay, all items arranged aesthetically like a magazine spread. Include every piece: clothing, shoes, accessories, watch/jewelry. No mannequin, no model — just the items laid out beautifully with crisp lighting, soft shadows, and a luxury feel. Each item clearly visible and identifiable.`;
 
-        try {
-          const { url } = await generateImage({ prompt });
-          if (url && url.trim().length > 0) {
-            return { imageUrl: url };
-          }
-        } catch (err: any) {
-          console.error("[Guest Outfit Look] Image generation failed:", err);
-        }
-
+        // FALLBACK 2: Metadata mosaic with AI-generated product images
         const resilientMetadataLook = await generateOutfitLookFromMetadata({
           analysis,
           outfit,

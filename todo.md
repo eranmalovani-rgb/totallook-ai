@@ -284,3 +284,8 @@
 - [x] 17.3: Pass preferredStores from user/guest profile to all normalizeImprovementShoppingLinks call sites (10 call sites updated)
 - [x] 17.4: Ensure store diversity uses user's preferred stores instead of hardcoded ASOS/Zara/H&M
 - [x] 17.5: Tests pass (765/769, 4 pre-existing API failures). 0 TypeScript errors.
+
+## Stage 18 — Fix Outfit Suggestions Display (Full Looks Instead of Item Combos)
+- [x] 18.1: Root cause: generateOutfitLookFromMetadata (mosaic from individual items) ran BEFORE AI image generation, so it always returned a mosaic instead of a full look
+- [x] 18.2: Swapped priority order in all 3 generateOutfitLook mutations (registered, guest, pre-analysis): AI full look FIRST, metadata mosaic as FALLBACK
+- [x] 18.3: 0 TS errors, 765/769 tests pass (4 pre-existing API failures)
