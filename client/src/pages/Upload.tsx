@@ -10,6 +10,7 @@ import FashionLoadingAnimation from "@/components/FashionLoadingAnimation";
 import { OCCASIONS } from "../../../shared/fashionTypes";
 import FeedPromoSection from "@/components/FeedPromoSection";
 import { useLanguage } from "@/i18n";
+import { compressImageToBase64 } from "@/lib/imageCompress";
 
 export default function Upload() {
   const { user, isAuthenticated, loading: authLoading } = useAuth({ redirectOnUnauthenticated: true });
@@ -148,39 +149,25 @@ export default function Upload() {
 
       if (!reviewId) {
         setUploading(true);
-        const base64 = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => {
-            const result = reader.result as string;
-            resolve(result.split(",")[1]);
-          };
-          reader.onerror = reject;
-          reader.readAsDataURL(file!);
-        });
+        // Compress image client-side before upload (reduces 10MB → ~300KB)
+        const { base64, mimeType: compressedMimeType } = await compressImageToBase64(file!);
 
         const influencersStr = selectedInfluencers.length > 0
           ? selectedInfluencers.join(", ")
           : undefined;
 
-        // Encode optional second image
+        // Compress optional second image
         let secondBase64: string | undefined;
         let secondMimeType: string | undefined;
         if (secondFile) {
-          secondBase64 = await new Promise<string>((resolve, reject) => {
-            const r2 = new FileReader();
-            r2.onload = () => {
-              const res = r2.result as string;
-              resolve(res.split(",")[1]);
-            };
-            r2.onerror = reject;
-            r2.readAsDataURL(secondFile);
-          });
-          secondMimeType = secondFile.type;
+          const second = await compressImageToBase64(secondFile);
+          secondBase64 = second.base64;
+          secondMimeType = second.mimeType;
         }
 
         const result = await uploadMutation.mutateAsync({
           imageBase64: base64,
-          mimeType: file!.type,
+          mimeType: compressedMimeType,
           influencers: influencersStr,
           styleNotes: styleNotes.trim() || undefined,
           occasion: selectedOccasion || undefined,

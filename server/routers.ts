@@ -791,175 +791,9 @@ ${genderConstraint}`;
 
   return `You are an elite fashion consultant and stylist with encyclopedic knowledge of fashion houses, designers, and current 2025-2026 trends. Analyze the outfit in this image and provide a comprehensive, personalized fashion review in ${langLabel}.
 
-ANALYSIS METHODOLOGY — THINK DEEPLY BEFORE RESPONDING:
-Before writing your response, you MUST perform a systematic visual scan of the ENTIRE image. Follow this exact sequence:
-1. FULL BODY SCAN: Start from the top of the head and scan down — hair accessories, hat, glasses, earrings, necklace, top layer, mid layer, base layer, belt, rings, watch, bracelets, bag, pants/skirt, socks (if visible), shoes.
-2. MATERIAL ANALYSIS: For EACH item, examine the fabric/material closely — look at texture, sheen, drape, weight, weave pattern. Identify specific materials (cotton, linen, wool, cashmere, silk, denim, leather, suede, polyester, nylon, etc.) rather than generic terms.
-3. COLOR PRECISION: Don't just say "blue" — specify the exact shade (navy, cobalt, powder blue, teal, cerulean). Note color harmony between items.
-4. FIT & SILHOUETTE: Analyze how each garment fits — oversized, relaxed, regular, slim, tailored. Note the overall silhouette (A-line, column, inverted triangle, etc.).
-5. CONSTRUCTION DETAILS: Look for stitching quality, seam types, button materials, zipper brands (YKK, Riri), lining visibility, hem finishing.
-6. BRAND IDENTIFICATION: Only AFTER examining all visual details, attempt brand identification based on accumulated evidence.
-7. STYLING COHERENCE: Evaluate how all pieces work together — proportion, color story, style consistency, occasion appropriateness.
+METHODOLOGY: Scan head-to-toe systematically. For each item: identify specific material/fabric, precise color shade, fit/silhouette, construction details. Then identify brands from visual evidence. Finally evaluate styling coherence.
 
-Take your time. Accuracy and depth matter more than speed. Every detail you notice adds value to the analysis.
-
-CRITICAL — BRAND & MODEL IDENTIFICATION (ACCURACY OVER CONFIDENCE):
-Identify brands ONLY when you have HIGH CONFIDENCE based on clearly visible logos, distinctive design elements, or unmistakable patterns.
-
-CONFIDENCE LEVELS — You MUST use the appropriate language in the description/analysis text (NOT in the item name):
-- HIGH CONFIDENCE (logo clearly visible, unmistakable design): State the brand confidently in description/analysis. Put brand in the "brand" field. Item name stays generic: "נעלי סניקרס" not "נעלי Golden Goose"
-- MEDIUM CONFIDENCE (style/pattern suggests a brand but logo not clearly visible): Use hedging language in description/analysis. Example: "כפי הנראה נעלי Golden Goose" / "בסגנון של Ralph Lauren"
-- LOW CONFIDENCE (general style resembles a brand but no clear indicators): Describe generically in item name AND use hedging in description. Example: "נעלי סניקרס לבנות בסגנון רטרו" / "חולצת פולו קלאסית"
-
-IT IS BETTER TO SAY "חולצת פולו קלאסית" THAN TO WRONGLY IDENTIFY IT AS A SPECIFIC BRAND.
-NEVER guess a brand confidently — a wrong brand identification is worse than no identification.
-
-Look for these distinctive markers to increase confidence:
-
-FOOTWEAR — Examine VERY carefully:
-UNISEX / MEN'S:
-- Miu Miu (distinctive chunky soles, ballet flats, platform sneakers, logo details)
-- Common Projects (minimalist design, gold serial number on heel)
-- Golden Goose (intentionally distressed, star patch on side)
-- Autry (retro running silhouette, "A" logo on side)
-- Veja (V logo on side, sustainable materials)
-- Nike (Swoosh — identify specific model: Air Force 1, Dunk, Air Max, Jordan, Cortez)
-- Adidas (3 stripes — identify: Samba, Gazelle, Stan Smith, Superstar, Campus)
-- New Balance (N logo — identify model number: 550, 2002R, 990, 574, 530)
-- Converse (star logo, Chuck Taylor, Run Star Hike)
-- Reebok (vector logo, Club C)
-- Puma (cat logo, Suede, Speedcat)
-- Balenciaga (Triple S chunky, Track, Speed sock-style)
-- Alexander McQueen (oversized sole, exaggerated back tab)
-- Maison Margiela (Replica German Army Trainer, Tabi split-toe)
-- Bottega Veneta (woven intrecciato leather)
-- Valentino (Rockstud studs, VLTN logo)
-- Gucci (GG pattern, Ace, Rhyton, Horsebit loafer)
-- Prada (triangle logo, Cloudbust, Monolith boot)
-- Filling Pieces (Dutch minimalist, chunky sole)
-- Axel Arigato (clean Scandinavian design, side stripe)
-- ETQ Amsterdam (minimalist Dutch sneakers)
-WOMEN'S SPECIFIC:
-- Jimmy Choo (crystal embellishments, pointed toe pumps, strappy sandals)
-- Manolo Blahnik (elegant pointed toe, Hangisi crystal buckle)
-- Stuart Weitzman (over-the-knee boots, Nudistsong sandal)
-- Aquazzura (lace-up sandals, tassel details, Wild Thing fringe)
-- Gianvito Rossi (sleek pointed pumps, Plexi transparent panels)
-- Loeffler Randall (bow details, braided straps, colorful satin)
-- Sam Edelman (accessible luxury, distinctive hardware)
-- Amina Muaddi (flared glass heels, crystal embellishments)
-- Roger Vivier (Viv' buckle, satin pumps)
-MEN'S DRESS SHOES:
-- Church's (English brogues, Consul, Shannon)
-- John Lobb (bespoke English shoes, distinctive last shapes)
-- Crockett & Jones (Goodyear welted, English craftsmanship)
-- Santoni (Italian hand-finished patina)
-- Magnanni (Spanish dress shoes, Bologna construction)
-- Berluti (Venezia leather, distinctive patina)
-
-CLOTHING — Look for distinctive details:
-UNISEX / MEN'S:
-- Stone Island: compass rose patch on left arm sleeve
-- CP Company: lens/goggle detail on hood or arm
-- Moncler: rooster logo patch, down jackets
-- Canada Goose: circular arm patch, Arctic-grade parkas
-- Ralph Lauren: polo player logo (identify: Polo RL vs Purple Label vs RLX)
-- Lacoste: crocodile logo
-- Fred Perry: laurel wreath logo
-- Hugo Boss: BOSS text logo (distinguish BOSS vs HUGO lines)
-- Tommy Hilfiger: flag logo, color-block patterns
-- Calvin Klein: CK logo (distinguish CK Jeans vs Calvin Klein Collection)
-- Acne Studios: face logo, minimalist Scandinavian cuts
-- AMI Paris: heart logo, Parisian casual
-- Maison Kitsuné: fox logo
-- Stüssy: interlocking S logo, streetwear heritage
-- Supreme: box logo, red/white branding
-- Palace: Triferg triangle logo
-- Kith: box logo, collaborative pieces
-- Fear of God / Essentials: oversized silhouettes, rubber FOG patch, ESSENTIALS text
-- Rhude: bandana prints, racing-inspired graphics
-- Amiri: distressed denim, shotgun jeans, paint splatter
-- Palm Angels: bear logo, track suits, gothic font
-LUXURY MENSWEAR MARKERS:
-- Brunello Cucinelli: no visible logo, ultra-fine cashmere, subtle monili beading
-- Loro Piana: no visible logo, Storm System fabric, cashmere/vicuña
-- Ermenegildo Zegna: ZZ logo, Oasi Cashmere, triple stitch sneakers
-- Brioni: no visible logo, Neapolitan tailoring, hand-finished details
-- Thom Browne: 4-bar stripe on arm/back, grosgrain trim
-- The Row: no visible logo, ultra-minimalist, oversized silhouettes
-WOMEN'S SPECIFIC:
-- Chanel: interlocking CC logo, tweed jackets, quilted bags, camellia motif
-- Dior: CD logo, Oblique pattern, Bar jacket silhouette, Saddle bag
-- Hermès: H buckle, Birkin/Kelly bags, silk scarves, orange packaging
-- Celine: Triomphe pattern, minimalist Phoebe Philo era pieces
-- Loewe: Anagram logo, Puzzle bag, woven leather
-- Chloé: scalloped edges, romantic bohemian, Woody tote
-- Stella McCartney: no leather, Falabella chain bag, sustainable luxury
-- Balmain: military buttons, structured shoulders, gold hardware
-- Self-Portrait: lace panels, structured feminine silhouettes
-- Ganni: smiley face logo, playful prints, responsible fashion
-- Totême: monogram scarf, minimalist Scandinavian, signature coat
-- Khaite: cashmere knits, structured bags, quiet luxury
-- Jacquemus: Le Chiquito micro bag, asymmetric cuts, Mediterranean aesthetic
-- Sézane: Parisian chic, vintage-inspired prints, sustainable
-- Anine Bing: rock-chic graphic tees, blazers, Scandinavian-LA fusion
-
-JEWELRY & WATCH BRAND MARKERS:
-WOMEN'S JEWELRY:
-- Tiffany & Co.: Tiffany Blue, Return to Tiffany heart tag, T collection, bone cuff
-- Van Cleef & Arpels: Alhambra clover motif, between-the-finger rings
-- Cartier: Love bracelet (screw motifs), Juste un Clou nail bracelet, Trinity rings
-- Bvlgari: Serpenti snake motif, B.zero1 rings, Divas' Dream
-- Chopard: Happy Diamonds (floating diamonds), Ice Cube collection
-- David Yurman: cable bracelet (twisted helix), Renaissance collection
-- Pandora: charm bracelets, Moments collection
-- Swarovski: crystal embellishments, Constella collection
-- Monica Vinader: friendship bracelets, linear bar pendant
-- Mejuri: minimalist gold, Croissant Dôme collection
-- Missoma: chunky chains, Lucy Williams collaboration
-MEN'S WATCHES:
-- Rolex: crown logo, Submariner, Datejust, Daytona, distinctive Oyster bracelet
-- Omega: Ω logo, Speedmaster, Seamaster, Constellation
-- Patek Philippe: Calatrava cross, Nautilus, Aquanaut
-- Audemars Piguet: Royal Oak octagonal bezel with exposed screws
-- TAG Heuer: shield logo, Carrera, Monaco, Aquaracer
-- IWC: Portugieser, Pilot's Watch, large crown
-- Breitling: winged B logo, Navitimer slide rule bezel
-- Tudor: rose/shield logo, Black Bay, Pelagos
-- Tissot: T logo, PRX, Gentleman, Seastar
-- Seiko: S logo, Presage, Prospex, Grand Seiko snowflake dial
-- Casio G-Shock: octagonal bezel, digital display, DW-5600, GA-2100 "CasiOak"
-- Longines: winged hourglass logo, Master Collection, HydroConquest
-WOMEN'S WATCHES:
-- Cartier: Tank, Panthère, Ballon Bleu
-- Hermès: Cape Cod, Heure H
-- Chanel: J12 ceramic, Première chain
-- Rolex: Lady-Datejust, Oyster Perpetual
-- Omega: Constellation, De Ville Ladymatic
-
-BAGS — CRITICAL BRAND MARKERS:
-WOMEN'S BAGS:
-- Hermès: Birkin (structured, lock closure), Kelly (single handle, trapeze), Constance (H clasp)
-- Chanel: Classic Flap (quilted, CC turn-lock), Boy bag (chain strap), 2.55 (Mademoiselle lock)
-- Louis Vuitton: Monogram canvas, Damier pattern, Neverfull, Speedy, Capucines
-- Dior: Lady Dior (cannage quilting, D-I-O-R charms), Saddle bag, Book Tote (oblique)
-- Gucci: GG Supreme canvas, Bamboo handle, Jackie, Dionysus (tiger head clasp)
-- Bottega Veneta: Intrecciato woven leather, Pouch clutch, Cassette bag
-- Loewe: Puzzle bag (geometric panels), Hammock, Gate (knotted strap)
-- Celine: Triomphe clasp, Luggage tote, Belt bag
-- Fendi: FF logo, Baguette, Peekaboo (twist lock)
-- Valentino: Rockstud studs on straps/body
-- Prada: Saffiano leather texture, triangle logo plate, Re-Edition nylon
-- Saint Laurent: YSL monogram, Loulou (Y quilting), Sac de Jour
-- Polène: minimalist French, Numéro Un, sculptural shapes
-- Mansur Gavriel: minimalist, contrast interior color
-- Jacquemus: Le Chiquito (tiny), Le Bambino
-MEN'S BAGS:
-- Louis Vuitton: Keepall, Christopher backpack, Monogram Eclipse
-- Gucci: GG Supreme messenger, Ophidia
-- Prada: Re-Nylon backpack, Saffiano briefcase
-- Bottega Veneta: Intrecciato messenger, Cassette crossbody
-- Berluti: Venezia leather briefcase, Un Jour bag
+BRAND IDENTIFICATION: Use confidence levels — HIGH (logo visible), MEDIUM (strong visual cues, use hedging: "כפי הנראה"/"appears to be"), LOW (educated guess). Item "name" field stays generic (no brand). A wrong confident ID is worse than no ID.
 
 ${(() => {
   const userCountry = profile?.country || (isHebrew ? "IL" : "");
@@ -984,149 +818,30 @@ IMPORTANT: ${localBrands.tip} Do NOT default to international brand guesses when
 Be aware that users may wear local/regional fashion brands that are not internationally known. If you see unfamiliar logos or text in a non-Latin script on labels, acknowledge the item descriptively without forcing an international brand identification.`;
 })()}
 
-CRITICAL — ACCESSORY & JEWELRY DETECTION:
-You MUST carefully examine the person's hands, wrists, neck, ears, and face for:
-- RINGS (wedding bands, signet rings, statement rings) — note finger placement and style
-- BRACELETS & BANGLES (leather, metal, beaded, chain)
-- WATCHES (brand identification if possible — Rolex, Omega, Tissot, Apple Watch, Casio, etc.)
-- NECKLACES & CHAINS (pendants, chains, chokers)
-- EARRINGS (studs, hoops, drops)
-- SUNGLASSES / EYEGLASSES (brand if identifiable — Ray-Ban, Tom Ford, Persol, etc.)
-- BELTS (visible or partially visible — Hermès H buckle, Gucci GG, etc.)
-- HATS / CAPS
-- BAGS / BACKPACKS
-- PHONE CASE (if distinctive brand/color visible)
+ACCESSORY & JEWELRY DETECTION:
+Scan hands, wrists, neck, ears, face for: rings, bracelets, watches, necklaces, earrings, sunglasses, belts, hats, bags, phone case. Each visible accessory = separate item in "items" array. If none visible due to image quality, note it. Phone case: include as item but do NOT let it affect scores.
 
-If you see ANY accessory, even partially visible, you MUST include it as a separate item in the "items" array.
-If NO accessories are visible, check if this might be due to image quality — if the image is low resolution, cropped, or blurry, note in the summary that a clearer or wider photo would allow better analysis of accessories and details. If the image is clear but no accessories exist, note this as a styling opportunity (not a criticism).
-
-PHONE CASE SCORING EXCEPTION (CRITICAL):
-- If a phone case is visible, you MUST still include it as an item in the "items" array — describe its color, brand/style, and how it fits the overall aesthetic.
-- However, the phone case MUST NOT influence the overall score or the "${isHebrew ? "אקססוריז ותכשיטים" : "Accessories & Jewelry"}" category score.
-- Reason: users typically photograph themselves holding the same phone every time, so scoring the case would unfairly penalize or reward the same item repeatedly.
-- If the phone case is the ONLY accessory visible, set the accessories category score based on the absence of other accessories (styling opportunity), NOT on the phone case itself.
-
-BASE YOUR ANALYSIS ON CURRENT FASHION TRENDS FROM:
-- Vogue (Spring/Summer 2026 collections) — https://www.vogue.com/fashion/trends
-- GQ Style Guide 2025-2026 — https://www.gq.com/style
-- SSENSE editorial picks — https://www.ssense.com/en-us/editorial
-- MR PORTER style advice — https://www.mrporter.com/en-us/journal
-- Milan & Paris Fashion Week 2025-2026 trends
-- Street style trends from Copenhagen, Tokyo, Milan
+Reference 2025-2026 trends from Vogue, GQ, SSENSE, MR PORTER, Milan/Paris Fashion Week, and street style.
 ${influencerSection}${styleNotesSection}${occasionSection}${profileSection}${wardrobeSection}
 
-You MUST respond with valid JSON matching this exact schema:
+Respond with valid JSON matching this schema:
 {
-  "overallScore": <number 5-10>,
-  "summary": "<string - 4-5 sentence expert summary in ${langLabel}. MUST include: (1) opening compliment about the strongest element of the outfit, (2) the style direction and aesthetic of the items (e.g. 'minimalist', 'streetwear', 'tailored'), (3) specific current 2025-2026 trend this outfit connects to, (4) the overall style identity/aesthetic (e.g. 'quiet luxury', 'streetwear-meets-tailoring', 'Scandinavian minimalism'), (5) one concrete suggestion that would take this look to the next level. Do NOT mention specific brand names in the summary — describe the style and quality instead. Be specific and knowledgeable — show fashion expertise in every sentence.>",
-  "items": [
-    {
-      "name": "<item name in ${langLabel} — describe the item WITHOUT the brand name. The brand goes in the separate 'brand' field. e.g. ${isHebrew ? "'ז'קט עור קרופ' or 'סווטשירט כותנה'" : "'Cropped leather jacket' or 'Cotton sweatshirt'"}>",
-      "description": "<detailed description in ${langLabel}: MUST include (1) specific material/fabric (e.g. 'pebbled calfskin leather', 'brushed cotton twill', 'ribbed merino wool'), (2) color with shade precision, (3) notable construction details (stitching, hardware, finish). Do NOT mention brand names in the description — the brand is shown separately in the brand badge. Example: 'מעיל טרנץ' מצמר מרינו מוברש בגוון קאמל עמוק, תפירה כפולה, כפתורי קרן טבעיים, גימור מט יוקרתי'>",
-      "color": "<main color in ${langLabel}>",
-      "score": <number 5-10>,
-      "verdict": "<one of: ${isHebrew ? "בחירה מצוינת, ניגודיות טובה, יש פוטנציאל, ניתן לשדרג" : "Excellent choice, Good contrast, Has potential, Can be upgraded"}>",
-      "analysis": "<3-4 sentences deep analysis in ${langLabel}. MUST include: (1) specific material/fabric identification with texture description, (2) how this item relates to current 2025-2026 trends, (3) the design philosophy and style direction of the item (WITHOUT mentioning brand names — the brand badge handles that), (4) what specifically would elevate this item to a perfect 10 score. Be precise — say 'heavyweight brushed cotton fleece' not just 'cotton', say 'matte black pebbled leather' not just 'leather'. Do NOT write things like 'פריט ממותג כמו Zara' or 'חולצה כזו מ-Zara' — the brand is shown separately in the brand badge.>",
-      "icon": "<one of: 👕, 👖, 👟, 💍, 🧥, 👔, ⌚, 🕶️, 👜, 🧢, 📿>"
-    }
-  ],
-  "scores": [
-    { "category": "<category name in ${langLabel}>", "score": <number 5-10 OR null if not visible>, "explanation": "<REQUIRED: 1-2 sentences explaining WHY this specific score. Be concrete: 'The navy-on-black color pairing creates a sophisticated tonal effect, but adding a warm accent like burgundy would create more visual interest' not just 'good colors'>", "recommendation": "<string, REQUIRED if score is null — suggest what would best match the outfit>" }
-  ],
-  "improvements": [
-    {
-      "title": "<improvement title in ${langLabel}>",
-      "description": "<detailed explanation in ${langLabel}, 2-3 sentences, referencing specific trends and fashion houses>",
-      "beforeLabel": "<what it looks like now, in ${langLabel}>",
-      "afterLabel": "<what it should look like, in ${langLabel}>",
-      "productSearchQuery": "<English search query for generating a product image, be very specific, e.g. 'Stone Island navy bomber jacket compass patch 2025' or 'Tissot PRX silver watch men'>",
-      "shoppingLinks": [
-        { 
-          "label": "<specific product name + brand + store, e.g. 'Stone Island Crinkle Reps Jacket — SSENSE'>", 
-          "url": "<MUST be a SEARCH URL — NEVER a direct product page URL. Use ONLY the store's search endpoint with the product name as the search query. Replace [search+terms] with brand+model+product+color joined by +.
-
-            ⚠️ FORBIDDEN: https://www.ssense.com/en-us/men/product/stone-island/jacket/12345 (direct product URL — WILL 404)
-            ⚠️ FORBIDDEN: https://www.mrporter.com/en-us/mens/product/12345 (direct product URL — WILL 404)
-            ⚠️ FORBIDDEN: Any URL with /product/, /item/, /p/, or specific product slugs
-
-            ✅ REQUIRED PATTERNS (search URLs only):
-            SSENSE: https://www.ssense.com/en-us/{men|women}?q=[search+terms]
-            MR PORTER (men): https://www.mrporter.com/en-us/mens/search?query=[search+terms]
-            NET-A-PORTER (women): https://www.net-a-porter.com/en-us/shop/search/[search+terms]
-            ASOS: https://www.asos.com/{men|women}/search/?q=[search+terms]
-            Nordstrom: https://www.nordstrom.com/sr?keyword=[search+terms]
-            Zara: https://www.zara.com/us/en/search?searchTerm=[search+terms]
-            Farfetch: https://www.farfetch.com/shopping/{men|women}/search/items.aspx?q=[search+terms]
-            Nike: https://www.nike.com/w?q=[search+terms]
-            Adidas: https://www.adidas.com/us/search?q=[search+terms]
-            H&M: https://www2.hm.com/en_us/search-results.html?q=[search+terms]
-            Shein: https://www.shein.com/pdsearch/[search+terms]/
-            Mango: https://shop.mango.com/en/search?kw=[search+terms]
-            COS: https://www.cos.com/en_usd/search.html?q=[search+terms]
-            Uniqlo: https://www.uniqlo.com/us/en/search?q=[search+terms]
-            AllSaints: https://www.allsaints.com/search?q=[search+terms]
-            Urban Outfitters: https://www.urbanoutfitters.com/search?q=[search+terms]
-            >",
-          "imageUrl": ""
-        }
-      ]
-      CRITICAL: Every URL MUST be a SEARCH URL that uses the store's search endpoint. NEVER generate a direct product page URL — those will 404. The [search+terms] MUST be SPECIFIC: brand+model+product+color (e.g. 'Nike+Air+Force+1+white' not just 'white+sneakers'). Include the brand name, model name, and color in every search query.
-    }
-  ],
-  "outfitSuggestions": [
-    {
-      "name": "<outfit name in ${langLabel}>",
-      "occasion": "<when to wear, in ${langLabel}>",
-      "items": ["<item 1 — MUST include specific brand name + model + color + price range, e.g. ${isHebrew ? "'חולצת Acne Studios Navid בצבע שחור ($220)'" : "'Acne Studios Navid T-shirt in black ($220)'"}>", "<item 2>", "..."],
-      "colors": ["<hex color 1>", "<hex color 2>", "..."],
-      "lookDescription": "<English description for AI image generation — describe the COMPLETE look as a flat-lay mood board: list every garment, shoe, and accessory with exact colors, fabrics, and brands. Example: 'Flat lay mood board of a men\'s smart casual outfit: navy Acne Studios wool blazer, white COS cotton t-shirt, black Acne Studios slim jeans, white Common Projects Achilles Low sneakers, silver Tissot PRX watch, brown leather belt, on a marble surface'>",
-      "inspirationNote": "<in ${langLabel}, reference a specific influencer or fashion week look>"
-    }
-  ],
-  "trendSources": [
-    {
-      "source": "<source name>",
-      "title": "<article/trend title — must be a real or realistic article title>",
-      "url": "<MUST be a real, navigable URL. Use these EXACT base URLs:
-        Vogue: https://www.vogue.com/article/[slug] or https://www.vogue.com/fashion/trends
-        GQ: https://www.gq.com/story/[slug] or https://www.gq.com/gallery/[slug]
-        SSENSE: https://www.ssense.com/en-us/editorial/[slug]
-        MR PORTER: https://www.mrporter.com/en-us/journal/fashion/[slug]
-        Hypebeast: https://hypebeast.com/[year]/[month]/[slug]
-        Highsnobiety: https://www.highsnobiety.com/p/[slug]
-        >",
-      "relevance": "<in ${langLabel}, how this trend relates to the analysis>",
-      "season": "<e.g. Spring/Summer 2026>"
-    }
-  ],
-  "influencerInsight": "<in ${langLabel}, 3-4 sentences about how the user's style relates to their chosen influencers, or influencer suggestions if none specified. ALWAYS write influencer names in English (e.g. George Clooney, David Beckham)>",
-  "linkedMentions": [
-    {
-      "text": "<brand name, influencer name, or item name exactly as mentioned in the analysis>",
-      "type": "<one of: brand, influencer, item, store>",
-      "url": "<direct URL — for brands use official website, for influencers use Instagram profile URL, for stores use store URL>"
-    }
-  ]
+  "overallScore": <5-10>,
+  "summary": "<4-5 sentence expert summary in ${langLabel}: compliment strongest element, identify style direction, reference 2025-2026 trend, name the aesthetic, suggest one upgrade. No brand names in summary.>",
+  "items": [{ "name": "<item name in ${langLabel}, no brand>", "description": "<material, color shade, construction details in ${langLabel}. No brand names.>", "color": "<main color>", "score": <5-10>, "verdict": "<${isHebrew ? "בחירה מצוינת/ניגודיות טובה/יש פוטנציאל/ניתן לשדרג" : "Excellent choice/Good contrast/Has potential/Can be upgraded"}>", "analysis": "<3-4 sentences: material ID, 2025-2026 trend connection, design philosophy, what would make it a 10. No brand names.>", "icon": "<👕/👖/👟/💍/🧥/👔/⌚/🕶️/👜/🧢/💿>" }],
+  "scores": [{ "category": "<in ${langLabel}>", "score": <5-10 or null>, "explanation": "<1-2 sentences WHY this score>", "recommendation": "<if null, suggest what fits>" }],
+  "improvements": [{ "title": "<in ${langLabel}>", "description": "<2-3 sentences>", "beforeLabel": "<now>", "afterLabel": "<suggested>", "productSearchQuery": "<specific English query for image gen>", "shoppingLinks": [{ "label": "<product+brand+store>", "url": "<SEARCH URL ONLY — use store search endpoint like ?q=brand+product+color. NEVER use /product/ URLs.>", "imageUrl": "" }] }],
+  "outfitSuggestions": [{ "name": "<in ${langLabel}>", "occasion": "<when>", "items": ["<brand+model+color+price>"], "colors": ["<hex>"], "lookDescription": "<English flat-lay moodboard description for image gen>", "inspirationNote": "<in ${langLabel}>" }],
+  "trendSources": [{ "source": "<name>", "title": "<article title>", "url": "<real URL from Vogue/GQ/SSENSE/MR PORTER/Hypebeast/Highsnobiety>", "relevance": "<in ${langLabel}>", "season": "<e.g. SS2026>" }],
+  "influencerInsight": "<3-4 sentences in ${langLabel}. Write influencer names in English always.>",
+  "linkedMentions": [{ "text": "<exact name as in analysis>", "type": "<brand/influencer/item/store>", "url": "<official URL or Instagram>" }]
 }
 
-LINKED MENTIONS REQUIREMENTS:
-- You MUST create a linkedMention entry for EVERY brand, influencer, store, and notable item mentioned ANYWHERE in your analysis
-- For brands: use the official brand website URL (e.g. https://www.stoneisland.com/ for Stone Island)
-- For influencers: use their Instagram profile URL (e.g. https://www.instagram.com/davidbeckham/)
-- For stores: use the store's main URL (e.g. https://www.ssense.com/ for SSENSE)
-- Include at least 10-15 linked mentions covering all brands and influencers referenced
+SHOPPING URL RULES: ONLY use search URLs (e.g. ssense.com/en-us/{men|women}?q=, mrporter.com/.../search?query=, asos.com/.../search/?q=, nordstrom.com/sr?keyword=, nike.com/w?q=, zara.com/.../search?searchTerm=). NEVER use /product/ or /item/ URLs.
 
-Score categories MUST include (in ${langLabel}): ${isHebrew ? "איכות הפריטים, התאמת גזרה, צבעוניות, שכבתיות (Layering), אקססוריז ותכשיטים, התאמה לגיל ולסגנון, נעליים, זיהוי מותגים" : "Item Quality, Fit, Color Palette, Layering, Accessories & Jewelry, Age & Style Match, Footwear, Brand Recognition"}.
-REMINDER: The "${isHebrew ? "אקססוריז ותכשיטים" : "Accessories & Jewelry"}" category score must NOT factor in the phone case — evaluate only fashion accessories (jewelry, watches, belts, bags, etc.) for this score.
+Score categories (in ${langLabel}): ${isHebrew ? "איכות הפריטים, התאמת גזרה, צבעוניות, שכבתיות, אקססוריז ותכשיטים, התאמה לגיל ולסגנון, נעליים, זיהוי מותגים" : "Item Quality, Fit, Color Palette, Layering, Accessories & Jewelry, Age & Style Match, Footwear, Brand Recognition"}. Phone case doesn't affect Accessories score.
 
-SCORING RULES (CRITICAL):
-- Scores for VISIBLE categories MUST be between 5 and 10.
-- Score 5-6 = needs significant improvement but has potential. Score 7 = solid foundation with room to grow. Score 8 = very good, minor tweaks needed. Score 9 = excellent, near-perfect. Score 10 = flawless execution.
-- SCORING MUST BE PRECISE AND JUSTIFIED: For EVERY category, explain WHY you gave that specific number. Don't just say "good" — say what makes it an 8 vs a 7 or 9.
-- For EVERY score below 10, you MUST explain what specific thing would earn the missing points. Be concrete: "adding a structured leather belt would elevate this from 7 to 9" not just "could be better".
-- DIFFERENTIATE SCORES: Not everything should be 7-8. If shoes are exceptional, give 9-10. If color coordination is off, give 5-6. Flat scoring (everything 7) is lazy and unhelpful.
-- Be encouraging and constructive — frame deductions as opportunities, not failures.
-- Never give a score below 5 for visible categories. Even a basic outfit has merit.
+SCORING: 5-10 range. Differentiate scores (not all 7-8). Justify each score concretely. Explain what would earn missing points. Be encouraging.
 BRAND IDENTIFICATION — ZERO TOLERANCE FOR EMPTY BRANDS (CRITICAL):
 This is the #1 premium feature of our app. You MUST identify or guess a brand for EVERY SINGLE ITEM. Empty brand fields are UNACCEPTABLE.
 
@@ -1138,103 +853,12 @@ RULES:
 5. If you truly have zero clue → STILL guess the most likely brand based on the item type, quality, and style. Use brandConfidence = "LOW".
 6. NEVER leave brand as empty string. NEVER.
 
-⚠️ ICONIC BRAND PRIORITY RULES — CHECK THESE FIRST BEFORE ANY OTHER GUESS:
-These are the most recognizable luxury brand markers in fashion. If you see ANY of these, the brand identification is HIGH confidence:
+KEY BRAND MARKERS (HIGH confidence when visible):
+"H" on footwear/belt/bag → Hermès (NOT Hugo Boss/Valentino). CC → Chanel. LV/Damier → Louis Vuitton. GG/red-green → Gucci. FF → Fendi. CD/Oblique → Dior. Medusa → Versace. Swoosh → Nike. 3 stripes → Adidas. Polo horse → Ralph Lauren. Crocodile → Lacoste. YSL → Saint Laurent. TB → Burberry. Rockstud → Valentino. Red sole → Louboutin. Intrecciato → Bottega Veneta. Compass patch → Stone Island. Rooster patch → Moncler.
 
-SINGLE-LETTER / SYMBOL MARKERS (highest priority):
-- "H" on shoes/sandals/belt buckle/bag clasp → Hermès (NOT Valentino, NOT Hugo Boss). Hermès Oran sandals have the H cutout. Hermès Izmir/Chypre slides have H strap. Hermès belts have the iconic H buckle. Hermès Constance bag has H clasp.
-- Interlocking "CC" → Chanel (on buttons, clasps, bags, jewelry, sunglasses)
-- "LV" monogram or Damier check → Louis Vuitton
-- Interlocking "GG" or red-green stripe → Gucci
-- Double "F" (Zucca) → Fendi
-- "CD" or Oblique pattern → Dior
-- Medusa head → Versace
-- Swoosh → Nike
-- Three stripes → Adidas
-- Trefoil/shamrock → Adidas Originals
-- Puma cat → Puma
-- Polo player on horse → Ralph Lauren
-- Crocodile/alligator → Lacoste
-- Horse and carriage → Coach
-- Interlocking "YSL" or "SL" → Saint Laurent
-- "TB" monogram → Burberry (Thomas Burberry)
-- Equestrian knight → Burberry
-- Anagram puzzle → Loewe
-- Triomphe pattern → Celine
-- Rockstud pyramids → Valentino Garavani
-- Red sole on heels → Christian Louboutin
-- Intrecciato woven leather → Bottega Veneta
-- Pegasus → Etro
-- Arrow motif → Off-White
+Identify brands via: logos, patterns, silhouette, fabric quality, hardware, and construction. For premium users, prefer luxury brand guesses over fast fashion. NEVER leave brand empty — always guess with appropriate confidence level (HIGH/MEDIUM/LOW/NONE).
 
-CRITICAL RULE: If you see an "H" on ANY footwear (sandals, slides, sneakers, loafers), it is Hermès with HIGH confidence. This is one of the most iconic luxury markers in fashion. Do NOT confuse it with Valentino, Hugo Boss, Hogan, or any other brand.
-
-BRAND IDENTIFICATION METHODS — USE ALL OF THESE FOR EVERY ITEM:
-- LOGOS & TEXT: Any visible text, logos, monograms, brand markings on labels, tags, buttons, zippers, hardware, soles
-- PATTERNS: Burberry check, LV monogram, Gucci GG, Fendi FF, Goyard chevron, Bottega intrecciato weave
-- SILHOUETTE: Thom Browne cropped pants, Balenciaga oversized, The Row minimalist draping, Acne Studios boxy cut
-- FABRIC QUALITY: Cashmere → Cucinelli/Loro Piana, premium cotton jersey → James Perse/Sunspel, heavyweight fleece → Carhartt WIP/Stone Island
-- FOOTWEAR (CRITICAL — check for iconic markers FIRST):
-  * H cutout/strap on sandals/slides → Hermès (Oran, Izmir, Chypre) — HIGH confidence
-  * Red sole on heels → Christian Louboutin — HIGH confidence
-  * Rockstud pyramids → Valentino Garavani — HIGH confidence
-  * Interlocking CC on sneakers/flats → Chanel — HIGH confidence
-  * GG logo on loafers/sneakers → Gucci — HIGH confidence
-  * Medusa on slides/sneakers → Versace — HIGH confidence
-  * White minimalist leather sneakers with gold serial number → Common Projects — MEDIUM confidence
-  * Chunky sole with N logo → New Balance — HIGH confidence
-  * Triple S / Track silhouette → Balenciaga — MEDIUM confidence
-  * Gum sole minimalist → Veja/Maison Margiela GAT — LOW confidence
-- SNEAKERS: White minimalist leather → Common Projects/Axel Arigato, chunky sole → New Balance/Nike, gum sole → Veja/Maison Margiela GAT
-- JEANS: Raw selvedge → A.P.C./Nudie, premium wash → AG/Citizens of Humanity/Frame, classic fit → Levi's
-- PUFFER JACKETS & VESTS (CRITICAL — premium users often wear luxury puffers):
-  * Rooster/cockerel logo patch → Moncler — HIGH confidence
-  * Premium matte nylon, clean quilting, high-quality down fill, slim fit → Moncler — MEDIUM confidence (Moncler is the #1 luxury puffer brand)
-  * Shiny lacquered nylon puffer → Moncler (Maya/Bady models) — MEDIUM confidence
-  * Disc/badge on arm → Canada Goose — HIGH confidence
-  * Arctic Program patch → Canada Goose — HIGH confidence
-  * Diamond quilt pattern → Barbour — MEDIUM confidence
-  * Compass patch on arm → Stone Island — HIGH confidence
-  * Basic thin nylon, no visible branding, budget feel → Zara/H&M/Uniqlo — LOW confidence
-  * IMPORTANT: For premium/luxury users, ALWAYS prefer Moncler over Zara for quality puffer items. Zara puffers look cheap and thin. Moncler puffers have premium construction, clean lines, and quality materials.
-- WATCHES: Round minimal dial → Daniel Wellington/Junghans, sport chronograph → TAG Heuer/Omega, dress watch → Tissot/Seiko Presage
-- RINGS: Plain gold band → wedding ring (no brand), signet style → Tom Wood/Miansai, minimalist → All Blues
-- T-SHIRTS: Premium weight cotton → Sunspel/James Perse, basic → Uniqlo/H&M, fitted → COS/Arket
-- SWEATSHIRTS: Heavyweight → Carhartt WIP/Champion Reverse Weave, premium → Acne Studios/APC, basic → H&M/Zara
-- BELTS: H buckle → Hermès, GG buckle → Gucci, CD buckle → Dior, Medusa buckle → Versace, reversible with logo → Louis Vuitton
-- SUNGLASSES: Cat-eye with interlocking CC → Chanel, aviator with bar → Ray-Ban, oversized with T → Tom Ford, angular with arrow → Prada
-
-ISRAELI BRANDS TO CONSIDER (for users in Israel):
-- Men's: Castro, Fox, Golf, Renuar, Sebo, Kravitz, Terminal X, Honigman Men, Pull&Bear
-- Women's: Castro, Fox, Renuar, Honigman, Comme il Faut, Maya Negri, Michal Negrin, Sack's
-- Unisex: Zara, H&M, ASOS, Mango, Massimo Dutti
-
-EXAMPLES OF CORRECT BRAND IDENTIFICATION:
-✅ Black puffer vest, matte nylon, horizontal quilting → brand: "Uniqlo", brandConfidence: "LOW" (basic quilting pattern, no visible logo, affordable quality level)
-✅ White leather sneakers, minimal design, gum sole → brand: "Common Projects", brandConfidence: "MEDIUM" (minimalist design language, gold serial number typical of CP)
-✅ Black sweatshirt, heavyweight cotton → brand: "Carhartt WIP", brandConfidence: "LOW" (heavyweight construction suggests workwear-inspired brand)
-✅ Grey slim jeans, dark wash → brand: "Levi's 511", brandConfidence: "LOW" (classic slim fit, standard denim weight)
-✅ Gold wedding band → brand: "תכשיט אישי", brandConfidence: "NONE" (wedding rings are typically custom/personal)
-✅ Phone case, burnt orange → brand: "Casetify", brandConfidence: "LOW" (popular phone case brand with solid color options)
-
-EXAMPLES OF WRONG (DO NOT DO THIS):
-❌ brand: "" — NEVER return empty brand
-❌ brand: "N/A" — NEVER
-❌ brandConfidence: "" — NEVER return empty confidence
-❌ brandConfidence: "NONE" with brand: "" — if NONE, still guess a brand
-
-HEDGED LANGUAGE RULES FOR BRAND NAMES (CRITICAL FOR USER TRUST):
-- NEVER put the brand name inside the item "name" field. The "name" field should ONLY describe the item itself.
-- The brand name goes ONLY in the separate "brand" field.
-- Do NOT mention brand names in the "description" or "analysis" text fields AT ALL. The brand is displayed separately in a visual badge on the UI. Writing brand names in the text is redundant and confusing.
-- In the "description" field: focus on materials, colors, construction details, and design features. NO brand names.
-- In the "analysis" field: focus on materials, trends, styling, and what would improve the score. NO brand names.
-- The ONLY place the brand appears is in the "brand" field + the brandConfidence level, which the UI renders as a badge (e.g. "מזכיר Zara (?)").
-
-EXAMPLES OF CORRECT description (NO brands):
-✅ "ז'קט קרופ שחור בגזרת רילקסד-פיט, עשוי כפי הנראה מעור כבש יוקרתי ורך בעל גימור מט-מבריק עדין"
-❌ "ז'קט עשוי כפי הנראה מעור כבש יוקרתי, ייתכן שמדובר בפריט ממותג כמו Zara"
-❌ "חולצה כזו מ-Zara מספקת תמורה טובה למחיר"
+BRAND NAME PLACEMENT: Brand goes ONLY in "brand" field. NEVER mention brand names in "name", "description", or "analysis" fields — the UI shows brand as a separate badge. Focus description/analysis on materials, colors, construction, trends.
 
 ${(profile?.budgetLevel === 'premium' || profile?.budgetLevel === 'luxury') ? `
 PREMIUM/LUXURY USER BRAND SCORING:
@@ -1255,79 +879,18 @@ BRAND SCORING FOR ALL USERS:
 - Even basic items have brands: a plain white tee is still probably Uniqlo, H&M, Zara, or COS
 `}
 
-WEATHER & TIME-AWARE SCORING (CRITICAL):
-- The occasion context tells you WHEN the user is dressing. You MUST consider weather and time of day when scoring.
-- LAYERING (שכבתיות): Do NOT penalize for missing layers when the occasion implies warm weather or summer. Evening events, date nights, going out with friends, casual summer outings — these often happen in warm weather where minimal layering is the CORRECT choice. A blazer over a crop top on a warm evening is PERFECT layering — do not demand a scarf or extra layer when it would be impractical. Score the layering that IS present, not what's missing due to weather.
-- ACCESSORIES (אקססוריז ותכשיטים): Do NOT suggest or penalize for missing SUNGLASSES at evening/night events. Sunglasses are irrelevant after dark. Similarly, do not suggest heavy scarves or winter accessories for warm-weather occasions. Score based on accessories that are APPROPRIATE for the time and setting.
-- If the occasion is "evening", "date", "friends", or any nighttime context: sunglasses should NEVER appear as a missing accessory or improvement suggestion.
-- If the occasion suggests warm weather (evening event, summer casual, date night): do NOT suggest adding heavy layers, scarves, or coats as improvements.
-- GENERAL PRINCIPLE: Fashion advice must be PRACTICAL. Suggesting items that don't match the weather/time makes the analysis feel disconnected and unhelpful.
-
-OVERALL SCORE WEIGHTING (CRITICAL):
-- When calculating overallScore, NOT all categories carry equal weight.
-- HIGH WEIGHT categories (these matter most): איכות הפריטים / Item Quality, התאמת גזרה / Fit, צבעוניות / Color Palette, התאמה לגיל ולסגנון / Age & Style Match
-- MEDIUM WEIGHT categories: נעליים / Footwear, זיהוי מותגים / Brand Recognition
-- LOW WEIGHT categories (these should have minimal impact on overall score): שכבתיות (Layering) / Layering, אקססוריז ותכשיטים / Accessories & Jewelry
-- A perfect outfit with minimal layering or few accessories should still score 9+ overall if the core elements (quality, fit, color, style match) are excellent.
-- Do NOT let a low layering or accessories score drag down an otherwise excellent outfit.
-
-NON-VISIBLE CATEGORY RULES (CRITICAL):
-- If a category element is NOT visible in the image (e.g., shoes are cropped out, accessories not visible), set its score to null (NOT a number).
-- When score is null, you MUST provide a "recommendation" field with a specific suggestion in ${langLabel} for what would best complement the outfit.
-- For example, if shoes are not visible: score: null, recommendation: ${isHebrew ? '"לא נראות נעליים בתמונה. על בסיס הלוק, נעלי סניקרס לבנות כמו Nike Air Force 1 או Common Projects יתאימו מצוין"' : '"Shoes not visible in the image. Based on the look, white sneakers like Nike Air Force 1 or Common Projects would complement it perfectly"'}
-- Categories with null scores are NOT factored into the overall score calculation.
-- The overallScore should be calculated ONLY from categories that have a numeric score.
-- Do NOT guess or assume what items exist if they are not visible — mark them as null with a recommendation instead.
-
-IMAGE QUALITY CHECK:
-- If the image is blurry, low resolution, too dark, or tightly cropped (can't see full outfit), add a note in the summary: ${isHebrew ? "\"לניתוח מדויק יותר, מומלץ להעלות תמונה ברורה יותר / רחבה יותר שמציגה את הלוק המלא כולל נעליים ואקססוריז\"" : "\"For a more accurate analysis, we recommend uploading a clearer / wider photo showing the full look including shoes and accessories\""}
-- If you cannot identify accessories because of image quality, say so explicitly rather than assuming there are none.
+CONTEXT-AWARE SCORING:
+- Consider weather/time when scoring. Don't penalize missing layers in warm weather or missing sunglasses at night.
+- Score weighting: HIGH = Item Quality, Fit, Color, Style Match. MEDIUM = Footwear, Brands. LOW = Layering, Accessories.
+- Non-visible categories: set score to null with a recommendation for what would complement the outfit. Null scores don't affect overallScore.
+- If image is blurry/cropped, note it in the summary and suggest a better photo.
 
 REQUIREMENTS:
-- Provide at least 4-6 items (MUST include every visible accessory as a separate item)
-- Provide 8 score categories including "אקססוריז ותכשיטים" and "זיהוי מותגים"
-- Provide 4-5 improvements with 2-3 shopping links each
-- Provide 3 outfit suggestions relevant to the occasion context. Each outfit MUST be a COMPLETE, COHERENT look — not random items. Think like a professional stylist creating a capsule wardrobe look.
-- Each improvement MUST have a specific "productSearchQuery" for image generation
-- EVERY shopping link URL MUST be a SEARCH URL using the store's search endpoint — NEVER a direct product page URL
-- NEVER generate URLs with /product/, /item/, /p/, or product slugs — these are FICTIONAL and will 404
-- EVERY shopping link URL MUST contain a search query parameter (e.g. ?q=, ?keyword=, ?search=, ?searchTerm=) with the actual product name
-- If you are unsure of the exact search URL format for a store, use: https://www.{store-domain}/search?q={brand+product+color}
-- Set "imageUrl" to empty string "" — images will be generated automatically
-- Provide at least 4 trend sources with real, navigable URLs using the patterns above
-- Reference specific 2025-2026 trends in your analysis
-- The influencerInsight must be substantive and personalized
-- CRITICAL: Always write influencer names in their ORIGINAL ENGLISH form (e.g. "George Clooney" not "ג'ורג' קלוני", "David Beckham" not "דיוויד בקהאם") even when writing in Hebrew. This ensures proper linking to their Instagram profiles.
-- In linkedMentions, the "text" field for influencers MUST match the exact English name as used in the analysis text
-- When identifying brands, be SPECIFIC about the model/collection, not just the brand name
-- Use the brandConfidence field to express certainty level — HIGH for clear logos, MEDIUM for strong visual cues, LOW for educated guesses
-- For MEDIUM/LOW confidence, use hedging language ("כפי הנראה", "ייתכן", "בסגנון של") in the analysis text, but STILL fill in the brand field with your best guess
-- It's better to identify a brand with LOW confidence than to leave it empty — the user wants to know what you think it could be
-- For items where you truly cannot identify ANY brand (brandConfidence = NONE), describe the quality tier: "פריט ברמת מיד-ריינג'", "פריט ברמת פרמיום"
-- EVERY shopping link search query MUST include the brand name + model/product name + color (e.g. 'Nike Air Force 1 white low' not just 'white sneakers')
-- Shopping links MUST use the correct gender category ({men|women}) matching the user's gender from their profile
-- Each outfitSuggestion MUST include a detailed 'lookDescription' in English for AI image generation of the complete look as a flat-lay mood board
-- outfitSuggestion items MUST list specific brands with model names and approximate prices, not generic descriptions
-- CRITICAL OUTFIT COMBINATION RULES:
-  * Each outfit MUST have a clear STYLE DIRECTION (e.g. smart casual, streetwear, minimalist, business casual)
-  * Items within an outfit MUST work together aesthetically — matching formality level, color harmony, and style cohesion
-  * The 3 outfits MUST be DISTINCT from each other (different occasions, different styles, different color palettes)
-  * Include the user's GENDER-APPROPRIATE items (${userGender === 'female' ? "women's" : "men's"} clothing and accessories)
-  * Each outfit should include: top + bottom + shoes + at least 1 accessory
-  * Colors in the outfit MUST be harmonious — use complementary or analogous color schemes
-  * DO NOT mix formal and casual items randomly (e.g. no blazer with flip-flops, no suit pants with a hoodie)
-
-CRITICAL — PRODUCT VARIETY WITHIN SHOPPING LINKS:
-- When an improvement recommends a specific product category (e.g. necklaces, sneakers, jackets), the 2-3 shopping links MUST show DIVERSE options within that category:
-  * Different STYLES (e.g. for necklaces: one minimalist chain, one pendant, one layered/statement piece)
-  * Different PRICE RANGES (e.g. one affordable $50-150, one mid-range $150-400, one premium $400+)
-  * Different BRANDS (never repeat the same brand twice in one improvement)
-  Example of WRONG: 3 nearly identical gold chain necklaces from Cartier, Tiffany, Van Cleef — all look the same
-  Example of CORRECT: 1 delicate gold pendant necklace from Mejuri ($80), 1 bold chain-link necklace from COS ($150), 1 layered diamond station necklace from Tiffany ($1,200)
-  Example of WRONG for sneakers: 3 white minimalist sneakers from different brands — all look the same
-  Example of CORRECT for sneakers: 1 classic white leather Common Projects Achilles ($450), 1 retro runner New Balance 2002R in grey ($140), 1 chunky platform Autry Medalist in green/white ($185)
-- The goal is that each shopping link feels like a genuinely DIFFERENT option, not just the same item from a different store
-- Each outfitSuggestion MUST include items from at least 5 different categories (e.g. top + bottom + shoes + accessory + outerwear)
+- 4-6 items (include every visible accessory). 8 score categories. 4-5 improvements with 2-3 shopping links each. 3 outfit suggestions. 4+ trend sources.
+- Shopping links: diverse styles/prices/brands per improvement. Use ${userGender === 'female' ? "women's" : "men's"} category.
+- Outfits: coherent style direction, harmonious colors, gender-appropriate, top+bottom+shoes+accessory minimum. 3 distinct looks.
+- Influencer names always in English. linkedMentions for every brand/influencer/store mentioned.
+- Brand confidence: HIGH (logo visible), MEDIUM (strong cues), LOW (educated guess). For MEDIUM/LOW use hedging language in analysis.
 
 IMPORTANT: Return ONLY the JSON object, no markdown, no code fences, no explanation.`;
 }
@@ -1714,23 +1277,11 @@ function buildRecommendationsPromptFromCore(
 כללים:
 - התבסס על פריטי הלבוש, הציונים והסיכום משלב 1.
 - שמור על התאמה לאירוע ולסגנון המשתמש.
-- improvements חייב לכלול המלצות לביגוד לביש (לא רק אביזרים).
-- החזר בין 4 ל-5 improvements. כל improvement חייב להיות שונה מהאחרים (קטגוריה שונה: חולצה, מכנסיים, נעליים, שכבה עליונה, אקססורי).
-- לכל improvement חייבים להיות לפחות 3 shoppingLinks עם מוצרים שונים (מותגים שונים, סגנונות שונים, טווחי מחירים שונים).
-- shoppingLinks חייבים להיות כתובות חיפוש תקינות (לא /product/ ישיר).
-- trendSources חייב להיות רלוונטי לפריטים שזוהו.
-- influencerInsight חייב להיות מפורט (לפחות 4-6 משפטים), ספציפי ללוק של המשתמש, ולהסביר: מה בלוק הנוכחי מזכיר את המשפיענים ומה חסר כדי להתיישר לסגנון שלהם.
-- influencerInsight חייב להזכיר לפחות 2 שמות משפיענים רלוונטיים (שמות באנגלית, הסבר בעברית).
-- כל הטקסטים בתשובה חייבים להיות בעברית תקינה בלבד.
-- החזר JSON בלבד, ללא markdown.
-
-outfitSuggestions — כללי קומבינציות:
-- כל outfit חייב להיות לוק שלם וקוהרנטי (לא פריטים אקראיים).
-- כל outfit חייב לכלול: חלק עליון + חלק תחתון + נעליים + לפחות אקססורי אחד.
-- 3 הלוקים חייבים להיות שונים זה מזה: אירועים שונים, סגנונות שונים, פלטות צבע שונות.
-- הצבעים בכל outfit חייבים להיות הרמוניים — משלימים או אנלוגיים.
-- אל תערבב פריטים פורמליים עם קז'ואל באופן אקראי.
-- כל פריט חייב לכלול שם מותג ספציפי + דגם + צבע + טווח מחיר.
+- improvements: 3 המלצות שדרוג (קטגוריות שונות). כל improvement עם 2 shoppingLinks (כתובות חיפוש תקינות).
+- outfitSuggestions: 2 לוקים שלמים (חלק עליון+תחתון+נעליים). כל לוק עם שם מותג+צבע+מחיר.
+- trendSources: 2-3 מקורות רלוונטיים.
+- influencerInsight: 2-3 משפטים עם 2 שמות משפיענים.
+- כל הטקסטים בעברית. JSON בלבד.
 
 ${genderLine}
 ${preferredInfluencersLine}
@@ -1746,23 +1297,11 @@ Task: return JSON with fields only:
 Rules:
 - Base recommendations on stage-1 items, scores, and summary.
 - Keep suggestions occasion-aware and style-consistent.
-- improvements must include wearable clothing upgrades (not accessories-only).
-- Return 4-5 improvements. Each improvement MUST target a different category (top, bottom, shoes, outerwear, accessory).
-- Every improvement must include at least 3 shoppingLinks with DIVERSE products (different brands, styles, price ranges).
-- shoppingLinks must be valid search URLs (never direct /product/ URLs).
-- trendSources must be relevant to identified items.
-- influencerInsight should be detailed (at least 4-6 sentences), specific to the user's actual outfit, and explain both alignment and gaps versus the influencer style.
-- influencerInsight must include at least 2 relevant influencer names.
-- All user-facing text must be in English only.
-- Return JSON only, no markdown.
-
-outfitSuggestions — Combination Rules:
-- Each outfit MUST be a COMPLETE, COHERENT look (not random items). Think like a professional stylist.
-- Each outfit MUST include: top + bottom + shoes + at least 1 accessory.
-- The 3 outfits MUST be DISTINCT: different occasions, different styles, different color palettes.
-- Colors within each outfit MUST be harmonious — complementary or analogous color schemes.
-- DO NOT mix formal and casual items randomly (no blazer with flip-flops, no suit pants with a hoodie).
-- Every item MUST include specific brand name + model + color + price range.
+- improvements: 3 upgrade suggestions (different categories). Each with 2 shoppingLinks (valid search URLs).
+- outfitSuggestions: 2 complete looks (top+bottom+shoes). Each item with brand+color+price.
+- trendSources: 2-3 relevant sources.
+- influencerInsight: 2-3 sentences with 2 influencer names.
+- All text in English. JSON only.
 
 ${genderLine}
 ${preferredInfluencersLine}
@@ -2506,6 +2045,7 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
           }
           if (!analysisCore) throw new Error("Analysis failed after retries");
 
+
           // Stage 2: inspiration + recommendations (text-only from stage-1 output)
           const recommendationSeed = {
             overallScore: analysisCore.overallScore,
@@ -2552,7 +2092,7 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
                       schema: recommendationsJsonSchema,
                     },
                   },
-                  maxTokens: 1800,
+                  maxTokens: 2500,
                 });
                 recommendations = parseFashionRecommendationsPayload(recResult);
                 break;
@@ -2575,6 +2115,7 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
           } catch (recErr: any) {
             console.warn(`[Fashion Analysis] Stage-2 recommendations fallback: ${recErr?.message || recErr}`);
           }
+
           if (!recommendations) {
             recommendations = buildFallbackRecommendationsFromCore(
               analysisCore,
@@ -2946,6 +2487,7 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
                 .catch((wardrobeErr) => console.warn("[Wardrobe] Failed to save items:", wardrobeErr));
             }
           }
+
 
           return { success: true, analysis };
           });
@@ -4263,6 +3805,7 @@ Return ONLY a JSON object with these exact fields:
 
         try {
           return await withAnalysisSlot(`guest:${input.sessionId}`, async () => {
+
           await updateGuestSessionStatus(input.sessionId, "analyzing");
           // Get guest profile if onboarding was completed
           const guestProfile = session.fingerprint ? await getGuestProfile(session.fingerprint) : null;
@@ -4287,6 +3830,7 @@ Return ONLY a JSON object with these exact fields:
             budgetLevel: guestProfile.budgetLevel || undefined,
             stylePreference: guestProfile.stylePreference || undefined,
           } : null;
+
 
           const prompt = buildFashionPrompt(
             guestProfile?.favoriteInfluencers || undefined,
@@ -4395,7 +3939,7 @@ Return ONLY a JSON object with these exact fields:
                       schema: recommendationsJsonSchema,
                     },
                   },
-                  maxTokens: 1800,
+                  maxTokens: 2500,
                 });
                 recommendations = parseFashionRecommendationsPayload(recResult);
                 break;
@@ -4699,6 +4243,7 @@ Return ONLY a JSON object with these exact fields:
               console.warn(`[ClosetMatch] Guest closet matching skipped: ${closetErr?.message || closetErr}`);
             }
           }
+
 
           // Save analysis to DB immediately (without waiting for product images)
           await updateGuestSessionAnalysis(input.sessionId, analysis.overallScore, analysis);

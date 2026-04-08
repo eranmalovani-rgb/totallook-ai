@@ -18,6 +18,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { OCCASIONS, GENDER_OPTIONS, AGE_RANGES, BUDGET_OPTIONS, STYLE_OPTIONS, OCCUPATION_OPTIONS, STORE_OPTIONS, COUNTRY_STORE_MAP, filterStoresForUser } from "../../../shared/fashionTypes";
 import { useCountry } from "@/hooks/useCountry";
 import { getCountryFlag, getCountryName } from "../../../shared/countries";
+import { compressImageToBase64 } from "@/lib/imageCompress";
 import InfluencerPicker from "@/components/InfluencerPicker";
 import { toast } from "sonner";
 
@@ -286,16 +287,18 @@ export default function GuestUpload() {
       let sessionId = retryReviewId;
       if (!sessionId) {
         setUploading(true);
-        const base64 = await fileToBase64(file);
+        // Compress image client-side before upload (reduces 10MB → ~300KB)
+        const { base64, mimeType: compressedMimeType } = await compressImageToBase64(file);
         let secondBase64: string | undefined;
         let secondMimeType: string | undefined;
         if (secondFile) {
-          secondBase64 = await fileToBase64(secondFile);
-          secondMimeType = secondFile.type;
+          const second = await compressImageToBase64(secondFile);
+          secondBase64 = second.base64;
+          secondMimeType = second.mimeType;
         }
         const result = await uploadMutation.mutateAsync({
           imageBase64: base64,
-          mimeType: file.type,
+          mimeType: compressedMimeType,
           fingerprint,
           ...(adminToken ? { adminToken } : {}),
         });

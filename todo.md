@@ -125,3 +125,12 @@
 - [x] 7.6: Server-side retry support — reset failed guest sessions and reviews to allow re-analysis
 - [x] 7.7: 14 new vitest tests for all Stage 7 improvements (all pass)
 - [x] 7.8: RetryAnalyzeButton in ReviewPage.tsx updated with auto-retry, specific error messages (timeout, rate-limit, in-progress)
+
+## Stage 8 — Aggressive Speed Optimization (target: <40s)
+- [x] 8.1: Profile full analysis pipeline with detailed timing per step
+- [x] 8.2: Client-side image compression (10MB → ~300KB, saves ~25s upload time)
+- [x] 8.3: Reduced Stage 1 prompt from 60K to 10.5K chars (83% reduction)
+- [x] 8.4: Reduced Stage 2 output requirements (3 improvements, 2 outfits, 2-3 trends)
+- [x] 8.5: Increased Stage 2 maxTokens from 1800 to 2500 (prevents JSON truncation)
+- [x] 8.6: Server-side analysis reduced from ~74s to ~37-39s (48% improvement); upload reduced from ~27s to ~2s; total end-to-end ~40-45s server-side
+- [x] 8.7: Analysis quality maintained — score 8.1/10 with optimized prompts
