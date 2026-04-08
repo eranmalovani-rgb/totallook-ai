@@ -2858,34 +2858,29 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
           // Product images are now lazy-loaded per improvement category when the user scrolls to them.
           // No background generation needed here — the frontend triggers it via review.generateProductImages.
 
-          // Auto-save detected items to wardrobe if user opted in
-          try {
-            const userProfile = await getUserProfile(ctx.user.id);
-            if (userProfile && userProfile.saveToWardrobe) {
-              const reviewForWardrobe = await getReviewById(input.reviewId);
-              const wardrobeEntries = analysis.items.map((item) => ({
-                userId: ctx.user.id,
-                itemType: item.icon || "clothing",
-                name: item.name,
-                color: item.color || null,
-                brand: item.brand || null,
-                material: null,
-                // Store rich style description for smarter closet matching later
-                styleNote: item.description || null,
-                score: item.score,
-                sourceImageUrl: reviewForWardrobe?.imageUrl || null,
-                sourceReviewId: input.reviewId,
-                verdict: item.verdict || null,
-              }));
-              if (wardrobeEntries.length > 0) {
-                const result = await addWardrobeItems(wardrobeEntries);
-                console.log(`[Wardrobe] Added ${result?.added || 0} new items, skipped ${result?.skipped || 0} duplicates`);
-
-                // Wardrobe now uses source images (the original look photo) instead of AI-generated item images
-              }
+          // Auto-save detected items to wardrobe (fire-and-forget for faster response)
+          // We already have the profile from the initial parallel fetch
+          if (profile && profile.saveToWardrobe) {
+            const wardrobeImageUrl = review.imageUrl;
+            const wardrobeEntries = analysis.items.map((item) => ({
+              userId: ctx.user.id,
+              itemType: item.icon || "clothing",
+              name: item.name,
+              color: item.color || null,
+              brand: item.brand || null,
+              material: null,
+              styleNote: item.description || null,
+              score: item.score,
+              sourceImageUrl: wardrobeImageUrl || null,
+              sourceReviewId: input.reviewId,
+              verdict: item.verdict || null,
+            }));
+            if (wardrobeEntries.length > 0) {
+              // Fire-and-forget: don't await, let it run in background
+              addWardrobeItems(wardrobeEntries)
+                .then((result) => console.log(`[Wardrobe] Added ${result?.added || 0} new items, skipped ${result?.skipped || 0} duplicates`))
+                .catch((wardrobeErr) => console.warn("[Wardrobe] Failed to save items:", wardrobeErr));
             }
-          } catch (wardrobeErr) {
-            console.warn("[Wardrobe] Failed to save items, continuing:", wardrobeErr);
           }
 
           return { success: true, analysis };

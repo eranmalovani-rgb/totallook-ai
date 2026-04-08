@@ -23,7 +23,7 @@ import { searchGoogleImages, buildProductSearchQuery, pickBestProductImage } fro
 import { searchBraveImages, buildBraveSearchQuery, pickBestBraveImage } from "./braveImageSearch";
 import type { FashionAnalysis, OutfitSuggestion } from "../shared/fashionTypes";
 
-const MAX_CONCURRENT = 3;
+const MAX_CONCURRENT = 5;
 const CACHE_TTL_DAYS = 30;
 
 /**
@@ -521,24 +521,26 @@ export async function generateOutfitLookFromMetadata(params: {
     return null;
   }
 
-  const resolved: Array<{ label: string; url: string; imageUrl: string }> = [];
-  for (const item of selected) {
-    const resolvedUrl = await resolveShoppingLinkImage({
-      label: item.link.label,
-      url: item.link.url,
-      categoryQuery: item.categoryQuery || "outfit",
-      logPrefix: `[OutfitMetadata] [${outfitIndex}]`,
-      allowAIFallback: allowAIFallbackForLinks,
-    });
-    if (resolvedUrl && isValidImageUrl(resolvedUrl)) {
-      resolved.push({
+  // Resolve all shopping link images in parallel for speed
+  const resolvePromises = selected.slice(0, 6).map(async (item) => {
+    try {
+      const resolvedUrl = await resolveShoppingLinkImage({
         label: item.link.label,
         url: item.link.url,
-        imageUrl: resolvedUrl,
+        categoryQuery: item.categoryQuery || "outfit",
+        logPrefix: `[OutfitMetadata] [${outfitIndex}]`,
+        allowAIFallback: allowAIFallbackForLinks,
       });
+      if (resolvedUrl && isValidImageUrl(resolvedUrl)) {
+        return { label: item.link.label, url: item.link.url, imageUrl: resolvedUrl };
+      }
+    } catch (err: any) {
+      console.warn(`[OutfitMetadata] Failed to resolve image for ${item.link.label}: ${err?.message}`);
     }
-    if (resolved.length >= 4) break;
-  }
+    return null;
+  });
+  const resolvedResults = await Promise.all(resolvePromises);
+  const resolved = resolvedResults.filter((r): r is { label: string; url: string; imageUrl: string } => r !== null).slice(0, 4);
 
   const categoryRank: Record<OutfitCategory, number> = {
     top: 1,
@@ -821,7 +823,7 @@ export function isValidImageUrl(url: string): boolean {
 
 async function testImageUrl(url: string): Promise<boolean> {
   try {
-    const response = await fetch(url, { method: "HEAD", signal: AbortSignal.timeout(5000) });
+    const response = await fetch(url, { method: "HEAD", signal: AbortSignal.timeout(3000) });
     const contentType = response.headers.get("content-type") || "";
     return response.ok && contentType.startsWith("image/");
   } catch {

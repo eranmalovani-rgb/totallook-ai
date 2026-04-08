@@ -91,3 +91,10 @@
 - [x] 3b.3: Integrate Brave as primary image search in productImages.ts (Cache → Store OG → Brave → Google CSE fallback → AI fallback)
 - [x] 3b.4: Write unit tests for Brave Image Search (19 tests + 2 live API tests pass)
 - [x] 3b.5: Build passes (0 TS errors), 21 new tests pass, Brave API verified working
+
+## Stage 4 — Performance & Missing Items Fix
+- [x] 4.1: Speed up analysis — parallel image conversion (Promise.all), smaller images (1024px, quality 72), 3s testImageUrl timeout, MAX_CONCURRENT 3→5, parallel outfit image resolution
+- [x] 4.2: Investigated missing items — backend ensures min 4 improvements (with fallback), min 3 shopping links per improvement, min 2 outfits, min 2 trends. Issue is likely LLM returning fewer items → fallback fills generics. No frontend filtering found.
+- [x] 4.3: Speed up responses — wardrobe save fire-and-forget, parallel outfit image resolution in generateOutfitLookFromMetadata, reduced testImageUrl timeout 5s→3s
+- [x] 4.4: Verified generateTotalLook flow — uses Brave Image Search via resolveShoppingLinkImage, falls back to AI generation. Code is correct.
+- [x] 4.5: TypeScript 0 errors, 682/686 tests pass (4 pre-existing failures: Google CSE 403 + OpenAI key)

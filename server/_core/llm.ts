@@ -125,7 +125,10 @@ async function imageUrlToBase64(url: string): Promise<string> {
   if (url.startsWith("data:")) return url;
 
   try {
-    const response = await fetch(url);
+    const controller = new AbortController();
+    const fetchTimeout = setTimeout(() => controller.abort(), 8000);
+    const response = await fetch(url, { signal: controller.signal });
+    clearTimeout(fetchTimeout);
     if (!response.ok) {
       console.warn(`[LLM] Failed to fetch image for base64 conversion: ${response.status} ${url.substring(0, 100)}`);
       return url; // fallback to original URL
@@ -134,6 +137,7 @@ async function imageUrlToBase64(url: string): Promise<string> {
     const contentType = response.headers.get("content-type") || "image/jpeg";
 
     // Normalize large/unsupported images to keep vision calls fast and stable.
+    // Use 1024px max (detail:"low" doesn't benefit from larger) and lower quality for speed.
     let normalizedBuffer = buffer;
     let normalizedType = contentType;
     try {
@@ -141,19 +145,19 @@ async function imageUrlToBase64(url: string): Promise<string> {
       const sourceWidth = metadata.width || 0;
       const sourceHeight = metadata.height || 0;
       const maxSide = Math.max(sourceWidth, sourceHeight);
-      const needsResize = maxSide > 1600;
+      const needsResize = maxSide > 1024;
       const needsFormatNormalize = !contentType.includes("jpeg");
 
       if (needsResize || needsFormatNormalize) {
         normalizedBuffer = await sharp(buffer)
           .rotate()
           .resize({
-            width: needsResize ? 1600 : undefined,
-            height: needsResize ? 1600 : undefined,
+            width: needsResize ? 1024 : undefined,
+            height: needsResize ? 1024 : undefined,
             fit: "inside",
             withoutEnlargement: true,
           })
-          .jpeg({ quality: 82, mozjpeg: true })
+          .jpeg({ quality: 72, mozjpeg: true })
           .toBuffer();
         normalizedType = "image/jpeg";
       }
@@ -186,18 +190,19 @@ async function convertImagesToBase64(messages: any[]): Promise<any[]> {
       continue;
     }
     if (Array.isArray(msg.content)) {
-      const newContent = [];
-      for (const part of msg.content) {
-        if (part.type === "image_url" && part.image_url?.url) {
-          const base64Url = await imageUrlToBase64(part.image_url.url);
-          newContent.push({
-            ...part,
-            image_url: { ...part.image_url, url: base64Url },
-          });
-        } else {
-          newContent.push(part);
-        }
-      }
+      // Convert all images in parallel for speed
+      const newContent = await Promise.all(
+        msg.content.map(async (part: any) => {
+          if (part.type === "image_url" && part.image_url?.url) {
+            const base64Url = await imageUrlToBase64(part.image_url.url);
+            return {
+              ...part,
+              image_url: { ...part.image_url, url: base64Url },
+            };
+          }
+          return part;
+        })
+      );
       result.push({ ...msg, content: newContent });
     } else {
       result.push(msg);
