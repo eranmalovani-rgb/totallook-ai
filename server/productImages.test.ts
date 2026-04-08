@@ -417,3 +417,121 @@ describe("generateImagesForImprovement", () => {
     expect(onImageReady.mock.calls[0][1]).toContain("https://cdn.totallook.ai/lazy-");
   });
 });
+
+describe("dedup: shared usedImageUrls ensures unique images per improvement", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockFetch.mockRejectedValue(new Error("not found"));
+    mockGetCachedProductImage.mockResolvedValue(null);
+    mockSaveProductImageToCache.mockResolvedValue(undefined);
+  });
+
+  it("enrichAnalysisWithProductImages: 3 links get 3 DIFFERENT images even when AI returns same domain", async () => {
+    // Simulate AI generating unique URLs each time (different per call)
+    let callCount = 0;
+    mockGenerateImage.mockImplementation(async () => {
+      callCount++;
+      return { url: `https://cdn.totallook.ai/unique-${callCount}-${Date.now()}.png` };
+    });
+
+    const analysis = makeAnalysis([
+      {
+        title: "Upgrade Top",
+        description: "Better top",
+        productSearchQuery: "men casual shirt",
+        shoppingLinks: [
+          { label: "Oxford Shirt — ASOS", url: "https://asos.com/shirt1", imageUrl: "" },
+          { label: "Linen Shirt — H&M", url: "https://hm.com/shirt2", imageUrl: "" },
+          { label: "Polo Shirt — Zara", url: "https://zara.com/shirt3", imageUrl: "" },
+        ],
+      },
+    ]);
+
+    const result = await enrichAnalysisWithProductImages(analysis);
+
+    // All 3 should have images
+    const urls = result.improvements[0].shoppingLinks.map(l => l.imageUrl);
+    expect(urls[0]).toBeTruthy();
+    expect(urls[1]).toBeTruthy();
+    expect(urls[2]).toBeTruthy();
+
+    // All 3 should be DIFFERENT
+    const uniqueUrls = new Set(urls.filter(u => u && !u.includes("unsplash.com")));
+    // If all are real images (not placeholders), they must be unique
+    if (uniqueUrls.size > 0) {
+      expect(uniqueUrls.size).toBe(urls.filter(u => u && !u.includes("unsplash.com")).length);
+    }
+  });
+
+  it("generateImagesForImprovement: sequential processing produces unique images", async () => {
+    let callCount = 0;
+    mockGenerateImage.mockImplementation(async () => {
+      callCount++;
+      return { url: `https://cdn.totallook.ai/lazy-unique-${callCount}.png` };
+    });
+
+    const improvement = {
+      shoppingLinks: [
+        { label: "Nike Air Max — SSENSE", url: "https://ssense.com/nike", imageUrl: "" },
+        { label: "Adidas Ultraboost — ASOS", url: "https://asos.com/adidas", imageUrl: "" },
+        { label: "NB 990 — END.", url: "https://endclothing.com/nb", imageUrl: "" },
+      ],
+      productSearchQuery: "men running shoes",
+    };
+
+    const result = await generateImagesForImprovement(improvement);
+
+    // All 3 should have images
+    expect(result[0].imageUrl).toBeTruthy();
+    expect(result[1].imageUrl).toBeTruthy();
+    expect(result[2].imageUrl).toBeTruthy();
+
+    // All should be different
+    const urls = result.map(l => l.imageUrl);
+    const realUrls = urls.filter(u => u && !u.includes("unsplash.com"));
+    if (realUrls.length > 1) {
+      expect(new Set(realUrls).size).toBe(realUrls.length);
+    }
+  });
+
+  it("enrichAnalysisWithProductImages: when cache returns same URL for all 3, dedup kicks in", async () => {
+    // All 3 links have the same cached URL
+    mockGetCachedProductImage.mockResolvedValue("https://cdn.totallook.ai/same-cached.png");
+    // Cache URL is reachable
+    mockFetch.mockImplementation(async (url: string, opts?: any) => {
+      if (opts?.method === "HEAD" && typeof url === "string" && url.includes("same-cached")) {
+        return { ok: true, headers: { get: (h: string) => h === "content-type" ? "image/png" : "" } };
+      }
+      throw new Error("not found");
+    });
+
+    let aiCallCount = 0;
+    mockGenerateImage.mockImplementation(async () => {
+      aiCallCount++;
+      return { url: `https://cdn.totallook.ai/ai-dedup-${aiCallCount}.png` };
+    });
+
+    const analysis = makeAnalysis([
+      {
+        title: "Shoes",
+        description: "Better shoes",
+        productSearchQuery: "shoes",
+        shoppingLinks: [
+          { label: "Nike — SSENSE", url: "https://ssense.com/search", imageUrl: "" },
+          { label: "Adidas — ASOS", url: "https://asos.com/search", imageUrl: "" },
+          { label: "NB — END.", url: "https://endclothing.com/search", imageUrl: "" },
+        ],
+      },
+    ]);
+
+    const result = await enrichAnalysisWithProductImages(analysis);
+
+    // First link gets the cached URL
+    expect(result.improvements[0].shoppingLinks[0].imageUrl).toBe("https://cdn.totallook.ai/same-cached.png");
+
+    // Second and third links should NOT have the same cached URL
+    // They should either get AI-generated unique URLs or placeholders
+    expect(result.improvements[0].shoppingLinks[1].imageUrl).not.toBe("https://cdn.totallook.ai/same-cached.png");
+    expect(result.improvements[0].shoppingLinks[2].imageUrl).not.toBe("https://cdn.totallook.ai/same-cached.png");
+  });
+});

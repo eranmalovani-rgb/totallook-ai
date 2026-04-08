@@ -191,6 +191,8 @@ async function resolveShoppingLinkImage(params: {
   skipStoreImage?: boolean;
   promptSalt?: string;
   gender?: string;
+  /** URLs already used by other links in the same improvement — skip these in Brave/Google picks */
+  usedImageUrls?: Set<string>;
 }): Promise<string> {
   const {
     label,
@@ -202,6 +204,7 @@ async function resolveShoppingLinkImage(params: {
     skipStoreImage = false,
     promptSalt,
     gender,
+    usedImageUrls,
   } = params;
   const cacheKey = normalizeProductKey(label, categoryQuery, url);
   if (!skipCache) {
@@ -233,9 +236,10 @@ async function resolveShoppingLinkImage(params: {
   // --- Step 3: Try Brave Image Search (primary) ---
   try {
     const braveQuery = buildBraveSearchQuery(label, categoryQuery, gender);
-    const braveResults = await searchBraveImages(braveQuery, 5);
+    const braveResults = await searchBraveImages(braveQuery, 8);
     if (braveResults.length > 0) {
-      const bestImage = await pickBestBraveImage(braveResults);
+      // Pass usedImageUrls so picker skips images already chosen by other links
+      const bestImage = await pickBestBraveImage(braveResults, usedImageUrls);
       if (bestImage && isValidImageUrl(bestImage)) {
         const reachable = await testImageUrl(bestImage);
         if (reachable) {
@@ -257,9 +261,10 @@ async function resolveShoppingLinkImage(params: {
   // --- Step 3b: Try Google Image Search (fallback) ---
   try {
     const googleQuery = buildProductSearchQuery(label, categoryQuery, gender);
-    const googleResults = await searchGoogleImages(googleQuery, 5);
+    const googleResults = await searchGoogleImages(googleQuery, 8);
     if (googleResults.length > 0) {
-      const bestImage = await pickBestProductImage(googleResults);
+      // Pass usedImageUrls so picker skips images already chosen by other links
+      const bestImage = await pickBestProductImage(googleResults, usedImageUrls);
       if (bestImage && isValidImageUrl(bestImage)) {
         const reachable = await testImageUrl(bestImage);
         if (reachable) {
@@ -739,88 +744,89 @@ export async function enrichAnalysisWithProductImages(
     shoppingLinks: imp.shoppingLinks.map(link => ({ ...link })),
   }));
 
-  // Build one task per shopping link
-  const taskFns = tasks.map((task) => async (): Promise<void> => {
-    const { impIdx, linkIdx, label, url, categoryQuery } = task;
-    const existingUrl = enrichedImprovements[impIdx].shoppingLinks[linkIdx].imageUrl;
+  // Process each improvement's links SEQUENTIALLY within the improvement,
+  // sharing a usedImageUrls set so Brave/Google pickers skip already-chosen images.
+  // Different improvements run concurrently since they have different categories.
+  const improvementTasks = enrichedImprovements.map((imp, impIdx) => async (): Promise<void> => {
+    const usedImageUrls = new Set<string>();
 
-    // Skip if existing image is valid
-    if (existingUrl && isValidImageUrl(existingUrl)) {
-      const works = await testImageUrl(existingUrl);
-      if (works) {
-        console.log(`[ProductImages] Existing image OK for [${impIdx}][${linkIdx}]: "${label}"`);
-        return;
-      }
-    }
+    for (let linkIdx = 0; linkIdx < imp.shoppingLinks.length; linkIdx += 1) {
+      const link = imp.shoppingLinks[linkIdx];
+      const label = link.label;
+      const url = link.url;
+      const categoryQuery = imp.productSearchQuery || "";
 
-    try {
-      const resolvedUrl = await resolveShoppingLinkImage({
-        label,
-        url,
-        categoryQuery,
-        logPrefix: `[ProductImages] [${impIdx}][${linkIdx}]`,
-        gender,
-      });
-      if (resolvedUrl) {
-        enrichedImprovements[impIdx].shoppingLinks[linkIdx].imageUrl = resolvedUrl;
-
-        // Progressive DB update
-        if (onImageReady) {
-          try { await onImageReady(impIdx, linkIdx, resolvedUrl); } catch (dbErr: any) {
-            console.warn(`[ProductImages] DB update failed for [${impIdx}][${linkIdx}]:`, dbErr?.message);
+      // Skip if existing image is valid AND not already used
+      const existingUrl = link.imageUrl;
+      if (existingUrl && isValidImageUrl(existingUrl)) {
+        const normalizedExisting = existingUrl.trim().toLowerCase();
+        if (!usedImageUrls.has(normalizedExisting)) {
+          const works = await testImageUrl(existingUrl);
+          if (works) {
+            console.log(`[ProductImages] Existing image OK for [${impIdx}][${linkIdx}]: "${label}"`);
+            usedImageUrls.add(normalizedExisting);
+            continue;
           }
         }
-      } else {
-        // Use category-aware placeholder instead of empty string
-        const placeholder = getCategoryPlaceholder(categoryQuery, linkIdx);
-        enrichedImprovements[impIdx].shoppingLinks[linkIdx].imageUrl = placeholder;
-        console.log(`[ProductImages] Using placeholder for [${impIdx}][${linkIdx}]: category="${categoryQuery}"`);
       }
-    } catch (err: any) {
-      console.warn(`[ProductImages] ✗ Failed [${impIdx}][${linkIdx}]:`, err?.message || err);
-      // Use category-aware placeholder instead of empty string
-      const placeholder = getCategoryPlaceholder(categoryQuery, linkIdx);
-      enrichedImprovements[impIdx].shoppingLinks[linkIdx].imageUrl = placeholder;
+
+      try {
+        const resolvedUrl = await resolveShoppingLinkImage({
+          label,
+          url,
+          categoryQuery,
+          logPrefix: `[ProductImages] [${impIdx}][${linkIdx}]`,
+          gender,
+          usedImageUrls, // <-- KEY: pass already-used URLs so pickers skip them
+        });
+        if (resolvedUrl) {
+          const normalizedResolved = resolvedUrl.trim().toLowerCase();
+          // Double-check it's not a duplicate (cache/store could return same URL)
+          if (usedImageUrls.has(normalizedResolved)) {
+            console.log(`[ProductImages] [${impIdx}][${linkIdx}] resolved URL already used, trying AI fallback`);
+            // Try AI generation as unique fallback
+            const prompt = buildProductImagePrompt(label, categoryQuery, url);
+            try {
+              const { url: aiUrl } = await generateImage({ prompt });
+              if (aiUrl && !usedImageUrls.has(aiUrl.trim().toLowerCase())) {
+                imp.shoppingLinks[linkIdx].imageUrl = aiUrl;
+                usedImageUrls.add(aiUrl.trim().toLowerCase());
+                if (onImageReady) {
+                  try { await onImageReady(impIdx, linkIdx, aiUrl); } catch (dbErr: any) {
+                    console.warn(`[ProductImages] DB update failed for [${impIdx}][${linkIdx}]:`, dbErr?.message);
+                  }
+                }
+                continue;
+              }
+            } catch { /* AI failed, use placeholder */ }
+            // Use placeholder as last resort
+            const placeholder = getCategoryPlaceholder(categoryQuery, linkIdx);
+            imp.shoppingLinks[linkIdx].imageUrl = placeholder;
+            // Don't add placeholder to usedImageUrls — placeholders are okay to repeat
+          } else {
+            imp.shoppingLinks[linkIdx].imageUrl = resolvedUrl;
+            usedImageUrls.add(normalizedResolved);
+            if (onImageReady) {
+              try { await onImageReady(impIdx, linkIdx, resolvedUrl); } catch (dbErr: any) {
+                console.warn(`[ProductImages] DB update failed for [${impIdx}][${linkIdx}]:`, dbErr?.message);
+              }
+            }
+          }
+        } else {
+          const placeholder = getCategoryPlaceholder(categoryQuery, linkIdx);
+          imp.shoppingLinks[linkIdx].imageUrl = placeholder;
+          console.log(`[ProductImages] Using placeholder for [${impIdx}][${linkIdx}]: category="${categoryQuery}"`);
+        }
+      } catch (err: any) {
+        console.warn(`[ProductImages] \u2717 Failed [${impIdx}][${linkIdx}]:`, err?.message || err);
+        const placeholder = getCategoryPlaceholder(categoryQuery, linkIdx);
+        imp.shoppingLinks[linkIdx].imageUrl = placeholder;
+      }
     }
   });
 
-  await runWithConcurrency(taskFns, MAX_CONCURRENT);
-
-  // Enforce image diversity per improvement:
-  // if multiple links ended up with the same image URL or same domain, force regeneration.
-  for (let impIdx = 0; impIdx < enrichedImprovements.length; impIdx += 1) {
-    const imp = enrichedImprovements[impIdx];
-    const usedImageUrls = new Set<string>();
-    const usedImageDomains = new Map<string, number>();
-    for (let linkIdx = 0; linkIdx < imp.shoppingLinks.length; linkIdx += 1) {
-      const link = imp.shoppingLinks[linkIdx];
-      const current = (link.imageUrl || "").trim();
-      if (!current) continue;
-      const unique = await ensureUniqueImageWithinImprovement({
-        resolvedUrl: current,
-        usedImageUrls,
-        usedImageDomains,
-        label: link.label,
-        url: link.url,
-        categoryQuery: imp.productSearchQuery || "",
-        logPrefix: `[ProductImages] [${impIdx}][${linkIdx}]`,
-        gender,
-        maxPerDomain: 2, // Allow max 2 images from same domain per improvement
-      });
-      if (!unique) {
-        link.imageUrl = "";
-        continue;
-      }
-      link.imageUrl = unique;
-      if (onImageReady && unique !== current) {
-        try {
-          await onImageReady(impIdx, linkIdx, unique);
-        } catch (dbErr: any) {
-          console.warn(`[ProductImages] DB update failed for dedupe [${impIdx}][${linkIdx}]:`, dbErr?.message);
-        }
-      }
-    }
-  }
+  // Run different improvements concurrently (they have different categories)
+  await runWithConcurrency(improvementTasks, MAX_CONCURRENT);
 
   const successCount = enrichedImprovements.reduce(
     (sum, imp) => sum + imp.shoppingLinks.filter(l => l.imageUrl && isValidImageUrl(l.imageUrl)).length,
@@ -845,13 +851,22 @@ export async function generateImagesForImprovement(
   
   console.log(`[ProductImages] Lazy loading: generating ${links.length} images for category "${improvement.productSearchQuery}"`);
 
-  const taskFns = links.map((link, linkIdx) => async (): Promise<void> => {
-    // Skip if already has a valid image
+  // Process links SEQUENTIALLY with shared usedImageUrls to ensure diversity
+  const usedImageUrls = new Set<string>();
+
+  for (let linkIdx = 0; linkIdx < links.length; linkIdx += 1) {
+    const link = links[linkIdx];
+
+    // Skip if already has a valid image AND not already used
     if (link.imageUrl && isValidImageUrl(link.imageUrl)) {
-      const works = await testImageUrl(link.imageUrl);
-      if (works) {
-        console.log(`[ProductImages] Lazy: existing image OK for [${linkIdx}]: "${link.label}"`);
-        return;
+      const normalizedExisting = link.imageUrl.trim().toLowerCase();
+      if (!usedImageUrls.has(normalizedExisting)) {
+        const works = await testImageUrl(link.imageUrl);
+        if (works) {
+          console.log(`[ProductImages] Lazy: existing image OK for [${linkIdx}]: "${link.label}"`);
+          usedImageUrls.add(normalizedExisting);
+          continue;
+        }
       }
     }
 
@@ -862,61 +877,46 @@ export async function generateImagesForImprovement(
         categoryQuery: improvement.productSearchQuery,
         logPrefix: `[ProductImages] Lazy [${linkIdx}]`,
         gender,
+        usedImageUrls, // <-- KEY: pass already-used URLs
       });
       if (resolvedUrl) {
-        links[linkIdx].imageUrl = resolvedUrl;
-
-        // Progressive DB update
-        if (onImageReady) {
-          try { await onImageReady(linkIdx, resolvedUrl); } catch (dbErr: any) {
-            console.warn(`[ProductImages] Lazy: DB update failed for [${linkIdx}]:`, dbErr?.message);
+        const normalizedResolved = resolvedUrl.trim().toLowerCase();
+        if (usedImageUrls.has(normalizedResolved)) {
+          // Duplicate — try AI fallback
+          const prompt = buildProductImagePrompt(link.label, improvement.productSearchQuery, link.url);
+          try {
+            const { url: aiUrl } = await generateImage({ prompt });
+            if (aiUrl && !usedImageUrls.has(aiUrl.trim().toLowerCase())) {
+              links[linkIdx].imageUrl = aiUrl;
+              usedImageUrls.add(aiUrl.trim().toLowerCase());
+              if (onImageReady) {
+                try { await onImageReady(linkIdx, aiUrl); } catch (dbErr: any) {
+                  console.warn(`[ProductImages] Lazy: DB update failed for [${linkIdx}]:`, dbErr?.message);
+                }
+              }
+              continue;
+            }
+          } catch { /* AI failed */ }
+          const placeholder = getCategoryPlaceholder(improvement.productSearchQuery || "", linkIdx);
+          links[linkIdx].imageUrl = placeholder;
+        } else {
+          links[linkIdx].imageUrl = resolvedUrl;
+          usedImageUrls.add(normalizedResolved);
+          if (onImageReady) {
+            try { await onImageReady(linkIdx, resolvedUrl); } catch (dbErr: any) {
+              console.warn(`[ProductImages] Lazy: DB update failed for [${linkIdx}]:`, dbErr?.message);
+            }
           }
         }
       } else {
-        // Use category-aware placeholder instead of empty string
         const placeholder = getCategoryPlaceholder(improvement.productSearchQuery || "", linkIdx);
         links[linkIdx].imageUrl = placeholder;
         console.log(`[ProductImages] Lazy: using placeholder for [${linkIdx}]`);
       }
     } catch (err: any) {
       console.warn(`[ProductImages] Lazy: failed [${linkIdx}]:`, err?.message || err);
-      // Use category-aware placeholder instead of empty string
       const placeholder = getCategoryPlaceholder(improvement.productSearchQuery || "", linkIdx);
       links[linkIdx].imageUrl = placeholder;
-    }
-  });
-
-  await runWithConcurrency(taskFns, MAX_CONCURRENT);
-
-  // Enforce image diversity inside this single improvement payload.
-  const usedImageUrls = new Set<string>();
-  const usedImageDomains = new Map<string, number>();
-  for (let linkIdx = 0; linkIdx < links.length; linkIdx += 1) {
-    const link = links[linkIdx];
-    const current = (link.imageUrl || "").trim();
-    if (!current) continue;
-    const unique = await ensureUniqueImageWithinImprovement({
-      resolvedUrl: current,
-      usedImageUrls,
-      usedImageDomains,
-      label: link.label,
-      url: link.url,
-      categoryQuery: improvement.productSearchQuery || "",
-      logPrefix: `[ProductImages] Lazy [${linkIdx}]`,
-      gender,
-      maxPerDomain: 2,
-    });
-    if (!unique) {
-      links[linkIdx].imageUrl = "";
-      continue;
-    }
-    links[linkIdx].imageUrl = unique;
-    if (onImageReady && unique !== current) {
-      try {
-        await onImageReady(linkIdx, unique);
-      } catch (dbErr: any) {
-        console.warn(`[ProductImages] Lazy: DB update failed for dedupe [${linkIdx}]:`, dbErr?.message);
-      }
     }
   }
 

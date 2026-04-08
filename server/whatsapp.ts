@@ -1082,7 +1082,7 @@ function postProcessAnalysis(analysis: FashionAnalysis, profileContext: ProfileC
 
   // Fix shopping URLs — pass preferredStores for personalized store links
   const gender: GenderCategory = (profileContext?.gender as GenderCategory) || "male";
-  analysis = fixShoppingLinkUrls(analysis, gender, profileContext?.preferredStores || null);
+  analysis = fixShoppingLinkUrls(analysis, gender, profileContext?.preferredStores);
 
   return analysis;
 }

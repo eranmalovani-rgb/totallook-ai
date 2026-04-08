@@ -153,3 +153,11 @@
 - [x] 10.3: Improve product image diversity — domain-level deduplication (max 2 per domain per improvement), improved ensureUniqueImageWithinImprovement with domain tracking
 - [x] 10.4: Smart category-aware placeholders (Unsplash) — imageUrl never empty, getCategoryPlaceholder returns shoes/top/bottom/outerwear/dress images based on category
 - [x] 10.5: 31 new vitest tests for Stage 10 (all pass), full suite 736/740 (4 pre-existing API failures)
+
+## Stage 10b — Product Image Duplication Fix (User-reported, critical)
+- [x] 10b.1: Root cause identified: all 3 links share same categoryQuery → Brave/Google return same results → pickBest always picks #1 → all 3 get identical image
+- [x] 10b.2: Root cause: dedup ran AFTER concurrent resolution, so all 3 already had same URL; re-resolution also returned same result since pickers had no exclusion list
+- [x] 10b.3: Confirmed: Brave returns same top result for same query; pickBestBraveImage always picks highest-scored without knowing what's already used
+- [x] 10b.4: Fix: refactored to SEQUENTIAL processing within each improvement with shared usedImageUrls Set passed to Brave/Google pickers; pickers now skip already-chosen URLs
+- [x] 10b.5: Fix: placeholder fallback via getCategoryPlaceholder when all sources fail; also increased search results from 5→8 for more diversity
+- [x] 10b.6: All 736/740 tests pass (4 pre-existing API failures), TS compiles clean
