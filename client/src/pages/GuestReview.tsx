@@ -287,7 +287,7 @@ function GuestImprovementAccordionCard({
       { threshold: 0.05, rootMargin: "200px" }
     );
     if (cardRef.current) observer.observe(cardRef.current);
-    const fallbackTimer = setTimeout(() => { triggerGeneration(); }, 500);
+    const fallbackTimer = setTimeout(() => { triggerGeneration(); }, 0);
     return () => { observer.disconnect(); clearTimeout(fallbackTimer); };
   }, [hasTriggered, hasEmptyImages, triggerGeneration]);
 
@@ -928,26 +928,10 @@ export default function GuestReview() {
     }
   }, [result?.status, analysis]);
 
-  // ── Batch preload ALL product images immediately when analysis is ready ──
-  const batchPreloadTriggeredRef = useRef(false);
-  const guestBatchMutation = trpc.guest.generateAllProductImages.useMutation();
-  const guestUtils = trpc.useUtils();
-  useEffect(() => {
-    if (batchPreloadTriggeredRef.current) return;
-    if (result?.status !== "completed" || !result?.analysisJson) return;
-    const parsedAnalysis = typeof result.analysisJson === "string" ? JSON.parse(result.analysisJson) : result.analysisJson;
-    if (!parsedAnalysis?.improvements?.length) return;
-    const hasAnyEmptyImages = parsedAnalysis.improvements.some((imp: any) =>
-      imp.shoppingLinks?.some((link: any) => !link.imageUrl || link.imageUrl.length < 5)
-    );
-    if (!hasAnyEmptyImages) return;
-    batchPreloadTriggeredRef.current = true;
-    guestBatchMutation.mutateAsync({ sessionId })
-      .then(() => {
-        guestUtils.guest.getResult.invalidate({ sessionId });
-      })
-      .catch((err: any) => console.warn("[GuestReview] Batch product image preload failed:", err));
-  }, [result?.status, result?.analysisJson, sessionId]);
+  // ── Progressive product image loading ──
+  // Each GuestImprovementCard loads its own images independently via generateProductImages.
+  // All cards trigger simultaneously (fallback 0ms), so images appear progressively
+  // as each improvement's search results come back — no waiting for all to finish.
 
   // ── Early returns ──
 

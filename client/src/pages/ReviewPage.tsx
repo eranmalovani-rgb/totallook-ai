@@ -425,7 +425,7 @@ function ImprovementCard({
       { threshold: 0.05, rootMargin: "200px" }
     );
     if (cardRef.current) observer.observe(cardRef.current);
-    const fallbackTimer = setTimeout(() => { triggerGeneration(); }, 500);
+    const fallbackTimer = setTimeout(() => { triggerGeneration(); }, 0);
     return () => { observer.disconnect(); clearTimeout(fallbackTimer); };
   }, [hasTriggered, hasEmptyImages, triggerGeneration]);
 
@@ -1185,25 +1185,10 @@ export default function ReviewPage() {
     }
   }, [review?.status, userProfile]);
 
-  // ── Batch preload ALL product images immediately when analysis is ready ──
-  const batchPreloadTriggeredRef = useRef(false);
-  const batchMutation = trpc.review.generateAllProductImages.useMutation();
-  useEffect(() => {
-    if (batchPreloadTriggeredRef.current) return;
-    if (review?.status !== "completed") return;
-    const reviewAnalysis = (review as any)?.analysis;
-    if (!reviewAnalysis?.improvements?.length) return;
-    const hasAnyEmptyImages = reviewAnalysis.improvements.some((imp: any) =>
-      imp.shoppingLinks?.some((link: any) => !link.imageUrl || link.imageUrl.length < 5)
-    );
-    if (!hasAnyEmptyImages) return;
-    batchPreloadTriggeredRef.current = true;
-    batchMutation.mutateAsync({ reviewId })
-      .then(() => {
-        utils.review.get.invalidate({ id: reviewId });
-      })
-      .catch((err: any) => console.warn("[ReviewPage] Batch product image preload failed:", err));
-  }, [review?.status, review, reviewId]);
+  // ── Progressive product image loading ──
+  // Each ImprovementCard loads its own images independently via generateProductImages.
+  // All cards trigger simultaneously (fallback 0ms), so images appear progressively
+  // as each improvement's search results come back — no waiting for all to finish.
 
   // ── Loading / Error / Pending states ──
 

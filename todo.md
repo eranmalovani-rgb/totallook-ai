@@ -195,3 +195,9 @@
 - [x] 11c.4: Reduced Brave API timeout from 10s to 5s, Google CSE timeout from 10s to 5s
 - [x] 11c.5: Added resetGoogleCircuitBreaker export + 5 targeted Google circuit breaker tests (all pass)
 - [x] 11c.6: Final verification: 756/760 tests pass (4 pre-existing API failures), npx tsc --noEmit = 0 errors
+
+## Stage 11d — Hybrid Progressive Product Image Loading
+- [x] 11d.1: Removed batch preload from ReviewPage — each ImprovementCard loads independently via generateProductImages
+- [x] 11d.2: Removed batch preload from GuestReview — same progressive approach
+- [x] 11d.3: Set fallback timer to 0ms (immediate) — all improvements start loading simultaneously, each updates UI as soon as its images are ready
+- [x] 11d.4: 756/760 tests pass (4 pre-existing API failures), TS compiles clean (0 errors)
