@@ -277,3 +277,10 @@
 - [x] 16.2: Replaced generic ExternalLink icon with white rounded button containing actual store logo image
 - [x] 16.3: Logo button is clickable (whole card links to store search page)
 - [x] 16.4: Verified in browser - ZARA, ASOS, FARFETCH logos display correctly on white button background
+
+## Stage 17 — Personalized Store Recommendations from User Preferences
+- [x] 17.1: Update normalizeImprovementShoppingLinks to accept preferredStores parameter
+- [x] 17.2: Update buildFallbackShoppingLinks to use user's preferred stores when available
+- [x] 17.3: Pass preferredStores from user/guest profile to all normalizeImprovementShoppingLinks call sites (10 call sites updated)
+- [x] 17.4: Ensure store diversity uses user's preferred stores instead of hardcoded ASOS/Zara/H&M
+- [x] 17.5: Tests pass (765/769, 4 pre-existing API failures). 0 TypeScript errors.
