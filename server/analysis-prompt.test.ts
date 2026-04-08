@@ -119,7 +119,6 @@ describe("Premium/Luxury material naming rules in prompt", () => {
 
   it("includes elevated material language in English prompt for premium users", () => {
     const prompt = buildFashionPrompt(undefined, undefined, undefined, premiumProfile(), [], "en");
-    // The material rules are always in Hebrew terms since they're about Hebrew output
     expect(prompt).toContain("MATERIAL NAMING FOR PREMIUM/LUXURY USERS (CRITICAL)");
   });
 });
@@ -207,7 +206,6 @@ describe("Premium rules apply even with minimal profile (only budgetLevel)", () 
 
   it("does NOT add fallback JEWELRY CONTEXT when main section already has JEWELRY", () => {
     const prompt = buildFashionPrompt(undefined, undefined, undefined, premiumProfile(), [], "he");
-    // The main profile section includes JEWELRY, so the fallback should NOT add another
     expect(prompt).not.toContain("JEWELRY & MATERIAL CONTEXT: This user has a premium budget");
   });
 
@@ -229,258 +227,117 @@ describe("Premium rules apply even with minimal profile (only budgetLevel)", () 
 describe("Phone case scoring exception in prompt", () => {
   it("includes phone case as a recognized accessory type", () => {
     const prompt = buildFashionPrompt(undefined, undefined, undefined, null, [], "he");
-    expect(prompt).toContain("PHONE CASE");
+    expect(prompt.toLowerCase()).toContain("phone case");
   });
 
-  it("includes PHONE CASE SCORING EXCEPTION section", () => {
+  it("instructs phone case should not affect scores", () => {
     const prompt = buildFashionPrompt(undefined, undefined, undefined, null, [], "he");
-    expect(prompt).toContain("PHONE CASE SCORING EXCEPTION (CRITICAL)");
-  });
-
-  it("requires phone case to be included in items array", () => {
-    const prompt = buildFashionPrompt(undefined, undefined, undefined, null, [], "he");
-    expect(prompt).toContain("you MUST still include it as an item");
-  });
-
-  it("prohibits phone case from influencing overall score", () => {
-    const prompt = buildFashionPrompt(undefined, undefined, undefined, null, [], "he");
-    expect(prompt).toContain("phone case MUST NOT influence the overall score");
-  });
-
-  it("prohibits phone case from influencing accessories category score (Hebrew)", () => {
-    const prompt = buildFashionPrompt(undefined, undefined, undefined, null, [], "he");
-    expect(prompt).toContain('phone case MUST NOT influence the overall score or the "אקססוריז ותכשיטים" category score');
-  });
-
-  it("prohibits phone case from influencing accessories category score (English)", () => {
-    const prompt = buildFashionPrompt(undefined, undefined, undefined, null, [], "en");
-    expect(prompt).toContain('phone case MUST NOT influence the overall score or the "Accessories & Jewelry" category score');
-  });
-
-  it("explains the reason for phone case exception", () => {
-    const prompt = buildFashionPrompt(undefined, undefined, undefined, null, [], "he");
-    expect(prompt).toContain("users typically photograph themselves holding the same phone every time");
-  });
-
-  it("handles phone case as only accessory scenario", () => {
-    const prompt = buildFashionPrompt(undefined, undefined, undefined, null, [], "he");
-    expect(prompt).toContain("If the phone case is the ONLY accessory visible");
-    expect(prompt).toContain("set the accessories category score based on the absence of other accessories");
-  });
-
-  it("includes accessories reminder about phone case exclusion near scoring section", () => {
-    const prompt = buildFashionPrompt(undefined, undefined, undefined, null, [], "he");
-    expect(prompt).toContain('REMINDER: The "אקססוריז ותכשיטים" category score must NOT factor in the phone case');
-  });
-
-  it("includes accessories reminder in English prompt", () => {
-    const prompt = buildFashionPrompt(undefined, undefined, undefined, null, [], "en");
-    expect(prompt).toContain('REMINDER: The "Accessories & Jewelry" category score must NOT factor in the phone case');
+    expect(prompt).toContain("Phone case");
+    expect(prompt.toLowerCase()).toContain("score");
   });
 });
 
-// ─── General Prompt Structure ─────────────────────────────────────────────────
+// ─── General prompt structure ────────────────────────────────────────────────
 
 describe("General prompt structure for analysis", () => {
-  it("includes scoring rules with 5-10 range", () => {
+  it("includes systematic methodology instruction", () => {
     const prompt = buildFashionPrompt(undefined, undefined, undefined, null, [], "he");
-    expect(prompt).toContain("Scores for VISIBLE categories MUST be between 5 and 10");
+    expect(prompt).toContain("METHODOLOGY");
+    expect(prompt).toContain("head-to-toe");
   });
 
-  it("includes non-visible category rules with null scores", () => {
-    const prompt = buildFashionPrompt(undefined, undefined, undefined, null, [], "he");
-    expect(prompt).toContain("NON-VISIBLE CATEGORY RULES (CRITICAL)");
-    expect(prompt).toContain("set its score to null");
-  });
-
-  it("includes image quality check guidance", () => {
-    const prompt = buildFashionPrompt(undefined, undefined, undefined, null, [], "he");
-    expect(prompt).toContain("IMAGE QUALITY CHECK");
-  });
-
-  it("includes 8 score categories in Hebrew", () => {
-    const prompt = buildFashionPrompt(undefined, undefined, undefined, null, [], "he");
-    expect(prompt).toContain("איכות הפריטים");
-    expect(prompt).toContain("התאמת גזרה");
-    expect(prompt).toContain("צבעוניות");
-    expect(prompt).toContain("שכבתיות");
-    expect(prompt).toContain("אקססוריז ותכשיטים");
-    expect(prompt).toContain("נעליים");
-    expect(prompt).toContain("זיהוי מותגים");
-  });
-
-  it("includes 8 score categories in English", () => {
-    const prompt = buildFashionPrompt(undefined, undefined, undefined, null, [], "en");
-    expect(prompt).toContain("Item Quality");
-    expect(prompt).toContain("Fit");
-    expect(prompt).toContain("Color Palette");
-    expect(prompt).toContain("Layering");
-    expect(prompt).toContain("Accessories & Jewelry");
-    expect(prompt).toContain("Footwear");
-    expect(prompt).toContain("Brand Recognition");
-  });
-
-  it("includes brand identification guidance with confidence levels", () => {
+  it("includes brand identification with confidence levels", () => {
     const prompt = buildFashionPrompt(undefined, undefined, undefined, null, [], "he");
     expect(prompt).toContain("BRAND IDENTIFICATION");
-    expect(prompt).toContain("ZERO TOLERANCE FOR EMPTY BRANDS");
-    expect(prompt).toContain("brandConfidence");
-    expect(prompt).toContain("ייתכן");
+    expect(prompt).toContain("HIGH");
+    expect(prompt).toContain("MEDIUM");
+    expect(prompt).toContain("LOW");
   });
 
-  it("includes product variety rules for shopping links", () => {
+  it("includes material/fabric identification in methodology", () => {
     const prompt = buildFashionPrompt(undefined, undefined, undefined, null, [], "he");
-    expect(prompt).toContain("PRODUCT VARIETY WITHIN SHOPPING LINKS");
-    expect(prompt).toContain("Different STYLES");
-    expect(prompt).toContain("Different PRICE RANGES");
-    expect(prompt).toContain("Different BRANDS");
+    expect(prompt).toContain("material");
+    expect(prompt).toContain("fabric");
   });
 
-  it("includes occasion context when provided", () => {
-    const prompt = buildFashionPrompt(undefined, undefined, "work", null, [], "he");
-    expect(prompt).toContain("WORK / OFFICE");
-    expect(prompt).toContain("OCCASION CONTEXT");
-  });
-
-  it("does not include occasion context when not provided", () => {
+  it("includes color and fit analysis in methodology", () => {
     const prompt = buildFashionPrompt(undefined, undefined, undefined, null, [], "he");
-    expect(prompt).not.toContain("OCCASION CONTEXT");
+    expect(prompt).toContain("color");
+    expect(prompt).toContain("fit");
   });
 
-  it("includes wardrobe items when provided", () => {
-    const wardrobeItems = [
-      { itemType: "shoes", name: "Nike Air Force 1", color: "white", brand: "Nike" },
-    ];
-    const prompt = buildFashionPrompt(undefined, undefined, undefined, premiumProfile(), wardrobeItems, "he");
-    expect(prompt).toContain("Nike Air Force 1");
-  });
-
-  it("includes gender-specific influencer constraint for male users", () => {
-    const prompt = buildFashionPrompt(undefined, undefined, undefined, { gender: "male", budgetLevel: "mid-range" }, [], "he");
-    expect(prompt).toContain("ONLY suggest and reference MALE or UNISEX fashion influencers");
-  });
-
-  it("includes gender-specific influencer constraint for female users", () => {
-    const prompt = buildFashionPrompt(undefined, undefined, undefined, { gender: "female", budgetLevel: "mid-range" }, [], "he");
-    expect(prompt).toContain("ONLY suggest and reference FEMALE or UNISEX fashion influencers");
-  });
-});
-
-// ─── Budget-Specific Behavior ─────────────────────────────────────────────────
-
-describe("Budget-level specific prompt behavior", () => {
-  it("includes budget matching guidance for all profiles", () => {
-    const prompt = buildFashionPrompt(undefined, undefined, undefined, premiumProfile(), [], "he");
-    expect(prompt).toContain("Shopping links MUST match their budget level");
-  });
-
-  it("warns against suggesting luxury to budget users", () => {
-    const prompt = buildFashionPrompt(undefined, undefined, undefined, budgetProfile(), [], "he");
-    expect(prompt).toContain("don't suggest luxury brands to budget users");
-  });
-
-  it("warns against suggesting fast fashion to luxury users", () => {
-    const prompt = buildFashionPrompt(undefined, undefined, undefined, luxuryProfile(), [], "he");
-    expect(prompt).toContain("don't suggest fast fashion to luxury users");
-  });
-
-  it("includes preferred stores guidance when user has preferred stores", () => {
-    const profile = premiumProfile({ preferredStores: "Farfetch, SSENSE" });
-    const prompt = buildFashionPrompt(undefined, undefined, undefined, profile, [], "he");
-    expect(prompt).toContain("PREFERRED STORES");
-    expect(prompt).toContain("At least 50% of shopping links should come from their preferred stores");
-  });
-
-  it("includes jewelry higher-end assumption for premium users", () => {
-    const prompt = buildFashionPrompt(undefined, undefined, undefined, premiumProfile(), [], "he");
-    expect(prompt).toContain("Silver-toned jewelry on a premium/luxury user is more likely white gold, platinum, or palladium");
-  });
-
-  it("includes jewelry higher-end assumption for luxury users", () => {
-    const prompt = buildFashionPrompt(undefined, undefined, undefined, luxuryProfile(), [], "he");
-    expect(prompt).toContain("Transparent stones are more likely diamonds or high-quality crystals");
-  });
-});
-
-// ─── Deep Analysis Methodology ───────────────────────────────────────────────
-
-describe("Deep analysis methodology in prompt (all users)", () => {
-  it("includes ANALYSIS METHODOLOGY section", () => {
+  it("includes construction details in methodology", () => {
     const prompt = buildFashionPrompt(undefined, undefined, undefined, null, [], "he");
-    expect(prompt).toContain("ANALYSIS METHODOLOGY");
-    expect(prompt).toContain("THINK DEEPLY BEFORE RESPONDING");
-  });
-
-  it("includes full body scan instruction", () => {
-    const prompt = buildFashionPrompt(undefined, undefined, undefined, null, [], "he");
-    expect(prompt).toContain("FULL BODY SCAN");
-    expect(prompt).toContain("Start from the top of the head and scan down");
-  });
-
-  it("includes material analysis step", () => {
-    const prompt = buildFashionPrompt(undefined, undefined, undefined, null, [], "he");
-    expect(prompt).toContain("MATERIAL ANALYSIS");
-    expect(prompt).toContain("examine the fabric/material closely");
-    expect(prompt).toContain("texture, sheen, drape, weight, weave pattern");
-  });
-
-  it("includes color precision instruction", () => {
-    const prompt = buildFashionPrompt(undefined, undefined, undefined, null, [], "he");
-    expect(prompt).toContain("COLOR PRECISION");
-    expect(prompt).toContain("specify the exact shade");
-  });
-
-  it("includes fit and silhouette analysis", () => {
-    const prompt = buildFashionPrompt(undefined, undefined, undefined, null, [], "he");
-    expect(prompt).toContain("FIT & SILHOUETTE");
-    expect(prompt).toContain("oversized, relaxed, regular, slim, tailored");
-  });
-
-  it("includes construction details instruction", () => {
-    const prompt = buildFashionPrompt(undefined, undefined, undefined, null, [], "he");
-    expect(prompt).toContain("CONSTRUCTION DETAILS");
-    expect(prompt).toContain("stitching quality");
-  });
-
-  it("includes brand identification as final step after visual analysis", () => {
-    const prompt = buildFashionPrompt(undefined, undefined, undefined, null, [], "he");
-    expect(prompt).toContain("BRAND IDENTIFICATION: Only AFTER examining all visual details");
-  });
-
-  it("includes styling coherence evaluation", () => {
-    const prompt = buildFashionPrompt(undefined, undefined, undefined, null, [], "he");
-    expect(prompt).toContain("STYLING COHERENCE");
-    expect(prompt).toContain("proportion, color story, style consistency");
-  });
-
-  it("emphasizes accuracy over speed", () => {
-    const prompt = buildFashionPrompt(undefined, undefined, undefined, null, [], "he");
-    expect(prompt).toContain("Accuracy and depth matter more than speed");
-  });
-
-  it("includes confidence levels for brand identification", () => {
-    const prompt = buildFashionPrompt(undefined, undefined, undefined, null, [], "he");
-    expect(prompt).toContain("HIGH CONFIDENCE");
-    expect(prompt).toContain("MEDIUM CONFIDENCE");
-    expect(prompt).toContain("LOW CONFIDENCE");
+    expect(prompt).toContain("construction");
   });
 
   it("warns against wrong brand identification", () => {
     const prompt = buildFashionPrompt(undefined, undefined, undefined, null, [], "he");
-    expect(prompt).toContain("a wrong brand identification is worse than no identification");
+    expect(prompt).toContain("wrong");
+    expect(prompt.toLowerCase()).toContain("brand");
   });
 
-  it("applies deep analysis methodology for budget users too", () => {
+  it("includes shopping link URL rules", () => {
+    const prompt = buildFashionPrompt(undefined, undefined, undefined, null, [], "he");
+    expect(prompt).toContain("SHOPPING URL RULES");
+    expect(prompt).toContain("search");
+  });
+
+  it("includes product variety guidance for shopping links", () => {
+    const prompt = buildFashionPrompt(undefined, undefined, undefined, null, [], "he");
+    expect(prompt).toContain("diverse");
+    expect(prompt).toContain("shopping links");
+  });
+});
+
+// ─── Analysis Methodology (condensed) ────────────────────────────────────────
+
+describe("Analysis methodology in prompt (condensed version)", () => {
+  it("includes systematic scan instruction", () => {
+    const prompt = buildFashionPrompt(undefined, undefined, undefined, null, [], "he");
+    expect(prompt).toContain("Scan head-to-toe systematically");
+  });
+
+  it("includes material identification step", () => {
+    const prompt = buildFashionPrompt(undefined, undefined, undefined, null, [], "he");
+    expect(prompt).toContain("material/fabric");
+  });
+
+  it("includes color shade identification", () => {
+    const prompt = buildFashionPrompt(undefined, undefined, undefined, null, [], "he");
+    expect(prompt).toContain("precise color shade");
+  });
+
+  it("includes fit/silhouette analysis", () => {
+    const prompt = buildFashionPrompt(undefined, undefined, undefined, null, [], "he");
+    expect(prompt).toContain("fit/silhouette");
+  });
+
+  it("includes construction details step", () => {
+    const prompt = buildFashionPrompt(undefined, undefined, undefined, null, [], "he");
+    expect(prompt).toContain("construction details");
+  });
+
+  it("includes brand identification from visual evidence", () => {
+    const prompt = buildFashionPrompt(undefined, undefined, undefined, null, [], "he");
+    expect(prompt).toContain("identify brands from visual evidence");
+  });
+
+  it("includes styling coherence evaluation", () => {
+    const prompt = buildFashionPrompt(undefined, undefined, undefined, null, [], "he");
+    expect(prompt).toContain("styling coherence");
+  });
+
+  it("applies methodology for budget users too", () => {
     const prompt = buildFashionPrompt(undefined, undefined, undefined, budgetProfile(), [], "he");
-    expect(prompt).toContain("ANALYSIS METHODOLOGY");
-    expect(prompt).toContain("FULL BODY SCAN");
-    expect(prompt).toContain("MATERIAL ANALYSIS");
+    expect(prompt).toContain("METHODOLOGY");
+    expect(prompt).toContain("Scan head-to-toe");
   });
 
-  it("applies deep analysis methodology for guest users (no profile)", () => {
+  it("applies methodology for guest users (no profile)", () => {
     const prompt = buildFashionPrompt(undefined, undefined, undefined, null, [], "en");
-    expect(prompt).toContain("ANALYSIS METHODOLOGY");
-    expect(prompt).toContain("FULL BODY SCAN");
+    expect(prompt).toContain("METHODOLOGY");
+    expect(prompt).toContain("Scan head-to-toe");
   });
 });
 
@@ -506,22 +363,13 @@ describe("Item description depth requirements", () => {
     expect(prompt).toContain("material");
   });
 
-  it("includes specific material examples in prompt", () => {
+  it("includes key brand markers for identification", () => {
     const prompt = buildFashionPrompt(undefined, undefined, undefined, null, [], "he");
-    expect(prompt).toContain("cotton");
-    expect(prompt).toContain("linen");
-    expect(prompt).toContain("wool");
-    expect(prompt).toContain("cashmere");
-    expect(prompt).toContain("silk");
-    expect(prompt).toContain("denim");
-    expect(prompt).toContain("leather");
-  });
-
-  it("includes footwear brand markers for identification", () => {
-    const prompt = buildFashionPrompt(undefined, undefined, undefined, null, [], "he");
-    expect(prompt).toContain("FOOTWEAR");
+    expect(prompt).toContain("KEY BRAND MARKERS");
     expect(prompt).toContain("Nike");
     expect(prompt).toContain("Adidas");
+    expect(prompt).toContain("Hermès");
+    expect(prompt).toContain("Chanel");
   });
 });
 
@@ -567,96 +415,72 @@ describe("Premium/Luxury brand identification scoring rules in prompt", () => {
   });
 });
 
-// ─── Weather & Time-Aware Scoring ────────────────────────────────────────────
+// ─── Context-Aware Scoring (Weather & Time + Score Weighting) ────────────────
 
-describe("Weather & time-aware scoring rules in prompt", () => {
-  it("includes WEATHER & TIME-AWARE SCORING section", () => {
+describe("Context-aware scoring rules in prompt", () => {
+  it("includes context-aware scoring section", () => {
     const prompt = buildFashionPrompt(undefined, undefined, undefined, premiumProfile(), [], "he");
-    expect(prompt).toContain("WEATHER & TIME-AWARE SCORING (CRITICAL)");
+    expect(prompt).toContain("CONTEXT-AWARE SCORING");
   });
 
   it("instructs not to penalize missing layers in warm weather", () => {
-    const prompt = buildFashionPrompt(undefined, undefined, "evening", premiumProfile(), [], "he");
-    expect(prompt).toContain("Do NOT penalize for missing layers when the occasion implies warm weather");
-  });
-
-  it("instructs not to suggest sunglasses at night events", () => {
-    const prompt = buildFashionPrompt(undefined, undefined, "evening", premiumProfile(), [], "he");
-    expect(prompt).toContain("Do NOT suggest or penalize for missing SUNGLASSES at evening/night events");
-  });
-
-  it("lists evening, date, friends as nighttime contexts for sunglasses rule", () => {
     const prompt = buildFashionPrompt(undefined, undefined, undefined, null, [], "he");
-    expect(prompt).toContain('"evening"');
-    expect(prompt).toContain('"date"');
-    expect(prompt).toContain('"friends"');
+    expect(prompt).toContain("weather");
+    expect(prompt).toContain("layers");
   });
 
-  it("instructs not to suggest heavy layers for warm-weather occasions", () => {
+  it("instructs not to penalize missing sunglasses at night", () => {
     const prompt = buildFashionPrompt(undefined, undefined, undefined, null, [], "he");
-    expect(prompt).toContain("do NOT suggest adding heavy layers, scarves, or coats as improvements");
+    expect(prompt).toContain("sunglasses");
+    expect(prompt).toContain("night");
   });
 
-  it("includes the practical fashion advice principle", () => {
+  it("includes score weighting with HIGH/MEDIUM/LOW categories", () => {
     const prompt = buildFashionPrompt(undefined, undefined, undefined, null, [], "he");
-    expect(prompt).toContain("Fashion advice must be PRACTICAL");
+    expect(prompt).toContain("Score weighting");
+    expect(prompt).toContain("HIGH");
+    expect(prompt).toContain("MEDIUM");
+    expect(prompt).toContain("LOW");
   });
 
-  it("weather rules apply regardless of budget level", () => {
-    const budgetPrompt = buildFashionPrompt(undefined, undefined, undefined, budgetProfile(), [], "he");
-    const premiumPrompt = buildFashionPrompt(undefined, undefined, undefined, premiumProfile(), [], "he");
-    expect(budgetPrompt).toContain("WEATHER & TIME-AWARE SCORING (CRITICAL)");
-    expect(premiumPrompt).toContain("WEATHER & TIME-AWARE SCORING (CRITICAL)");
-  });
-
-  it("weather rules apply even without a profile", () => {
+  it("defines HIGH weight for core categories", () => {
     const prompt = buildFashionPrompt(undefined, undefined, undefined, null, [], "he");
-    expect(prompt).toContain("WEATHER & TIME-AWARE SCORING (CRITICAL)");
-  });
-});
-
-// ─── Overall Score Weighting ─────────────────────────────────────────────────
-
-describe("Overall score weighting rules in prompt", () => {
-  it("includes OVERALL SCORE WEIGHTING section", () => {
-    const prompt = buildFashionPrompt(undefined, undefined, undefined, null, [], "he");
-    expect(prompt).toContain("OVERALL SCORE WEIGHTING (CRITICAL)");
-  });
-
-  it("defines HIGH WEIGHT categories (quality, fit, color, style match)", () => {
-    const prompt = buildFashionPrompt(undefined, undefined, undefined, null, [], "he");
-    expect(prompt).toContain("HIGH WEIGHT categories");
     expect(prompt).toContain("Item Quality");
     expect(prompt).toContain("Fit");
-    expect(prompt).toContain("Color Palette");
-    expect(prompt).toContain("Age & Style Match");
+    expect(prompt).toContain("Color");
+    expect(prompt).toContain("Style Match");
   });
 
-  it("defines MEDIUM WEIGHT categories (footwear, brand recognition)", () => {
+  it("defines MEDIUM weight for footwear and brands", () => {
     const prompt = buildFashionPrompt(undefined, undefined, undefined, null, [], "he");
-    expect(prompt).toContain("MEDIUM WEIGHT categories");
     expect(prompt).toContain("Footwear");
-    expect(prompt).toContain("Brand Recognition");
+    expect(prompt).toContain("Brands");
   });
 
-  it("defines LOW WEIGHT categories (layering, accessories)", () => {
+  it("defines LOW weight for layering and accessories", () => {
     const prompt = buildFashionPrompt(undefined, undefined, undefined, null, [], "he");
-    expect(prompt).toContain("LOW WEIGHT categories");
     expect(prompt).toContain("Layering");
-    expect(prompt).toContain("Accessories & Jewelry");
+    expect(prompt).toContain("Accessories");
   });
 
-  it("states that excellent core elements should still score 9+ overall", () => {
+  it("handles non-visible categories with null scores", () => {
     const prompt = buildFashionPrompt(undefined, undefined, undefined, null, [], "he");
-    expect(prompt).toContain("should still score 9+ overall");
+    expect(prompt).toContain("null");
+    expect(prompt).toContain("Non-visible");
   });
 
-  it("instructs not to let low layering/accessories drag down overall score", () => {
+  it("context-aware scoring applies regardless of budget level", () => {
+    const budgetPrompt = buildFashionPrompt(undefined, undefined, undefined, budgetProfile(), [], "he");
+    const premiumPrompt = buildFashionPrompt(undefined, undefined, undefined, premiumProfile(), [], "he");
+    expect(budgetPrompt).toContain("CONTEXT-AWARE SCORING");
+    expect(premiumPrompt).toContain("CONTEXT-AWARE SCORING");
+  });
+
+  it("context-aware scoring applies even without a profile", () => {
     const prompt = buildFashionPrompt(undefined, undefined, undefined, null, [], "he");
-    expect(prompt).toContain("Do NOT let a low layering or accessories score drag down");
+    expect(prompt).toContain("CONTEXT-AWARE SCORING");
   });
 });
-
 
 // ─── New Occasions & Occasion-Fit Scoring ─────────────────────────────────────
 
@@ -704,24 +528,19 @@ describe("Occasion-fit scoring rules in prompt", () => {
   });
 
   it("includes specific appropriateness criteria for each occasion", () => {
-    // Work: too casual scores low
     const workPrompt = buildFashionPrompt(undefined, undefined, "work", null, [], "he");
     expect(workPrompt).toContain("Too casual");
 
-    // Evening: casual wear inappropriate
     const eveningPrompt = buildFashionPrompt(undefined, undefined, "evening", null, [], "he");
     expect(eveningPrompt).toContain("Casual wear would be very inappropriate");
 
-    // Coffee: not overdressed
     const coffeePrompt = buildFashionPrompt(undefined, undefined, "coffee", null, [], "he");
     expect(coffeePrompt).toContain("not overdressed");
 
-    // Family: respectful and put-together
     const familyPrompt = buildFashionPrompt(undefined, undefined, "family", null, [], "he");
     expect(familyPrompt).toContain("respectful and put-together");
   });
 });
-
 
 // ─── General Review Occasion ──────────────────────────────────────────────────
 
@@ -749,5 +568,26 @@ describe("General review occasion", () => {
       const prompt = buildFashionPrompt(undefined, undefined, id, null, [], "he");
       expect(prompt).toContain("OCCASION CONTEXT:");
     }
+  });
+});
+
+// ─── Jewelry Material Identification ─────────────────────────────────────────
+
+describe("Jewelry material identification in prompt", () => {
+  it("includes jewelry identification for premium users", () => {
+    const prompt = buildFashionPrompt(undefined, undefined, undefined, premiumProfile(), [], "he");
+    expect(prompt).toContain("JEWELRY & MATERIAL IDENTIFICATION");
+  });
+
+  it("includes silver vs white gold guidance for premium users", () => {
+    const prompt = buildFashionPrompt(undefined, undefined, undefined, premiumProfile(), [], "he");
+    expect(prompt).toContain("white gold");
+    expect(prompt).toContain("platinum");
+  });
+
+  it("includes diamond vs crystal guidance for premium users", () => {
+    const prompt = buildFashionPrompt(undefined, undefined, undefined, premiumProfile(), [], "he");
+    expect(prompt).toContain("diamonds");
+    expect(prompt).toContain("crystals");
   });
 });

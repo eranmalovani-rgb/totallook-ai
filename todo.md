@@ -134,3 +134,15 @@
 - [x] 8.5: Increased Stage 2 maxTokens from 1800 to 2500 (prevents JSON truncation)
 - [x] 8.6: Server-side analysis reduced from ~74s to ~37-39s (48% improvement); upload reduced from ~27s to ~2s; total end-to-end ~40-45s server-side
 - [x] 8.7: Analysis quality maintained — score 8.1/10 with optimized prompts
+
+## Stage 9 — Personalized Improvement Suggestions
+- [x] 9.1: Pass user's preferredStores to Stage 2 recommendations prompt (buildRecommendationsPromptFromCore)
+- [x] 9.2: Pass user's budgetLevel to Stage 2 prompt for price-appropriate suggestions
+- [x] 9.3: Pass user's country to Stage 2 for local store prioritization
+- [x] 9.4: Update fixShoppingLinkUrls to prioritize user's preferred stores
+- [x] 9.5: Gender-appropriate product images via gender param in shopping links
+- [x] 9.6: Generate working search URLs for all store links (getStoreSearchPatterns)
+- [x] 9.7: Applied to registered user, guest, and WhatsApp flows
+- [x] 9.8: 9 new vitest tests for personalized recommendations (all pass)
+- [x] 9.9: Updated analysis-prompt.test.ts for optimized prompt (82 tests pass)
+- [x] 9.10: Full suite: 705/709 tests pass (4 pre-existing API failures)

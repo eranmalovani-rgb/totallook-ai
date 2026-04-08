@@ -527,8 +527,39 @@ function getStoreSearchPatterns(gender: GenderCategory = "male"): Record<string,
  * improvement's productSearchQuery. Gender-aware patterns route to the
  * correct men/women category.
  */
-export function fixShoppingLinkUrls(analysis: FashionAnalysis, gender: GenderCategory = "male"): FashionAnalysis {
+export function fixShoppingLinkUrls(analysis: FashionAnalysis, gender: GenderCategory = "male", preferredStores?: string | null): FashionAnalysis {
   const patterns = getStoreSearchPatterns(gender);
+
+  // Parse preferred stores into normalized domain list
+  const preferredDomains: string[] = [];
+  if (preferredStores) {
+    for (const store of preferredStores.split(",").map(s => s.trim().toLowerCase()).filter(Boolean)) {
+      // Normalize store name to domain: "Zara" -> "zara.com", "zara.com" -> "zara.com"
+      const domain = store.includes(".") ? store.replace(/^www\./, "") : `${store}.com`;
+      preferredDomains.push(domain);
+    }
+  }
+
+  // Helper: find the best preferred store pattern for a search term
+  function getPreferredStoreUrl(searchTerm: string, currentHostname: string): string | null {
+    if (preferredDomains.length === 0) return null;
+    // If current store is already preferred, keep it
+    if (preferredDomains.some(d => currentHostname.includes(d) || d.includes(currentHostname))) return null;
+    // Find a preferred store that has a known search pattern
+    const encoded = encodeURIComponent(searchTerm).replace(/%20/g, "+");
+    for (const domain of preferredDomains) {
+      // Try exact match first
+      const patternFn = patterns[domain];
+      if (patternFn) return patternFn(encoded);
+      // Try partial match (e.g. "terminalx" matches "terminalx.com")
+      const partialMatch = Object.keys(patterns).find(k => k.includes(domain) || domain.includes(k.replace(".com", "")));
+      if (partialMatch) return patterns[partialMatch](encoded);
+    }
+    // Fallback: build a generic search URL for the first preferred store
+    const encoded2 = encodeURIComponent(searchTerm).replace(/%20/g, "+");
+    const firstDomain = preferredDomains[0];
+    return `https://www.${firstDomain}/search?q=${encoded2}`;
+  }
 
   for (const imp of analysis.improvements) {
     if (!imp.shoppingLinks) continue;
@@ -539,14 +570,23 @@ export function fixShoppingLinkUrls(analysis: FashionAnalysis, gender: GenderCat
 
         // Extract the best search term: prefer the link label (product name)
         // before the dash/em-dash store suffix, fall back to productSearchQuery
-        const labelProduct = link.label.split("—")[0].split("–")[0].split(" - ")[0].trim();
+        const labelProduct = link.label.split("\u2014")[0].split("\u2013")[0].split(" - ")[0].trim();
         const searchTerm = labelProduct || imp.productSearchQuery || "fashion";
         const encoded = encodeURIComponent(searchTerm).replace(/%20/g, "+");
 
-        // Check if we already have a valid search URL (contains a search query param with a value)
+        // If user has preferred stores, redirect to their preferred store
+        const preferredUrl = getPreferredStoreUrl(searchTerm, hostname);
+        if (preferredUrl) {
+          // Update the label to reflect the new store
+          const newDomain = new URL(preferredUrl).hostname.replace("www.", "");
+          const storeName = newDomain.split(".")[0].charAt(0).toUpperCase() + newDomain.split(".")[0].slice(1);
+          const cleanLabel = labelProduct || link.label;
+          return { ...link, url: preferredUrl, label: `${cleanLabel} \u2014 ${storeName}` };
+        }
+
+        // Check if we already have a valid search URL
         const isAlreadySearchUrl = isValidSearchUrl(parsed, hostname);
         if (isAlreadySearchUrl) {
-          // Already a proper search URL — keep it but ensure gender is correct
           return { ...link, url: link.url };
         }
 
@@ -556,14 +596,22 @@ export function fixShoppingLinkUrls(analysis: FashionAnalysis, gender: GenderCat
           return { ...link, url: patternFn(encoded) };
         }
 
-        // Unknown store — use generic search pattern
+        // Unknown store \u2014 use generic search pattern
         const baseUrl = `${parsed.protocol}//${parsed.hostname}`;
         return { ...link, url: `${baseUrl}/search?q=${encoded}` };
       } catch {
         // If URL parsing fails entirely, try to build from label
         try {
-          const labelProduct = link.label.split("—")[0].split("–")[0].split(" - ")[0].trim();
-          const encoded = encodeURIComponent(labelProduct || "fashion").replace(/%20/g, "+");
+          const labelProduct = link.label.split("\u2014")[0].split("\u2013")[0].split(" - ")[0].trim();
+          const searchTerm = labelProduct || "fashion";
+          // Try preferred store first
+          const preferredUrl = getPreferredStoreUrl(searchTerm, "");
+          if (preferredUrl) {
+            const newDomain = new URL(preferredUrl).hostname.replace("www.", "");
+            const storeName = newDomain.split(".")[0].charAt(0).toUpperCase() + newDomain.split(".")[0].slice(1);
+            return { ...link, url: preferredUrl, label: `${labelProduct} \u2014 ${storeName}` };
+          }
+          const encoded = encodeURIComponent(searchTerm).replace(/%20/g, "+");
           // Try to extract domain from the broken URL
           const domainMatch = link.url.match(/https?:\/\/(?:www\.)?([^/]+)/);
           if (domainMatch) {
@@ -1241,6 +1289,9 @@ function buildRecommendationsPromptFromCore(
   occasion?: string | null,
   userGender?: string | null,
   preferredInfluencers?: string | null,
+  preferredStores?: string | null,
+  budgetLevel?: string | null,
+  country?: string | null,
 ): string {
   const isHebrew = lang === "he";
   const occasionLine = occasion
@@ -1265,6 +1316,35 @@ function buildRecommendationsPromptFromCore(
     : (isHebrew
       ? "אם אין משפיענים מפורשים, הצע 2-3 משפיענים רלוונטיים."
       : "If no explicit influencers are provided, suggest 2-3 relevant influencers.");
+
+  // Budget context
+  const budgetMap: Record<string, string> = {
+    budget: isHebrew ? "חסכוני (עד 200₪ לפריט)" : "Budget-friendly (under $50/item)",
+    "mid-range": isHebrew ? "ביניים (200-600₪ לפריט)" : "Mid-range ($50-150/item)",
+    premium: isHebrew ? "פרימיום (600-2000₪ לפריט)" : "Premium ($150-500/item)",
+    luxury: isHebrew ? "יוקרה (2000₪+ לפריט)" : "Luxury ($500+/item)",
+  };
+  const budgetLine = budgetLevel
+    ? (isHebrew
+      ? `רמת תקציב: ${budgetMap[budgetLevel] || budgetLevel}. כל ההמלצות, מחירים וחנויות חייבים להתאים לתקציב הזה.`
+      : `Budget level: ${budgetMap[budgetLevel] || budgetLevel}. ALL recommendations, prices, and stores must match this budget.`)
+    : "";
+
+  // Preferred stores context
+  const storesLine = preferredStores
+    ? (isHebrew
+      ? `חנויות מועדפות של המשתמש: ${preferredStores}. השתמש בחנויות האלו בלבד עבור shoppingLinks. כל URL חייב להיות כתובת חיפוש אמיתית בחנות (למשל https://www.zara.com/search?searchTerm=...).`
+      : `User's preferred stores: ${preferredStores}. Use ONLY these stores for shoppingLinks. Every URL must be a real search URL on the store (e.g. https://www.zara.com/search?searchTerm=...).`)
+    : (isHebrew
+      ? "השתמש בחנויות פופולריות ומוכרות בלבד (Zara, H&M, ASOS, Nordstrom, etc). כל URL חייב להיות כתובת חיפוש אמיתית."
+      : "Use popular well-known stores only (Zara, H&M, ASOS, Nordstrom, etc). Every URL must be a real search URL.");
+
+  // Country context for store selection
+  const countryStoreHint = country && !preferredStores
+    ? (isHebrew
+      ? `המשתמש נמצא ב-${country}. העדף חנויות שזמינות באזור הזה.`
+      : `User is located in ${country}. Prefer stores available in this region.`)
+    : "";
   return isHebrew
     ? `אתה שלב 2 במערכת דו-שלבית: השראה והמלצות בלבד.
 קלט: JSON מובנה של שלב 1 שכבר ביצע ניתוח וזיהוי פריטים.
@@ -1284,6 +1364,9 @@ function buildRecommendationsPromptFromCore(
 - כל הטקסטים בעברית. JSON בלבד.
 
 ${genderLine}
+${budgetLine}
+${storesLine}
+${countryStoreHint}
 ${preferredInfluencersLine}
 ${occasionLine}`
     : `You are Stage 2 of a split pipeline: inspiration and recommendations only.
@@ -1304,6 +1387,9 @@ Rules:
 - All text in English. JSON only.
 
 ${genderLine}
+${budgetLine}
+${storesLine}
+${countryStoreHint}
 ${preferredInfluencersLine}
 ${occasionLine}`;
 }
@@ -2075,6 +2161,9 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
                         review.occasion,
                         profileContext?.gender || null,
                         review.influencers || profileContext?.favoriteInfluencers || null,
+                        profileContext?.preferredStores || null,
+                        profileContext?.budgetLevel || null,
+                        profileContext?.country || null,
                       ),
                     },
                     {
@@ -2314,7 +2403,7 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
           // Fix shopping link URLs — ALWAYS rebuild as search URLs to prevent 404s
           // Even if AI generated correct-looking URLs, we rebuild them to guarantee they work
           const userGender: GenderCategory = (profileContext?.gender as GenderCategory) || "male";
-          analysis = fixShoppingLinkUrls(analysis, userGender);
+          analysis = fixShoppingLinkUrls(analysis, userGender, profileContext?.preferredStores || null);
           analysis = normalizeOutfitSuggestionsForWearableCore(analysis, userGender);
           analysis = normalizeImprovementsForWearableCore(analysis, userGender);
 
@@ -3829,6 +3918,8 @@ Return ONLY a JSON object with these exact fields:
             occupation: guestProfile.occupation || undefined,
             budgetLevel: guestProfile.budgetLevel || undefined,
             stylePreference: guestProfile.stylePreference || undefined,
+            preferredStores: guestProfile.preferredStores || undefined,
+            country: guestProfile.country || undefined,
           } : null;
 
 
@@ -3922,6 +4013,9 @@ Return ONLY a JSON object with these exact fields:
                         input.occasion,
                         profileForPrompt?.gender || null,
                         guestProfile?.favoriteInfluencers || null,
+                        guestProfile?.preferredStores || null,
+                        guestProfile?.budgetLevel || null,
+                        guestProfile?.country || null,
                       ),
                     },
                     {
@@ -4115,7 +4209,7 @@ Return ONLY a JSON object with these exact fields:
 
           // Fix shopping URLs with gender from profile
           const guestGender: GenderCategory = (profileForPrompt?.gender as GenderCategory) || "male";
-          analysis = fixShoppingLinkUrls(analysis, guestGender);
+          analysis = fixShoppingLinkUrls(analysis, guestGender, guestProfile?.preferredStores || null);
           analysis = normalizeOutfitSuggestionsForWearableCore(analysis, guestGender);
           analysis = normalizeImprovementsForWearableCore(analysis, guestGender);
 
