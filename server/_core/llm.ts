@@ -126,7 +126,7 @@ async function imageUrlToBase64(url: string): Promise<string> {
 
   try {
     const controller = new AbortController();
-    const fetchTimeout = setTimeout(() => controller.abort(), 8000);
+    const fetchTimeout = setTimeout(() => controller.abort(), 5000);
     const response = await fetch(url, { signal: controller.signal });
     clearTimeout(fetchTimeout);
     if (!response.ok) {
@@ -136,30 +136,36 @@ async function imageUrlToBase64(url: string): Promise<string> {
     const buffer: Buffer = Buffer.from(await response.arrayBuffer()) as Buffer;
     const contentType = response.headers.get("content-type") || "image/jpeg";
 
-    // Normalize large/unsupported images to keep vision calls fast and stable.
-    // Use 1024px max (detail:"low" doesn't benefit from larger) and lower quality for speed.
+    // Normalize images to keep vision calls fast and stable.
+    // Use 768px max and JPEG quality 60 for speed — fashion analysis doesn't need more.
     let normalizedBuffer = buffer;
     let normalizedType = contentType;
     try {
-      const metadata = await sharp(buffer).metadata();
-      const sourceWidth = metadata.width || 0;
-      const sourceHeight = metadata.height || 0;
-      const maxSide = Math.max(sourceWidth, sourceHeight);
-      const needsResize = maxSide > 1024;
-      const needsFormatNormalize = !contentType.includes("jpeg");
+      // Skip metadata read for very small images (<200KB JPEG) — just base64 them directly
+      const isSmallJpeg = buffer.byteLength < 200_000 && contentType.includes("jpeg");
+      if (isSmallJpeg) {
+        // Already small JPEG, no processing needed
+      } else {
+        const metadata = await sharp(buffer).metadata();
+        const sourceWidth = metadata.width || 0;
+        const sourceHeight = metadata.height || 0;
+        const maxSide = Math.max(sourceWidth, sourceHeight);
+        const needsResize = maxSide > 768;
+        const needsFormatNormalize = !contentType.includes("jpeg");
 
-      if (needsResize || needsFormatNormalize) {
-        normalizedBuffer = await sharp(buffer)
-          .rotate()
-          .resize({
-            width: needsResize ? 1024 : undefined,
-            height: needsResize ? 1024 : undefined,
-            fit: "inside",
-            withoutEnlargement: true,
-          })
-          .jpeg({ quality: 72, mozjpeg: true })
-          .toBuffer();
-        normalizedType = "image/jpeg";
+        if (needsResize || needsFormatNormalize) {
+          normalizedBuffer = await sharp(buffer)
+            .rotate()
+            .resize({
+              width: needsResize ? 768 : undefined,
+              height: needsResize ? 768 : undefined,
+              fit: "inside",
+              withoutEnlargement: true,
+            })
+            .jpeg({ quality: 60, mozjpeg: true })
+            .toBuffer();
+          normalizedType = "image/jpeg";
+        }
       }
     } catch (imgErr: any) {
       throw new Error(`INVALID_IMAGE_INPUT: ${imgErr?.message || "image decode failed"}`);
@@ -501,7 +507,7 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
       payload.max_tokens = requestedMaxTokens;
     }
 
-    const timeoutMs = 40000;
+    const timeoutMs = 30000;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
     let response: Response;

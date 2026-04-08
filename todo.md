@@ -106,3 +106,12 @@
 - [x] 5.4: Improved outfit combination quality — enhanced LLM prompts with gender awareness, style coherence, color harmony
 - [x] 5.5: Pass user gender through entire pipeline (resolveShoppingLinkImage, enrichAnalysis, generateImages, generateOutfitLook)
 - [x] 5.6: 13 new tests (gender filtering + global dedup), 705/709 tests pass
+
+## Stage 6 — Analysis Speed Optimization
+- [x] Map full analysis pipeline with timing estimates
+- [x] Reduce Stage 1 max_tokens (2800 → 2200)
+- [x] Reduce Stage 2 max_tokens (2400 → 1800)
+- [x] Optimize image base64: 768px max (was 1024), quality 60 (was 72), skip sharp for <200KB JPEGs
+- [x] Reduce retry delays: Stage 1 800ms (was 1500ms), Stage 2 600ms (was 1200ms)
+- [x] Reduce LLM timeout 30s (was 40s), image fetch 5s (was 8s)
+- [x] Tests: 706 pass, 4 pre-existing API failures (google-cse, imagegen x2, openai)

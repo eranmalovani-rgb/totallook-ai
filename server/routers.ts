@@ -2444,7 +2444,7 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
             try {
               if (attempt > 0) {
                 // Faster retry cadence: 2s, 4s
-                const delay = 1500 * Math.pow(2, attempt - 1);
+                const delay = 800 * Math.pow(2, attempt - 1);
                 console.log(`[Fashion Analysis] Retry attempt ${attempt + 1}/${MAX_RETRIES} after ${delay / 1000}s...`);
                 await new Promise(resolve => setTimeout(resolve, delay));
               }
@@ -2479,7 +2479,7 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
                     schema: analysisCoreJsonSchema,
                   },
                 },
-                maxTokens: 2800,
+                maxTokens: 2200,
               });
               analysisCore = parseFashionAnalysisCorePayload(llmResult);
               break; // Success
@@ -2519,7 +2519,7 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
             for (let attempt = 0; attempt < MAX_RECOMMENDATION_RETRIES; attempt++) {
               try {
                 if (attempt > 0) {
-                  const delay = 1200 * Math.pow(2, attempt - 1);
+                  const delay = 600 * Math.pow(2, attempt - 1);
                   await new Promise((resolve) => setTimeout(resolve, delay));
                 }
                 const recResult = await invokeLLM({
@@ -2548,7 +2548,7 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
                       schema: recommendationsJsonSchema,
                     },
                   },
-                  maxTokens: 2400,
+                  maxTokens: 1800,
                 });
                 recommendations = parseFashionRecommendationsPayload(recResult);
                 break;
@@ -4295,7 +4295,7 @@ Return ONLY a JSON object with these exact fields:
           for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
             try {
               if (attempt > 0) {
-                const delay = 1500 * Math.pow(2, attempt - 1);
+                const delay = 800 * Math.pow(2, attempt - 1);
                 console.log(`[Guest Analysis] Retry attempt ${attempt + 1}/${MAX_RETRIES} after ${delay / 1000}s...`);
                 await new Promise(resolve => setTimeout(resolve, delay));
               }
@@ -4318,7 +4318,7 @@ Return ONLY a JSON object with these exact fields:
                     schema: analysisCoreJsonSchema,
                   },
                 },
-                maxTokens: 2800,
+                maxTokens: 2200,
               });
               analysisCore = parseFashionAnalysisCorePayload(llmResult);
               break;
@@ -4358,7 +4358,7 @@ Return ONLY a JSON object with these exact fields:
             for (let attempt = 0; attempt < MAX_RECOMMENDATION_RETRIES; attempt++) {
               try {
                 if (attempt > 0) {
-                  const delay = 1200 * Math.pow(2, attempt - 1);
+                  const delay = 600 * Math.pow(2, attempt - 1);
                   await new Promise((resolve) => setTimeout(resolve, delay));
                 }
                 const recResult = await invokeLLM({
@@ -4387,7 +4387,7 @@ Return ONLY a JSON object with these exact fields:
                       schema: recommendationsJsonSchema,
                     },
                   },
-                  maxTokens: 2400,
+                  maxTokens: 1800,
                 });
                 recommendations = parseFashionRecommendationsPayload(recResult);
                 break;

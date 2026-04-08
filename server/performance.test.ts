@@ -16,14 +16,17 @@ describe("Performance optimizations", () => {
   );
 
   describe("llm.ts image conversion", () => {
-    it("should use 1024px max side (not 1600)", () => {
-      expect(llmSource).toContain("maxSide > 1024");
-      expect(llmSource).not.toContain("maxSide > 1600");
+    it("should use 768px max side for faster processing", () => {
+      expect(llmSource).toContain("maxSide > 768");
     });
 
-    it("should use quality 72 for JPEG compression", () => {
-      expect(llmSource).toContain("quality: 72");
-      expect(llmSource).not.toContain("quality: 82");
+    it("should use quality 60 for JPEG compression (speed optimized)", () => {
+      expect(llmSource).toContain("quality: 60");
+    });
+
+    it("should skip sharp processing for small JPEGs (<200KB)", () => {
+      expect(llmSource).toContain("isSmallJpeg");
+      expect(llmSource).toContain("200_000");
     });
 
     it("should convert images in parallel with Promise.all", () => {
