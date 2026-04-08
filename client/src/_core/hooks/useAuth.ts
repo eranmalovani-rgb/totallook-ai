@@ -9,8 +9,10 @@ type UseAuthOptions = {
 };
 
 export function useAuth(options?: UseAuthOptions) {
-  const { redirectOnUnauthenticated = false, redirectPath = getLoginUrl() } =
+  const { redirectOnUnauthenticated = false, redirectPath } =
     options ?? {};
+  // Always compute login URL fresh from current origin to prevent stale cached URLs
+  const resolvedRedirectPath = redirectPath ?? getLoginUrl();
   const utils = trpc.useUtils();
 
   const meQuery = trpc.auth.me.useQuery(undefined, {
@@ -32,12 +34,17 @@ export function useAuth(options?: UseAuthOptions) {
         error instanceof TRPCClientError &&
         error.data?.code === "UNAUTHORIZED"
       ) {
-        return;
+        // Already logged out, continue cleanup
+      } else {
+        console.error("[Logout] Error:", error);
       }
-      throw error;
     } finally {
+      // Clear all client-side state
       utils.auth.me.setData(undefined, null);
       await utils.auth.me.invalidate();
+      localStorage.removeItem("manus-runtime-user-info");
+      // Redirect to home page
+      window.location.href = "/";
     }
   }, [logoutMutation, utils]);
 
@@ -65,12 +72,12 @@ export function useAuth(options?: UseAuthOptions) {
     if (meQuery.isLoading || logoutMutation.isPending) return;
     if (state.user) return;
     if (typeof window === "undefined") return;
-    if (window.location.pathname === redirectPath) return;
+    if (window.location.pathname === resolvedRedirectPath) return;
 
-    window.location.href = redirectPath
+    window.location.href = resolvedRedirectPath
   }, [
     redirectOnUnauthenticated,
-    redirectPath,
+    resolvedRedirectPath,
     logoutMutation.isPending,
     meQuery.isLoading,
     state.user,

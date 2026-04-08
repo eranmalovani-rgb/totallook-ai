@@ -1,0 +1,1 @@
+ALTER TABLE `feedPosts` ADD `summary` text;

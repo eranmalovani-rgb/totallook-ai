@@ -1,0 +1,1 @@
+ALTER TABLE `wardrobeItems` MODIFY COLUMN `userId` int;
