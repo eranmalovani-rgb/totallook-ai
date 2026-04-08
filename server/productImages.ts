@@ -6,7 +6,8 @@
  * Resolution order:
  *   1. DB cache (avoid re-fetching)
  *   2. Store OG image (scrape product page meta tags)
- *   3. **Google Custom Search Image API** (real product photos)
+ *   3. **Brave Image Search** (primary — real product photos)
+ *   3b. Google Custom Search Image API (fallback)
  *   4. AI image generation (DALL-E / gpt-image fallback)
  * 
  * Features:
@@ -19,6 +20,7 @@ import { generateImage } from "./_core/imageGeneration";
 import { storagePut } from "server/storage";
 import { getCachedProductImage, saveProductImageToCache, normalizeProductKey } from "./db";
 import { searchGoogleImages, buildProductSearchQuery, pickBestProductImage } from "./googleImageSearch";
+import { searchBraveImages, buildBraveSearchQuery, pickBestBraveImage } from "./braveImageSearch";
 import type { FashionAnalysis, OutfitSuggestion } from "../shared/fashionTypes";
 
 const MAX_CONCURRENT = 3;
@@ -155,7 +157,31 @@ async function resolveShoppingLinkImage(params: {
     }
   }
 
-  // --- Step 3: Try Google Image Search ---
+  // --- Step 3: Try Brave Image Search (primary) ---
+  try {
+    const braveQuery = buildBraveSearchQuery(label, categoryQuery);
+    const braveResults = await searchBraveImages(braveQuery, 5);
+    if (braveResults.length > 0) {
+      const bestImage = await pickBestBraveImage(braveResults);
+      if (bestImage && isValidImageUrl(bestImage)) {
+        const reachable = await testImageUrl(bestImage);
+        if (reachable) {
+          console.log(`${logPrefix} Brave Image: "${label}"`);
+          saveProductImageToCache({
+            productKey: cacheKey,
+            imageUrl: bestImage,
+            originalLabel: label,
+            categoryQuery,
+          }).catch(err => console.warn("[ProductImages] Cache save failed:", err?.message));
+          return bestImage;
+        }
+      }
+    }
+  } catch (braveErr: any) {
+    console.warn(`${logPrefix} Brave Image Search failed:`, braveErr?.message);
+  }
+
+  // --- Step 3b: Try Google Image Search (fallback) ---
   try {
     const googleQuery = buildProductSearchQuery(label, categoryQuery);
     const googleResults = await searchGoogleImages(googleQuery, 5);

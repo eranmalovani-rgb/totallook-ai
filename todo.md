@@ -84,3 +84,10 @@
 - [x] 3.4: Add fallback logic — if Google returns no results, falls through to AI generation
 - [x] 3.5: Google image URLs are cached in existing product image cache
 - [x] 3.6: Build passes (0 TS errors), 15 new unit tests pass, Google CSE integration ready (awaiting API propagation)
+
+## Stage 3b: Brave Image Search Integration (replacing broken Google CSE)
+- [x] 3b.1: Set up Brave Search API key (free tier, $5 credits/month)
+- [x] 3b.2: Create Brave Image Search service (server/braveImageSearch.ts)
+- [x] 3b.3: Integrate Brave as primary image search in productImages.ts (Cache → Store OG → Brave → Google CSE fallback → AI fallback)
+- [x] 3b.4: Write unit tests for Brave Image Search (19 tests + 2 live API tests pass)
+- [x] 3b.5: Build passes (0 TS errors), 21 new tests pass, Brave API verified working
