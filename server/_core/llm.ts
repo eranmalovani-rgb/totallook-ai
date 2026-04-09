@@ -507,7 +507,7 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
       payload.max_tokens = requestedMaxTokens;
     }
 
-    const timeoutMs = 45000;
+    const timeoutMs = 90000;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
     let response: Response;

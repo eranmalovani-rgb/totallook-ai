@@ -6,13 +6,13 @@ import { describe, it, expect } from "vitest";
  */
 
 describe("Analysis Reliability Improvements", () => {
-  describe("7.1: LLM Timeout increased to 45s", () => {
-    it("should have LLM timeout set to 45000ms", async () => {
+  describe("7.1: LLM Timeout increased to 90s", () => {
+    it("should have LLM timeout set to 90000ms", async () => {
       const fs = await import("fs");
       const llmCode = fs.readFileSync("server/_core/llm.ts", "utf-8");
-      // Verify the timeout is 45000ms (was 30000ms)
-      expect(llmCode).toContain("const timeoutMs = 45000;");
-      expect(llmCode).not.toContain("const timeoutMs = 30000;");
+      // Verify the timeout is 90000ms (was 45000ms)
+      expect(llmCode).toContain("const timeoutMs = 90000;");
+      expect(llmCode).not.toContain("const timeoutMs = 45000;");
     });
   });
 

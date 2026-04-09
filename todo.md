@@ -528,3 +528,7 @@
 - [x] 39.4: Added to both HE+EN prompts: color harmony, proportion guidance, 2025-2026 trends, quiet luxury, specific color pairing
 - [x] 39.5: Added explicit rule in prompt: FORBIDDEN generic sneakers, must suggest minimalist leather sneakers / suede loafers / leather derby
 - [x] 39.6: 0 TS errors, 819/824 tests pass
+
+## Stage 40: CRITICAL — LLM invoke timeout after 45s
+- [x] 40.1: Increased LLM timeout from 45s to 90s in server/_core/llm.ts
+- [x] 40.2: Updated test, 819/824 pass, 0 TS errors
