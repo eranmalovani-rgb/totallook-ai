@@ -532,3 +532,9 @@
 ## Stage 40: CRITICAL — LLM invoke timeout after 45s
 - [x] 40.1: Increased LLM timeout from 45s to 90s in server/_core/llm.ts
 - [x] 40.2: Updated test, 819/824 pass, 0 TS errors
+
+## Stage 42: Re-add description sanitization without mentioning old item
+- [x] 42.1: Added description sanitization — catches bad patterns and rebuilds describing only the recommended item
+- [x] 42.2: Fixed buildFallbackImprovement — describes only the after item with style context
+- [x] 42.3: Fixed all 6 generic fallback map descriptions — professional content without old item references
+- [x] 42.4: 0 TS errors, 819/824 tests pass

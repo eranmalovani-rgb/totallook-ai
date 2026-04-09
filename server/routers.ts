@@ -404,8 +404,8 @@ function buildFallbackImprovement(
     return {
       title: dynamicTitle,
       description: isHebrew
-        ? `החלף/י את ה-${currentType} ב-${afterType} למראה משודרג יותר.`
-        : `Replace the ${currentType} with a ${afterType} for a more polished look.`,
+        ? `ה${hebrewAfterName} ב${afterColor} מעניק מרקם ונוכחות לסילואט. שילוב ${afterColor} עם שאר הפריטים יוצר הרמוניה צבעונית נעימה.`
+        : `The ${afterColor} ${afterType} adds structure and presence to the silhouette. The ${afterColor} tone pairs beautifully with the rest of the outfit.`,
       beforeLabel,
       afterLabel,
       beforeColor: currentColor,
@@ -429,42 +429,41 @@ function buildFallbackImprovement(
     ? {
         top: {
           title: "חולצה מחויטת יותר — הפרט שמשנה את הרושם הראשון",
-          description: "הוסף/י חלק עליון מחויט ומחמיא כדי לחזק את הלוק ולהעלות את רמת הסטייל הכללית.",
+          description: "חלק עליון מחויט מעניק מבנה לסילואט ומרים את רמת הסטייל הכללית — טרנד ה-quiet luxury של 2025.",
           beforeLabel: "חלק עליון נוכחי",
           afterLabel: "חולצה/טופ מחויט איכותי",
           query: "tailored shirt premium",
         },
          bottom: {
-          title: "גזרה נקיה ומדויקת — הבסיס לכל לוק מאוזן",
-          description: "בחר/י פריט תחתון בגזרה נקיה ומדויקת שיוצר בסיס חזק ללוק מלא ומאוזן.",
+          title: "גזרה נקיה ומדויקת — הבסיס לכל לוק מאוזן",          description: "פריט תחתון בגזרה נקייה ומדויקת יוצר בסיס איתן לכל הלוק. הגזרה הנכונה מאזנת את הפרופורציות ומעניקה מראה מושקע.",
           beforeLabel: "חלק תחתון נוכחי",
           afterLabel: "מכנסיים/חצאית בגזרה נקייה",
           query: "tailored pants clean fit",
         },
         outerwear: {
           title: "שכבה עליונה מובנית — עומק ונוכחות ברגע אחד",
-          description: "שלב/י שכבה עליונה מובנית שתיתן עומק, נוכחות וקו סילואט ברור.",
+          description: "שכבה עליונה מובנית מוסיפה עומק, נוכחות וקו סילואט ברור — אחד הטרנדים החזקים של 2025.",
           beforeLabel: "ללא שכבה עליונה מובנית",
           afterLabel: "בלייזר/ג׳קט מובנה",
           query: "structured blazer jacket",
         },
         dress: {
           title: "שדרוג לפריט מרכזי",
-          description: "בחר/י שמלה בגזרה מחמיאה כדי ליצור הופעה שלמה, מאוזנת ומעודכנת.",
+          description: "שמלה בגזרה מחמיא יוצרת הופעה שלמה ומאוזנת. הגזרה המחמיא מדגישה את הסילואט ומעניקה מראה מעודכן.",
           beforeLabel: "שמלה נוכחית",
           afterLabel: "שמלה בגזרה מחמיאה",
           query: "structured flattering dress",
         },
         onepiece: {
           title: "שדרוג לפריט one-piece",
-          description: "החלף/י לפריט one-piece מחויט שמייצר מראה נקי ואלגנטי יותר.",
+          description: "פריט one-piece מחויט מייצר מראה נקי ואלגנטי. הגזרה המחויטת מארכת את הסילואט ומעניקה מראה מושקע.",
           beforeLabel: "one-piece נוכחי",
           afterLabel: "one-piece מחויט",
           query: "tailored jumpsuit one piece",
         },
         shoes: {
           title: "נעליים תואמות — הסגירה שמשלימה את הלוק",
-          description: "הוסף/י נעליים תואמות ומדויקות ללוק כדי לייצר סגירה חזקה והרמונית.",
+          description: "נעליים תואמות ללוק משלימות את המראה הכללי ויוצרות סגירה חזקה והרמונית. הנעל הנכונה מעניק תחושת של שלמות ותשומת לפרטים.",
           beforeLabel: "נעליים נוכחיות",
           afterLabel: "נעליים תואמות ללוק",
           query: "premium outfit matching shoes",
@@ -2561,7 +2560,66 @@ function sanitizeRecommendationsPayload(
       }
     }
 
-    return { ...imp, title };
+    // Description sanitization: catch generic/bad patterns and rebuild professionally
+    let desc = (imp.description || "").trim();
+    const badDescPatterns = /החלף\/י|הוסף\/י|בחר\/י|שלב\/י|שדרג\/י|למראה משודרג יותר|זה ישדרג את הלוק|replace the .* with|for a more polished look/i;
+    if (badDescPatterns.test(desc) || desc.length < 30) {
+      const afterType = (imp.afterGarmentType || "").trim();
+      const afterColor = (imp.afterColor || "").trim();
+      const afterStyle = (imp.afterStyle || "smart-casual").trim();
+      const FAKE = /^(matching|premium|upgraded|similar|complementary|better|improved|quality|stylish|elegant|luxury|n\/a|none|undefined)$/i;
+      const heGarmentMap: Record<string, string> = {
+        "t-shirt": "טישרט", "polo": "פולו", "dress shirt": "חולצת כפתורים",
+        "shirt": "חולצה", "blouse": "בלוזה", "sweater": "סוודר", "hoodie": "הודי",
+        "blazer": "בלייזר", "jacket": "ז'קט", "coat": "מעיל", "cardigan": "קרדיגן",
+        "jeans": "ג'ינס", "chinos": "צ'ינוס", "pants": "מכנסיים", "trousers": "מכנסיים",
+        "shorts": "שורטס", "skirt": "חצאית", "dress": "שמלה",
+        "sneakers": "סניקרס", "shoes": "נעליים", "boots": "מגפיים", "loafers": "לואפרס",
+        "linen shirt": "חולצת פשתן", "knit sweater": "סוודר סרוג",
+        "leather loafers": "לואפרס עור", "minimalist leather sneakers": "סניקרס עור מינימליסטי",
+        "henley": "הנלי", "tailored chinos": "צ'ינוס מחויט", "tailored trousers": "מכנסיים מחויטים",
+      };
+      const heColorMap: Record<string, string> = {
+        "navy blue": "כחול כהה", "white": "לבן", "charcoal": "אפור פחם", "olive": "ירוק זית",
+        "light blue": "תכלת", "burgundy": "בורדו", "brown": "חום", "tan": "חום בהיר",
+        "beige": "בז'", "navy": "כחול כהה", "black": "שחור", "gray": "אפור",
+      };
+      const styleNoteHe: Record<string, string> = {
+        "smart-casual": "הלוק עולה רמה עם מראה smart-casual מאוזן",
+        "formal": "הפריט מעניק נוכחות פורמלית ומלוטשת",
+        "minimalist": "הגזרה הנקייה יוצרת סילואט מינימליסטי ומדויק",
+        "casual": "הפריט שומר על נוחות אבל מרגיש הרבה יותר מושקע",
+        "classic": "הפריט מביא נופך קלאסי ונצחי",
+      };
+      const styleNoteEn: Record<string, string> = {
+        "smart-casual": "elevating the look with a balanced smart-casual aesthetic",
+        "formal": "bringing a polished, formal presence",
+        "minimalist": "creating a clean, minimalist silhouette",
+        "casual": "keeping it comfortable but significantly more refined",
+        "classic": "adding a timeless, classic touch",
+      };
+      const realAfterType = afterType && !FAKE.test(afterType) ? afterType : "";
+      const realAfterColor = afterColor && !FAKE.test(afterColor) ? afterColor : "";
+      if (lang === "he") {
+        const heAfter = heGarmentMap[realAfterType.toLowerCase()] || realAfterType;
+        const heColor = heColorMap[realAfterColor.toLowerCase()] || realAfterColor;
+        const sNote = styleNoteHe[afterStyle] || "השדרוג מעניק מראה מושקע ומקצועי יותר";
+        if (heAfter && heColor) {
+          desc = `ה${heAfter} ב${heColor} מעניק מרקם ונוכחות לסילואט. ${sNote}. שילוב ${heColor} עם שאר הפריטים יוצר הרמוניה צבעונית נעימה.`;
+        } else if (heAfter) {
+          desc = `ה${heAfter} מעניק מבנה ונוכחות לסילואט. ${sNote}.`;
+        }
+      } else {
+        const sNote = styleNoteEn[afterStyle] || "delivering a more polished, intentional look";
+        if (realAfterType && realAfterColor) {
+          desc = `The ${realAfterColor} ${realAfterType} adds structure and presence to the silhouette, ${sNote}. The ${realAfterColor} tone pairs beautifully with the rest of the outfit — a key 2025 trend.`;
+        } else if (realAfterType) {
+          desc = `The ${realAfterType} adds structure and presence to the silhouette, ${sNote}.`;
+        }
+      }
+    }
+
+    return { ...imp, title, description: desc };
   });
 
   improvements = improvements.map((imp) => normalizeImprovementShoppingLinks(imp, lang, preferredStores, genderCat, budgetLevel));
