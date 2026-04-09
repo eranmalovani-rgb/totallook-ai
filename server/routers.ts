@@ -3108,12 +3108,9 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
                     },
                     {
                       role: "user",
-                      content: [
-                        { type: "text" as const, text: input.lang === "he"
-                          ? `להלן פלט שלב 1 (ניתוח+זיהוי). הסתכל על התמונה המצורפת וודא שההמלצות מתייחסות ספציפית למה שאתה רואה. החזר רק השראה+המלצות בפורמט המבוקש:\n${JSON.stringify(recommendationSeed)}`
-                          : `Here is the stage-1 analysis+identification output. LOOK at the attached photo and ensure recommendations are SPECIFIC to what you see. Return only inspiration+recommendations in the required schema:\n${JSON.stringify(recommendationSeed)}` },
-                        { type: "image_url" as const, image_url: { url: review.imageUrl, detail: "low" as const } },
-                      ],
+                      content: input.lang === "he"
+                        ? `להלן פלט שלב 1 (ניתוח+זיהוי). התבסס על הפריטים המזוהים ב-items וודא שההמלצות מתייחסות ספציפית לצבעים, לחומרים, לגזרה ולסגנון של כל פריט. החזר רק השראה+המלצות בפורמט המבוקש:\n${JSON.stringify(recommendationSeed)}`
+                        : `Here is the stage-1 analysis+identification output. Base your recommendations on the SPECIFIC items identified — their colors, materials, fit, and style. Each recommendation must directly address a specific item. Return only inspiration+recommendations in the required schema:\n${JSON.stringify(recommendationSeed)}`,
                     },
                   ],
                   response_format: {
@@ -5202,12 +5199,9 @@ Return ONLY a JSON object with these exact fields:
                     },
                     {
                       role: "user",
-                      content: [
-                        { type: "text" as const, text: input.lang === "he"
-                          ? `להלן פלט שלב 1 (ניתוח+זיהוי). הסתכל על התמונה המצורפת וודא שההמלצות מתייחסות ספציפית למה שאתה רואה. החזר רק השראה+המלצות בפורמט המבוקש:\n${JSON.stringify(recommendationSeed)}`
-                          : `Here is the stage-1 analysis+identification output. LOOK at the attached photo and ensure recommendations are SPECIFIC to what you see. Return only inspiration+recommendations in the required schema:\n${JSON.stringify(recommendationSeed)}` },
-                        { type: "image_url" as const, image_url: { url: session.imageUrl!, detail: "low" as const } },
-                      ],
+                      content: input.lang === "he"
+                        ? `להלן פלט שלב 1 (ניתוח+זיהוי). התבסס על הפריטים המזוהים ב-items וודא שההמלצות מתייחסות ספציפית לצבעים, לחומרים, לגזרה ולסגנון של כל פריט. החזר רק השראה+המלצות בפורמט המבוקש:\n${JSON.stringify(recommendationSeed)}`
+                        : `Here is the stage-1 analysis+identification output. Base your recommendations on the SPECIFIC items identified — their colors, materials, fit, and style. Each recommendation must directly address a specific item. Return only inspiration+recommendations in the required schema:\n${JSON.stringify(recommendationSeed)}`,
                     },
                   ],
                   response_format: {

@@ -511,3 +511,12 @@
 - [x] 37b.4: Diversified fallback upgradeMap with 2-3 options per garment type, random selection
 - [x] 37b.5: Replaced "מ-X ל-Y" with "{hebrewName} — {tagline}" format with Hebrew type map + random taglines
 - [x] 37b.6: 0 TS errors, 819/824 tests pass (5 external API failures)
+
+## Stage 38: CRITICAL — Analysis fails after 2 minutes (timeout)
+- [x] 38.1: Check server logs for the failed analyses
+- [x] 38.2: Root cause: adding image to Stage 2 doubled API usage → rate limit + timeout
+- [x] 38.3: Reverted to text-only Stage 2 (removed image_url from both registered + guest)
+- [x] 38.4: Pending checkpoint
+- [x] 38.5: Removed image from Stage 2 LLM call (both registered + guest)
+- [x] 38.6: Kept improved prompt — now references items/colors/materials from Stage 1 JSON instead of photo
+- [x] 38.7: 0 TS errors, 819/824 tests pass
