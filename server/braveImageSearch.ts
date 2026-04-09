@@ -225,17 +225,23 @@ function detectQueryCategory(query: string): string | null {
   return null;
 }
 
-function crossCategoryPenalty(title: string, expectedCategory: string | null): number {
-  if (!expectedCategory || !title) return 0;
-  const t = title.toLowerCase();
-  const matchesExpected = CATEGORY_KEYWORDS[expectedCategory]?.test(t) ?? false;
+function crossCategoryPenalty(title: string, expectedCategory: string | null, sourceUrl?: string, imageUrl?: string): number {
+  if (!expectedCategory) return 0;
+  // Combine all text signals: title + source URL path + image URL path
+  const signals = [
+    title || "",
+    sourceUrl ? decodeURIComponent(new URL(sourceUrl).pathname).replace(/[-_/]/g, " ") : "",
+    imageUrl ? decodeURIComponent(new URL(imageUrl).pathname).replace(/[-_/]/g, " ") : "",
+  ].join(" ").toLowerCase();
+  
+  const matchesExpected = CATEGORY_KEYWORDS[expectedCategory]?.test(signals) ?? false;
   // Bonus for matching the expected category
-  if (matchesExpected) return 3;
-  // Hard penalty if title matches a DIFFERENT category (e.g. pants in a top search)
+  if (matchesExpected) return 5;
+  // Hard penalty if ANY signal matches a DIFFERENT category (e.g. pants in a top search)
   for (const [cat, re] of Object.entries(CATEGORY_KEYWORDS)) {
     if (cat === expectedCategory) continue;
-    if (re.test(t)) {
-      return -50;
+    if (re.test(signals)) {
+      return -100; // Stronger penalty to ensure wrong-category images never win
     }
   }
   return 0;
@@ -245,6 +251,7 @@ export async function pickBestBraveImage(
   results: BraveImageResult[],
   usedUrls?: Set<string>,
   expectedCategoryQuery?: string,
+  offset?: number,
 ): Promise<string> {
   if (results.length === 0) return "";
 
@@ -266,14 +273,16 @@ export async function pickBestBraveImage(
         else if (ratio >= 0.3 && ratio <= 2.0) score += 1;
       }
       if (r.width < 150 || r.height < 150) score -= 3;
-      score += crossCategoryPenalty(r.title, expectedCategory);
+      score += crossCategoryPenalty(r.title, expectedCategory, r.sourceUrl, r.url);
       return { ...r, score };
     })
+    // Hard filter: if we know the expected category, REMOVE results with negative score (wrong category)
+    .filter((r) => !expectedCategory || r.score >= 0)
     .sort((a, b) => b.score - a.score);
 
-  // Return best scoring result directly — NO HEAD checks for speed
-  // Prefer main URL, fallback to thumbnail
-  const best = scored[0];
+  // Use offset to pick different results for different links within same improvement
+  const idx = Math.min(offset || 0, scored.length - 1);
+  const best = scored[Math.max(idx, 0)];
   if (!best) return "";
   return best.url || best.thumbnailUrl || "";
 }

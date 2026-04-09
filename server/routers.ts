@@ -348,8 +348,12 @@ function buildFallbackImprovement(
     const afterLabel = isHebrew ? `${afterType} ${afterColor}` : `${afterColor} ${afterFit} ${afterMaterial} ${afterType}`;
     const query = `${afterColor} ${afterFit} ${afterMaterial} ${afterType}`.trim();
 
+    // Build marketing-quality title from before→after transformation
+    const dynamicTitle = isHebrew
+      ? `מ-${currentType} ${currentColor} ל-${afterType} ${afterColor} — ${afterStyle === "smart-casual" ? "קפיצה ב-Smart Casual" : afterStyle === "formal" ? "מראה רשמי ומלוטש" : afterStyle === "minimalist" ? "מינימליזם מדויק" : "שדרוג שמשנה את הלוק"}`
+      : `From ${currentColor} ${currentType} to ${afterColor} ${afterType} — ${afterStyle === "smart-casual" ? "A Smart Casual Leap" : afterStyle === "formal" ? "Polished & Refined" : afterStyle === "minimalist" ? "Clean Minimalism" : "A Look-Changing Upgrade"}`;
     return {
-      title: isHebrew ? `שדרוג ${matchingItem.name || category}` : `Upgrade your ${matchingItem.name || category}`,
+      title: dynamicTitle,
       description: isHebrew
         ? `החלף/י את ה-${currentType} ב-${afterType} למראה משודרג יותר.`
         : `Replace the ${currentType} with a ${afterType} for a more polished look.`,
@@ -375,21 +379,21 @@ function buildFallbackImprovement(
   const map: Record<Exclude<ClothingCategory, "accessory" | "other">, { title: string; description: string; beforeLabel: string; afterLabel: string; query: string }> = isHebrew
     ? {
         top: {
-          title: "שדרוג חלק עליון",
+          title: "חולצה מחויטת יותר — הפרט שמשנה את הרושם הראשון",
           description: "הוסף/י חלק עליון מחויט ומחמיא כדי לחזק את הלוק ולהעלות את רמת הסטייל הכללית.",
           beforeLabel: "חלק עליון נוכחי",
           afterLabel: "חולצה/טופ מחויט איכותי",
           query: "tailored shirt premium",
         },
-        bottom: {
-          title: "שדרוג חלק תחתון",
-          description: "בחר/י פריט תחתון בגזרה נקייה ומדויקת שיוצר בסיס חזק ללוק מלא ומאוזן.",
+         bottom: {
+          title: "גזרה נקיה ומדויקת — הבסיס לכל לוק מאוזן",
+          description: "בחר/י פריט תחתון בגזרה נקיה ומדויקת שיוצר בסיס חזק ללוק מלא ומאוזן.",
           beforeLabel: "חלק תחתון נוכחי",
           afterLabel: "מכנסיים/חצאית בגזרה נקייה",
           query: "tailored pants clean fit",
         },
         outerwear: {
-          title: "שדרוג שכבה עליונה",
+          title: "שכבה עליונה מובנית — עומק ונוכחות ברגע אחד",
           description: "שלב/י שכבה עליונה מובנית שתיתן עומק, נוכחות וקו סילואט ברור.",
           beforeLabel: "ללא שכבה עליונה מובנית",
           afterLabel: "בלייזר/ג׳קט מובנה",
@@ -410,7 +414,7 @@ function buildFallbackImprovement(
           query: "tailored jumpsuit one piece",
         },
         shoes: {
-          title: "שדרוג נעליים",
+          title: "נעליים תואמות — הסגירה שמשלימה את הלוק",
           description: "הוסף/י נעליים תואמות ומדויקות ללוק כדי לייצר סגירה חזקה והרמונית.",
           beforeLabel: "נעליים נוכחיות",
           afterLabel: "נעליים תואמות ללוק",
@@ -419,21 +423,21 @@ function buildFallbackImprovement(
       }
     : {
         top: {
-          title: "Upgrade your top",
+          title: "A Tailored Top — The Detail That Changes the First Impression",
           description: "Add a better-structured top to sharpen the silhouette and elevate the full look.",
           beforeLabel: "Current top",
           afterLabel: "Well-fitted structured top",
           query: "tailored shirt premium",
         },
         bottom: {
-          title: "Upgrade your bottoms",
+          title: "Clean-Cut Bottoms — The Foundation of Every Balanced Look",
           description: "Use cleaner-cut bottoms that anchor the outfit and improve overall balance.",
           beforeLabel: "Current bottoms",
           afterLabel: "Clean tailored bottoms",
           query: "tailored pants clean fit",
         },
         outerwear: {
-          title: "Add a structured outer layer",
+          title: "A Structured Layer — Depth & Presence in One Move",
           description: "Introduce a structured outer layer to create depth and a stronger style profile.",
           beforeLabel: "No structured outer layer",
           afterLabel: "Structured blazer or jacket",
@@ -447,14 +451,14 @@ function buildFallbackImprovement(
           query: "structured flattering dress",
         },
         onepiece: {
-          title: "Upgrade your one-piece option",
+          title: "A Tailored One-Piece — Clean Lines, Maximum Impact",
           description: "Switch to a tailored one-piece garment for a cleaner and more elevated outfit.",
           beforeLabel: "Current one-piece",
           afterLabel: "Tailored one-piece garment",
           query: "tailored jumpsuit one piece",
         },
         shoes: {
-          title: "Upgrade your footwear",
+          title: "Coordinated Footwear — The Finishing Touch That Ties It All Together",
           description: "Use coordinated shoes that lock the look together and improve visual harmony.",
           beforeLabel: "Current shoes",
           afterLabel: "Coordinated footwear",
@@ -1834,6 +1838,7 @@ ${doctrineStage2}
 - חשוב מאוד: כל פריט בקלט כולל מטאדאטה מובנית עשירה (garmentType, preciseColor, material, fit, pattern, texture, neckline, sleeveLength, closure, bodyZone, layerIndex). השתמש בנתונים האלה כדי לייצר שידרוגים מדויקים! לדוגמה: אם הפריט הנוכחי הוא garmentType="t-shirt", preciseColor="white", material="cotton", fit="regular", pattern="solid" — ה-before fields חייבים לשקף בדיוק את המטאדאטה הזו.
 - אם הקלט כולל personDetection (מידע על הגוף: fullBodyVisible, feetVisible, bodyPose) ו-lookStructure (מבנה הלוק: colorHarmony, proportions, silhouetteSummary, hasLayering) — השתמש בהם! לדוגמה: אם proportions="top-heavy" הצע שידרוג שמאזן את הפרופורציות. אם colorHarmony="monochromatic" הצע הכנסת צבע קונטרסטי.
 - improvements: 3 המלצות שדרוג (קטגוריות שונות: חלק עליון, חלק תחתון, נעליים/אקססוריז). כל improvement חייב לכלול בדיוק 3 shoppingLinks (כתובות חיפוש תקינות בחנויות אמיתיות). אל תחזיר פחות מ-3.
+- כותרת (title) של כל improvement חייבת להיות שיווקית, מעוררת השראה ומדויקת — לא גנרית! אסור "שדרוג חלק עליון" או "שידרוג נעליים". במקום זה, כתוב כותרת שמתארת את המהות של השדרוג. דוגמאות טובות: "מחולצת כותנה בסיסית לפולו פיקה — קפיצה ב-Smart Casual", "החלפת סניקרס ספורטיביות בלואפרס עור — מראה מלוטש", "הוספת שעון מינימליסטי — הפרט שמשלים את הלוק". הכותרת חייבת לשקף את ה-before→after ולהסביר למה זה שדרוג.
 - חובה מוחלטת — מטאדטה מלאה לכל improvement: כל השדות הבאים חייבים להיות באנגלית lowercase. אסור להשאיר ריק!
   * beforeColor / afterColor: צבע מדויק (לדוגמה: "white", "navy blue", "charcoal gray")
   * beforeGarmentType / afterGarmentType: סוג הפריט (לדוגמה: "t-shirt", "dress shirt", "polo", "jeans", "chinos", "sneakers", "blazer", "hoodie")
@@ -1881,6 +1886,7 @@ Rules:
 - CRITICAL: Each item in the input includes RICH STRUCTURED METADATA (garmentType, preciseColor, material, fit, pattern, texture, neckline, sleeveLength, closure, bodyZone, layerIndex). USE these fields to generate precise improvements! For example: if the current item has garmentType="t-shirt", preciseColor="white", material="cotton", fit="regular", pattern="solid" — the before fields MUST exactly mirror this metadata.
 - If the input includes personDetection (body info: fullBodyVisible, feetVisible, bodyPose) and lookStructure (look composition: colorHarmony, proportions, silhouetteSummary, hasLayering) — USE THEM! For example: if proportions="top-heavy", suggest an upgrade that balances proportions. If colorHarmony="monochromatic", suggest introducing a contrasting accent color.
 - improvements: 3 upgrade suggestions (different categories: top, bottom, shoes/accessories). Each improvement MUST include exactly 3 shoppingLinks (valid search URLs to real stores). Never return fewer than 3.
+- TITLE WRITING RULES: Each improvement title MUST be marketing-quality, inspiring, and specific — NEVER generic! Forbidden: "Upgrade top", "Improve shoes", "Better pants". Instead, write a title that captures the essence of the transformation. Good examples: "From Basic Cotton Tee to Piqué Polo — A Smart Casual Leap", "Swap Sporty Sneakers for Leather Loafers — Polished Finish", "Add a Minimalist Watch — The Detail That Completes the Look". The title MUST reflect the before→after transformation and explain WHY it's an upgrade.
 - ABSOLUTE REQUIREMENT — Complete garment metadata for every improvement: ALL fields below MUST be in English lowercase. NEVER leave empty!
   * beforeColor / afterColor: exact color (e.g. "white", "navy blue", "charcoal gray")
   * beforeGarmentType / afterGarmentType: specific garment type (e.g. "t-shirt", "dress shirt", "polo", "jeans", "chinos", "sneakers", "blazer", "hoodie")
@@ -2301,14 +2307,31 @@ function sanitizeRecommendationsPayload(
   // Global deduplication: remove duplicate shopping links across all improvements
   const globalSeenUrls = new Set<string>();
   const globalSeenTitles = new Set<string>();
+  const globalSeenCategories = new Set<string>();
   improvements = improvements.map((imp) => {
     // Deduplicate by title (case-insensitive)
     const titleKey = (imp.title || "").trim().toLowerCase();
     if (titleKey && globalSeenTitles.has(titleKey)) {
-      // Skip duplicate improvement entirely — replace with a unique fallback
       return null as any;
     }
+    // Deduplicate by category (afterGarmentType or afterLabel) — max 1 improvement per garment category
+    const catKey = (imp.afterGarmentType || imp.afterLabel || "").trim().toLowerCase();
+    if (catKey && globalSeenCategories.has(catKey)) {
+      return null as any;
+    }
+    // Similarity check: if title is >60% similar to any seen title, skip
+    const isSimilar = Array.from(globalSeenTitles).some((seen) => {
+      const a = titleKey.replace(/[^a-zA-Z\u0590-\u05FF0-9\s]/g, "");
+      const b = seen.replace(/[^a-zA-Z\u0590-\u05FF0-9\s]/g, "");
+      const wordsA = new Set(a.split(/\s+/).filter(Boolean));
+      const wordsB = new Set(b.split(/\s+/).filter(Boolean));
+      const intersection = [...wordsA].filter((w) => wordsB.has(w)).length;
+      const union = new Set([...wordsA, ...wordsB]).size;
+      return union > 0 && intersection / union > 0.6;
+    });
+    if (isSimilar) return null as any;
     if (titleKey) globalSeenTitles.add(titleKey);
+    if (catKey) globalSeenCategories.add(catKey);
 
     // Deduplicate shopping links across improvements
     const uniqueLinks = (imp.shoppingLinks || []).filter((link) => {

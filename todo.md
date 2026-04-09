@@ -457,3 +457,16 @@
 - [x] 33.11: Inject Taste Profile into Fix My Look prompt (auth flow, via buildDeterministicFixMyLookPrompt tasteProfileText param)
 - [x] 33.12: Run full test suite — 765/769 pass (same 4 pre-existing API failures), 0 TS errors
 - [x] 33.13: Save checkpoint
+
+## Stage 34: Stage 2 Bug Investigation & Fixes
+- [x] 34.1: BUG — Improvement titles are bland/generic — FIXED: prompt instructions + dynamic fallback titles + marketing-quality examples
+- [x] 34.2: BUG — Product images appear duplicated — FIXED: pickerOffset per link, diversified result picking, hard filter for wrong-category
+- [x] 34.3: BUG — Product images show wrong category — FIXED: crossCategoryPenalty checks title+URL+sourceUrl, hard filter removes negative-score results, penalty -100
+- [x] 34.4: BUG — Duplicate improvement rows — FIXED: category-based dedup (max 1 per garment type) + Jaccard similarity check (>60% word overlap = skip)
+- [x] 34.5: Root cause analysis document for all 4 bugs
+- [x] 34.6: Fix Bug 3 — Wrong-category product images (crossCategoryPenalty checks 3 signals, hard filter, -100 penalty)
+- [x] 34.7: Fix Bug 2 — Duplicate product images (pickerOffset per link position, offset in Brave+Google pickers)
+- [x] 34.8: Fix Bug 4 — Duplicate improvement rows (globalSeenCategories + Jaccard similarity >0.6)
+- [x] 34.9: Fix Bug 1 — Bland improvement titles (HE+EN prompt rules, dynamic titles from metadata, marketing-quality fallbacks)
+- [x] 34.10: Run full test suite — 765/769 pass (same 4 pre-existing API failures), 0 TS errors
+- [x] 34.11: Save checkpoint

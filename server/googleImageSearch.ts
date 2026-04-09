@@ -197,17 +197,23 @@ function detectQueryCategory(query: string): string | null {
   return null;
 }
 
-function crossCategoryPenalty(title: string, expectedCategory: string | null): number {
-  if (!expectedCategory || !title) return 0;
-  const t = title.toLowerCase();
-  const matchesExpected = CATEGORY_KEYWORDS[expectedCategory]?.test(t) ?? false;
+function crossCategoryPenalty(title: string, expectedCategory: string | null, contextLink?: string, imageLink?: string): number {
+  if (!expectedCategory) return 0;
+  // Combine all text signals: title + context URL path + image URL path
+  const signals = [
+    title || "",
+    contextLink ? (() => { try { return decodeURIComponent(new URL(contextLink).pathname).replace(/[-_/]/g, " "); } catch { return ""; } })() : "",
+    imageLink ? (() => { try { return decodeURIComponent(new URL(imageLink).pathname).replace(/[-_/]/g, " "); } catch { return ""; } })() : "",
+  ].join(" ").toLowerCase();
+  
+  const matchesExpected = CATEGORY_KEYWORDS[expectedCategory]?.test(signals) ?? false;
   // Bonus for matching the expected category
-  if (matchesExpected) return 3;
-  // Hard penalty if title matches a DIFFERENT category (e.g. pants in a top search)
+  if (matchesExpected) return 5;
+  // Hard penalty if ANY signal matches a DIFFERENT category
   for (const [cat, re] of Object.entries(CATEGORY_KEYWORDS)) {
     if (cat === expectedCategory) continue;
-    if (re.test(t)) {
-      return -50;
+    if (re.test(signals)) {
+      return -100;
     }
   }
   return 0;
@@ -217,6 +223,7 @@ export async function pickBestProductImage(
   results: GoogleImageResult[],
   usedUrls?: Set<string>,
   expectedCategoryQuery?: string,
+  offset?: number,
 ): Promise<string> {
   if (results.length === 0) return "";
 
@@ -236,11 +243,14 @@ export async function pickBestProductImage(
         else if (ratio >= 0.3 && ratio <= 2.0) score += 1;
       }
       if (r.width < 150 || r.height < 150) score -= 3;
-      score += crossCategoryPenalty(r.title, expectedCategory);
+      score += crossCategoryPenalty(r.title, expectedCategory, r.contextLink, r.link);
       return { ...r, score };
     })
+    // Hard filter: remove wrong-category results
+    .filter((r) => !expectedCategory || r.score >= 0)
     .sort((a, b) => b.score - a.score);
 
-  // Return best scoring result directly — NO HEAD checks for speed
-  return scored[0]?.link ?? "";
+  // Use offset to pick different results for different links within same improvement
+  const idx = Math.min(offset || 0, scored.length - 1);
+  return scored[Math.max(idx, 0)]?.link ?? "";
 }

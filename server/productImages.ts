@@ -258,6 +258,8 @@ async function resolveShoppingLinkImage(params: {
   usedSourceUrls?: Set<string>;
   /** Pre-fetched search results (if available, skip API calls for speed) */
   prefetchedResults?: { braveResults: import('./braveImageSearch').BraveImageResult[]; googleResults: import('./googleImageSearch').GoogleImageResult[] };
+  /** Offset index for picking different results from the same search (0, 1, 2 for link 0, 1, 2) */
+  pickerOffset?: number;
 }): Promise<string> {
   const {
     label,
@@ -272,6 +274,7 @@ async function resolveShoppingLinkImage(params: {
     usedImageUrls,
     usedSourceUrls,
     prefetchedResults,
+    pickerOffset = 0,
   } = params;
   // For Brave/Google pickers, prefer usedSourceUrls (pre-proxy) if available
   const pickerDedup = usedSourceUrls || usedImageUrls;
@@ -324,7 +327,7 @@ async function resolveShoppingLinkImage(params: {
     })();
     if (braveResults.length > 0) {
       // Pass usedImageUrls so picker skips images already chosen by other links
-      const bestImage = await pickBestBraveImage(braveResults, pickerDedup, categoryQuery);
+      const bestImage = await pickBestBraveImage(braveResults, pickerDedup, categoryQuery, pickerOffset);
       if (bestImage && isValidImageUrl(bestImage)) {
         console.log(`${logPrefix} Brave Image: "${label}"`);
         const proxiedBraveUrl = await proxyImageToS3(bestImage);
@@ -372,7 +375,7 @@ async function resolveShoppingLinkImage(params: {
     })();
     if (googleResults.length > 0) {
       // Pass usedImageUrls so picker skips images already chosen by other links
-      const bestImage = await pickBestProductImage(googleResults, pickerDedup, categoryQuery);
+      const bestImage = await pickBestProductImage(googleResults, pickerDedup, categoryQuery, pickerOffset);
       if (bestImage && isValidImageUrl(bestImage)) {
         console.log(`${logPrefix} Google Image: "${label}"`);
         const proxiedGoogleUrl = await proxyImageToS3(bestImage);
@@ -1086,6 +1089,8 @@ export async function generateImagesForImprovement(
     const link = links[linkIdx];
 
     try {
+      // Pass pickerOffset so each link picks a different result from the same search
+      const linkPositionInImprovement = linksNeedingImages.indexOf(linkIdx);
       const resolvedUrl = await resolveShoppingLinkImage({
         label: link.label,
         url: link.url,
@@ -1095,6 +1100,7 @@ export async function generateImagesForImprovement(
         usedImageUrls,
         usedSourceUrls,
         prefetchedResults: prefetchMap.get(linkIdx),
+        pickerOffset: linkPositionInImprovement,
       });
       if (resolvedUrl) {
         const normalizedResolved = resolvedUrl.trim().toLowerCase();
