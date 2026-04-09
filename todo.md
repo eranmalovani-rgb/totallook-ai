@@ -479,3 +479,20 @@
 - [x] 35.5: Deep investigate — root cause: shared queries, same Brave results, offset not enough, no domain diversity
 - [x] 35.6: Fix image pipeline — domain-level diversity (skip same-domain), global dedup across improvements, sequential execution
 - [x] 35.7: Run tests (765/769 pass, same 4 pre-existing), save checkpoint
+
+## Stage 36: Fix productSearchQuery + Title Validation (Critical)
+- [x] 36.1: BUG — productSearchQuery contains fake values ("matching", "premium", "upgraded") → 0 images returned
+- [x] 36.2: BUG — Titles use "מ-X ל-Y" format or generic words ("שדרוג חלק עליון")
+- [x] 36.3: Fix — FAKE_VALUES blacklist in validateAndFixProductSearchQuery (30+ banned placeholder values)
+- [x] 36.4: Fix — isReal() helper filters fake afterColor/afterMaterial/afterGarmentType before building query
+- [x] 36.5: Fix — KNOWN_GARMENTS regex validates garment type, extracts from afterLabel as fallback
+- [x] 36.6: Fix — Metadata-based query building as PRIMARY path (genderPrefix + color + fit + material + garmentType)
+- [x] 36.7: Fix — Word deduplication in built queries
+- [x] 36.8: Fix — Title rewriting: detect "מ-X ל-Y" pattern, generic patterns, fake words → rebuild from metadata
+- [x] 36.9: Fix — Hebrew garment/material maps for title building (טישרט, פולו, בלייזר, כותנה, פשתן, עור...)
+- [x] 36.10: Fix — English title building with proper capitalization
+- [x] 36.11: Fix — Stage 2 prompt: explicit "מ-X ל-Y" prohibition, fake words prohibition, more good/bad examples
+- [x] 36.12: Fix — Stage 2 prompt: CRITICAL instruction for afterColor/afterMaterial/afterGarmentType with FORBIDDEN values list
+- [x] 36.13: 43 new vitest tests for Stage 36 (all pass)
+- [x] 36.14: Full suite: 808/812 tests pass (same 4 pre-existing API failures), 0 TS errors
+- [x] 36.15: Save checkpoint

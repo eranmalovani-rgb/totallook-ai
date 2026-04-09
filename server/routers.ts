@@ -1842,16 +1842,19 @@ ${doctrineStage2}
   * מקסימום 5-7 מילים! קצר, חד, שיווקי. זה PUNCH LINE, לא משפט.
   * חייבת להיות בעברית (שפת הממשק). אסור באנגלית!
   * אסור גנרי: "שדרוג חלק עליון", "שידרוג נעליים" = פסול!
+  * אסור פורמט "מ-X ל-Y": "מטישרט לפולו" = פסול! כתוב "פולו פיקה במקום טישרט" או "פולו פיקה — קפיצת דרג".
+  * אסור מילים גנריות בכותרת: "premium", "matching", "upgraded", "quality" = פסול!
   * חייבת לשקף את המהות — מה ה-before ומה ה-after.
-  * דוגמאות מושלמות: "מכותנה בסיסית לפולו פיקה", "לואפרס עור במקום סניקרס", "שעון מינימליסטי — הפרט שמשלים", "ג'ינס סלים במקום ג'וגר", "בלייזר פשתן — קפיצת דרג"
-  * דוגמאות פסולות: "שדרוג חלק עליון", "שיפור הנעליים", "Upgrade your top", "From Basic Cotton Tee to Piqué Polo — A Smart Casual Leap"
+  * דוגמאות מושלמות: "פולו פיקה במקום טישרט", "לואפרס עור במקום סניקרס", "שעון מינימליסטי — הפרט שמשלים", "ג'ינס סלים במקום ג'וגר", "בלייזר פשתן — קפיצת דרג", "צ'ינוס כותנה — בסיס חדש", "סניקרס עור — נוכחות ברגל"
+  * דוגמאות פסולות: "שדרוג חלק עליון", "שיפור הנעליים", "Upgrade your top", "From Basic Cotton Tee to Piqué Polo", "מטישרט לפולו — קפיצה בסטייל", "שדרוג premium"
 - חובה מוחלטת — מטאדטה מלאה לכל improvement: כל השדות הבאים חייבים להיות באנגלית lowercase. אסור להשאיר ריק!
-  * beforeColor / afterColor: צבע מדויק (לדוגמה: "white", "navy blue", "charcoal gray")
-  * beforeGarmentType / afterGarmentType: סוג הפריט (לדוגמה: "t-shirt", "dress shirt", "polo", "jeans", "chinos", "sneakers", "blazer", "hoodie")
+  * CRITICAL: afterColor, afterMaterial, afterGarmentType MUST be SPECIFIC REAL VALUES. FORBIDDEN placeholder values: "matching", "premium", "upgraded", "similar", "complementary", "better", "improved", "quality", "stylish", "elegant", "luxury", "appropriate", "suitable", "recommended". These are NOT colors, NOT materials, NOT garment types!
+  * beforeColor / afterColor: צבע מדויק (לדוגמה: "white", "navy blue", "charcoal gray"). afterColor חייב להיות צבע אמיתי! "matching" = פסול!
+  * beforeGarmentType / afterGarmentType: סוג הפריט (לדוגמה: "t-shirt", "dress shirt", "polo", "jeans", "chinos", "sneakers", "blazer", "hoodie"). afterGarmentType חייב להיות סוג בגד ספציפי! "premium top" = פסול! כתוב "polo" או "dress shirt" במקום.
   * beforeFit / afterFit: גיזרה (לדוגמה: "slim", "regular", "oversized", "tailored", "boxy")
   * beforeSleeveLength / afterSleeveLength: אורך שרוול (לדוגמה: "short", "long", "3/4", "sleeveless", "n/a")
   * beforeNeckline / afterNeckline: צווארון/מחשוף (לדוגמה: "crew neck", "v-neck", "polo collar", "button-down collar", "turtleneck", "n/a")
-  * beforeMaterial / afterMaterial: חומר/בד (לדוגמה: "cotton", "linen", "denim", "leather", "silk", "wool", "knit")
+  * beforeMaterial / afterMaterial: חומר/בד (לדוגמה: "cotton", "linen", "denim", "leather", "silk", "wool", "knit"). afterMaterial חייב להיות חומר אמיתי! "premium" = פסול! כתוב "piqué cotton" או "merino wool" במקום.
   * beforePattern / afterPattern: דוגמה/הדפס (לדוגמה: "solid", "striped", "checkered", "floral", "graphic print")
   * beforeStyle / afterStyle: סגנון (לדוגמה: "casual", "formal", "smart-casual", "sporty", "streetwear", "minimalist")
   * beforeLength / afterLength: אורך הפריט (לדוגמה: "cropped", "regular", "long", "midi")
@@ -1900,12 +1903,13 @@ Rules:
   * PERFECT examples: "Piqué Polo Over Basic Tee", "Leather Loafers, Not Sneakers", "Minimalist Watch — Finishing Touch", "Slim Chinos Over Joggers", "Linen Blazer — Level Up"
   * REJECTED examples: "Upgrade your top", "Improve shoes", "From Basic Cotton Tee to Piqué Polo — A Smart Casual Leap" (too long!)
 - ABSOLUTE REQUIREMENT — Complete garment metadata for every improvement: ALL fields below MUST be in English lowercase. NEVER leave empty!
-  * beforeColor / afterColor: exact color (e.g. "white", "navy blue", "charcoal gray")
-  * beforeGarmentType / afterGarmentType: specific garment type (e.g. "t-shirt", "dress shirt", "polo", "jeans", "chinos", "sneakers", "blazer", "hoodie")
+  * CRITICAL: afterColor, afterMaterial, afterGarmentType MUST be SPECIFIC REAL VALUES. FORBIDDEN placeholder values: "matching", "premium", "upgraded", "similar", "complementary", "better", "improved", "quality", "stylish", "elegant", "luxury", "appropriate", "suitable", "recommended". These are NOT colors, NOT materials, NOT garment types!
+  * beforeColor / afterColor: exact color (e.g. "white", "navy blue", "charcoal gray"). afterColor MUST be a REAL color! "matching" = REJECTED! Write "navy blue" or "white" instead.
+  * beforeGarmentType / afterGarmentType: specific garment type (e.g. "t-shirt", "dress shirt", "polo", "jeans", "chinos", "sneakers", "blazer", "hoodie"). afterGarmentType MUST be a SPECIFIC garment! "premium top" = REJECTED! Write "polo" or "dress shirt" instead.
   * beforeFit / afterFit: fit/silhouette (e.g. "slim", "regular", "oversized", "tailored", "boxy")
   * beforeSleeveLength / afterSleeveLength: sleeve length (e.g. "short", "long", "3/4", "sleeveless", "n/a" for non-tops)
   * beforeNeckline / afterNeckline: neckline/collar (e.g. "crew neck", "v-neck", "polo collar", "button-down collar", "turtleneck", "n/a")
-  * beforeMaterial / afterMaterial: fabric/material (e.g. "cotton", "linen", "denim", "leather", "silk", "wool", "knit")
+  * beforeMaterial / afterMaterial: fabric/material (e.g. "cotton", "linen", "denim", "leather", "silk", "wool", "knit"). afterMaterial MUST be a REAL material! "premium" = REJECTED! Write "piqué cotton" or "merino wool" instead.
   * beforePattern / afterPattern: pattern (e.g. "solid", "striped", "checkered", "floral", "graphic print")
   * beforeStyle / afterStyle: style category (e.g. "casual", "formal", "smart-casual", "sporty", "streetwear", "minimalist")
   * beforeLength / afterLength: garment length (e.g. "cropped", "regular", "long", "midi")
@@ -2213,16 +2217,48 @@ function validateAndFixProductSearchQuery(
   const afterPattern = (imp.afterPattern || "").trim().toLowerCase();
   const afterNeckline = (imp.afterNeckline || "").trim().toLowerCase();
 
-  // If we have structured metadata, build a rich query directly
-  if (afterType && afterType !== "n/a") {
+  // Blacklist: values the LLM returns that are NOT real colors/materials/garment types
+  const FAKE_VALUES = new Set([
+    "matching", "premium", "upgraded", "similar", "complementary", "better",
+    "improved", "enhanced", "quality", "stylish", "fashionable", "trendy",
+    "elegant", "sophisticated", "modern", "classic", "luxury", "luxurious",
+    "high-end", "high end", "designer", "branded", "n/a", "none", "same",
+    "appropriate", "suitable", "recommended", "ideal", "perfect", "optimal",
+  ]);
+  const isReal = (val: string) => val && !FAKE_VALUES.has(val) && val.length > 1;
+
+  // Known garment types — if afterGarmentType is not a real garment, try to extract from afterLabel
+  const KNOWN_GARMENTS = /^(t-shirt|tee|shirt|dress shirt|polo|blouse|top|tank top|camisole|crop top|tunic|sweater|hoodie|sweatshirt|cardigan|blazer|jacket|coat|vest|parka|trench|bomber|windbreaker|jeans|chinos|pants|trousers|shorts|skirt|leggings|joggers|cargo pants|dress pants|sneakers|shoes|boots|loafers|oxfords|sandals|heels|mules|slippers|derby|flats|dress|gown|maxi dress|midi dress|mini dress|jumpsuit|romper|overall|watch|bracelet|ring|necklace|earring|belt|bag|hat|cap|scarf|sunglasses|tie|pocket square)$/i;
+  let garmentType = afterType;
+  if (!KNOWN_GARMENTS.test(garmentType)) {
+    // Try to extract from afterLabel
+    const labelWords = (imp.afterLabel || "").toLowerCase().split(/\s+/);
+    for (let i = 0; i < labelWords.length; i++) {
+      const twoWord = labelWords.slice(i, i + 2).join(" ");
+      const oneWord = labelWords[i];
+      if (KNOWN_GARMENTS.test(twoWord)) { garmentType = twoWord; break; }
+      if (KNOWN_GARMENTS.test(oneWord)) { garmentType = oneWord; break; }
+    }
+  }
+
+  // If we have a real garment type, build a rich query directly
+  if (garmentType && garmentType !== "n/a" && KNOWN_GARMENTS.test(garmentType)) {
     const parts = [genderPrefix];
-    if (afterColor) parts.push(afterColor);
-    if (afterFit && afterFit !== "n/a" && afterFit !== "regular") parts.push(afterFit);
-    if (afterMaterial && afterMaterial !== "n/a" && afterMaterial !== "synthetic") parts.push(afterMaterial);
-    if (afterNeckline && afterNeckline !== "n/a" && afterNeckline !== "crew") parts.push(afterNeckline);
-    parts.push(afterType);
-    if (afterPattern && afterPattern !== "solid" && afterPattern !== "n/a") parts.push(afterPattern);
-    return parts.join(" ");
+    if (isReal(afterColor)) parts.push(afterColor);
+    if (isReal(afterFit) && afterFit !== "regular") parts.push(afterFit);
+    if (isReal(afterMaterial) && afterMaterial !== "synthetic") parts.push(afterMaterial);
+    if (isReal(afterNeckline) && afterNeckline !== "crew") parts.push(afterNeckline);
+    parts.push(garmentType);
+    if (isReal(afterPattern) && afterPattern !== "solid") parts.push(afterPattern);
+    // Deduplicate words in the query
+    const seen = new Set<string>();
+    const deduped = parts.filter(p => {
+      const lower = p.toLowerCase();
+      if (seen.has(lower)) return false;
+      seen.add(lower);
+      return true;
+    });
+    return deduped.join(" ");
   }
 
   // Fallback: validate/fix the LLM-provided query (legacy path for old analyses)
@@ -2316,10 +2352,75 @@ function sanitizeRecommendationsPayload(
     if ((title.startsWith('"') && title.endsWith('"')) || (title.startsWith("'") && title.endsWith("'"))) {
       title = title.slice(1, -1).trim();
     }
-    // If title is too long (>10 words), truncate to first meaningful phrase
-    const words = title.split(/\s+/);
-    if (words.length > 10) {
-      // Try to find a natural break (—, -, :, ,) within first 8 words
+
+    // Detect bad title patterns and rebuild from metadata
+    const isGenericPattern = /^שדרוג |שיפור |^upgrade |^improve /i.test(title);
+    const isFromToPattern = /^מ-.*ל-|^from .* to /i.test(title);
+    const hasFakeWords = /(matching|premium|upgraded|complementary|similar)/i.test(title);
+    const isTooLong = title.split(/\s+/).length > 10;
+    const needsRewrite = isGenericPattern || isFromToPattern || hasFakeWords || !title;
+
+    if (needsRewrite) {
+      // Build a punchy title from metadata
+      const beforeType = (imp.beforeGarmentType || "").trim();
+      const afterType = (imp.afterGarmentType || "").trim();
+      const afterMat = (imp.afterMaterial || "").trim();
+      const afterColor = (imp.afterColor || "").trim();
+      const FAKE = /^(matching|premium|upgraded|similar|complementary|better|improved|quality|stylish|elegant|luxury|n\/a|none)$/i;
+      const realAfterType = afterType && !FAKE.test(afterType) ? afterType : "";
+      const realAfterMat = afterMat && !FAKE.test(afterMat) ? afterMat : "";
+      const realAfterColor = afterColor && !FAKE.test(afterColor) ? afterColor : "";
+
+      if (lang === "he") {
+        // Hebrew punchy title patterns
+        const heGarmentMap: Record<string, string> = {
+          "t-shirt": "טישרט", "tee": "טישרט", "polo": "פולו", "dress shirt": "חולצת כפתורים",
+          "shirt": "חולצה", "blouse": "בלוזה", "sweater": "סוודר", "hoodie": "הודי",
+          "blazer": "בלייזר", "jacket": "ז'קט", "coat": "מעיל", "cardigan": "קרדיגן",
+          "jeans": "ג'ינס", "chinos": "צ'ינוס", "pants": "מכנסיים", "trousers": "מכנסיים",
+          "shorts": "שורטס", "skirt": "חצאית", "dress": "שמלה",
+          "sneakers": "סניקרס", "shoes": "נעליים", "boots": "מגפיים", "loafers": "לואפרס",
+          "sandals": "סנדלים", "oxfords": "אוקספורדס",
+          "watch": "שעון", "belt": "חגורה", "bag": "תיק", "hat": "כובע", "scarf": "צעיף",
+          "sunglasses": "משקפי שמש", "bracelet": "צמיד", "necklace": "שרשרת",
+        };
+        const heMatMap: Record<string, string> = {
+          "cotton": "כותנה", "linen": "פשתן", "denim": "דנים", "leather": "עור",
+          "silk": "משי", "wool": "צמר", "suede": "זמש", "knit": "סריגה",
+          "piqué cotton": "פיקה", "merino wool": "מרינו",
+        };
+        const heBefore = heGarmentMap[beforeType.toLowerCase()] || beforeType;
+        const heAfter = heGarmentMap[realAfterType.toLowerCase()] || realAfterType;
+        const heMat = heMatMap[realAfterMat.toLowerCase()] || "";
+
+        if (heAfter && heBefore && heBefore !== heAfter) {
+          title = heMat ? `${heAfter} ${heMat} במקום ${heBefore}` : `${heAfter} במקום ${heBefore}`;
+        } else if (heAfter && heMat) {
+          title = `${heAfter} ${heMat} — קפיצת דרג`;
+        } else if (heAfter) {
+          title = `${heAfter} — שדרוג שמשנה את הלוק`;
+        } else {
+          title = imp.afterLabel || "שדרוג שמשנה את הלוק";
+        }
+      } else {
+        // English punchy title
+        const matLabel = realAfterMat ? ` ${realAfterMat.charAt(0).toUpperCase() + realAfterMat.slice(1)}` : "";
+        const afterLabel = realAfterType ? realAfterType.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ") : "";
+        const beforeLabel = beforeType ? beforeType.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ") : "";
+
+        if (afterLabel && beforeLabel && afterLabel !== beforeLabel) {
+          title = `${matLabel ? matLabel.trim() + " " : ""}${afterLabel} Over ${beforeLabel}`;
+        } else if (afterLabel && matLabel) {
+          title = `${matLabel.trim()} ${afterLabel} — Level Up`;
+        } else if (afterLabel) {
+          title = `${afterLabel} — A Look-Changing Upgrade`;
+        } else {
+          title = imp.afterLabel || "Wardrobe Upgrade";
+        }
+      }
+    } else if (isTooLong) {
+      // Just truncate if too long but otherwise OK
+      const words = title.split(/\s+/);
       const truncated = words.slice(0, 8).join(" ");
       const breakIdx = truncated.search(/[—\-:,]/);
       if (breakIdx > 5) {
@@ -2328,8 +2429,7 @@ function sanitizeRecommendationsPayload(
         title = words.slice(0, 7).join(" ");
       }
     }
-    // If Hebrew interface but title is all-English, keep it (LLM was instructed to write in Hebrew)
-    // If English interface but title has Hebrew chars, keep it (rare edge case)
+
     return { ...imp, title };
   });
 
