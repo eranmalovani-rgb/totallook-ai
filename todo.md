@@ -321,3 +321,8 @@
 - [x] 21c.2: Root cause: gpt-image-1-mini is unreliable for color accuracy per OpenAI community reports; OpenAI's own cookbook uses gpt-image-1 (full model) with quality "high" for fashion/product editing
 - [x] 21c.3: Fix applied: (a) switched edit model from gpt-image-1-mini to gpt-image-1, (b) switched edit quality from "medium" to "high", (c) completely rewrote prompt with structured sections and explicit zero-tolerance color accuracy rules
 - [ ] 21c.4: Test end-to-end: verify white shirt stays white, blue jeans stay blue in output (user needs to test)
+
+## Stage 21d — Fix My Look: Image generation fails completely after gpt-image-1 upgrade
+- [x] 21d.1: Root cause: gpt-image-1 takes 60-80s per edit (vs ~10s for mini). Old 45s timeout caused AbortError on every attempt. 3 retry attempts * 45s = 135s total, exceeding 120s frontend timeout.
+- [x] 21d.2: Fixes: (a) Increased server-side edit timeout to 120s, (b) Reduced edit retry attempts to 1 (no retry since each takes 60-80s), (c) Increased frontend timeout to 180s, (d) Added error logging to FixMyLookModal onError handler, (e) Added detailed logging to imageGeneration.ts
+- [ ] 21d.3: Test end-to-end (user needs to test on deployed site)

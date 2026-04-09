@@ -355,7 +355,10 @@ export default function FixMyLookModal({ reviewId, analysis, trigger }: FixMyLoo
       setHasSavedResult(false);
       savedResultQuery.refetch();
     },
-    onError: () => setStep("select"),
+    onError: (err) => {
+      console.error("[Fix My Look] Mutation error:", err?.message || err);
+      setStep("select");
+    },
   });
 
   const handleFix = () => {

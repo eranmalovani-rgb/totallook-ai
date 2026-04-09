@@ -38,7 +38,8 @@ async function fetchWithRetry(
   let lastError: Error | null = null;
   for (let i = 0; i < attempts; i++) {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 45000);
+    const timeoutMs = label.includes("edit") ? 120000 : 45000; // gpt-image-1 edits can take 30-60s
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
     try {
       const response = await fetch(url, { ...init, signal: controller.signal });
       clearTimeout(timeoutId);
@@ -55,7 +56,7 @@ async function fetchWithRetry(
       const isAbort = err?.name === "AbortError";
       if (i === attempts - 1) {
         lastError = new Error(
-          isAbort ? `${label} timeout after 45s` : `${label} failed: ${err?.message || "unknown error"}`
+          isAbort ? `${label} timeout after ${label.includes('edit') ? '120' : '45'}s` : `${label} failed: ${err?.message || "unknown error"}`
         );
         break;
       }
@@ -170,13 +171,14 @@ async function generateWithOpenAI(
       }
     }
 
+    // Use only 1 attempt for edits (no retry) since gpt-image-1 takes 60-80s per call
     const response = await fetchWithRetry("https://api.openai.com/v1/images/edits", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${getOpenAIKey()}`,
       },
       body: formData,
-    }, "OpenAI image edit");
+    }, "OpenAI image edit", 1);
 
     const result = await response.json();
     return extractOpenAIImageData(result, "edit");
@@ -296,7 +298,9 @@ export async function generateImage(
   let openAIFailure: any = null;
 
   if (hasOpenAI) {
-    console.log(`[ImageGen] Using provider: OpenAI Images (${OPENAI_IMAGE_MODEL})`);
+    const isEdit = options.originalImages && options.originalImages.length > 0;
+    const modelUsed = isEdit ? OPENAI_EDIT_MODEL : OPENAI_IMAGE_MODEL;
+    console.log(`[ImageGen] Using provider: OpenAI Images (${modelUsed}, ${isEdit ? 'edit' : 'generate'}, ${isEdit ? `${options.originalImages!.length} reference images` : 'no refs'})`);
     try {
       imageData = await generateWithOpenAI(options);
     } catch (err: any) {
