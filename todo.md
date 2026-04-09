@@ -307,3 +307,11 @@
 - [x] 21.2: Fix: changed input_fidelity to "high", quality to "medium", size to "auto" (matches original dimensions)
 - [x] 21.3: Prompt already correct (IDENTITY LOCK + IMAGE EDITING TASK ONLY). The issue was API parameters, not prompt.
 - [x] 21.4: All 22 fixMyLook tests pass. Server running. User needs to test end-to-end with a real photo.
+
+## Stage 21b — Fix My Look: Enforce Exact Selected Items via Product Image References
+- [x] 21b.1: Root cause: AI generates random items (e.g., red shirt) instead of the exact items user selected (e.g., white shirt + blue pants) — product images were NOT sent as reference images, only text prompt
+- [x] 21b.2: Fix (registered): build originalImages array with user photo as image[0] + selected product images as image[1..N], sent to generateImage API
+- [x] 21b.3: Fix (guest): same product image reference approach applied to guest fixMyLook mutation
+- [x] 21b.4: Fix (prompt): buildDeterministicFixMyLookPrompt already includes image[N] references per replacement item + IDENTITY LOCK instructions
+- [x] 21b.5: Fix (TS error): resolved WhatsAppReview.tsx reviewData.id type error
+- [x] 21b.6: All 765/769 tests pass (4 pre-existing API failures: google-cse, imagegen x2, openai). 0 TS errors.

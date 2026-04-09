@@ -519,7 +519,7 @@ export default function WhatsAppReview() {
     // If it's a registered review (not guest) and belongs to this user, redirect
     const reviewData = reviewQuery.data;
     if (reviewData && 'userId' in reviewData && reviewData.userId === user.id) {
-      navigate(`/review/${reviewData.id}`, { replace: true });
+      navigate(`/review/${(reviewData as any).id}`, { replace: true });
       return;
     }
     // If user is logged in but it's a guest session or someone else's review,

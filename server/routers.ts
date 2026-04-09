@@ -1033,15 +1033,22 @@ function buildDeterministicFixMyLookPrompt(params: {
     selectedByImprovementIndex.set(detail.improvementIndex, detail);
   }
 
+  // Track which product images are included as references (image[1], image[2], etc.)
+  let productImageRefIndex = 1; // image[0] is always the user's original photo
   const replacementLines = relevantImprovements.map((imp) => {
     const improvementIndex = allImprovements.indexOf(imp);
     const selected = improvementIndex >= 0 ? selectedByImprovementIndex.get(improvementIndex) : undefined;
     const targetLabel = selected?.productLabel || imp.afterLabel || imp.title;
     const colorHint = detectColorHint(targetLabel);
     const colorInstruction = colorHint
-      ? `Use EXACT color "${colorHint}" with zero substitution.`
+      ? `Use EXACT color "${colorHint}" with ZERO substitution — do NOT change this color under any circumstances.`
       : "Use a color that is closest to the target product description.";
-    return `- Replace "${imp.beforeLabel || imp.title}" with "${targetLabel}". ${colorInstruction} Keep garment type, sleeve length, collar type, and fit aligned with the target item.`;
+    let imageRef = "";
+    if (selected?.productImageUrl) {
+      imageRef = ` Reference product photo is image[${productImageRefIndex}] — copy its exact color, pattern, texture, and style.`;
+      productImageRefIndex++;
+    }
+    return `- Replace "${imp.beforeLabel || imp.title}" with "${targetLabel}". ${colorInstruction}${imageRef} Keep garment type, sleeve length, collar type, and fit aligned with the target item.`;
   });
 
   const fallbackReplacements = itemsToFix.map((item) =>
@@ -1059,13 +1066,15 @@ function buildDeterministicFixMyLookPrompt(params: {
 
   return [
     `IMAGE EDITING TASK ONLY: edit this exact user photo in-place.`,
-    `ABSOLUTE IDENTITY LOCK: output MUST show the same real user from the input photo (not a model, not a new person).`,
+    `image[0] is the USER'S ORIGINAL PHOTO — this is your PRIMARY reference. The output MUST be this exact person.`,
+    productImageRefIndex > 1 ? `image[1]${productImageRefIndex > 2 ? ` through image[${productImageRefIndex - 1}]` : ''} are PRODUCT REFERENCE PHOTOS — copy their exact color, pattern, and style onto the user. Do NOT copy the model/mannequin from product photos.` : '',
+    `ABSOLUTE IDENTITY LOCK: output MUST show the same real user from image[0] (not a model, not a new person, not from product photos).`,
     `Preserve EXACT identity: same face geometry, skin tone, body proportions, hair, expression, and physical features.`,
     `Do NOT beautify/retouch: do not change age, facial structure, skin texture, body shape, or hairstyle.`,
     `Keep SAME pose, SAME background, SAME camera framing, and SAME lighting.`,
     `Do NOT create a new person. Do NOT restyle the environment.`,
     `Output must keep the same orientation and dimensions: ${orientationText}.`,
-    `ONLY replace the specified clothing/accessory items below.`,
+    `ONLY replace the specified clothing/accessory items below. COLOR ACCURACY IS CRITICAL — if user selected a white shirt, output MUST show white, not red or any other color.`,
     "",
     "Items to replace:",
     ...(replacementLines.length > 0 ? replacementLines : fallbackReplacements),
@@ -3016,20 +3025,33 @@ Style: High-end ${genderLabel} fashion editorial flat lay, items arranged aesthe
           imageDimensions,
         });
 
-        // Generate the fixed image using ONLY the original photo as reference
-        // (passing product images as additional references confuses the AI and causes it to generate a different person)
+        // Generate the fixed image: user's photo as primary reference + product images as style references
         try {
           const targetSize =
             imageDimensions.width > 0 && imageDimensions.height > 0
               ? { width: imageDimensions.width, height: imageDimensions.height }
               : undefined;
 
+          // Build originalImages array: [0] = user photo, [1..N] = selected product images
+          const originalImagesArr: Array<{ url: string; mimeType: string }> = [
+            { url: review.imageUrl, mimeType: "image/jpeg" },
+          ];
+          // Add product reference images for each selected improvement
+          if (input.selectedProductDetails && input.selectedProductDetails.length > 0) {
+            for (const detail of input.selectedProductDetails) {
+              if (detail.productImageUrl && detail.productImageUrl.startsWith('http')) {
+                originalImagesArr.push({
+                  url: detail.productImageUrl,
+                  mimeType: "image/jpeg",
+                });
+              }
+            }
+            console.log(`[Fix My Look] Sending ${originalImagesArr.length} images: 1 user photo + ${originalImagesArr.length - 1} product references`);
+          }
+
           let { url: fixedImageUrl } = await generateImage({
             prompt: editPrompt,
-            originalImages: [{
-              url: review.imageUrl,
-              mimeType: "image/jpeg",
-            }],
+            originalImages: originalImagesArr,
           });
 
           // Collect shopping links from relevant improvements
@@ -5019,9 +5041,25 @@ Style: High-end ${genderLabel} fashion editorial flat lay, all items arranged ae
               ? { width: imageDimensions.width, height: imageDimensions.height }
               : undefined;
 
+          // Build originalImages array: [0] = user photo, [1..N] = selected product images
+          const originalImagesArr: Array<{ url: string; mimeType: string }> = [
+            { url: session.imageUrl!, mimeType: "image/jpeg" },
+          ];
+          if (input.selectedProductDetails && input.selectedProductDetails.length > 0) {
+            for (const detail of input.selectedProductDetails) {
+              if (detail.productImageUrl && detail.productImageUrl.startsWith('http')) {
+                originalImagesArr.push({
+                  url: detail.productImageUrl,
+                  mimeType: "image/jpeg",
+                });
+              }
+            }
+            console.log(`[Guest Fix My Look] Sending ${originalImagesArr.length} images: 1 user photo + ${originalImagesArr.length - 1} product references`);
+          }
+
           let { url: fixedImageUrl } = await generateImage({
             prompt: editPrompt,
-            originalImages: [{ url: session.imageUrl!, mimeType: "image/jpeg" }],
+            originalImages: originalImagesArr,
           });
 
           const shoppingLinks = relevantImprovements.flatMap(imp => imp.shoppingLinks || []).slice(0, 6);
