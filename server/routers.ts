@@ -3185,504 +3185,119 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
            if (!analysisCore) throw new Error("Analysis failed after retries");
            console.log(`[Timing] Stage 1 completed in ${Date.now() - stage1Start}ms`);
 
-           // Stage 2: inspiration + recommendations (text-only from stage-1 output)
-           const stage2Start = Date.now();
+          // ══════════════════════════════════════════════════════════
+          // STAGE 43: Split — save Stage 1 immediately, run Stage 2 in background
+          // ══════════════════════════════════════════════════════════
 
-          // Stage 33: Reuse taste profile from Stage 1 + build wardrobe for Stage 2
-          const tasteProfileText = tasteProfileForStage1; // Already computed above
-          let wardrobeForStage2: string | null = null;
-          try {
-            if (allWardrobeItems.length > 0) {
-              wardrobeForStage2 = formatWardrobeForStage2(
-                allWardrobeItems.slice(0, 30).map(w => ({ itemType: w.itemType, name: w.name, color: w.color, brand: w.brand, styleNote: w.styleNote || null })),
-                input.lang,
-              );
-            }
-          } catch (tpErr) {
-            console.warn("[Stage 33] Failed to build wardrobe for Stage 2:", tpErr);
-          }
-
-          const recommendationSeed = {
-            overallScore: analysisCore.overallScore,
-            summary: analysisCore.summary,
-            items: (analysisCore.items || []).slice(0, 12),
-            scores: analysisCore.scores || [],
-            linkedMentions: (analysisCore.linkedMentions || []).slice(0, 20),
-            // Stage 30 GAP 1: Pass enriched metadata to Stage 2
-            personDetection: (analysisCore as any).personDetection || null,
-            lookStructure: (analysisCore as any).lookStructure || null,
-            occasion: review.occasion || null,
-            influencers: review.influencers || null,
-            styleNotes: review.styleNotes || null,
-          };
-          let recommendations: FashionRecommendationsPayload | null = null;
-          try {
-            const MAX_RECOMMENDATION_RETRIES = 2;
-            for (let attempt = 0; attempt < MAX_RECOMMENDATION_RETRIES; attempt++) {
-              try {
-                if (attempt > 0) {
-                  const delay = 600 * Math.pow(2, attempt - 1);
-                  await new Promise((resolve) => setTimeout(resolve, delay));
-                }
-                const recResult = await invokeLLM({
-                  messages: [
-                    {
-                      role: "system",
-                      content: buildRecommendationsPromptFromCore(
-                        input.lang,
-                        review.occasion,
-                        profileContext?.gender || null,
-                        review.influencers || profileContext?.favoriteInfluencers || null,
-                        profileContext?.preferredStores || null,
-                        profileContext?.budgetLevel || null,
-                        profileContext?.country || null,
-                        tasteProfileText,
-                        wardrobeForStage2,
-                      ),
-                    },
-                    {
-                      role: "user",
-                      content: input.lang === "he"
-                        ? `להלן פלט שלב 1 (ניתוח+זיהוי). התבסס על הפריטים המזוהים ב-items וודא שההמלצות מתייחסות ספציפית לצבעים, לחומרים, לגזרה ולסגנון של כל פריט. החזר רק השראה+המלצות בפורמט המבוקש:\n${JSON.stringify(recommendationSeed)}`
-                        : `Here is the stage-1 analysis+identification output. Base your recommendations on the SPECIFIC items identified — their colors, materials, fit, and style. Each recommendation must directly address a specific item. Return only inspiration+recommendations in the required schema:\n${JSON.stringify(recommendationSeed)}`,
-                    },
-                  ],
-                  response_format: {
-                    type: "json_schema",
-                    json_schema: {
-                      name: "fashion_recommendations",
-                      strict: true,
-                      schema: recommendationsJsonSchema,
-                    },
-                  },
-                  maxTokens: 2000,
-                });
-                recommendations = parseFashionRecommendationsPayload(recResult);
-                break;
-              } catch (retryErr: any) {
-                const msg = retryErr?.message || "";
-                const statusCode = retryErr?.status || retryErr?.statusCode || 0;
-                const isRetryable =
-                  msg.includes("exhausted") || msg.includes("412") ||
-                  msg.includes("quota") || msg.includes("rate limit") || msg.includes("rate_limit") ||
-                  msg.includes("429") || msg.includes("503") || msg.includes("500") ||
-                  msg.includes("timeout") || msg.includes("ECONNRESET") || msg.includes("ETIMEDOUT") ||
-                  msg.includes("ECONNREFUSED") || msg.includes("fetch failed") ||
-                  msg.includes("INVALID_LLM_JSON") ||
-                  statusCode === 429 || statusCode === 503 || statusCode === 500 || statusCode === 502;
-                if (!isRetryable || attempt === MAX_RECOMMENDATION_RETRIES - 1) {
-                  throw retryErr;
-                }
-              }
-            }
-           } catch (recErr: any) {
-             console.warn(`[Fashion Analysis] Stage-2 recommendations fallback: ${recErr?.message || recErr}`);
-           }
-           console.log(`[Timing] Stage 2 completed in ${Date.now() - stage2Start}ms`);
-
-           if (!recommendations) {
-            recommendations = buildFallbackRecommendationsFromCore(
-              analysisCore,
-              input.lang,
-              review.occasion,
-              profileContext?.gender || null,
-              review.influencers || profileContext?.favoriteInfluencers || null,
-              profileContext?.preferredStores || null,
-            );
-          }
-          recommendations = sanitizeRecommendationsPayload(
-            recommendations,
-            analysisCore,
-            input.lang,
-            review.occasion,
-            profileContext?.gender || null,
-            review.influencers || profileContext?.favoriteInfluencers || null,
-            profileContext?.preferredStores || null,
-            profileContext?.budgetLevel || null,
-          );
-          let analysis: FashionAnalysis = {
+          // Build Stage 1 analysis with empty recommendations (will be filled by Stage 2)
+          let stage1Analysis: FashionAnalysis = {
             ...analysisCore,
-            ...recommendations,
+            improvements: [],
+            outfitSuggestions: [],
+            trendSources: [],
+            influencerInsight: "",
           };
 
-          // Ensure linkedMentions exists and enrich with known brand URLs
-          if (!analysis.linkedMentions) {
-            analysis.linkedMentions = [];
-          }
-
-          // STEP 1: For items that have a brand, match to BRAND_URLS for correct URL
-          for (const item of analysis.items) {
+          // Apply Stage 1 post-processing (brand enrichment, scores, materials) BEFORE saving
+          if (!stage1Analysis.linkedMentions) stage1Analysis.linkedMentions = [];
+          // STEP 1-4: Brand enrichment
+          for (const item of stage1Analysis.items) {
             const brandName = (item.brand || "").trim();
             if (brandName && brandName !== "N/A") {
-              // Try exact match first
               const exactUrl = (BRAND_URLS as Record<string, string>)[brandName];
-              if (exactUrl) {
-                item.brandUrl = exactUrl;
-              } else {
-                // Try case-insensitive match
+              if (exactUrl) { item.brandUrl = exactUrl; }
+              else {
                 for (const [brand, url] of Object.entries(BRAND_URLS)) {
-                  if (brand.toLowerCase() === brandName.toLowerCase()) {
-                    item.brand = brand; // normalize casing
-                    item.brandUrl = url;
-                    break;
-                  }
+                  if (brand.toLowerCase() === brandName.toLowerCase()) { item.brand = brand; item.brandUrl = url; break; }
                 }
               }
-              // Add to linkedMentions
-              if (item.brand && !analysis.linkedMentions.find(m => m.text === item.brand)) {
-                analysis.linkedMentions.push({ text: item.brand, type: "brand", url: item.brandUrl || "" });
+              if (item.brand && !stage1Analysis.linkedMentions.find(m => m.text === item.brand)) {
+                stage1Analysis.linkedMentions.push({ text: item.brand, type: "brand", url: item.brandUrl || "" });
               }
             }
           }
-
-          // STEP 2: Also scan item names for brand mentions and enrich
-          for (const item of analysis.items) {
+          for (const item of stage1Analysis.items) {
             for (const [brand, url] of Object.entries(BRAND_URLS)) {
               if (item.name?.includes(brand) || item.analysis?.includes(brand)) {
-                if (!item.brand || item.brand.trim() === "" || item.brand === "N/A") {
-                  item.brand = brand;
-                  item.brandUrl = url;
-                  if (!item.brandConfidence) item.brandConfidence = "MEDIUM";
-                }
-                if (!analysis.linkedMentions.find(m => m.text === brand)) {
-                  analysis.linkedMentions.push({ text: brand, type: "brand", url });
-                }
+                if (!item.brand || item.brand.trim() === "" || item.brand === "N/A") { item.brand = brand; item.brandUrl = url; if (!item.brandConfidence) item.brandConfidence = "MEDIUM"; }
+                if (!stage1Analysis.linkedMentions.find(m => m.text === brand)) { stage1Analysis.linkedMentions.push({ text: brand, type: "brand", url }); }
               }
             }
           }
-
-          // STEP 3: Ensure brandConfidence is always set
-          for (const item of analysis.items) {
+          for (const item of stage1Analysis.items) {
             if (!item.brandConfidence || item.brandConfidence.trim() === "") {
-              if (item.brand && item.brand.trim() !== "" && item.brand !== "N/A") {
-                item.brandConfidence = "LOW";
-              } else {
-                item.brandConfidence = "NONE";
-              }
+              item.brandConfidence = (item.brand && item.brand.trim() !== "" && item.brand !== "N/A") ? "LOW" : "NONE";
             }
           }
-
-          // STEP 4: Ensure brand is never empty/N/A — if AI failed, mark as unknown
-          for (const item of analysis.items) {
-            if (!item.brand || item.brand.trim() === "" || item.brand === "N/A") {
-              item.brand = "לא זוהה";
-              item.brandConfidence = "NONE";
-            }
+          for (const item of stage1Analysis.items) {
+            if (!item.brand || item.brand.trim() === "" || item.brand === "N/A") { item.brand = "לא זוהה"; item.brandConfidence = "NONE"; }
           }
-          // Supplement influencer mentions with known IG URLs (gender-filtered)
-          const profileGender = profileContext?.gender;
-          for (const inf of POPULAR_INFLUENCERS) {
-            // Skip influencers that don't match the user's gender
-            if (profileGender && inf.gender !== "unisex" && inf.gender !== profileGender) continue;
-            const mentioned = analysis.influencerInsight?.includes(inf.name) ||
-              analysis.summary?.includes(inf.name) ||
-              analysis.outfitSuggestions?.some(s => s.inspirationNote?.includes(inf.name));
-            if (mentioned && !analysis.linkedMentions.find(m => m.text === inf.name)) {
-              analysis.linkedMentions.push({ text: inf.name, type: "influencer", url: inf.igUrl });
-            }
-          }
-          // Also remove any wrong-gender influencer mentions the AI may have added
-          if (profileGender) {
-            analysis.linkedMentions = analysis.linkedMentions.filter(m => {
-              if (m.type !== "influencer") return true;
-              const knownInf = POPULAR_INFLUENCERS.find(inf => inf.name === m.text);
-              if (!knownInf) return true; // unknown influencer, keep it
-              return knownInf.gender === "unisex" || knownInf.gender === profileGender;
-            });
-          }
-
-          // Enforce minimum score of 5 — clamp any visible scores below 5
-          for (const item of analysis.items) {
-            if (item.score < 5) item.score = 5;
-          }
-          for (const cat of analysis.scores) {
-            if (cat.score !== null && cat.score < 5) cat.score = 5;
-          }
-          // Premium/Luxury users: Brand identification score must be at least 8
-          // Quiet Luxury (no visible logos) is a deliberate high-fashion choice, not a weakness
+          // Score clamping
+          for (const item of stage1Analysis.items) { if (item.score < 5) item.score = 5; }
+          for (const cat of stage1Analysis.scores) { if (cat.score !== null && cat.score < 5) cat.score = 5; }
+          // Premium brand score boost
           const isPremiumForScoring = profileContext?.budgetLevel === 'premium' || profileContext?.budgetLevel === 'luxury';
           if (isPremiumForScoring) {
-            for (const cat of analysis.scores) {
+            for (const cat of stage1Analysis.scores) {
               const catLower = cat.category.toLowerCase();
               if ((catLower.includes('מותג') || catLower.includes('brand')) && cat.score !== null && cat.score < 8) {
                 cat.score = 8;
-                // Update explanation to reflect Quiet Luxury appreciation
                 if (cat.explanation && (cat.explanation.includes('לוגו') || cat.explanation.includes('logo') || cat.explanation.includes('זיהוי') || cat.explanation.includes('identif'))) {
                   cat.explanation = cat.explanation.replace(/\d\/10/g, '8/10');
                 }
               }
             }
           }
-          // Recalculate overall score with WEIGHTED categories
-          // High weight (1.0): Item Quality, Fit, Color Palette, Age & Style Match
-          // Medium weight (0.8): Footwear, Brand Recognition
-          // Low weight (0.5): Layering, Accessories & Jewelry
-          const categoryWeights: Record<string, number> = {
-            'איכות הפריטים': 1.0, 'item quality': 1.0,
-            'התאמת גזרה': 1.0, 'fit': 1.0,
-            'צבעוניות': 1.0, 'color palette': 1.0,
-            'התאמה לגיל ולסגנון': 1.0, 'age & style match': 1.0,
-            'נעליים': 0.8, 'footwear': 0.8,
-            'זיהוי מותגים': 0.8, 'brand recognition': 0.8,
+          // Weighted score recalculation
+          const categoryWeightsS1: Record<string, number> = {
+            'איכות הפריטים': 1.0, 'item quality': 1.0, 'התאמת גזרה': 1.0, 'fit': 1.0,
+            'צבעוניות': 1.0, 'color palette': 1.0, 'התאמה לגיל ולסגנון': 1.0, 'age & style match': 1.0,
+            'נעליים': 0.8, 'footwear': 0.8, 'זיהוי מותגים': 0.8, 'brand recognition': 0.8,
             'שכבתיות (layering)': 0.5, 'שכבתיות': 0.5, 'layering': 0.5,
             'אקססוריז ותכשיטים': 0.5, 'accessories & jewelry': 0.5,
           };
-          let weightedSum = 0;
-          let totalWeight = 0;
-          for (const cat of analysis.scores) {
-            if (cat.score !== null) {
-              const catLower = cat.category.toLowerCase();
-              const weight = categoryWeights[catLower] ?? 1.0;
-              weightedSum += cat.score * weight;
-              totalWeight += weight;
-            }
+          let wSum = 0, tWeight = 0;
+          for (const cat of stage1Analysis.scores) {
+            if (cat.score !== null) { const w = categoryWeightsS1[cat.category.toLowerCase()] ?? 1.0; wSum += cat.score * w; tWeight += w; }
           }
-          if (totalWeight > 0) {
-            analysis.overallScore = Math.round((weightedSum / totalWeight) * 10) / 10;
-          }
-          if (analysis.overallScore < 5) analysis.overallScore = 5;
-
-          // POST-PROCESSING QUALITY VALIDATION
-          // Ensure material descriptions meet quality standards for ALL users
-          const isPremiumUser = profileContext?.budgetLevel === 'premium' || profileContext?.budgetLevel === 'luxury';
-          const cheapMaterialTerms = [
-            { pattern: /דמוי עור/g, replacement: isPremiumUser ? "עור יוקרתי" : "עור סינתטי איכותי" },
-            { pattern: /עור סינתטי(?! איכותי)/g, replacement: isPremiumUser ? "עור יוקרתי" : "עור סינתטי איכותי" },
-            { pattern: /דמוי זמש/g, replacement: isPremiumUser ? "זמש איכותי" : "זמש סינתטי איכותי" },
-            { pattern: /זמש סינתטי(?! איכותי)/g, replacement: isPremiumUser ? "זמש איכותי" : "זמש סינתטי איכותי" },
-            { pattern: /דמוי משי/g, replacement: isPremiumUser ? "סאטן יוקרתי" : "סאטן" },
-            { pattern: /פלסטיק/g, replacement: isPremiumUser ? "אקריליק" : "שרף" },
-            { pattern: /faux leather/gi, replacement: isPremiumUser ? "premium leather" : "quality synthetic leather" },
-            { pattern: /synthetic leather/gi, replacement: isPremiumUser ? "premium leather" : "quality synthetic leather" },
-            { pattern: /faux suede/gi, replacement: isPremiumUser ? "premium suede" : "quality synthetic suede" },
-            { pattern: /synthetic suede/gi, replacement: isPremiumUser ? "premium suede" : "quality synthetic suede" },
-            { pattern: /faux silk/gi, replacement: isPremiumUser ? "premium satin" : "satin" },
-            { pattern: /\bplastic\b/gi, replacement: isPremiumUser ? "acrylic" : "resin" },
+          if (tWeight > 0) stage1Analysis.overallScore = Math.round((wSum / tWeight) * 10) / 10;
+          if (stage1Analysis.overallScore < 5) stage1Analysis.overallScore = 5;
+          // Material quality validation
+          const isPremiumUserS1 = profileContext?.budgetLevel === 'premium' || profileContext?.budgetLevel === 'luxury';
+          const cheapMaterialTermsS1 = [
+            { pattern: /דמוי עור/g, replacement: isPremiumUserS1 ? "עור יוקרתי" : "עור סינתטי איכותי" },
+            { pattern: /עור סינתטי(?! איכותי)/g, replacement: isPremiumUserS1 ? "עור יוקרתי" : "עור סינתטי איכותי" },
+            { pattern: /דמוי זמש/g, replacement: isPremiumUserS1 ? "זמש איכותי" : "זמש סינתטי איכותי" },
+            { pattern: /זמש סינתטי(?! איכותי)/g, replacement: isPremiumUserS1 ? "זמש איכותי" : "זמש סינתטי איכותי" },
+            { pattern: /דמוי משי/g, replacement: isPremiumUserS1 ? "סאטן יוקרתי" : "סאטן" },
+            { pattern: /פלסטיק/g, replacement: isPremiumUserS1 ? "אקריליק" : "שרף" },
+            { pattern: /faux leather/gi, replacement: isPremiumUserS1 ? "premium leather" : "quality synthetic leather" },
+            { pattern: /synthetic leather/gi, replacement: isPremiumUserS1 ? "premium leather" : "quality synthetic leather" },
+            { pattern: /faux suede/gi, replacement: isPremiumUserS1 ? "premium suede" : "quality synthetic suede" },
+            { pattern: /synthetic suede/gi, replacement: isPremiumUserS1 ? "premium suede" : "quality synthetic suede" },
+            { pattern: /faux silk/gi, replacement: isPremiumUserS1 ? "premium satin" : "satin" },
+            { pattern: /\bplastic\b/gi, replacement: isPremiumUserS1 ? "acrylic" : "resin" },
           ];
-          for (const item of analysis.items) {
-            for (const term of cheapMaterialTerms) {
+          for (const item of stage1Analysis.items) {
+            for (const term of cheapMaterialTermsS1) {
               if (item.description) item.description = item.description.replace(term.pattern, term.replacement);
               if (item.analysis) item.analysis = item.analysis.replace(term.pattern, term.replacement);
               if (item.name) item.name = item.name.replace(term.pattern, term.replacement);
             }
           }
-          // Also clean summary
-          for (const term of cheapMaterialTerms) {
-            if (analysis.summary) analysis.summary = analysis.summary.replace(term.pattern, term.replacement);
+          for (const term of cheapMaterialTermsS1) {
+            if (stage1Analysis.summary) stage1Analysis.summary = stage1Analysis.summary.replace(term.pattern, term.replacement);
           }
+          for (const cat of stage1Analysis.scores) { if (!cat.explanation) cat.explanation = ""; }
 
-          // Ensure scores have explanation field (backward compat)
-          for (const cat of analysis.scores) {
-            if (!cat.explanation) {
-              cat.explanation = "";
-            }
-          }
+          // ── SAVE Stage 1 to DB immediately ──
+          console.log(`[Stage 43] Saving Stage 1 results to DB (reviewId=${input.reviewId})`);
+          await updateReviewAnalysis(input.reviewId, stage1Analysis.overallScore, stage1Analysis);
 
-          // Fix shopping link URLs — ALWAYS rebuild as search URLs to prevent 404s
-          // Even if AI generated correct-looking URLs, we rebuild them to guarantee they work
-          const userGender: GenderCategory = (profileContext?.gender as GenderCategory) || "male";
-          analysis = fixShoppingLinkUrls(analysis, userGender, profileContext?.preferredStores || null);
-          analysis = normalizeOutfitSuggestionsForWearableCore(analysis, userGender);
-          analysis = normalizeImprovementsForWearableCore(analysis, userGender);
-
-          // --- Closet matching: enrich improvements with matching wardrobe items ---
-          const allWardrobeItemsForMatching = Array.isArray(allWardrobeItems)
-            ? allWardrobeItems.slice(0, MAX_WARDROBE_ITEMS_FOR_MATCHING)
-            : [];
-          if (allWardrobeItemsForMatching.length > 0 && analysis.improvements) {
-            try {
-              for (const imp of analysis.improvements) {
-              // Try to find a wardrobe item that matches this improvement's category
-              const impLower = `${imp.title} ${imp.description} ${imp.afterLabel} ${imp.productSearchQuery}`.toLowerCase();
-              const impDescriptionLower = typeof imp.description === "string" ? imp.description.toLowerCase() : "";
-              let bestMatch: typeof allWardrobeItems[0] | null = null;
-              let bestScore = 0;
-
-              // Category keywords for strict matching
-              const typeKeywords: Record<string, string[]> = {
-                "shirt": ["חולצ", "טי שירט", "shirt", "top", "tee", "polo", "blouse", "t-shirt", "tshirt", "👕"],
-                "pants": ["מכנס", "ג'ינס", "צ'ינו", "pants", "jeans", "trousers", "shorts", "chino", "👖"],
-                "shoes": ["נעל", "shoes", "sneaker", "boot", "סניקרס", "נעלי", "👟"],
-                "jacket": ["ז'קט", "מעיל", "jacket", "coat", "bomber", "hoodie", "קפוצ'ון", "סווטשירט", "sweatshirt", "🧥"],
-                "watch": ["שעון", "watch", "⌚"],
-                "accessory": ["אקססורי", "תכשיט", "שרשר", "שרשת", "צמיד", "טבעת", "עגיל", "accessory", "jewelry", "necklace", "bracelet", "ring", "chain", "earring", "pendant", "💍", "📿"],
-                "bag": ["תיק", "bag", "backpack", "👜"],
-                "hat": ["כובע", "hat", "cap", "beanie", "🧢"],
-                "sunglasses": ["משקפ", "sunglasses", "glasses", "🕶️"],
-                "vest": ["ווסט", "vest", "gilet", "וסט"],
-                "belt": ["חגורה", "belt"],
-                "scarf": ["צעיף", "scarf", "bandana"],
-              };
-
-              // Stage 30 GAP 2: Use structured afterGarmentType as PRIMARY source for category detection
-              let impCategory = "";
-              const afterGType = (imp.afterGarmentType || "").toLowerCase();
-              if (afterGType) {
-                // Map structured garment type to closet matching category
-                const garmentToCategoryMap: Record<string, string> = {
-                  "t-shirt": "shirt", "tee": "shirt", "polo": "shirt", "dress shirt": "shirt",
-                  "button-down": "shirt", "blouse": "shirt", "top": "shirt", "sweater": "shirt",
-                  "hoodie": "jacket", "sweatshirt": "jacket", "henley": "shirt", "tank": "shirt",
-                  "jeans": "pants", "chinos": "pants", "trousers": "pants", "shorts": "pants",
-                  "skirt": "pants", "leggings": "pants",
-                  "sneakers": "shoes", "loafers": "shoes", "boots": "shoes", "sandals": "shoes",
-                  "oxfords": "shoes", "derby": "shoes", "heels": "shoes",
-                  "jacket": "jacket", "blazer": "jacket", "coat": "jacket", "cardigan": "jacket",
-                  "bomber": "jacket", "parka": "jacket", "vest": "vest",
-                  "watch": "watch", "belt": "belt", "bag": "bag", "backpack": "bag",
-                  "hat": "hat", "cap": "hat", "sunglasses": "sunglasses", "scarf": "scarf",
-                  "necklace": "accessory", "bracelet": "accessory", "ring": "accessory", "earring": "accessory",
-                };
-                // Try exact match first, then partial match
-                impCategory = garmentToCategoryMap[afterGType] || "";
-                if (!impCategory) {
-                  for (const [gType, cat] of Object.entries(garmentToCategoryMap)) {
-                    if (afterGType.includes(gType) || gType.includes(afterGType)) {
-                      impCategory = cat;
-                      break;
-                    }
-                  }
-                }
-              }
-              // Fallback to text-based detection (legacy)
-              if (!impCategory) {
-                for (const [cat, keywords] of Object.entries(typeKeywords)) {
-                  if (keywords.some(kw => impLower.includes(kw))) {
-                    impCategory = cat;
-                    break;
-                  }
-                }
-              }
-
-              // STRICT: If we can't identify the improvement's category, skip closet matching entirely
-              if (!impCategory) continue;
-
-              for (const wItem of allWardrobeItemsForMatching) {
-                let matchScore = 0;
-                const wName = (wItem.name || "").toLowerCase();
-                const wType = (wItem.itemType || "").toLowerCase();
-                const wBrand = (wItem.brand || "").toLowerCase();
-                const wColor = (wItem.color || "").toLowerCase();
-                const wStyleNote = (wItem.styleNote || "").toLowerCase();
-                const wAllText = `${wName} ${wType} ${wBrand} ${wStyleNote}`;
-
-                // Find which category the wardrobe item belongs to
-                let wCategory = "";
-                for (const [cat, keywords] of Object.entries(typeKeywords)) {
-                  if (keywords.some(kw => wType.includes(kw) || wName.includes(kw))) {
-                    wCategory = cat;
-                    break;
-                  }
-                }
-
-                // STRICT: Both categories must be identified and must match
-                if (!wCategory || wCategory !== impCategory) {
-                  continue;
-                }
-
-                // --- STYLE CONTRADICTION CHECK ---
-                // Even within the same category, reject items whose style contradicts the recommendation.
-                // e.g. recommendation says "classic watch" but wardrobe has "smart watch" → skip
-                const styleConflicts: [string[], string[]][] = [
-                  // watch: classic/analog vs smart/digital
-                  [["קלאסי", "אנלוגי", "classic", "analog", "elegant", "אלגנטי", "dress watch", "formal"], ["חכם", "smart", "digital", "דיגיטלי", "smartwatch", "fitness", "apple watch", "galaxy watch", "garmin"]],
-                  // shoes: formal/elegant vs sporty/sneakers
-                  [["אלגנט", "elegant", "formal", "פורמלי", "dress shoe", "oxford", "derby", "loafer", "monk"], ["ספורט", "sporty", "sneaker", "סניקרס", "running", "athletic", "ריצה"]],
-                  // shirt: formal/dress vs casual/t-shirt
-                  [["מכופתר", "פורמלי", "dress shirt", "formal", "button-down", "חולצה מכופתרת"], ["טי שירט", "t-shirt", "tee", "casual", "קז'ואל", "graphic tee"]],
-                  // jacket: formal/blazer vs casual/bomber
-                  [["בלייזר", "blazer", "suit jacket", "חליפה", "formal", "tailored"], ["bomber", "בומבר", "hoodie", "קפוצ'ון", "windbreaker", "puffer"]],
-                  // bag: formal/briefcase vs casual/backpack
-                  [["תיק עסקי", "briefcase", "formal", "פורמלי", "messenger"], ["תיק גב", "backpack", "casual", "ספורטיבי", "gym bag"]],
-                ];
-
-                let hasStyleConflict = false;
-
-                // Stage 30 GAP 3: Use structured afterStyle for smart style contradiction
-                const impStyle = (imp.afterStyle || "").toLowerCase();
-                if (impStyle && wStyleNote) {
-                  const formalStyles = ["formal", "elegant", "classic", "tailored", "smart-casual", "business"];
-                  const casualStyles = ["casual", "sporty", "streetwear", "athletic", "relaxed"];
-                  const impIsFormal = formalStyles.some(s => impStyle.includes(s));
-                  const impIsCasual = casualStyles.some(s => impStyle.includes(s));
-                  const wIsFormal = formalStyles.some(s => wStyleNote.includes(s));
-                  const wIsCasual = casualStyles.some(s => wStyleNote.includes(s));
-                  if ((impIsFormal && wIsCasual && !wIsFormal) || (impIsCasual && wIsFormal && !wIsCasual)) {
-                    hasStyleConflict = true;
-                  }
-                }
-
-                // Also check hardcoded pairs (legacy + specific edge cases)
-                if (!hasStyleConflict) {
-                  for (const [groupA, groupB] of styleConflicts) {
-                    const impMatchesA = groupA.some(kw => impLower.includes(kw));
-                    const impMatchesB = groupB.some(kw => impLower.includes(kw));
-                    const wMatchesA = groupA.some(kw => wAllText.includes(kw));
-                    const wMatchesB = groupB.some(kw => wAllText.includes(kw));
-
-                    if ((impMatchesA && wMatchesB && !wMatchesA) || (impMatchesB && wMatchesA && !wMatchesB)) {
-                      hasStyleConflict = true;
-                      break;
-                    }
-                  }
-                }
-
-                if (hasStyleConflict) {
-                  continue; // Skip — wardrobe item contradicts the recommendation's spirit
-                }
-
-                // Same category — base score
-                matchScore += 5;
-
-                // Check if the AI explicitly mentioned this wardrobe item in the description
-                if (wName && impDescriptionLower.includes(wName)) matchScore += 10;
-                if (wBrand && wBrand.length > 2 && impLower.includes(wBrand)) matchScore += 3;
-
-                // Color matching bonus
-                if (wColor && wColor.length > 1 && impLower.includes(wColor)) matchScore += 2;
-
-                // Style alignment bonus — if wardrobe item's style note matches the recommendation's keywords
-                if (wStyleNote) {
-                  const impKeywords = impLower.split(/\s+/).filter(w => w.length > 3);
-                  const styleMatches = impKeywords.filter(kw => wStyleNote.includes(kw)).length;
-                  matchScore += Math.min(styleMatches * 1, 4); // Up to +4 for style alignment
-                }
-
-                if (matchScore > bestScore) {
-                  bestScore = matchScore;
-                  bestMatch = wItem;
-                }
-              }
-
-              // Only match if we have category match (score >= 5)
-              if (bestMatch && bestScore >= 5) {
-                imp.closetMatch = {
-                  wardrobeItemId: bestMatch.id,
-                  name: bestMatch.name,
-                  itemType: bestMatch.itemType,
-                  brand: bestMatch.brand || undefined,
-                  color: bestMatch.color || undefined,
-                  sourceImageUrl: bestMatch.sourceImageUrl || undefined,
-                  itemImageUrl: bestMatch.itemImageUrl || undefined,
-                };
-              }
-            }
-            } catch (closetErr: any) {
-              console.warn(`[ClosetMatch] Review closet matching skipped: ${closetErr?.message || closetErr}`);
-            }
-          }
-
-          // Save analysis to DB immediately (without waiting for product images)
-          await updateReviewAnalysis(input.reviewId, analysis.overallScore, analysis);
-
-          // Product images are now lazy-loaded per improvement category when the user scrolls to them.
-          // No background generation needed here — the frontend triggers it via review.generateProductImages.
-
-          // Auto-save detected items to wardrobe (fire-and-forget for faster response)
-          // We already have the profile from the initial parallel fetch
+          // ── Auto-save detected items to wardrobe (fire-and-forget) ──
           if (profile && profile.saveToWardrobe) {
             const wardrobeImageUrl = review.imageUrl;
-            const wardrobeEntries = analysis.items.map((item) => ({
+            const wardrobeEntries = stage1Analysis.items.map((item) => ({
               userId: ctx.user.id,
               itemType: item.garmentType || item.icon || "clothing",
               name: item.name,
@@ -3707,15 +3322,304 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
               verdict: item.verdict || null,
             }));
             if (wardrobeEntries.length > 0) {
-              // Fire-and-forget: don't await, let it run in background
               addWardrobeItems(wardrobeEntries)
                 .then((result) => console.log(`[Wardrobe] Added ${result?.added || 0} new items, skipped ${result?.skipped || 0} duplicates`))
                 .catch((wardrobeErr) => console.warn("[Wardrobe] Failed to save items:", wardrobeErr));
             }
           }
 
+          // ── Return Stage 1 immediately to the user ──
+          const stage1ReturnAnalysis = { ...stage1Analysis };
 
-          return { success: true, analysis };
+          // ══════════════════════════════════════════════════════════
+          // STAGE 2: Run in background (fire-and-forget)
+          // ══════════════════════════════════════════════════════════
+          const bgReviewId = input.reviewId;
+          const bgLang = input.lang;
+          const bgOccasion = review.occasion;
+          const bgInfluencers = review.influencers;
+          const bgProfileContext = profileContext ? { ...profileContext } : null;
+          const bgAnalysisCore = { ...analysisCore };
+          const bgAllWardrobeItems = [...allWardrobeItems];
+          const bgTasteProfileForStage1 = tasteProfileForStage1;
+          const bgImageUrl = review.imageUrl;
+
+          // Fire-and-forget: don't await
+          (async () => {
+            try {
+              console.log(`[Stage 43] Starting Stage 2 in background (reviewId=${bgReviewId})`);
+              const stage2Start = Date.now();
+
+              // Build wardrobe context for Stage 2
+              let wardrobeForStage2: string | null = null;
+              try {
+                if (bgAllWardrobeItems.length > 0) {
+                  wardrobeForStage2 = formatWardrobeForStage2(
+                    bgAllWardrobeItems.slice(0, 30).map(w => ({ itemType: w.itemType, name: w.name, color: w.color, brand: w.brand, styleNote: w.styleNote || null })),
+                    bgLang,
+                  );
+                }
+              } catch (tpErr) {
+                console.warn("[Stage 43 BG] Failed to build wardrobe for Stage 2:", tpErr);
+              }
+
+              const recommendationSeed = {
+                overallScore: bgAnalysisCore.overallScore,
+                summary: bgAnalysisCore.summary,
+                items: (bgAnalysisCore.items || []).slice(0, 12),
+                scores: bgAnalysisCore.scores || [],
+                linkedMentions: (bgAnalysisCore.linkedMentions || []).slice(0, 20),
+                personDetection: (bgAnalysisCore as any).personDetection || null,
+                lookStructure: (bgAnalysisCore as any).lookStructure || null,
+                occasion: bgOccasion || null,
+                influencers: bgInfluencers || null,
+                styleNotes: review.styleNotes || null,
+              };
+
+              let recommendations: FashionRecommendationsPayload | null = null;
+              try {
+                const MAX_RECOMMENDATION_RETRIES = 2;
+                for (let attempt = 0; attempt < MAX_RECOMMENDATION_RETRIES; attempt++) {
+                  try {
+                    if (attempt > 0) {
+                      const delay = 600 * Math.pow(2, attempt - 1);
+                      await new Promise((resolve) => setTimeout(resolve, delay));
+                    }
+                    const recResult = await invokeLLM({
+                      messages: [
+                        {
+                          role: "system",
+                          content: buildRecommendationsPromptFromCore(
+                            bgLang,
+                            bgOccasion,
+                            bgProfileContext?.gender || null,
+                            bgInfluencers || bgProfileContext?.favoriteInfluencers || null,
+                            bgProfileContext?.preferredStores || null,
+                            bgProfileContext?.budgetLevel || null,
+                            bgProfileContext?.country || null,
+                            bgTasteProfileForStage1,
+                            wardrobeForStage2,
+                          ),
+                        },
+                        {
+                          role: "user",
+                          content: bgLang === "he"
+                            ? `להלן פלט שלב 1 (ניתוח+זיהוי). התבסס על הפריטים המזוהים ב-items וודא שההמלצות מתייחסות ספציפית לצבעים, לחומרים, לגזרה ולסגנון של כל פריט. החזר רק השראה+המלצות בפורמט המבוקש:\n${JSON.stringify(recommendationSeed)}`
+                            : `Here is the stage-1 analysis+identification output. Base your recommendations on the SPECIFIC items identified — their colors, materials, fit, and style. Each recommendation must directly address a specific item. Return only inspiration+recommendations in the required schema:\n${JSON.stringify(recommendationSeed)}`,
+                        },
+                      ],
+                      response_format: {
+                        type: "json_schema",
+                        json_schema: {
+                          name: "fashion_recommendations",
+                          strict: true,
+                          schema: recommendationsJsonSchema,
+                        },
+                      },
+                      maxTokens: 2000,
+                    });
+                    recommendations = parseFashionRecommendationsPayload(recResult);
+                    break;
+                  } catch (retryErr: any) {
+                    const msg = retryErr?.message || "";
+                    const statusCode = retryErr?.status || retryErr?.statusCode || 0;
+                    const isRetryable =
+                      msg.includes("exhausted") || msg.includes("412") ||
+                      msg.includes("quota") || msg.includes("rate limit") || msg.includes("rate_limit") ||
+                      msg.includes("429") || msg.includes("503") || msg.includes("500") ||
+                      msg.includes("timeout") || msg.includes("ECONNRESET") || msg.includes("ETIMEDOUT") ||
+                      msg.includes("ECONNREFUSED") || msg.includes("fetch failed") ||
+                      msg.includes("INVALID_LLM_JSON") ||
+                      statusCode === 429 || statusCode === 503 || statusCode === 500 || statusCode === 502;
+                    if (!isRetryable || attempt === MAX_RECOMMENDATION_RETRIES - 1) {
+                      throw retryErr;
+                    }
+                  }
+                }
+              } catch (recErr: any) {
+                console.warn(`[Stage 43 BG] Stage-2 recommendations fallback: ${recErr?.message || recErr}`);
+              }
+              console.log(`[Stage 43 BG] Stage 2 LLM completed in ${Date.now() - stage2Start}ms`);
+
+              if (!recommendations) {
+                recommendations = buildFallbackRecommendationsFromCore(
+                  bgAnalysisCore,
+                  bgLang,
+                  bgOccasion,
+                  bgProfileContext?.gender || null,
+                  bgInfluencers || bgProfileContext?.favoriteInfluencers || null,
+                  bgProfileContext?.preferredStores || null,
+                );
+              }
+              recommendations = sanitizeRecommendationsPayload(
+                recommendations,
+                bgAnalysisCore,
+                bgLang,
+                bgOccasion,
+                bgProfileContext?.gender || null,
+                bgInfluencers || bgProfileContext?.favoriteInfluencers || null,
+                bgProfileContext?.preferredStores || null,
+                bgProfileContext?.budgetLevel || null,
+              );
+
+              // Merge Stage 2 into the Stage 1 analysis that was already saved
+              let analysis: FashionAnalysis = {
+                ...stage1Analysis,
+                ...recommendations,
+              };
+
+              // ── Stage 2 post-processing: influencer mentions, shopping links, closet matching ──
+              const bgProfileGender = bgProfileContext?.gender;
+              // Supplement influencer mentions with known IG URLs (gender-filtered)
+              for (const inf of POPULAR_INFLUENCERS) {
+                if (bgProfileGender && inf.gender !== "unisex" && inf.gender !== bgProfileGender) continue;
+                const mentioned = analysis.influencerInsight?.includes(inf.name) ||
+                  analysis.summary?.includes(inf.name) ||
+                  analysis.outfitSuggestions?.some(s => s.inspirationNote?.includes(inf.name));
+                if (mentioned && !analysis.linkedMentions!.find(m => m.text === inf.name)) {
+                  analysis.linkedMentions!.push({ text: inf.name, type: "influencer", url: inf.igUrl });
+                }
+              }
+              if (bgProfileGender) {
+                analysis.linkedMentions = analysis.linkedMentions!.filter(m => {
+                  if (m.type !== "influencer") return true;
+                  const knownInf = POPULAR_INFLUENCERS.find(inf => inf.name === m.text);
+                  if (!knownInf) return true;
+                  return knownInf.gender === "unisex" || knownInf.gender === bgProfileGender;
+                });
+              }
+
+              // Fix shopping link URLs
+              const bgUserGender: GenderCategory = (bgProfileGender as GenderCategory) || "male";
+              analysis = fixShoppingLinkUrls(analysis, bgUserGender, bgProfileContext?.preferredStores || null);
+              analysis = normalizeOutfitSuggestionsForWearableCore(analysis, bgUserGender);
+              analysis = normalizeImprovementsForWearableCore(analysis, bgUserGender);
+
+              // Closet matching
+              const bgWardrobeForMatching = bgAllWardrobeItems.slice(0, MAX_WARDROBE_ITEMS_FOR_MATCHING);
+              if (bgWardrobeForMatching.length > 0 && analysis.improvements) {
+                try {
+                  for (const imp of analysis.improvements) {
+                    const impLower = `${imp.title} ${imp.description} ${imp.afterLabel} ${imp.productSearchQuery}`.toLowerCase();
+                    const impDescriptionLower = typeof imp.description === "string" ? imp.description.toLowerCase() : "";
+                    let bestMatch: typeof bgAllWardrobeItems[0] | null = null;
+                    let bestScore = 0;
+                    const typeKeywords: Record<string, string[]> = {
+                      "shirt": ["חולצ", "טי שירט", "shirt", "top", "tee", "polo", "blouse", "t-shirt", "tshirt", "👕"],
+                      "pants": ["מכנס", "ג'ינס", "צ'ינו", "pants", "jeans", "trousers", "shorts", "chino", "👖"],
+                      "shoes": ["נעל", "shoes", "sneaker", "boot", "סניקרס", "נעלי", "👟"],
+                      "jacket": ["ז'קט", "מעיל", "jacket", "coat", "bomber", "hoodie", "קפוצ'ון", "סווטשירט", "sweatshirt", "🧥"],
+                      "watch": ["שעון", "watch", "⌚"], "accessory": ["אקססורי", "תכשיט", "שרשר", "שרשת", "צמיד", "טבעת", "עגיל", "accessory", "jewelry", "necklace", "bracelet", "ring", "chain", "earring", "pendant", "💍", "💿"],
+                      "bag": ["תיק", "bag", "backpack", "👜"], "hat": ["כובע", "hat", "cap", "beanie", "🧢"],
+                      "sunglasses": ["משקפ", "sunglasses", "glasses", "🕶️"],
+                      "vest": ["ווסט", "vest", "gilet", "וסט"], "belt": ["חגורה", "belt"], "scarf": ["צעיף", "scarf", "bandana"],
+                    };
+                    let impCategory = "";
+                    const afterGType = (imp.afterGarmentType || "").toLowerCase();
+                    if (afterGType) {
+                      const garmentToCategoryMap: Record<string, string> = {
+                        "t-shirt": "shirt", "tee": "shirt", "polo": "shirt", "dress shirt": "shirt",
+                        "button-down": "shirt", "blouse": "shirt", "top": "shirt", "sweater": "shirt",
+                        "hoodie": "jacket", "sweatshirt": "jacket", "henley": "shirt", "tank": "shirt",
+                        "jeans": "pants", "chinos": "pants", "trousers": "pants", "shorts": "pants",
+                        "skirt": "pants", "leggings": "pants",
+                        "sneakers": "shoes", "loafers": "shoes", "boots": "shoes", "sandals": "shoes",
+                        "oxfords": "shoes", "derby": "shoes", "heels": "shoes",
+                        "jacket": "jacket", "blazer": "jacket", "coat": "jacket", "cardigan": "jacket",
+                        "bomber": "jacket", "parka": "jacket", "vest": "vest",
+                        "watch": "watch", "belt": "belt", "bag": "bag", "backpack": "bag",
+                        "hat": "hat", "cap": "hat", "sunglasses": "sunglasses", "scarf": "scarf",
+                        "necklace": "accessory", "bracelet": "accessory", "ring": "accessory", "earring": "accessory",
+                      };
+                      impCategory = garmentToCategoryMap[afterGType] || "";
+                      if (!impCategory) {
+                        for (const [gType, cat] of Object.entries(garmentToCategoryMap)) {
+                          if (afterGType.includes(gType) || gType.includes(afterGType)) { impCategory = cat; break; }
+                        }
+                      }
+                    }
+                    if (!impCategory) {
+                      for (const [cat, keywords] of Object.entries(typeKeywords)) {
+                        if (keywords.some(kw => impLower.includes(kw))) { impCategory = cat; break; }
+                      }
+                    }
+                    if (!impCategory) continue;
+                    for (const wItem of bgWardrobeForMatching) {
+                      let matchScore = 0;
+                      const wName = (wItem.name || "").toLowerCase();
+                      const wType = (wItem.itemType || "").toLowerCase();
+                      const wBrand = (wItem.brand || "").toLowerCase();
+                      const wColor = (wItem.color || "").toLowerCase();
+                      const wStyleNote = (wItem.styleNote || "").toLowerCase();
+                      const wAllText = `${wName} ${wType} ${wBrand} ${wStyleNote}`;
+                      let wCategory = "";
+                      for (const [cat, keywords] of Object.entries(typeKeywords)) {
+                        if (keywords.some(kw => wType.includes(kw) || wName.includes(kw))) { wCategory = cat; break; }
+                      }
+                      if (!wCategory || wCategory !== impCategory) continue;
+                      // Style contradiction check
+                      const styleConflicts: [string[], string[]][] = [
+                        [["קלאסי", "אנלוגי", "classic", "analog", "elegant", "אלגנטי", "dress watch", "formal"], ["חכם", "smart", "digital", "דיגיטלי", "smartwatch", "fitness", "apple watch", "galaxy watch", "garmin"]],
+                        [["אלגנט", "elegant", "formal", "פורמלי", "dress shoe", "oxford", "derby", "loafer", "monk"], ["ספורט", "sporty", "sneaker", "סניקרס", "running", "athletic", "ריצה"]],
+                        [["מכופתר", "פורמלי", "dress shirt", "formal", "button-down"], ["טי שירט", "t-shirt", "tee", "casual", "קז'ואל", "graphic tee"]],
+                        [["בלייזר", "blazer", "suit jacket", "חליפה", "formal", "tailored"], ["bomber", "בומבר", "hoodie", "קפוצ'ון", "windbreaker", "puffer"]],
+                        [["תיק עסקי", "briefcase", "formal", "פורמלי", "messenger"], ["תיק גב", "backpack", "casual", "ספורטיבי", "gym bag"]],
+                      ];
+                      let hasStyleConflict = false;
+                      const impStyle = (imp.afterStyle || "").toLowerCase();
+                      if (impStyle && wStyleNote) {
+                        const formalStyles = ["formal", "elegant", "classic", "tailored", "smart-casual", "business"];
+                        const casualStyles = ["casual", "sporty", "streetwear", "athletic", "relaxed"];
+                        if ((formalStyles.some(s => impStyle.includes(s)) && casualStyles.some(s => wStyleNote.includes(s)) && !formalStyles.some(s => wStyleNote.includes(s))) ||
+                            (casualStyles.some(s => impStyle.includes(s)) && formalStyles.some(s => wStyleNote.includes(s)) && !casualStyles.some(s => wStyleNote.includes(s)))) {
+                          hasStyleConflict = true;
+                        }
+                      }
+                      if (!hasStyleConflict) {
+                        for (const [groupA, groupB] of styleConflicts) {
+                          const impMatchesA = groupA.some(kw => impLower.includes(kw));
+                          const impMatchesB = groupB.some(kw => impLower.includes(kw));
+                          const wMatchesA = groupA.some(kw => wAllText.includes(kw));
+                          const wMatchesB = groupB.some(kw => wAllText.includes(kw));
+                          if ((impMatchesA && wMatchesB && !wMatchesA) || (impMatchesB && wMatchesA && !wMatchesB)) { hasStyleConflict = true; break; }
+                        }
+                      }
+                      if (hasStyleConflict) continue;
+                      matchScore += 5;
+                      if (wName && impDescriptionLower.includes(wName)) matchScore += 10;
+                      if (wBrand && wBrand.length > 2 && impLower.includes(wBrand)) matchScore += 3;
+                      if (wColor && wColor.length > 1 && impLower.includes(wColor)) matchScore += 2;
+                      if (wStyleNote) {
+                        const impKeywords = impLower.split(/\s+/).filter(w => w.length > 3);
+                        matchScore += Math.min(impKeywords.filter(kw => wStyleNote.includes(kw)).length, 4);
+                      }
+                      if (matchScore > bestScore) { bestScore = matchScore; bestMatch = wItem; }
+                    }
+                    if (bestMatch && bestScore >= 5) {
+                      imp.closetMatch = {
+                        wardrobeItemId: bestMatch.id, name: bestMatch.name, itemType: bestMatch.itemType,
+                        brand: bestMatch.brand || undefined, color: bestMatch.color || undefined,
+                        sourceImageUrl: bestMatch.sourceImageUrl || undefined, itemImageUrl: bestMatch.itemImageUrl || undefined,
+                      };
+                    }
+                  }
+                } catch (closetErr: any) {
+                  console.warn(`[Stage 43 BG] Closet matching skipped: ${closetErr?.message || closetErr}`);
+                }
+              }
+
+              // ── Save Stage 2 results to DB (updates the existing row) ──
+              await updateReviewAnalysis(bgReviewId, analysis.overallScore, analysis);
+              console.log(`[Stage 43 BG] Stage 2 saved to DB (reviewId=${bgReviewId}) in ${Date.now() - stage2Start}ms total`);
+
+            } catch (bgErr: any) {
+              console.error(`[Stage 43 BG] Stage 2 background failed (reviewId=${bgReviewId}):`, bgErr?.message || bgErr);
+              // Stage 2 failure is non-fatal — Stage 1 is already saved
+            }
+          })();
+
+          // Return Stage 1 immediately (Stage 2 runs in background)
+          return { success: true, analysis: stage1ReturnAnalysis };
           });
         } catch (error: any) {
           console.error("[Fashion Analysis] Failed:", error);
@@ -5256,8 +5160,157 @@ Return ONLY a JSON object with these exact fields:
            if (!analysisCore) throw new Error("Analysis failed after retries");
            console.log(`[Timing] Stage 1 completed in ${Date.now() - stage1Start}ms`);
 
-           // Stage 2: inspiration + recommendations (text-only from stage-1 output)
-           const stage2Start = Date.now();
+          // ── Stage 43: Apply Stage 1 post-processing and return early ──
+          // Brand enrichment on Stage 1 items
+          if (!analysisCore.linkedMentions) analysisCore.linkedMentions = [];
+          for (const item of analysisCore.items) {
+            const brandName = (item.brand || "").trim();
+            if (brandName && brandName !== "N/A") {
+              const exactUrl = (BRAND_URLS as Record<string, string>)[brandName];
+              if (exactUrl) { item.brandUrl = exactUrl; }
+              else {
+                for (const [brand, url] of Object.entries(BRAND_URLS)) {
+                  if (brand.toLowerCase() === brandName.toLowerCase()) { item.brand = brand; item.brandUrl = url; break; }
+                }
+              }
+              if (item.brand && !analysisCore.linkedMentions.find(m => m.text === item.brand)) {
+                analysisCore.linkedMentions.push({ text: item.brand, type: "brand", url: item.brandUrl || "" });
+              }
+            }
+          }
+          for (const item of analysisCore.items) {
+            for (const [brand, url] of Object.entries(BRAND_URLS)) {
+              if (item.name?.includes(brand) || item.analysis?.includes(brand)) {
+                if (!item.brand || item.brand.trim() === "" || item.brand === "N/A") { item.brand = brand; item.brandUrl = url; if (!item.brandConfidence) item.brandConfidence = "MEDIUM"; }
+                if (!analysisCore.linkedMentions.find(m => m.text === brand)) { analysisCore.linkedMentions.push({ text: brand, type: "brand", url }); }
+              }
+            }
+          }
+          for (const item of analysisCore.items) {
+            if (!item.brandConfidence || item.brandConfidence.trim() === "") { item.brandConfidence = (item.brand && item.brand.trim() !== "" && item.brand !== "N/A") ? "LOW" : "NONE"; }
+          }
+          for (const item of analysisCore.items) {
+            if (!item.brand || item.brand.trim() === "" || item.brand === "N/A") { item.brand = "לא זוהה"; item.brandConfidence = "NONE"; }
+          }
+          // Clamp scores
+          for (const item of analysisCore.items) { if (item.score < 5) item.score = 5; }
+          for (const cat of analysisCore.scores) { if (cat.score !== null && cat.score < 5) cat.score = 5; }
+          // Premium scoring
+          const isGuestPremiumForScoringEarly = profileForPrompt?.budgetLevel === 'premium' || profileForPrompt?.budgetLevel === 'luxury';
+          if (isGuestPremiumForScoringEarly) {
+            for (const cat of analysisCore.scores) {
+              const catLower = cat.category.toLowerCase();
+              if ((catLower.includes('מותג') || catLower.includes('brand')) && cat.score !== null && cat.score < 8) {
+                cat.score = 8;
+                if (cat.explanation && (cat.explanation.includes('לוגו') || cat.explanation.includes('logo') || cat.explanation.includes('זיהוי') || cat.explanation.includes('identif'))) {
+                  cat.explanation = cat.explanation.replace(/\d\/10/g, '8/10');
+                }
+              }
+            }
+          }
+          // Weighted recalc
+          const guestCategoryWeightsEarly: Record<string, number> = {
+            'איכות הפריטים': 1.0, 'item quality': 1.0,
+            'התאמת גזרה': 1.0, 'fit': 1.0,
+            'צבעוניות': 1.0, 'color palette': 1.0,
+            'התאמה לגיל ולסגנון': 1.0, 'age & style match': 1.0,
+            'נעליים': 0.8, 'footwear': 0.8,
+            'זיהוי מותגים': 0.8, 'brand recognition': 0.8,
+            'שכבתיות (layering)': 0.5, 'שכבתיות': 0.5, 'layering': 0.5,
+            'אקססוריז ותכשיטים': 0.5, 'accessories & jewelry': 0.5,
+          };
+          let guestWeightedSumEarly = 0;
+          let guestTotalWeightEarly = 0;
+          for (const cat of analysisCore.scores) {
+            if (cat.score !== null) {
+              const catLower = cat.category.toLowerCase();
+              const weight = guestCategoryWeightsEarly[catLower] ?? 1.0;
+              guestWeightedSumEarly += cat.score * weight;
+              guestTotalWeightEarly += weight;
+            }
+          }
+          if (guestTotalWeightEarly > 0) {
+            analysisCore.overallScore = Math.round((guestWeightedSumEarly / guestTotalWeightEarly) * 10) / 10;
+          }
+          if (analysisCore.overallScore < 5) analysisCore.overallScore = 5;
+          // Material quality validation
+          const isGuestPremiumEarly = profileForPrompt?.budgetLevel === 'premium' || profileForPrompt?.budgetLevel === 'luxury';
+          const cheapMaterialTermsGuestEarly = [
+            { pattern: /דמוי עור/g, replacement: isGuestPremiumEarly ? "עור יוקרתי" : "עור סינתטי איכותי" },
+            { pattern: /עור סינתטי(?! איכותי)/g, replacement: isGuestPremiumEarly ? "עור יוקרתי" : "עור סינתטי איכותי" },
+            { pattern: /דמוי זמש/g, replacement: isGuestPremiumEarly ? "זמש איכותי" : "זמש סינתטי איכותי" },
+            { pattern: /זמש סינתטי(?! איכותי)/g, replacement: isGuestPremiumEarly ? "זמש איכותי" : "זמש סינתטי איכותי" },
+            { pattern: /דמוי משי/g, replacement: isGuestPremiumEarly ? "סאטן יוקרתי" : "סאטן" },
+            { pattern: /פלסטיק/g, replacement: isGuestPremiumEarly ? "אקריליק" : "שרף" },
+            { pattern: /faux leather/gi, replacement: isGuestPremiumEarly ? "premium leather" : "quality synthetic leather" },
+            { pattern: /synthetic leather/gi, replacement: isGuestPremiumEarly ? "premium leather" : "quality synthetic leather" },
+            { pattern: /faux suede/gi, replacement: isGuestPremiumEarly ? "premium suede" : "quality synthetic suede" },
+            { pattern: /synthetic suede/gi, replacement: isGuestPremiumEarly ? "premium suede" : "quality synthetic suede" },
+            { pattern: /faux silk/gi, replacement: isGuestPremiumEarly ? "premium satin" : "satin" },
+            { pattern: /\bplastic\b/gi, replacement: isGuestPremiumEarly ? "acrylic" : "resin" },
+          ];
+          for (const item of analysisCore.items) {
+            for (const term of cheapMaterialTermsGuestEarly) {
+              if (item.description) item.description = item.description.replace(term.pattern, term.replacement);
+              if (item.analysis) item.analysis = item.analysis.replace(term.pattern, term.replacement);
+              if (item.name) item.name = item.name.replace(term.pattern, term.replacement);
+            }
+          }
+          for (const term of cheapMaterialTermsGuestEarly) {
+            if (analysisCore.summary) analysisCore.summary = analysisCore.summary.replace(term.pattern, term.replacement);
+          }
+          for (const cat of analysisCore.scores) { if (!cat.explanation) cat.explanation = ""; }
+
+          // Build Stage 1 return analysis (with empty recommendations)
+          const guestStage1Analysis: FashionAnalysis = {
+            ...analysisCore,
+            improvements: [],
+            outfitSuggestions: [],
+            trendSources: [],
+            influencerInsight: "",
+          };
+
+          // Save Stage 1 to DB immediately
+          await updateGuestSessionAnalysis(input.sessionId, guestStage1Analysis.overallScore, guestStage1Analysis);
+          console.log(`[Guest Analysis] Stage 1 saved to DB, returning to user immediately`);
+
+          // Auto-save detected items to guest wardrobe (Stage 1 items)
+          try {
+            if (analysisCore.items && analysisCore.items.length > 0) {
+              const wardrobeEntries = analysisCore.items.map((item) => ({
+                guestSessionId: input.sessionId,
+                itemType: item.garmentType || item.icon || "clothing",
+                name: item.name,
+                color: item.preciseColor || item.color || null,
+                brand: item.brand || null,
+                material: item.material || null,
+                styleNote: [
+                  item.subCategory,
+                  item.fit && item.fit !== "n/a" ? `fit: ${item.fit}` : null,
+                  item.pattern && item.pattern !== "solid" ? `pattern: ${item.pattern}` : null,
+                  item.texture ? `texture: ${item.texture}` : null,
+                  item.neckline && item.neckline !== "n/a" ? `neckline: ${item.neckline}` : null,
+                  item.closure && item.closure !== "n/a" ? `closure: ${item.closure}` : null,
+                  item.sleeveLength && item.sleeveLength !== "n/a" ? `sleeve: ${item.sleeveLength}` : null,
+                  item.garmentLength && item.garmentLength !== "n/a" ? `length: ${item.garmentLength}` : null,
+                  item.secondaryColor ? `secondary color: ${item.secondaryColor}` : null,
+                  item.details && item.details !== "none" ? `details: ${item.details}` : null,
+                ].filter(Boolean).join(", ") || item.description || null,
+                score: item.score,
+                sourceImageUrl: session.imageUrl || null,
+                sourceReviewId: input.sessionId,
+              }));
+              await addGuestWardrobeItems(wardrobeEntries as any);
+              console.log(`[Guest Analysis] Auto-saved ${wardrobeEntries.length} items to wardrobe for session ${input.sessionId}`);
+            }
+          } catch (wardrobeErr: any) {
+            console.warn(`[Guest Analysis] Failed to auto-save wardrobe items:`, wardrobeErr?.message);
+          }
+
+          // ── Stage 2 runs in background (fire-and-forget) ──
+          (async () => {
+            try {
+              const stage2Start = Date.now();
 
           // Stage 33: Build guest Taste Profile + Wardrobe for Stage 2
           let guestTasteText: string | null = null;
@@ -5699,47 +5752,19 @@ Return ONLY a JSON object with these exact fields:
           }
 
 
-          // Save analysis to DB immediately (without waiting for product images)
+          // Stage 43: Stage 2 background — save full analysis with recommendations
+          const guestGenderBg: GenderCategory = (profileForPrompt?.gender as GenderCategory) || "male";
+          analysis = fixShoppingLinkUrls(analysis, guestGenderBg, guestProfile?.preferredStores || null);
+          analysis = normalizeOutfitSuggestionsForWearableCore(analysis, guestGenderBg);
+          analysis = normalizeImprovementsForWearableCore(analysis, guestGenderBg);
+
+          // Closet matching already ran above
+
+          // Save full analysis (with recommendations) to DB
           await updateGuestSessionAnalysis(input.sessionId, analysis.overallScore, analysis);
+          console.log(`[Guest Analysis] Stage 2 background complete, saved to DB in ${Date.now() - stage2Start}ms`);
 
-          // Auto-save detected items to guest wardrobe
-          try {
-            if (analysis.items && analysis.items.length > 0) {
-              const wardrobeEntries = analysis.items.map((item) => ({
-                guestSessionId: input.sessionId,
-                itemType: item.garmentType || item.icon || "clothing",
-                name: item.name,
-                color: item.preciseColor || item.color || null,
-                brand: item.brand || null,
-                material: item.material || null,
-                // Store rich style description for smarter closet matching later
-                styleNote: [
-                  item.subCategory,
-                  item.fit && item.fit !== "n/a" ? `fit: ${item.fit}` : null,
-                  item.pattern && item.pattern !== "solid" ? `pattern: ${item.pattern}` : null,
-                  item.texture ? `texture: ${item.texture}` : null,
-                  item.neckline && item.neckline !== "n/a" ? `neckline: ${item.neckline}` : null,
-                  item.closure && item.closure !== "n/a" ? `closure: ${item.closure}` : null,
-                  item.sleeveLength && item.sleeveLength !== "n/a" ? `sleeve: ${item.sleeveLength}` : null,
-                  item.garmentLength && item.garmentLength !== "n/a" ? `length: ${item.garmentLength}` : null,
-                  item.secondaryColor ? `secondary color: ${item.secondaryColor}` : null,
-                  item.details && item.details !== "none" ? `details: ${item.details}` : null,
-                ].filter(Boolean).join(", ") || item.description || null,
-                score: item.score,
-                sourceImageUrl: session.imageUrl || null,
-                sourceReviewId: input.sessionId,
-              }));
-              await addGuestWardrobeItems(wardrobeEntries as any);
-              console.log(`[Guest Analysis] Auto-saved ${wardrobeEntries.length} items to wardrobe for session ${input.sessionId}`);
-            }
-          } catch (wardrobeErr: any) {
-            console.warn(`[Guest Analysis] Failed to auto-save wardrobe items:`, wardrobeErr?.message);
-          }
-
-          // Product images are now lazy-loaded per improvement category when the user scrolls to them.
-          // No background generation needed here — the frontend triggers it via guest.generateProductImages.
-
-          // Fire-and-forget: notify admin about new guest analysis
+          // Notify admin
           notifyGuestAnalysisCompleted(
             input.sessionId,
             session.fingerprint,
@@ -5748,9 +5773,16 @@ Return ONLY a JSON object with these exact fields:
             session.ipAddress || null,
             session.imageUrl || null,
             analysis.summary || null,
-          ).catch(() => {}); // swallow any unhandled rejection
+          ).catch(() => {});
 
-          return { success: true, analysis };
+            } catch (bgErr: any) {
+              console.error(`[Guest Analysis] Stage 2 background failed:`, bgErr?.message);
+              // Stage 1 is already saved — user sees partial results
+            }
+          })().catch(() => {}); // fire-and-forget
+
+          // Return Stage 1 immediately
+          return { success: true, analysis: guestStage1Analysis };
           });
         } catch (error: any) {
           console.error("[Guest Analysis] Failed:", error?.message);

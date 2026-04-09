@@ -538,3 +538,14 @@
 - [x] 42.2: Fixed buildFallbackImprovement — describes only the after item with style context
 - [x] 42.3: Fixed all 6 generic fallback map descriptions — professional content without old item references
 - [x] 42.4: 0 TS errors, 819/824 tests pass
+
+## Stage 43: Split Stage 1 / Stage 2 — Progressive Loading
+- [x] 43.1: Backend — Split registered analyze: Stage 1 saves to DB + returns immediately, Stage 2 runs fire-and-forget in background IIFE
+- [x] 43.2: Backend — Stage 2 background reads Stage 1 data from closure, merges recommendations, updates DB
+- [x] 43.3: Backend — Guest flow also split: Stage 1 post-processing + DB save + return, then Stage 2 background IIFE
+- [x] 43.4: Frontend — ReviewPage + GuestReview both show Stage 1 results immediately (items, scores, summary)
+- [x] 43.5: Frontend — Polling continues when status=completed but improvements empty (3s interval)
+- [x] 43.6: Frontend — When polling detects improvements populated, they appear automatically
+- [x] 43.7: Frontend — Loading skeleton with spinner + "מכין המלצות שידרוג..." for improvements, outfits, trends
+- [x] 43.8: Frontend — Stage 2 failure is non-fatal — user sees Stage 1 results, improvements stay empty (no crash)
+- [x] 43.9: 0 TS errors, 819/824 tests pass (5 external API failures), timing test updated

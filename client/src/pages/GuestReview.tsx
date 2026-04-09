@@ -886,6 +886,9 @@ export default function GuestReview() {
         if (d.status === "analyzing" || d.status === "pending") return 2000;
         if (d.status === "completed" && d.analysisJson) {
           const a = d.analysisJson as any;
+          // Stage 43: Keep polling if Stage 2 hasn't delivered recommendations yet
+          const improvementsEmpty = !a?.improvements || a.improvements.length === 0;
+          if (improvementsEmpty) return 3000;
           const hasEmptyImages = a?.improvements?.some((imp: any) =>
             imp.shoppingLinks?.some((link: any) => !link.imageUrl || link.imageUrl.length < 5)
           );
@@ -1132,8 +1135,29 @@ export default function GuestReview() {
     );
   }
 
-  // Card 3: Upgrades
-  if (analysis.improvements.length > 0) {
+  // Card 3: Upgrades (or loading skeleton while Stage 2 runs)
+  if (analysis.improvements.length === 0 && result?.status === "completed") {
+    // Stage 2 still running in background — show loading skeleton
+    storyCards.push(
+      <div key="upgrades-loading" className="space-y-3">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full" />
+          <span>{lang === "he" ? "מכין המלצות שידרוג מותאמות אישית..." : "Preparing personalized upgrade recommendations..."}</span>
+        </div>
+        {[1, 2, 3].map(i => (
+          <div key={i} className="rounded-xl border border-border/50 bg-card/50 p-4 space-y-3 animate-pulse">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-muted" />
+              <div className="flex-1 space-y-2">
+                <div className="h-4 bg-muted rounded w-3/4" />
+                <div className="h-3 bg-muted rounded w-1/2" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  } else if (analysis.improvements.length > 0) {
     storyCards.push(
       <div key="upgrades" className="space-y-2">
         {detectedCountry && (
@@ -1206,8 +1230,27 @@ export default function GuestReview() {
     );
   }
 
-  // Card 3: Outfit Suggestions
-  if (analysis.outfitSuggestions.length > 0) {
+  // Card 3: Outfit Suggestions (or loading skeleton while Stage 2 runs)
+  if (analysis.outfitSuggestions.length === 0 && analysis.improvements.length === 0 && result?.status === "completed") {
+    // Stage 2 still running — show loading skeleton for outfits too
+    storyCards.push(
+      <div key="outfits-loading" className="space-y-3">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full" />
+          <span>{lang === "he" ? "מכין הצעות לוקים מלאים..." : "Preparing complete outfit suggestions..."}</span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="rounded-xl border border-border/50 bg-card/50 p-4 space-y-3 animate-pulse">
+              <div className="h-32 bg-muted rounded-lg" />
+              <div className="h-4 bg-muted rounded w-2/3" />
+              <div className="h-3 bg-muted rounded w-1/2" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  } else if (analysis.outfitSuggestions.length > 0) {
     storyCards.push(
       <div key="outfits" className="space-y-4">
         {detectedCountry && (

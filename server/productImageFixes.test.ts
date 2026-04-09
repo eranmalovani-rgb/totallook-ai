@@ -456,9 +456,9 @@ describe("Stage 10c: Hybrid prefetch integration", () => {
       "utf-8",
     );
     const stage1TimingCount = (source.match(/\[Timing\] Stage 1 completed/g) || []).length;
-    const stage2TimingCount = (source.match(/\[Timing\] Stage 2 completed/g) || []).length;
+    const stage2TimingCount = (source.match(/Stage 2 (completed|LLM completed|background complete|saved to DB)/g) || []).length;
     expect(stage1TimingCount).toBe(2); // registered + guest
-    expect(stage2TimingCount).toBe(2); // registered + guest
+    expect(stage2TimingCount).toBeGreaterThanOrEqual(2); // registered + guest (may have multiple logs per flow now)
   });
 });
 

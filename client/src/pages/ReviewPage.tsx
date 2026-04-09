@@ -1158,6 +1158,9 @@ export default function ReviewPage() {
       const status = (query.state.data as any)?.status;
       if (status === "pending" || status === "analyzing") return 3000;
       const analysisData = (query.state.data as any)?.analysisJson;
+      // Stage 43: Poll while Stage 2 is still running (improvements empty)
+      const hasNoImprovements = !analysisData?.improvements || analysisData.improvements.length === 0;
+      if ((status === "done" || status === "completed") && hasNoImprovements) return 3000;
       const hasEmptyImages = analysisData?.improvements?.some((imp: any) =>
         imp.shoppingLinks?.some((link: any) => !link.imageUrl || link.imageUrl.length < 5)
       );
@@ -1650,23 +1653,42 @@ export default function ReviewPage() {
                 )}
               </div>
               <div className="space-y-1">
-                {(analysis.improvements ?? []).map((imp, i) => (
-                  <ExpandableSection
-                    key={i}
-                    title={imp.title}
-                    defaultOpen={false}
-                  >
-                    <ImprovementCard
-                      imp={imp}
-                      index={i}
-                      reviewId={reviewId}
-                      lang={lang}
-                      mentions={mentions}
-                      onInfluencerClick={handleInfluencerClick}
-                      t={t}
-                    />
-                  </ExpandableSection>
-                ))}
+                {(analysis.improvements ?? []).length === 0 ? (
+                  /* Stage 43: Show loading skeleton while Stage 2 runs in background */
+                  <div className="space-y-3 py-4">
+                    <div className="flex items-center gap-3">
+                      <Loader2 className="w-5 h-5 text-primary animate-spin" />
+                      <p className="text-sm text-muted-foreground">
+                        {lang === "he" ? "מכין המלצות מותאמות אישית..." : "Preparing personalized recommendations..."}
+                      </p>
+                    </div>
+                    {[1, 2, 3].map((n) => (
+                      <div key={n} className="rounded-xl border border-white/5 bg-white/[0.02] p-4 animate-pulse">
+                        <div className="h-4 bg-white/10 rounded w-3/4 mb-3" />
+                        <div className="h-3 bg-white/5 rounded w-full mb-2" />
+                        <div className="h-3 bg-white/5 rounded w-2/3" />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  (analysis.improvements ?? []).map((imp, i) => (
+                    <ExpandableSection
+                      key={i}
+                      title={imp.title}
+                      defaultOpen={false}
+                    >
+                      <ImprovementCard
+                        imp={imp}
+                        index={i}
+                        reviewId={reviewId}
+                        lang={lang}
+                        mentions={mentions}
+                        onInfluencerClick={handleInfluencerClick}
+                        t={t}
+                      />
+                    </ExpandableSection>
+                  ))
+                )}
               </div>
 
               {/* Fix My Look CTA — attractive card inside Upgrades */}
@@ -1722,18 +1744,37 @@ export default function ReviewPage() {
                 )}
               </div>
               <div className="space-y-4">
-                {(analysis.outfitSuggestions ?? []).map((outfit, i) => (
-                  <OutfitCard
-                    key={i}
-                    outfit={outfit}
-                    index={i}
-                    reviewId={reviewId}
-                    mentions={mentions}
-                    onInfluencerClick={handleInfluencerClick}
-                    lang={lang}
-                    isOwner={isOwner}
-                  />
-                ))}
+                {(analysis.outfitSuggestions ?? []).length === 0 ? (
+                  /* Stage 43: Show loading skeleton while Stage 2 runs in background */
+                  <div className="space-y-3 py-4">
+                    <div className="flex items-center gap-3">
+                      <Loader2 className="w-5 h-5 text-primary animate-spin" />
+                      <p className="text-sm text-muted-foreground">
+                        {lang === "he" ? "מרכיב השראות ללוקים..." : "Composing outfit ideas..."}
+                      </p>
+                    </div>
+                    {[1, 2].map((n) => (
+                      <div key={n} className="rounded-xl border border-white/5 bg-white/[0.02] p-4 animate-pulse">
+                        <div className="h-4 bg-white/10 rounded w-1/2 mb-3" />
+                        <div className="h-3 bg-white/5 rounded w-full mb-2" />
+                        <div className="h-3 bg-white/5 rounded w-3/4" />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  (analysis.outfitSuggestions ?? []).map((outfit, i) => (
+                    <OutfitCard
+                      key={i}
+                      outfit={outfit}
+                      index={i}
+                      reviewId={reviewId}
+                      mentions={mentions}
+                      onInfluencerClick={handleInfluencerClick}
+                      lang={lang}
+                      isOwner={isOwner}
+                    />
+                  ))
+                )}
               </div>
             </div>
 
@@ -1743,7 +1784,24 @@ export default function ReviewPage() {
                 <BookOpen className="w-5 h-5 text-primary" />
                 {t("review", "trendSources")}
               </h3>
-              {analysis.trendSources && analysis.trendSources.length > 0 ? (
+              {(!analysis.trendSources || analysis.trendSources.length === 0) && (analysis.improvements ?? []).length === 0 ? (
+                /* Stage 43: Show loading skeleton while Stage 2 runs in background */
+                <div className="space-y-3 py-4">
+                  <div className="flex items-center gap-3">
+                    <Loader2 className="w-5 h-5 text-primary animate-spin" />
+                    <p className="text-sm text-muted-foreground">
+                      {lang === "he" ? "אוסף מקורות וטרנדים..." : "Gathering trends and sources..."}
+                    </p>
+                  </div>
+                  {[1, 2].map((n) => (
+                    <div key={n} className="rounded-xl border border-white/5 bg-white/[0.02] p-4 animate-pulse">
+                      <div className="h-3 bg-white/10 rounded w-1/3 mb-2" />
+                      <div className="h-3 bg-white/5 rounded w-full mb-1" />
+                      <div className="h-3 bg-white/5 rounded w-1/2" />
+                    </div>
+                  ))}
+                </div>
+              ) : analysis.trendSources && analysis.trendSources.length > 0 ? (
                 <div className="space-y-3">
                   {analysis.trendSources.map((src, i) => (
                     <a
