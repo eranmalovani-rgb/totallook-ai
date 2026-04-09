@@ -520,3 +520,11 @@
 - [x] 38.5: Removed image from Stage 2 LLM call (both registered + guest)
 - [x] 38.6: Kept improved prompt — now references items/colors/materials from Stage 1 JSON instead of photo
 - [x] 38.7: 0 TS errors, 819/824 tests pass
+
+## Stage 39: Improve Recommendation Quality — Cross-Category, Gender, Professional Content
+- [x] 39.1: Added cross-category validation with GARMENT_CATEGORIES map — forces title rewrite if title mentions different category than afterGarmentType
+- [x] 39.2: Added gender-aware verbs (החלף/החליפי, שקול/שקלי, נסה/נסי, בחר/בחרי) + gender-aware prompt intro + explicit אסור on החלף/י
+- [x] 39.3: Added DESCRIPTION WRITING RULES with examples of good/bad descriptions, requiring color theory, trend refs, silhouette advice
+- [x] 39.4: Added to both HE+EN prompts: color harmony, proportion guidance, 2025-2026 trends, quiet luxury, specific color pairing
+- [x] 39.5: Added explicit rule in prompt: FORBIDDEN generic sneakers, must suggest minimalist leather sneakers / suede loafers / leather derby
+- [x] 39.6: 0 TS errors, 819/824 tests pass

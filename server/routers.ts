@@ -1870,17 +1870,34 @@ function buildRecommendationsPromptFromCore(
   const tasteProfileSection = tasteProfileText || "";
   const wardrobeSection = wardrobeText || "";
 
+  // Gender-aware prompt language
+  const genderAddress = isHebrew
+    ? (normalizedGender === "female" ? "את סטייליסטית אופנה מקצועית" : normalizedGender === "male" ? "אתה סטייליסט אופנה מקצועי" : "את/ה סטייליסט/ית אופנה מקצועי/ת")
+    : "a professional fashion stylist";
+  const heVerb = normalizedGender === "female"
+    ? { replace: "החליפי", consider: "שקלי", try: "נסי", choose: "בחרי", add: "הוסיפי" }
+    : { replace: "החלף", consider: "שקול", try: "נסה", choose: "בחר", add: "הוסף" };
+
   return isHebrew
-    ? `אתה שלב 2 במערכת דו-שלבית: השראה והמלצות בלבד.
-קלט: JSON מובנה של שלב 1 + תמונת הלוק המקורית.
+    ? `${genderAddress}. אתה שלב 2 במערכת דו-שלבית: השראה והמלצות בלבד.
+קלט: JSON מובנה של שלב 1 (ניתוח הלוק).
 משימה: להחזיר רק JSON עם fields:
 - improvements
 - outfitSuggestions
 - trendSources
 - influencerInsight
 
-❗ כלל קריטי: הסתכל על התמונה המצורפת! ההמלצות חייבות להתייחס למה שאתה רואה בתמונה — הצבעים, הסגנון, הגזרה, החומרים, האקססוריז. אל תחזיר המלצות גנריות שיכולות להתאים לכל תמונה.
-❗ אסור להמליץ תמיד על אותם פריטים: sweater navy, loafers brown, chinos khaki. אלה המלצות "בטוחות" שלא מתייחסות לתמונה. תסתכל על מה שהאדם בתמונה לובש בפועל ותציע שידרוג מדויק לכל פריט.
+❗ כלל קריטי: המשתמש הוא ${normalizedGender === "female" ? "אישה" : normalizedGender === "male" ? "גבר" : "לא צוין"}. פנה ${normalizedGender === "female" ? "אליה" : "אליו"} בהתאם! השתמש בפעלים במגדר הנכון: ${heVerb.replace}, ${heVerb.consider}, ${heVerb.try}, ${heVerb.choose}, ${heVerb.add}.
+❗ אסור להשתמש ב"החלף/י" או "שדרג/י" — זה לא מקצועי!
+
+❗ סגנון כתיבה: כתוב כמו סטייליסט אופנה אמיתי, לא כמו רובוט. כל המלצה חייבת לכלול:
+  - הסבר אופנתי למה השינוי הזה משדרג את הלוק (איך הצבע משלים, איך החומר משדרג, איך הגזרה משפרת את הסילואט)
+  - התייחסות לטרנדים עכשוויים (2025-2026)
+  - המלצה על שילוב צבעים (הרמוניה, ניגודיות, קונטרסט)
+  - המלצה על פרופורציות וסילואט (איך הפריט החדש משפיע על המראה הכללי)
+❗ אסור להמליץ תמיד על אותם פריטים: sweater navy, loafers brown, chinos khaki. אלה המלצות "בטוחות" שלא מתייחסות לתמונה. תסתכל על מה שהאדם לובש בפועל ותציע שידרוג מדויק לכל פריט.
+❗ קטגוריות: כל improvement חייב להתייחס לקטגוריה אחת בלבד (חלק עליון, חלק תחתון, נעליים, אקססורי). אסור לערבב קטגוריות! אם הכותרת אומרת "ז'קט", ה-afterGarmentType חייב להיות סוג של ז'קט (לא מכנס!). אם הכותרת אומרת "נעליים", ה-afterGarmentType חייב להיות סוג של נעליים (לא חולצה!).
+❗ נעליים: אסור להמליץ על "sneakers" גנריות. תמיד המלץ על חלופה משודרגת: "minimalist leather sneakers", "suede loafers", "leather derby shoes", "clean white leather sneakers".
 
 ${doctrineStage2}
 
@@ -1890,6 +1907,14 @@ ${doctrineStage2}
 - חשוב מאוד: כל פריט בקלט כולל מטאדאטה מובנית עשירה (garmentType, preciseColor, material, fit, pattern, texture, neckline, sleeveLength, closure, bodyZone, layerIndex). השתמש בנתונים האלה כדי לייצר שידרוגים מדויקים! לדוגמה: אם הפריט הנוכחי הוא garmentType="t-shirt", preciseColor="white", material="cotton", fit="regular", pattern="solid" — ה-before fields חייבים לשקף בדיוק את המטאדאטה הזו.
 - אם הקלט כולל personDetection (מידע על הגוף: fullBodyVisible, feetVisible, bodyPose) ו-lookStructure (מבנה הלוק: colorHarmony, proportions, silhouetteSummary, hasLayering) — השתמש בהם! לדוגמה: אם proportions="top-heavy" הצע שידרוג שמאזן את הפרופורציות. אם colorHarmony="monochromatic" הצע הכנסת צבע קונטרסטי.
 - improvements: 3 המלצות שדרוג (קטגוריות שונות: חלק עליון, חלק תחתון, נעליים/אקססוריז). כל improvement חייב לכלול בדיוק 3 shoppingLinks (כתובות חיפוש תקינות בחנויות אמיתיות). אל תחזיר פחות מ-3.
+- תיאור (description) של כל improvement — כללים מחייבים:
+  * כתוב כמו סטייליסט אופנה אמיתי שמדבר עם ${normalizedGender === "female" ? "לקוחה" : "לקוח"} שלו. אסור מלל גנרי כמו "זה ישדרג את הלוק"!
+  * חובה: הסבר למה השינוי הזה משדרג (איך הצבע החדש משלים את הפלטה, איך החומר מרגיש אחרת, איך הגזרה משפרת את הסילואט)
+  * חובה: התייחסות לטרנד עכשווי (2025-2026) או לעיקרון אופנתי
+  * חובה: המלצה על שילוב צבעים ספציפית (לא סתם "צבעים משלימים" — תגיד אילו צבעים בדיוק!)
+  * אורך: 2-4 משפטים של תוכן אמיתי. לא משפט אחד גנרי!
+  * דוגמה מושלמת: "הפולו פיקה בכחול כהה מביא מרקם מובנה יותר מהטישרט הרגיל, והצווארון הקטן מוסיף נופך של קלאסיקה. הכחול הכהה משלים את הבז' של הצ'ינוס ויוצר הרמוניה נעימה — טרנד ה-quiet luxury של 2025."
+  * דוגמה פסולה: "זה ישדרג את הלוק שלך" / "החלף את החולצה למשהו יותר טוב" / "שדרוג מומלץ"
 - כותרת (title) של כל improvement: כללים מחייבים:
   * מקסימום 5-7 מילים! קצר, חד, שיווקי. זה PUNCH LINE, לא משפט.
   * חייבת להיות בעברית (שפת הממשק). אסור באנגלית!
@@ -1931,16 +1956,24 @@ ${storesLine}
 ${countryStoreHint}
 ${preferredInfluencersLine}
 ${occasionLine}`
-    : `You are Stage 2 of a split pipeline: inspiration and recommendations only.
-Input: structured Stage 1 JSON + the ORIGINAL PHOTO of the outfit.
+    : `You are ${genderAddress}. You are Stage 2 of a split pipeline: inspiration and recommendations only.
+Input: structured Stage 1 JSON (outfit analysis).
 Task: return JSON with fields only:
 - improvements
 - outfitSuggestions
 - trendSources
 - influencerInsight
 
-❗ CRITICAL RULE: LOOK at the attached photo! Your recommendations MUST be SPECIFIC to what you see in THIS photo — the colors, the style, the fit, the materials, the accessories. Do NOT return generic "safe" recommendations that could apply to any photo.
-❗ FORBIDDEN PATTERN: Do NOT always recommend the same items (e.g., navy sweater, brown loafers, khaki chinos). These are "safe" defaults that show you’re not looking at the photo. Instead, analyze what the person is ACTUALLY wearing and suggest a precise, targeted upgrade for EACH specific item.
+❗ CRITICAL: The user is ${normalizedGender === "female" ? "a woman" : normalizedGender === "male" ? "a man" : "gender unspecified"}. Address ${normalizedGender === "female" ? "her" : "him"} accordingly in all text!
+
+❗ WRITING STYLE: Write like a REAL fashion stylist, not a robot. Every recommendation MUST include:
+  - A fashion explanation of WHY this change upgrades the look (how the color complements, how the material elevates, how the fit improves the silhouette)
+  - References to current trends (2025-2026)
+  - Color theory advice (harmony, contrast, complementary tones)
+  - Proportion and silhouette guidance (how the new piece affects the overall look)
+❗ FORBIDDEN PATTERN: Do NOT always recommend the same items (e.g., navy sweater, brown loafers, khaki chinos). These are "safe" defaults. Instead, analyze what the person is ACTUALLY wearing and suggest a precise, targeted upgrade for EACH specific item.
+❗ CATEGORIES: Each improvement MUST address ONE category only (top, bottom, shoes, accessory). Do NOT mix categories! If the title says "jacket", the afterGarmentType MUST be a type of jacket (not pants!). If the title says "shoes", the afterGarmentType MUST be a type of shoes (not a shirt!).
+❗ SHOES: NEVER recommend generic "sneakers". Always suggest an upgraded alternative: "minimalist leather sneakers", "suede loafers", "leather derby shoes", "clean white leather sneakers".
 
 ${doctrineStage2}
 
@@ -1950,6 +1983,14 @@ Rules:
 - CRITICAL: Each item in the input includes RICH STRUCTURED METADATA (garmentType, preciseColor, material, fit, pattern, texture, neckline, sleeveLength, closure, bodyZone, layerIndex). USE these fields to generate precise improvements! For example: if the current item has garmentType="t-shirt", preciseColor="white", material="cotton", fit="regular", pattern="solid" — the before fields MUST exactly mirror this metadata.
 - If the input includes personDetection (body info: fullBodyVisible, feetVisible, bodyPose) and lookStructure (look composition: colorHarmony, proportions, silhouetteSummary, hasLayering) — USE THEM! For example: if proportions="top-heavy", suggest an upgrade that balances proportions. If colorHarmony="monochromatic", suggest introducing a contrasting accent color.
 - improvements: 3 upgrade suggestions (different categories: top, bottom, shoes/accessories). Each improvement MUST include exactly 3 shoppingLinks (valid search URLs to real stores). Never return fewer than 3.
+- DESCRIPTION WRITING RULES — MANDATORY:
+  * Write like a real fashion stylist talking to ${normalizedGender === "female" ? "her" : "his"} client. FORBIDDEN generic text like "this will upgrade your look"!
+  * MUST explain WHY this change upgrades the look (how the new color complements the palette, how the material feels different, how the fit improves the silhouette)
+  * MUST reference a current trend (2025-2026) or a fashion principle
+  * MUST give specific color pairing advice (not just "complementary colors" — name the exact colors!)
+  * Length: 2-4 sentences of real content. Not one generic sentence!
+  * PERFECT example: "The piqué polo in navy brings a more structured texture than the regular tee, and the small collar adds a classic touch. The navy pairs beautifully with the beige chinos, creating a warm-cool harmony — a hallmark of the 2025 quiet luxury trend."
+  * REJECTED examples: "This will upgrade your look" / "Replace the shirt with something better" / "Recommended upgrade"
 - TITLE WRITING RULES — MANDATORY:
   * Maximum 5-7 words! Short, sharp, punchy. This is a PUNCH LINE, not a sentence.
   * MUST be in English (the interface language). No other languages!
@@ -2400,6 +2441,27 @@ function sanitizeRecommendationsPayload(
     productSearchQuery: validateAndFixProductSearchQuery(imp, userGender),
   }));
 
+  // Cross-category validation: ensure title matches afterGarmentType
+  const GARMENT_CATEGORIES: Record<string, string[]> = {
+    top: ["t-shirt", "tee", "polo", "shirt", "blouse", "sweater", "hoodie", "cardigan", "tank top", "crop top", "vest", "henley"],
+    outerwear: ["blazer", "jacket", "coat", "parka", "bomber", "windbreaker", "trench", "denim jacket", "leather jacket"],
+    bottom: ["jeans", "chinos", "pants", "trousers", "shorts", "skirt", "joggers", "leggings", "cargo pants"],
+    dress: ["dress", "jumpsuit", "romper", "gown"],
+    shoes: ["sneakers", "shoes", "boots", "loafers", "sandals", "oxfords", "heels", "flats", "mules", "espadrilles", "derby"],
+    accessory: ["watch", "belt", "bag", "hat", "scarf", "sunglasses", "bracelet", "necklace", "ring", "earrings", "tie", "pocket square"],
+  };
+  function getGarmentCategory(type: string): string {
+    const t = (type || "").toLowerCase();
+    for (const [cat, types] of Object.entries(GARMENT_CATEGORIES)) {
+      if (types.some(g => t.includes(g))) return cat;
+    }
+    return "unknown";
+  }
+
+  // Gender-aware Hebrew verb forms
+  const isMale = (userGender || "").toLowerCase() === "male";
+  const isFemale = (userGender || "").toLowerCase() === "female";
+
   // Title validation: enforce short, punchy titles in the correct language
   improvements = improvements.map((imp) => {
     let title = (imp.title || "").trim();
@@ -2408,12 +2470,20 @@ function sanitizeRecommendationsPayload(
       title = title.slice(1, -1).trim();
     }
 
+    // Cross-category check: if title mentions a different category than afterGarmentType, force rewrite
+    const afterCat = getGarmentCategory(imp.afterGarmentType || "");
+    const titleLower = title.toLowerCase();
+    const titleMentionsDifferentCategory = afterCat !== "unknown" && Object.entries(GARMENT_CATEGORIES).some(([cat, types]) => {
+      if (cat === afterCat) return false;
+      return types.some(t => titleLower.includes(t));
+    });
+
     // Detect bad title patterns and rebuild from metadata
-    const isGenericPattern = /^שדרוג |שיפור |^upgrade |^improve /i.test(title);
+    const isGenericPattern = /^שדרוג |שיפור |^upgrade |^improve |החלף\/י|שדרג\/י/i.test(title);
     const isFromToPattern = /^מ-.*ל-|^from .* to /i.test(title);
     const hasFakeWords = /(matching|premium|upgraded|complementary|similar)/i.test(title);
     const isTooLong = title.split(/\s+/).length > 10;
-    const needsRewrite = isGenericPattern || isFromToPattern || hasFakeWords || !title;
+    const needsRewrite = isGenericPattern || isFromToPattern || hasFakeWords || titleMentionsDifferentCategory || !title;
 
     if (needsRewrite) {
       // Build a punchy title from metadata
@@ -2448,14 +2518,20 @@ function sanitizeRecommendationsPayload(
         const heAfter = heGarmentMap[realAfterType.toLowerCase()] || realAfterType;
         const heMat = heMatMap[realAfterMat.toLowerCase()] || "";
 
+        // Gender-aware taglines for variety
+        const heTaglines = isFemale
+          ? ["קפיצת דרג בסטייל", "נוכחות שמרגישים", "הפרט שמשלים את הלוק"]
+          : ["קפיצת דרג בסטייל", "נוכחות שמרגישה", "הפרט שמשלים את הלוק"];
+        const heTag = heTaglines[Math.floor(Math.random() * heTaglines.length)];
+
         if (heAfter && heBefore && heBefore !== heAfter) {
           title = heMat ? `${heAfter} ${heMat} במקום ${heBefore}` : `${heAfter} במקום ${heBefore}`;
         } else if (heAfter && heMat) {
-          title = `${heAfter} ${heMat} — קפיצת דרג`;
+          title = `${heAfter} ${heMat} — ${heTag}`;
         } else if (heAfter) {
-          title = `${heAfter} — שדרוג שמשנה את הלוק`;
+          title = `${heAfter} — ${heTag}`;
         } else {
-          title = imp.afterLabel || "שדרוג שמשנה את הלוק";
+          title = imp.afterLabel || `שדרוג — ${heTag}`;
         }
       } else {
         // English punchy title
