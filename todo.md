@@ -532,10 +532,3 @@
 ## Stage 40: CRITICAL — LLM invoke timeout after 45s
 - [x] 40.1: Increased LLM timeout from 45s to 90s in server/_core/llm.ts
 - [x] 40.2: Updated test, 819/824 pass, 0 TS errors
-
-## Stage 41: Fix title sanitization still not working
-- [x] 41.1: Fixed: buildFallbackImprovement now generates professional descriptions instead of "החלף/י..."
-- [x] 41.2: Fixed: descriptions now use Hebrew garment/color maps for Hebrew output
-- [x] 41.3: Fixed: descriptions now include style context, color harmony, and trend references
-- [x] 41.4: Added description sanitization to sanitizeRecommendationsPayload — catches החלף/י, הוסף/י, בחר/י, שלב/י, שדרג/י and rebuilds from metadata
-- [x] 41.5: 0 TS errors, 819/824 tests pass (same 5 external API failures)
