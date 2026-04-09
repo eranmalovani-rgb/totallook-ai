@@ -350,10 +350,6 @@ export default function FixMyLookModal({ reviewId, analysis, trigger }: FixMyLoo
 
   const fixMutation = trpc.review.fixMyLook.useMutation({
     onSuccess: (data) => {
-      console.log("[Fix My Look DEBUG] Response data:", JSON.stringify(data, null, 2));
-      if ((data as any)?._debugPrompt) {
-        console.log("[Fix My Look DEBUG] PROMPT SENT TO AI:\n" + (data as any)._debugPrompt);
-      }
       setResult(data as FixResult);
       setStep("result");
       setHasSavedResult(false);

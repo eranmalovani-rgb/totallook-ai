@@ -24,10 +24,10 @@ const getOpenAIKey = () => (process.env.OPENAI_API_KEY ?? "").trim();
 const OPENAI_IMAGE_MODEL = "gpt-image-1-mini";
 const OPENAI_IMAGE_SIZE = "1024x1024";
 const OPENAI_IMAGE_QUALITY = "low";
-// Use gpt-image-1-mini for editing (Fix My Look) — fast (~20s) with focused prompt for accuracy
-const OPENAI_EDIT_MODEL = "gpt-image-1-mini";
-const OPENAI_EDIT_QUALITY = "medium";
-// NOTE: input_fidelity is NOT supported on gpt-image-1-mini (causes 400 error)
+// Use the full gpt-image-1 model for editing (Fix My Look) — mini is unreliable for color/style accuracy
+const OPENAI_EDIT_MODEL = "gpt-image-1";
+const OPENAI_EDIT_QUALITY = "high";
+const OPENAI_EDIT_FIDELITY = "high";
 
 async function fetchWithRetry(
   url: string,
@@ -38,7 +38,7 @@ async function fetchWithRetry(
   let lastError: Error | null = null;
   for (let i = 0; i < attempts; i++) {
     const controller = new AbortController();
-    const timeoutMs = 45000; // 45s timeout for all operations
+    const timeoutMs = label.includes("edit") ? 120000 : 45000; // gpt-image-1 edits can take 30-60s
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
     try {
       const response = await fetch(url, { ...init, signal: controller.signal });
@@ -56,7 +56,7 @@ async function fetchWithRetry(
       const isAbort = err?.name === "AbortError";
       if (i === attempts - 1) {
         lastError = new Error(
-          isAbort ? `${label} timeout after 45s` : `${label} failed: ${err?.message || "unknown error"}`
+          isAbort ? `${label} timeout after ${label.includes('edit') ? '120' : '45'}s` : `${label} failed: ${err?.message || "unknown error"}`
         );
         break;
       }
@@ -138,12 +138,15 @@ async function generateWithOpenAI(
   const hasOriginalImages = options.originalImages && options.originalImages.length > 0;
 
   if (hasOriginalImages) {
-    // For editing with gpt-image-1-mini — fast (~20s), no input_fidelity (not supported on mini)
+    // For editing, use full gpt-image-1 model with high quality + high fidelity for accurate color/style preservation.
     const formData = new FormData();
     formData.append("model", OPENAI_EDIT_MODEL);
     formData.append("prompt", options.prompt);
+    // Use auto size to match original image dimensions instead of forcing 1024x1024
     formData.append("size", "auto");
     formData.append("quality", OPENAI_EDIT_QUALITY);
+    // High fidelity preserves the original image identity (face, body, background)
+    formData.append("input_fidelity", OPENAI_EDIT_FIDELITY);
 
     for (let i = 0; i < options.originalImages!.length; i++) {
       const original = options.originalImages![i];
@@ -168,13 +171,14 @@ async function generateWithOpenAI(
       }
     }
 
+    // Use only 1 attempt for edits (no retry) since gpt-image-1 takes 60-80s per call
     const response = await fetchWithRetry("https://api.openai.com/v1/images/edits", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${getOpenAIKey()}`,
       },
       body: formData,
-    }, "OpenAI image edit");
+    }, "OpenAI image edit", 1);
 
     const result = await response.json();
     return extractOpenAIImageData(result, "edit");
