@@ -301,3 +301,9 @@
 - [x] 20.2: Found black oxford shoes image and uploaded to CDN
 - [x] 20.3: Updated SmartMatchNotification to use DEMO_POPUP_PRODUCT (image + name + brand)
 - [x] 20.4: Verified: popup shows "נעלי אוקספורד שחורות" while main page shows green blazer
+
+## Stage 21 — Fix My Look: Preserve User's Original Photo
+- [x] 21.1: Root cause: input_fidelity was "low" (AI free to deviate), quality was "low", and size was forced to 1024x1024 square
+- [x] 21.2: Fix: changed input_fidelity to "high", quality to "medium", size to "auto" (matches original dimensions)
+- [x] 21.3: Prompt already correct (IDENTITY LOCK + IMAGE EDITING TASK ONLY). The issue was API parameters, not prompt.
+- [x] 21.4: All 22 fixMyLook tests pass. Server running. User needs to test end-to-end with a real photo.

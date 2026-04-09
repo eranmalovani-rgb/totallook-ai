@@ -24,6 +24,9 @@ const getOpenAIKey = () => (process.env.OPENAI_API_KEY ?? "").trim();
 const OPENAI_IMAGE_MODEL = "gpt-image-1-mini";
 const OPENAI_IMAGE_SIZE = "1024x1024";
 const OPENAI_IMAGE_QUALITY = "low";
+// Higher fidelity settings for image editing (Fix My Look) to preserve identity
+const OPENAI_EDIT_QUALITY = "medium";
+const OPENAI_EDIT_FIDELITY = "high";
 
 async function fetchWithRetry(
   url: string,
@@ -137,9 +140,11 @@ async function generateWithOpenAI(
     const formData = new FormData();
     formData.append("model", OPENAI_IMAGE_MODEL);
     formData.append("prompt", options.prompt);
-    formData.append("size", OPENAI_IMAGE_SIZE);
-    formData.append("quality", OPENAI_IMAGE_QUALITY);
-    formData.append("input_fidelity", "low");
+    // Use auto size to match original image dimensions instead of forcing 1024x1024
+    formData.append("size", "auto");
+    formData.append("quality", OPENAI_EDIT_QUALITY);
+    // High fidelity preserves the original image identity (face, body, background)
+    formData.append("input_fidelity", OPENAI_EDIT_FIDELITY);
 
     for (let i = 0; i < options.originalImages!.length; i++) {
       const original = options.originalImages![i];
