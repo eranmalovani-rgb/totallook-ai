@@ -83,6 +83,18 @@ const DEMO_PRODUCT = {
   ],
 };
 
+// Separate product for the popup notification — always shoes
+const DEMO_POPUP_PRODUCT = {
+  id: 2,
+  name: { he: "נעלי אוקספורד שחורות", en: "Black Oxford Shoes" },
+  price: 599,
+  currency: "₪",
+  brand: "DEMO FASHION",
+  image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/black-oxford-shoes_a82eaf92.jpg",
+  category: { he: "נעליים", en: "Shoes" },
+  categoryKey: "shoes" as const,
+};
+
 // Keep DEMO_PRODUCTS array for backward compatibility with widget/notification
 const DEMO_PRODUCTS = [DEMO_PRODUCT];
 
@@ -1161,11 +1173,11 @@ function SmartMatchNotification({
             className="w-full flex items-center gap-3 p-2.5 rounded-xl bg-white/5 border border-white/10 hover:border-amber-500/30 transition-all group"
           >
             <div className="w-14 h-16 rounded-lg overflow-hidden flex-shrink-0 bg-white/10">
-              <img loading="lazy" src={DEMO_PRODUCT.gallery[0].url} alt="" className="w-full h-full object-cover" />
+              <img loading="lazy" src={DEMO_POPUP_PRODUCT.image} alt="" className="w-full h-full object-cover" />
             </div>
             <div className="flex-1 min-w-0 text-start">
-              <p className="text-sm font-medium text-white truncate">{DEMO_PRODUCT.name[lang]}</p>
-              <p className="text-xs text-white/40">DEMO FASHION</p>
+              <p className="text-sm font-medium text-white truncate">{DEMO_POPUP_PRODUCT.name[lang]}</p>
+              <p className="text-xs text-white/40">{DEMO_POPUP_PRODUCT.brand}</p>
               <div className="flex items-center gap-1.5 mt-1">
                 <span className="text-xs font-bold text-emerald-400">
                   {isHe ? "התאמה 92%" : "92% Match"}

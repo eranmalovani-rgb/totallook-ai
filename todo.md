@@ -295,3 +295,9 @@
 - [x] 19.2: Added getBudgetFallbackStores() with 3 tiers: luxury (Mr Porter, SSENSE, Mytheresa, NET-A-PORTER), mid (ASOS, Mango, COS), budget (H&M, Zara, Uniqlo)
 - [x] 19.3: Passed budgetLevel through full chain: normalizeImprovementShoppingLinks → buildFallbackShoppingLinks → getBudgetFallbackStores
 - [x] 19.4: 765/769 tests pass (4 pre-existing API failures), 0 new TS errors
+
+## Stage 20 — Widget Demo Popup: Show Shoes Instead of Blazer
+- [x] 20.1: Created DEMO_POPUP_PRODUCT constant with Black Oxford Shoes (₪599, shoes category)
+- [x] 20.2: Found black oxford shoes image and uploaded to CDN
+- [x] 20.3: Updated SmartMatchNotification to use DEMO_POPUP_PRODUCT (image + name + brand)
+- [x] 20.4: Verified: popup shows "נעלי אוקספורד שחורות" while main page shows green blazer
