@@ -326,3 +326,9 @@
 - [x] 21d.1: Root cause: gpt-image-1 takes 60-80s per edit (vs ~10s for mini). Old 45s timeout caused AbortError on every attempt. 3 retry attempts * 45s = 135s total, exceeding 120s frontend timeout.
 - [x] 21d.2: Fixes: (a) Increased server-side edit timeout to 120s, (b) Reduced edit retry attempts to 1 (no retry since each takes 60-80s), (c) Increased frontend timeout to 180s, (d) Added error logging to FixMyLookModal onError handler, (e) Added detailed logging to imageGeneration.ts
 - [ ] 21d.3: Test end-to-end (user needs to test on deployed site)
+
+## Stage 23 — Fix My Look: Speed Optimization (quality medium)
+- [x] 23.1: Benchmarked 4 configurations — quality "medium" cuts time from 58s to 31s with same color accuracy
+- [x] 23.2: Changed OPENAI_EDIT_QUALITY from "high" to "medium" (model stays gpt-image-1, fidelity stays "high")
+- [x] 23.3: 764/769 tests pass (same pre-existing API failures), 0 TS errors
+- [ ] 23.4: Test end-to-end on deployed site
