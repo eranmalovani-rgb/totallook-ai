@@ -337,3 +337,10 @@
 - [x] 22.7: N/A — no closet Fix My Look exists
 - [x] 22.8: Tested with real API call — WHITE shirt = WHITE, DARK BLUE jeans = DARK BLUE, 23.6s, identity preserved
 - [x] 22.9: 765/769 tests pass (4 pre-existing API failures), 0 TS errors
+
+## Stage 22b — Fix My Look: STILL showing wrong colors (red instead of white)
+- [ ] 22b.1: Add full prompt logging to server to see EXACTLY what prompt is sent to OpenAI
+- [ ] 22b.2: Trace frontend data flow — what selectedProductDetails, itemIndices, selectedImprovementIndices are sent
+- [ ] 22b.3: Check if the issue is in the prompt builder (wrong labels/colors extracted) or in the AI ignoring the prompt
+- [ ] 22b.4: Fix root cause
+- [ ] 22b.5: Test end-to-end

@@ -3008,6 +3008,15 @@ Style: High-end ${genderLabel} fashion editorial flat lay, items arranged aesthe
           relevantImprovements.push(...allImprovements.slice(0, Math.min(allImprovements.length, input.itemIndices.length + 1)));
         }
 
+        // === DETAILED LOGGING FOR DEBUGGING ===
+        console.log(`[Fix My Look DEBUG] Input itemIndices: ${JSON.stringify(input.itemIndices)}`);
+        console.log(`[Fix My Look DEBUG] Items to fix: ${JSON.stringify(itemsToFix.map(i => ({ name: i.name, score: i.score })))}`);
+        console.log(`[Fix My Look DEBUG] selectedImprovementIndices: ${JSON.stringify(input.selectedImprovementIndices)}`);
+        console.log(`[Fix My Look DEBUG] selectedProductDetails: ${JSON.stringify(input.selectedProductDetails)}`);
+        console.log(`[Fix My Look DEBUG] relevantImprovements: ${JSON.stringify(relevantImprovements.map(i => ({ title: i.title, beforeLabel: i.beforeLabel, afterLabel: i.afterLabel })))}`);
+        console.log(`[Fix My Look DEBUG] All improvements: ${JSON.stringify(allImprovements.map(i => ({ title: i.title, beforeLabel: i.beforeLabel, afterLabel: i.afterLabel })))}`);
+        // === END DETAILED LOGGING ===
+
         const editPrompt = buildDeterministicFixMyLookPrompt({
           analysis,
           itemsToFix,
@@ -3020,7 +3029,7 @@ Style: High-end ${genderLabel} fashion editorial flat lay, items arranged aesthe
 
         // Generate the fixed image: send ONLY user's photo as reference, rely on text prompt for accuracy
         try {
-          console.log(`[Fix My Look] Prompt: ${editPrompt.substring(0, 200)}...`);
+          console.log(`[Fix My Look] FULL PROMPT:\n${editPrompt}`);
 
           let { url: fixedImageUrl } = await generateImage({
             prompt: editPrompt,
@@ -3049,6 +3058,7 @@ Style: High-end ${genderLabel} fashion editorial flat lay, items arranged aesthe
               verdict: item.verdict,
             })),
             shoppingLinks,
+            _debugPrompt: editPrompt, // TEMPORARY: for debugging color issues
           };
 
           // Save result to DB for future retrieval
