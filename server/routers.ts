@@ -15,6 +15,7 @@ import { notifyOwner } from "./_core/notification";
 import { ENV } from "./_core/env";
 import { generateImage } from "./_core/imageGeneration";
 import type { OutfitSuggestion, Improvement, ShoppingLink } from "../shared/fashionTypes";
+import { getDoctrineForStage1, getDoctrineForStage2, getDoctrineForFixMyLook, getDoctrineForPersonalization } from "../shared/fashionDoctrine";
 import probeImageSize from "probe-image-size";
 
 const ANALYSIS_CONCURRENCY_LIMIT = 2;
@@ -1020,9 +1021,13 @@ ${genderConstraint}`;
     wardrobeSection = `\n\nVIRTUAL WARDROBE — ITEMS THE USER ALREADY OWNS:\n${itemList}\n\nIMPORTANT WARDROBE INSTRUCTIONS:\n- When suggesting outfit combinations, PRIORITIZE items from the user's existing wardrobe\n- In outfitSuggestions, include at least 1-2 items the user already owns and mark them with \"` + wardrobeTag + `\" suffix\n- Only recommend buying NEW items that complement what they already have\n- If the current outfit includes items from their wardrobe, mention this positively\n- Shopping recommendations should fill GAPS in their wardrobe, not duplicate what they own\n- CRITICAL FOR IMPROVEMENTS: When suggesting an improvement (e.g. \"upgrade your shirt\"), CHECK if the user already owns a suitable alternative in their wardrobe. ONLY suggest a wardrobe item if its STYLE matches the recommendation. For example:\n  * If you recommend a CLASSIC watch, do NOT suggest a SMART watch from the wardrobe (and vice versa)\n  * If you recommend FORMAL shoes, do NOT suggest SNEAKERS from the wardrobe\n  * If you recommend a BLAZER, do NOT suggest a HOODIE from the wardrobe\n  * The wardrobe item must match the SPIRIT and STYLE of the recommendation, not just the category\n- If the user owns a suitable item, MENTION IT in the improvement description — e.g. \"` + (isHebrew ? "יש לך בארון חולצת פשתן לבנה של Zara שתתאים מצוין כאן" : "You already have a white Zara linen shirt in your closet that would work great here") + `\"\n- When a wardrobe item matches an improvement, include the item name EXACTLY as listed above so we can link to it\n- If NO wardrobe item matches the recommendation's style, do NOT mention any wardrobe item — just recommend buying a new one`;
   }
 
+  const doctrineStage1 = getDoctrineForStage1();
+
   return `You are an elite fashion consultant and stylist with encyclopedic knowledge of fashion houses, designers, and current 2025-2026 trends. Analyze the outfit in this image and provide a comprehensive, personalized fashion review in ${langLabel}.
 
-METHODOLOGY: Scan head-to-toe systematically. For each item: identify specific material/fabric, precise color shade, fit/silhouette, construction details. Then identify brands from visual evidence. Finally evaluate styling coherence.
+${doctrineStage1}
+
+METHODOLOGY: Scan head-to-toe systematically. For each item: identify specific material/fabric, precise color shade, fit/silhouette, construction details. Then identify brands from visual evidence. Finally evaluate styling coherence using the Fashion Doctrine principles above.
 
 BRAND IDENTIFICATION: Use confidence levels — HIGH (logo visible), MEDIUM (strong visual cues, use hedging: "כפי הנראה"/"appears to be"), LOW (educated guess). Item "name" field stays generic (no brand). A wrong confident ID is worse than no ID.
 
@@ -1384,6 +1389,13 @@ function buildDeterministicFixMyLookPrompt(params: {
     `## ITEMS TO KEEP ABSOLUTELY UNCHANGED:`,
     ...(keepLines.length > 0 ? keepLines : ["- Keep ALL other visible items completely unchanged — identical to image[0]."]),
     `- CRITICAL: Every item not listed above for replacement must remain EXACTLY as it appears in image[0]. No modifications whatsoever.`,
+    ``,
+    `## STYLE COHERENCE (Fashion Doctrine):`,
+    `- All replaced garments must work TOGETHER as a coherent outfit, not as isolated upgrades.`,
+    `- Proportions must balance: if the top is oversized, the bottom should be slim (and vice versa).`,
+    `- Color harmony: new garments must complement the kept items' colors — avoid clashing.`,
+    `- The overall look should communicate ONE clear message (clean, luxurious, casual-elevated, etc.).`,
+    `- Fabric quality should look consistent across all items — don't mix cheap-looking with premium.`,
     ``,
     `## QUALITY RULES:`,
     `- The output must be photorealistic — replaced garments must look naturally worn, not digitally pasted.`,
@@ -1787,6 +1799,8 @@ function buildRecommendationsPromptFromCore(
       ? `המשתמש נמצא ב-${country}. העדף חנויות שזמינות באזור הזה.`
       : `User is located in ${country}. Prefer stores available in this region.`)
     : "";
+  const doctrineStage2 = getDoctrineForStage2();
+
   return isHebrew
     ? `אתה שלב 2 במערכת דו-שלבית: השראה והמלצות בלבד.
 קלט: JSON מובנה של שלב 1 שכבר ביצע ניתוח וזיהוי פריטים.
@@ -1795,6 +1809,8 @@ function buildRecommendationsPromptFromCore(
 - outfitSuggestions
 - trendSources
 - influencerInsight
+
+${doctrineStage2}
 
 כללים:
 - התבסס על פריטי הלבוש, הציונים והסיכום משלב 1.
@@ -1836,6 +1852,8 @@ Task: return JSON with fields only:
 - outfitSuggestions
 - trendSources
 - influencerInsight
+
+${doctrineStage2}
 
 Rules:
 - Base recommendations on stage-1 items, scores, and summary.
@@ -6217,6 +6235,46 @@ Style: High-end ${genderLabel} fashion editorial flat lay, all items arranged ae
         silhouetteBreakdown: silhouettePrefs,
       };
 
+      // ---- Stage 32: Doctrine-based style insights ----
+      const doctrineInsights = (() => {
+        const topStyle = Object.entries(styleMap).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+        const topMaterial = materialPreferences[0]?.name || null;
+        const topFit = fitPreferences[0]?.name || null;
+        const topPattern = patternPreferences[0]?.name || null;
+        const dominantProportion = lookStructureInsights.dominantProportions;
+        const dominantHarmony = lookStructureInsights.dominantColorHarmony;
+
+        // Detect archetype from dominant signals
+        let archetype: string | null = null;
+        if (topStyle === 'minimalist' || topStyle === 'classic') archetype = 'The Essentialist';
+        else if (topStyle === 'streetwear' || topStyle === 'avant-garde') archetype = 'The Statement Maker';
+        else if (topStyle === 'smart-casual') archetype = 'The Polished Casual';
+        else if (topStyle === 'sporty') archetype = 'The Active Stylist';
+        else if (topStyle === 'bohemian') archetype = 'The Free Spirit';
+        else if (topStyle === 'elegant' || topStyle === 'formal') archetype = 'The Refined Classic';
+        else if (topStyle === 'preppy') archetype = 'The Heritage Player';
+
+        // Proportion balance insight
+        let proportionTip: string | null = null;
+        if (dominantProportion === 'top-heavy') proportionTip = 'Your looks tend to be top-heavy — try slimmer tops or wider-leg bottoms to balance.';
+        else if (dominantProportion === 'bottom-heavy') proportionTip = 'Your looks lean bottom-heavy — structured shoulders or layered tops can create balance.';
+
+        // Color harmony insight
+        let colorTip: string | null = null;
+        if (dominantHarmony === 'monochromatic') colorTip = 'You gravitate toward monochromatic palettes — try introducing one accent color for depth.';
+        else if (dominantHarmony === 'neutral') colorTip = 'Your palette is neutral-dominant — a rich texture or subtle pattern can add dimension.';
+        else if (dominantHarmony === 'colorful') colorTip = 'You love color — anchor bold pieces with neutral basics to keep looks cohesive.';
+
+        return {
+          archetype,
+          proportionTip,
+          colorTip,
+          dominantMaterial: topMaterial,
+          dominantFit: topFit,
+          dominantPattern: topPattern,
+        };
+      })();
+
       return {
         hasData: true,
         analysisCount: completedReviews.length,
@@ -6235,6 +6293,7 @@ Style: High-end ${genderLabel} fashion editorial flat lay, all items arranged ae
         fitPreferences,
         patternPreferences,
         lookStructureInsights,
+        doctrineInsights,
         profilePreferences: {
           gender: profile?.gender || null,
           ageRange: profile?.ageRange || null,

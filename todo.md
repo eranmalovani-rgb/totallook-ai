@@ -431,3 +431,14 @@
 - [x] 31.24: 765/769 tests pass (same 4 pre-existing API failures: google-cse, imagegen x2, openai), 0 TS errors, 0 new failures. Fixed widget resolveItemCategories to search combined text instead of regex start-of-string.
 - [x] 31.25: Save checkpoint
 - [x] 31.13b: Added style field to FashionItem interface, JSON schema, prompt template, and required list (discovered missing during GAP A implementation)
+
+## Stage 32 — Fashion Doctrine: Core Style Theory Engine
+- [x] 32.1: Design modular architecture — shared/fashionDoctrine.ts with versioned, section-based structure
+- [x] 32.2: Created shared/fashionDoctrine.ts with 13 sections + 4 injection helpers (getDoctrineForStage1, getDoctrineForStage2, getDoctrineForFixMyLook, getDoctrineForPersonalization)
+- [x] 32.3: Built 4 doctrine injection helpers with context-specific section composition
+- [x] 32.4: Inject Doctrine into Stage 1 prompt (analysis + scoring rules)
+- [x] 32.5: Inject Doctrine into Stage 2 prompt (improvements + recommendations strategy)
+- [x] 32.6: Inject Doctrine into Fix My Look prompt builder (style coherence section)
+- [x] 32.7: Inject Doctrine into Taste Profile (doctrineInsights: archetype, proportionTip, colorTip, dominantMaterial/Fit/Pattern)
+- [x] 32.8: Run full test suite — 765/769 pass (same 4 pre-existing API failures), 0 TS errors, 0 new failures
+- [x] 32.9: Save checkpoint
