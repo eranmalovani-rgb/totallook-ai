@@ -1838,7 +1838,13 @@ ${doctrineStage2}
 - חשוב מאוד: כל פריט בקלט כולל מטאדאטה מובנית עשירה (garmentType, preciseColor, material, fit, pattern, texture, neckline, sleeveLength, closure, bodyZone, layerIndex). השתמש בנתונים האלה כדי לייצר שידרוגים מדויקים! לדוגמה: אם הפריט הנוכחי הוא garmentType="t-shirt", preciseColor="white", material="cotton", fit="regular", pattern="solid" — ה-before fields חייבים לשקף בדיוק את המטאדאטה הזו.
 - אם הקלט כולל personDetection (מידע על הגוף: fullBodyVisible, feetVisible, bodyPose) ו-lookStructure (מבנה הלוק: colorHarmony, proportions, silhouetteSummary, hasLayering) — השתמש בהם! לדוגמה: אם proportions="top-heavy" הצע שידרוג שמאזן את הפרופורציות. אם colorHarmony="monochromatic" הצע הכנסת צבע קונטרסטי.
 - improvements: 3 המלצות שדרוג (קטגוריות שונות: חלק עליון, חלק תחתון, נעליים/אקססוריז). כל improvement חייב לכלול בדיוק 3 shoppingLinks (כתובות חיפוש תקינות בחנויות אמיתיות). אל תחזיר פחות מ-3.
-- כותרת (title) של כל improvement חייבת להיות שיווקית, מעוררת השראה ומדויקת — לא גנרית! אסור "שדרוג חלק עליון" או "שידרוג נעליים". במקום זה, כתוב כותרת שמתארת את המהות של השדרוג. דוגמאות טובות: "מחולצת כותנה בסיסית לפולו פיקה — קפיצה ב-Smart Casual", "החלפת סניקרס ספורטיביות בלואפרס עור — מראה מלוטש", "הוספת שעון מינימליסטי — הפרט שמשלים את הלוק". הכותרת חייבת לשקף את ה-before→after ולהסביר למה זה שדרוג.
+- כותרת (title) של כל improvement: כללים מחייבים:
+  * מקסימום 5-7 מילים! קצר, חד, שיווקי. זה PUNCH LINE, לא משפט.
+  * חייבת להיות בעברית (שפת הממשק). אסור באנגלית!
+  * אסור גנרי: "שדרוג חלק עליון", "שידרוג נעליים" = פסול!
+  * חייבת לשקף את המהות — מה ה-before ומה ה-after.
+  * דוגמאות מושלמות: "מכותנה בסיסית לפולו פיקה", "לואפרס עור במקום סניקרס", "שעון מינימליסטי — הפרט שמשלים", "ג'ינס סלים במקום ג'וגר", "בלייזר פשתן — קפיצת דרג"
+  * דוגמאות פסולות: "שדרוג חלק עליון", "שיפור הנעליים", "Upgrade your top", "From Basic Cotton Tee to Piqué Polo — A Smart Casual Leap"
 - חובה מוחלטת — מטאדטה מלאה לכל improvement: כל השדות הבאים חייבים להיות באנגלית lowercase. אסור להשאיר ריק!
   * beforeColor / afterColor: צבע מדויק (לדוגמה: "white", "navy blue", "charcoal gray")
   * beforeGarmentType / afterGarmentType: סוג הפריט (לדוגמה: "t-shirt", "dress shirt", "polo", "jeans", "chinos", "sneakers", "blazer", "hoodie")
@@ -1886,7 +1892,13 @@ Rules:
 - CRITICAL: Each item in the input includes RICH STRUCTURED METADATA (garmentType, preciseColor, material, fit, pattern, texture, neckline, sleeveLength, closure, bodyZone, layerIndex). USE these fields to generate precise improvements! For example: if the current item has garmentType="t-shirt", preciseColor="white", material="cotton", fit="regular", pattern="solid" — the before fields MUST exactly mirror this metadata.
 - If the input includes personDetection (body info: fullBodyVisible, feetVisible, bodyPose) and lookStructure (look composition: colorHarmony, proportions, silhouetteSummary, hasLayering) — USE THEM! For example: if proportions="top-heavy", suggest an upgrade that balances proportions. If colorHarmony="monochromatic", suggest introducing a contrasting accent color.
 - improvements: 3 upgrade suggestions (different categories: top, bottom, shoes/accessories). Each improvement MUST include exactly 3 shoppingLinks (valid search URLs to real stores). Never return fewer than 3.
-- TITLE WRITING RULES: Each improvement title MUST be marketing-quality, inspiring, and specific — NEVER generic! Forbidden: "Upgrade top", "Improve shoes", "Better pants". Instead, write a title that captures the essence of the transformation. Good examples: "From Basic Cotton Tee to Piqué Polo — A Smart Casual Leap", "Swap Sporty Sneakers for Leather Loafers — Polished Finish", "Add a Minimalist Watch — The Detail That Completes the Look". The title MUST reflect the before→after transformation and explain WHY it's an upgrade.
+- TITLE WRITING RULES — MANDATORY:
+  * Maximum 5-7 words! Short, sharp, punchy. This is a PUNCH LINE, not a sentence.
+  * MUST be in English (the interface language). No other languages!
+  * FORBIDDEN generic titles: "Upgrade top", "Improve shoes", "Better pants" = REJECTED!
+  * MUST capture the before→after essence in minimal words.
+  * PERFECT examples: "Piqué Polo Over Basic Tee", "Leather Loafers, Not Sneakers", "Minimalist Watch — Finishing Touch", "Slim Chinos Over Joggers", "Linen Blazer — Level Up"
+  * REJECTED examples: "Upgrade your top", "Improve shoes", "From Basic Cotton Tee to Piqué Polo — A Smart Casual Leap" (too long!)
 - ABSOLUTE REQUIREMENT — Complete garment metadata for every improvement: ALL fields below MUST be in English lowercase. NEVER leave empty!
   * beforeColor / afterColor: exact color (e.g. "white", "navy blue", "charcoal gray")
   * beforeGarmentType / afterGarmentType: specific garment type (e.g. "t-shirt", "dress shirt", "polo", "jeans", "chinos", "sneakers", "blazer", "hoodie")
@@ -2296,6 +2308,31 @@ function sanitizeRecommendationsPayload(
     ...imp,
     productSearchQuery: validateAndFixProductSearchQuery(imp, userGender),
   }));
+
+  // Title validation: enforce short, punchy titles in the correct language
+  improvements = improvements.map((imp) => {
+    let title = (imp.title || "").trim();
+    // Remove quotes wrapping the title
+    if ((title.startsWith('"') && title.endsWith('"')) || (title.startsWith("'") && title.endsWith("'"))) {
+      title = title.slice(1, -1).trim();
+    }
+    // If title is too long (>10 words), truncate to first meaningful phrase
+    const words = title.split(/\s+/);
+    if (words.length > 10) {
+      // Try to find a natural break (—, -, :, ,) within first 8 words
+      const truncated = words.slice(0, 8).join(" ");
+      const breakIdx = truncated.search(/[—\-:,]/);
+      if (breakIdx > 5) {
+        title = truncated.slice(0, breakIdx).trim();
+      } else {
+        title = words.slice(0, 7).join(" ");
+      }
+    }
+    // If Hebrew interface but title is all-English, keep it (LLM was instructed to write in Hebrew)
+    // If English interface but title has Hebrew chars, keep it (rare edge case)
+    return { ...imp, title };
+  });
+
   improvements = improvements.map((imp) => normalizeImprovementShoppingLinks(imp, lang, preferredStores, genderCat, budgetLevel));
   if (improvements.length < 4 && fallback) {
     const needed = 4 - improvements.length;

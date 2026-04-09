@@ -281,8 +281,35 @@ export async function pickBestBraveImage(
     .sort((a, b) => b.score - a.score);
 
   // Use offset to pick different results for different links within same improvement
+  // Also apply domain-level diversity: skip results from same source domain as already-used images
+  if (scored.length === 0) return "";
+  
+  // Build set of already-used source domains for diversity
+  const usedDomains = new Set<string>();
+  if (usedUrls) {
+    for (const u of usedUrls) {
+      try { usedDomains.add(new URL(u).hostname.replace(/^www\./, "").toLowerCase()); } catch {}
+    }
+  }
+  
+  // First pass: try to find result from a DIFFERENT source domain (visual diversity)
+  let picked = 0;
+  let skippedForDomain = 0;
+  for (let i = 0; i < scored.length; i++) {
+    const r = scored[i];
+    let sourceDomain = "";
+    try { sourceDomain = new URL(r.sourceUrl || r.url).hostname.replace(/^www\./, "").toLowerCase(); } catch {}
+    if (sourceDomain && usedDomains.has(sourceDomain)) {
+      skippedForDomain++;
+      continue; // Skip same-domain results for visual diversity
+    }
+    if (picked === (offset || 0)) {
+      return r.url || r.thumbnailUrl || "";
+    }
+    picked++;
+  }
+  
+  // Fallback: if all results are from used domains, just use offset
   const idx = Math.min(offset || 0, scored.length - 1);
-  const best = scored[Math.max(idx, 0)];
-  if (!best) return "";
-  return best.url || best.thumbnailUrl || "";
+  return scored[Math.max(idx, 0)]?.url || scored[Math.max(idx, 0)]?.thumbnailUrl || "";
 }

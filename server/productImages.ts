@@ -874,11 +874,17 @@ export async function enrichAnalysisWithProductImages(
     shoppingLinks: imp.shoppingLinks.map(link => ({ ...link })),
   }));
 
+  // GLOBAL dedup: shared across ALL improvements to prevent same image appearing in different improvements
+  const globalUsedImageUrls = new Set<string>();
+  const globalUsedSourceUrls = new Set<string>();
+
   // HYBRID APPROACH: Prefetch search results in PARALLEL for speed,
   // then pick images SEQUENTIALLY with usedImageUrls for uniqueness.
+  // NOTE: Run improvements SEQUENTIALLY (not concurrent) so globalUsedImageUrls is effective
   const improvementTasks = enrichedImprovements.map((imp, impIdx) => async (): Promise<void> => {
-    const usedImageUrls = new Set<string>();
-    const usedSourceUrls = new Set<string>(); // Track pre-proxy URLs for Brave/Google dedup
+    // Per-improvement dedup (within same improvement) + global dedup (across improvements)
+    const usedImageUrls = new Set<string>(globalUsedImageUrls);
+    const usedSourceUrls = new Set<string>(globalUsedSourceUrls); // Track pre-proxy URLs for Brave/Google dedup
     const categoryQuery = imp.productSearchQuery || "";
     const linksNeedingImages: number[] = [];
 
@@ -928,6 +934,8 @@ export async function enrichAnalysisWithProductImages(
       const url = link.url;
 
       try {
+        // pickerOffset ensures each link picks a DIFFERENT result from the same search results
+        const linkPositionInImprovement = linksNeedingImages.indexOf(linkIdx);
         const resolvedUrl = await resolveShoppingLinkImage({
           label,
           url,
@@ -937,6 +945,7 @@ export async function enrichAnalysisWithProductImages(
           usedImageUrls,
           usedSourceUrls,
           prefetchedResults: prefetchMap.get(linkIdx),
+          pickerOffset: linkPositionInImprovement,
         });
         if (resolvedUrl) {
           const normalizedResolved = resolvedUrl.trim().toLowerCase();
@@ -982,10 +991,16 @@ export async function enrichAnalysisWithProductImages(
         imp.shoppingLinks[linkIdx].imageUrl = placeholder;
       }
     }
+    // After processing all links in this improvement, sync back to global dedup sets
+    for (const u of usedImageUrls) globalUsedImageUrls.add(u);
+    for (const u of usedSourceUrls) globalUsedSourceUrls.add(u);
   });
 
-  // Run different improvements concurrently (they have different categories)
-  await runWithConcurrency(improvementTasks, MAX_CONCURRENT);
+  // Run improvements SEQUENTIALLY so global dedup is effective across improvements
+  // (each improvement's images are excluded from subsequent improvements)
+  for (const task of improvementTasks) {
+    await task();
+  }
 
   const successCount = enrichedImprovements.reduce(
     (sum, imp) => sum + imp.shoppingLinks.filter(l => l.imageUrl && isValidImageUrl(l.imageUrl)).length,

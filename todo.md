@@ -470,3 +470,12 @@
 - [x] 34.9: Fix Bug 1 — Bland improvement titles (HE+EN prompt rules, dynamic titles from metadata, marketing-quality fallbacks)
 - [x] 34.10: Run full test suite — 765/769 pass (same 4 pre-existing API failures), 0 TS errors
 - [x] 34.11: Save checkpoint
+
+## Stage 35: Fix Remaining Stage 2 Issues (Titles + Images)
+- [x] 35.1: BUG — Titles: prompt rewritten (max 5-7 words, punchy, UI language), title validation in sanitize (truncation, quote removal)
+- [x] 35.2: BUG — Images: domain-level diversity in Brave+Google pickers, global cross-improvement dedup, sequential execution
+- [x] 35.3: BUG — Images: crossCategoryPenalty checks title+URL+sourceUrl+contextLink, hard filter removes negative-score results
+- [x] 35.4: Fix titles — HE+EN prompt instructions (max 5-7 words, punchy), sanitize truncation + quote removal
+- [x] 35.5: Deep investigate — root cause: shared queries, same Brave results, offset not enough, no domain diversity
+- [x] 35.6: Fix image pipeline — domain-level diversity (skip same-domain), global dedup across improvements, sequential execution
+- [x] 35.7: Run tests (765/769 pass, same 4 pre-existing), save checkpoint

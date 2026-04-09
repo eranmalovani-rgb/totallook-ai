@@ -251,6 +251,33 @@ export async function pickBestProductImage(
     .sort((a, b) => b.score - a.score);
 
   // Use offset to pick different results for different links within same improvement
+  // Also apply domain-level diversity: skip results from same source domain as already-used images
+  if (scored.length === 0) return "";
+  
+  // Build set of already-used source domains for diversity
+  const usedDomains = new Set<string>();
+  if (usedUrls) {
+    for (const u of usedUrls) {
+      try { usedDomains.add(new URL(u).hostname.replace(/^www\./, "").toLowerCase()); } catch {}
+    }
+  }
+  
+  // First pass: try to find result from a DIFFERENT source domain (visual diversity)
+  let picked = 0;
+  for (let i = 0; i < scored.length; i++) {
+    const r = scored[i];
+    let sourceDomain = "";
+    try { sourceDomain = new URL(r.contextLink || r.link).hostname.replace(/^www\./, "").toLowerCase(); } catch {}
+    if (sourceDomain && usedDomains.has(sourceDomain)) {
+      continue; // Skip same-domain results for visual diversity
+    }
+    if (picked === (offset || 0)) {
+      return r.link || "";
+    }
+    picked++;
+  }
+  
+  // Fallback: if all results are from used domains, just use offset
   const idx = Math.min(offset || 0, scored.length - 1);
   return scored[Math.max(idx, 0)]?.link ?? "";
 }
