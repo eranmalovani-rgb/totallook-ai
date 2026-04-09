@@ -16,6 +16,8 @@ interface Improvement {
   description: string;
   beforeLabel: string;
   afterLabel: string;
+  beforeColor?: string;
+  afterColor?: string;
   productSearchQuery: string;
   shoppingLinks: { label: string; url: string; imageUrl: string }[];
   closetMatch?: {

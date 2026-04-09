@@ -354,3 +354,16 @@
 - [x] 26.5: Verified: "tailored shirt premium" now returns null (not RED), improvement[0] gets BLACK from afterLabel
 - [x] 26.6: 764/769 tests pass, 0 TS errors
 - [ ] 26.7: Test end-to-end on deployed site
+
+## Stage 27 — Root Cause Fix: Structured Color Metadata for Improvements
+- [x] 27.1: Added `beforeColor` and `afterColor` fields to `Improvement` interface in `shared/fashionTypes.ts`
+- [x] 27.2: Added `beforeColor` and `afterColor` to Stage 2 JSON schema (required fields with descriptions)
+- [x] 27.3: Added explicit color instructions to Hebrew Stage 2 LLM prompt ("חובה מוחלטת — beforeColor ו-afterColor")
+- [x] 27.4: Added explicit color instructions to English Stage 2 LLM prompt ("ABSOLUTE REQUIREMENT — beforeColor and afterColor")
+- [x] 27.5: Updated `buildDeterministicFixMyLookPrompt` — now uses `imp.afterColor` as PRIMARY color source (structured LLM field), with `detectColorHint` only as legacy fallback
+- [x] 27.6: Updated `normalizeImprovementShoppingLinks` to pass through `beforeColor`/`afterColor` fields
+- [x] 27.7: Updated `buildWearableCoreImprovement` to include `beforeColor`/`afterColor` fields
+- [x] 27.8: Updated test interfaces in `closetMatch.test.ts` and `shoppingLinks.test.ts`
+- [x] 27.9: Fixed `analysis-reliability.test.ts` — updated timeout assertion from 120_000 to 180_000 (was broken since Stage 21d)
+- [x] 27.10: 765/769 tests pass (4 pre-existing API failures: google-cse, imagegen x2, openai), 0 TS errors
+- [ ] 27.11: Test end-to-end on deployed site — verify new analyses include beforeColor/afterColor and Fix My Look uses correct colors

@@ -48,6 +48,10 @@ export interface Improvement {
   description: string;
   beforeLabel: string;
   afterLabel: string;
+  /** Explicit color of the BEFORE item in English (e.g. "black", "white", "navy blue") */
+  beforeColor: string;
+  /** Explicit color of the AFTER (recommended) item in English (e.g. "black", "white", "navy blue") */
+  afterColor: string;
   shoppingLinks: ShoppingLink[];
   productSearchQuery: string;
   /** Matching item from user's virtual closet (if found) */

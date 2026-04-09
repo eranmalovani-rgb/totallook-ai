@@ -337,6 +337,8 @@ function buildFallbackImprovement(category: Exclude<ClothingCategory, "accessory
     description: picked.description,
     beforeLabel: picked.beforeLabel,
     afterLabel: picked.afterLabel,
+    beforeColor: "current",
+    afterColor: "matching",
     productSearchQuery: picked.query,
     shoppingLinks: buildFallbackShoppingLinks(picked.query),
   };
@@ -1063,27 +1065,16 @@ function buildDeterministicFixMyLookPrompt(params: {
     const selected = improvementIndex >= 0 ? selectedByImprovementIndex.get(improvementIndex) : undefined;
     const targetLabel = selected?.productLabel || imp.afterLabel || imp.title;
     
-    // Try to detect color from multiple sources (priority order):
-    // 1. Selected product label (what user actually picked from the store)
-    // 2. Improvement afterLabel (the upgrade description)
-    // 3. Improvement beforeLabel (the original item name)
-    // 4. The matching item from analysis (by name match)
-    // 5. The item at the same position index in itemsToFix (positional fallback)
-    const colorFromProduct = selected?.productLabel ? detectColorHint(selected.productLabel) : null;
-    const colorFromAfter = detectColorHint(imp.afterLabel || "");
-    const colorFromBefore = detectColorHint(imp.beforeLabel || "");
-    // Try to match by name substring
-    const matchingItem = itemsToFix.find(item => {
-      const beforeClean = (imp.beforeLabel || "").split(" \u2014 ")[0].trim();
-      const titleClean = (imp.title || "").split(" \u2014 ")[0].trim();
-      return (beforeClean && item.name.toLowerCase().includes(beforeClean.toLowerCase())) ||
-             (titleClean && item.name.toLowerCase().includes(titleClean.toLowerCase()));
-    });
-    const colorFromItem = matchingItem ? detectColorHint(matchingItem.name) : null;
-    // Positional fallback: if this is the Nth replacement, try the Nth item in itemsToFix
-    const positionalItem = !colorFromItem && impListIdx < itemsToFix.length ? itemsToFix[impListIdx] : null;
-    const colorFromPosition = positionalItem ? detectColorHint(positionalItem.name) : null;
-    const colorHint = colorFromProduct || colorFromAfter || colorFromBefore || colorFromItem || colorFromPosition;
+    // Color extraction — priority order:
+    // 1. imp.afterColor (structured field from Stage 2 LLM — most reliable source)
+    // 2. Selected product label (what user actually picked from the store)
+    // 3. detectColorHint fallback from afterLabel/beforeLabel (legacy, least reliable)
+    const structuredAfterColor = (imp.afterColor || "").trim() || null;
+    const colorFromProduct = !structuredAfterColor && selected?.productLabel ? detectColorHint(selected.productLabel) : null;
+    const legacyFallback = !structuredAfterColor && !colorFromProduct
+      ? (detectColorHint(imp.afterLabel || "") || detectColorHint(imp.beforeLabel || ""))
+      : null;
+    const colorHint = structuredAfterColor?.toUpperCase() || colorFromProduct || legacyFallback;
     
     let colorInstruction: string;
     if (colorHint) {
@@ -1321,6 +1312,8 @@ export const analysisJsonSchema = {
           description: { type: "string" as const },
           beforeLabel: { type: "string" as const },
           afterLabel: { type: "string" as const },
+          beforeColor: { type: "string" as const, description: "MANDATORY: Explicit color of the BEFORE item in English lowercase (e.g. 'black', 'white', 'navy blue', 'light gray'). MUST always be provided based on the detected item." },
+          afterColor: { type: "string" as const, description: "MANDATORY: Explicit color of the AFTER (recommended) item in English lowercase (e.g. 'black', 'white', 'navy blue'). MUST always be provided. Must match the recommended product color." },
           productSearchQuery: { type: "string" as const },
           shoppingLinks: {
             type: "array" as const,
@@ -1337,7 +1330,7 @@ export const analysisJsonSchema = {
             },
           },
         },
-        required: ["title", "description", "beforeLabel", "afterLabel", "productSearchQuery", "shoppingLinks"] as const,
+        required: ["title", "description", "beforeLabel", "afterLabel", "beforeColor", "afterColor", "productSearchQuery", "shoppingLinks"] as const,
         additionalProperties: false,
       },
     },
@@ -1490,6 +1483,7 @@ function buildRecommendationsPromptFromCore(
 - התבסס על פריטי הלבוש, הציונים והסיכום משלב 1.
 - שמור על התאמה לאירוע ולסגנון המשתמש.
 - improvements: 3 המלצות שדרוג (קטגוריות שונות: חלק עליון, חלק תחתון, נעליים/אקססוריז). כל improvement חייב לכלול בדיוק 3 shoppingLinks (כתובות חיפוש תקינות בחנויות אמיתיות). אל תחזיר פחות מ-3.
+- חובה מוחלטת — beforeColor ו-afterColor: לכל improvement חייב לציין beforeColor (הצבע הנוכחי של הפריט שזוהה בתמונה) ו-afterColor (הצבע המדויק של הפריט המומלץ). הצבעים חייבים להיות באנגלית lowercase (לדוגמה: "white", "black", "navy blue", "light gray", "beige"). אסור להשאיר ריק! הצבע חייב להתאים בדיוק למוצר המומלץ.
 - חובה: כל 3 ה-shoppingLinks בכל improvement חייבים להיות מ-3 חנויות שונות! לדוגמה: ASOS, Zara, H&M — לא 3 לינקים לאותה חנות.
 - פורמט label חובה: "תיאור מוצר ספציפי — שם חנות". לדוגמה: "חולצת פולו כחולה slim fit — ASOS", "מכנסי צ'ינו בז' — Zara". אסור label שמכיל רק שם חנות!
 - productSearchQuery חייב להיות באנגלית וספציפי: קטגוריה + צבע + סגנון + מגדר. דוגמה: "men's navy slim fit chino pants". ה-productSearchQuery חייב להתאים לקטגוריית ה-improvement (אם ה-title הוא שדרוג חלק עליון, ה-query חייב להיות של חולצה/חלק עליון).
@@ -1516,6 +1510,7 @@ Rules:
 - Base recommendations on stage-1 items, scores, and summary.
 - Keep suggestions occasion-aware and style-consistent.
 - improvements: 3 upgrade suggestions (different categories: top, bottom, shoes/accessories). Each improvement MUST include exactly 3 shoppingLinks (valid search URLs to real stores). Never return fewer than 3.
+- ABSOLUTE REQUIREMENT — beforeColor and afterColor: Every improvement MUST include beforeColor (the exact current color of the detected item) and afterColor (the exact color of the recommended replacement item). Colors MUST be in English lowercase (e.g. "white", "black", "navy blue", "light gray", "beige"). NEVER leave empty! The afterColor MUST exactly match the recommended product color.
 - MANDATORY: Each improvement's 3 shoppingLinks MUST be from 3 DIFFERENT stores! Example: ASOS, Zara, H&M — never 3 links to the same store.
 - MANDATORY label format: "specific product description — store name". Example: "Navy slim fit polo shirt — ASOS", "Beige chino pants — Zara". NEVER use just the store name as label!
 - productSearchQuery MUST be specific English: category + color + style + gender. Example: "men's navy slim fit chino pants". The productSearchQuery MUST match the improvement category (if title is about tops, query must be for a top/shirt/blouse).
@@ -1726,6 +1721,8 @@ function normalizeImprovementShoppingLinks(
     description: (imp.description || (isHebrew ? "התאמה לשדרוג הלוק." : "Upgrade to improve overall look coherence.")).trim(),
     beforeLabel: (imp.beforeLabel || (isHebrew ? "לפני" : "Before")).trim(),
     afterLabel: (imp.afterLabel || (isHebrew ? "אחרי" : "After")).trim(),
+    beforeColor: (imp.beforeColor || "").trim(),
+    afterColor: (imp.afterColor || "").trim(),
     productSearchQuery: fallbackQuery,
     shoppingLinks: finalLinks,
     closetMatch: imp.closetMatch,

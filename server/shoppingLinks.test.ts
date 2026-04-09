@@ -107,6 +107,8 @@ interface Improvement {
   description: string;
   beforeLabel: string;
   afterLabel: string;
+  beforeColor?: string;
+  afterColor?: string;
   shoppingLinks: ShoppingLink[];
   productSearchQuery: string;
 }

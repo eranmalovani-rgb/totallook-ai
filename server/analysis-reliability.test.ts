@@ -21,7 +21,7 @@ describe("Analysis Reliability Improvements", () => {
       const fs = await import("fs");
       const mainCode = fs.readFileSync("client/src/main.tsx", "utf-8");
       // Verify the 120s timeout is configured
-      expect(mainCode).toContain("120_000");
+      expect(mainCode).toContain("180_000");
       expect(mainCode).toContain("AbortController");
       expect(mainCode).toContain("clearTimeout");
     });
