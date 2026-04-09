@@ -315,3 +315,9 @@
 - [x] 21b.4: Fix (prompt): buildDeterministicFixMyLookPrompt already includes image[N] references per replacement item + IDENTITY LOCK instructions
 - [x] 21b.5: Fix (TS error): resolved WhatsAppReview.tsx reviewData.id type error
 - [x] 21b.6: All 765/769 tests pass (4 pre-existing API failures: google-cse, imagegen x2, openai). 0 TS errors.
+
+## Stage 21c — Fix My Look: AI Still Generates Wrong Colors (Critical Bug)
+- [x] 21c.1: Investigated: confirmed imageGeneration.ts was using gpt-image-1-mini with quality "medium" — insufficient for accurate color/style editing
+- [x] 21c.2: Root cause: gpt-image-1-mini is unreliable for color accuracy per OpenAI community reports; OpenAI's own cookbook uses gpt-image-1 (full model) with quality "high" for fashion/product editing
+- [x] 21c.3: Fix applied: (a) switched edit model from gpt-image-1-mini to gpt-image-1, (b) switched edit quality from "medium" to "high", (c) completely rewrote prompt with structured sections and explicit zero-tolerance color accuracy rules
+- [ ] 21c.4: Test end-to-end: verify white shirt stays white, blue jeans stay blue in output (user needs to test)
