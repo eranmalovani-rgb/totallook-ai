@@ -345,3 +345,12 @@
 - [x] 25.4: Verified with test: generic improvement now gets WHITE from productLabel "חולצת פולו לבנה"
 - [x] 25.5: 764/769 tests pass, 0 TS errors
 - [ ] 25.6: Test end-to-end on deployed site
+
+## Stage 26 — Fix My Look: CRITICAL BUG — "premium" falsely detected as "red"
+- [x] 26.1: Root cause: detectColorHint("tailored shirt premium") returned RED because "premium" contains "red" as substring
+- [x] 26.2: Fix: changed English color detection from substring match to word boundary regex (`\bred\b` instead of `includes("red")`)
+- [x] 26.3: Added positional fallback for color extraction (5th source)
+- [x] 26.4: Added stronger fallback instructions when no color found (rely on product reference image, or keep original color)
+- [x] 26.5: Verified: "tailored shirt premium" now returns null (not RED), improvement[0] gets BLACK from afterLabel
+- [x] 26.6: 764/769 tests pass, 0 TS errors
+- [ ] 26.7: Test end-to-end on deployed site

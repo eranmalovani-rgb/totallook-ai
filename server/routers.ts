@@ -1019,14 +1019,15 @@ function detectColorHint(text: string): string | null {
   for (const [regex, color] of hebrewColorMap) {
     if (regex.test(normalized)) return color;
   }
-  // Check English colors
+  // Check English colors — use word boundaries to prevent false matches (e.g. "premium" matching "red")
   const englishColors = [
-    "black", "white", "navy", "blue", "red", "green", "beige", "brown", "gray", "grey",
+    "black", "white", "navy", "dark blue", "light blue", "blue", "red", "green", "beige", "brown", "gray", "grey",
     "khaki", "cream", "pink", "purple", "orange", "yellow", "gold", "silver", "olive",
-    "burgundy", "teal", "charcoal", "dark blue", "dark green", "light blue",
+    "burgundy", "teal", "charcoal", "dark green",
   ];
   for (const hint of englishColors) {
-    if (normalized.includes(hint)) return hint.toUpperCase();
+    const regex = new RegExp(`\\b${hint}\\b`);
+    if (regex.test(normalized)) return hint.toUpperCase();
   }
   return null;
 }
@@ -1057,7 +1058,7 @@ function buildDeterministicFixMyLookPrompt(params: {
 
   // Track which product images are included as references (image[1], image[2], etc.)
   let productImageRefIndex = 1; // image[0] is always the user's original photo
-  const replacementLines = relevantImprovements.map((imp) => {
+  const replacementLines = relevantImprovements.map((imp, impListIdx) => {
     const improvementIndex = allImprovements.indexOf(imp);
     const selected = improvementIndex >= 0 ? selectedByImprovementIndex.get(improvementIndex) : undefined;
     const targetLabel = selected?.productLabel || imp.afterLabel || imp.title;
@@ -1065,24 +1066,38 @@ function buildDeterministicFixMyLookPrompt(params: {
     // Try to detect color from multiple sources (priority order):
     // 1. Selected product label (what user actually picked from the store)
     // 2. Improvement afterLabel (the upgrade description)
-    // 3. Improvement beforeLabel (the original item — fallback to preserve original color)
-    // 4. The matching item name from analysis
+    // 3. Improvement beforeLabel (the original item name)
+    // 4. The matching item from analysis (by name match)
+    // 5. The item at the same position index in itemsToFix (positional fallback)
     const colorFromProduct = selected?.productLabel ? detectColorHint(selected.productLabel) : null;
     const colorFromAfter = detectColorHint(imp.afterLabel || "");
     const colorFromBefore = detectColorHint(imp.beforeLabel || "");
-    const matchingItem = itemsToFix.find(item => 
-      (imp.beforeLabel && item.name.includes(imp.beforeLabel.split(" — ")[0])) ||
-      (imp.title && item.name.includes(imp.title.split(" — ")[0]))
-    );
+    // Try to match by name substring
+    const matchingItem = itemsToFix.find(item => {
+      const beforeClean = (imp.beforeLabel || "").split(" \u2014 ")[0].trim();
+      const titleClean = (imp.title || "").split(" \u2014 ")[0].trim();
+      return (beforeClean && item.name.toLowerCase().includes(beforeClean.toLowerCase())) ||
+             (titleClean && item.name.toLowerCase().includes(titleClean.toLowerCase()));
+    });
     const colorFromItem = matchingItem ? detectColorHint(matchingItem.name) : null;
-    const colorHint = colorFromProduct || colorFromAfter || colorFromBefore || colorFromItem;
+    // Positional fallback: if this is the Nth replacement, try the Nth item in itemsToFix
+    const positionalItem = !colorFromItem && impListIdx < itemsToFix.length ? itemsToFix[impListIdx] : null;
+    const colorFromPosition = positionalItem ? detectColorHint(positionalItem.name) : null;
+    const colorHint = colorFromProduct || colorFromAfter || colorFromBefore || colorFromItem || colorFromPosition;
     
-    const colorInstruction = colorHint
-      ? `MANDATORY COLOR: ${colorHint}. Use EXACTLY this color with ZERO substitution — do NOT change, darken, lighten, or substitute this color under any circumstances.`
-      : "IMPORTANT: Match the color shown in the product reference image exactly. Do NOT invent a color.";
+    let colorInstruction: string;
+    if (colorHint) {
+      colorInstruction = `MANDATORY COLOR: ${colorHint}. Use EXACTLY this color with ZERO substitution — do NOT change, darken, lighten, or substitute this color under any circumstances.`;
+    } else if (selected?.productImageUrl) {
+      // No color detected but we have a product reference image — rely on it heavily
+      colorInstruction = `CRITICAL: You MUST copy the EXACT color from the product reference image. Do NOT invent, guess, or substitute any color. If the product image shows a neutral/dark tone, use that EXACT tone. NEVER default to red or warm tones.`;
+    } else {
+      // No color, no product image — keep the original item's color
+      colorInstruction = `WARNING: No specific color was provided. You MUST keep the SAME color as the original garment in image[0]. Do NOT change the color. NEVER introduce red or warm tones.`;
+    }
     let imageRef = "";
     if (selected?.productImageUrl) {
-      imageRef = ` Reference product photo is image[${productImageRefIndex}] — copy its EXACT color, pattern, texture, and style from this image.`;
+      imageRef = ` Reference product photo is image[${productImageRefIndex}] — copy its EXACT color, pattern, texture, and style from this image. The color in this reference image OVERRIDES any color you might imagine.`;
       productImageRefIndex++;
     }
     return `- Replace "${imp.beforeLabel || imp.title}" with "${targetLabel}". ${colorInstruction}${imageRef} Keep garment type, sleeve length, collar type, and fit aligned with the target item.`;
