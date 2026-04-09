@@ -16,6 +16,7 @@ import { ENV } from "./_core/env";
 import { generateImage } from "./_core/imageGeneration";
 import type { OutfitSuggestion, Improvement, ShoppingLink } from "../shared/fashionTypes";
 import { getDoctrineForStage1, getDoctrineForStage2, getDoctrineForFixMyLook, getDoctrineForPersonalization } from "../shared/fashionDoctrine";
+import { buildTasteProfileContext, formatTasteProfileForPrompt, formatWardrobeForStage2 } from "./tasteProfileContext";
 import probeImageSize from "probe-image-size";
 
 const ANALYSIS_CONCURRENCY_LIMIT = 2;
@@ -866,6 +867,7 @@ export function buildFashionPrompt(
   profile?: ProfileContext | null,
   wardrobeItems?: WardrobeContext[],
   lang: "he" | "en" = "he",
+  tasteProfileText?: string | null,
 ): string {
   const isHebrew = lang === "he";
   const langLabel = isHebrew ? "Hebrew" : "English";
@@ -1027,7 +1029,7 @@ ${genderConstraint}`;
 
 ${doctrineStage1}
 
-METHODOLOGY: Scan head-to-toe systematically. For each item: identify specific material/fabric, precise color shade, fit/silhouette, construction details. Then identify brands from visual evidence. Finally evaluate styling coherence using the Fashion Doctrine principles above.
+${tasteProfileText ? tasteProfileText + "\n\n" : ""}METHODOLOGY: Scan head-to-toe systematically. For each item: identify specific material/fabric, precise color shade, fit/silhouette, construction details. Then identify brands from visual evidence. Finally evaluate styling coherence using the Fashion Doctrine principles above.
 
 BRAND IDENTIFICATION: Use confidence levels — HIGH (logo visible), MEDIUM (strong visual cues, use hedging: "כפי הנראה"/"appears to be"), LOW (educated guess). Item "name" field stays generic (no brand). A wrong confident ID is worse than no ID.
 
@@ -1223,6 +1225,7 @@ function buildDeterministicFixMyLookPrompt(params: {
   selectedProductDetails?: FixMyLookProductDetail[];
   imageOrientation: string;
   imageDimensions: { width: number; height: number };
+  tasteProfileText?: string | null;
 }): string {
   const {
     analysis,
@@ -1232,6 +1235,7 @@ function buildDeterministicFixMyLookPrompt(params: {
     selectedProductDetails,
     imageOrientation,
     imageDimensions,
+    tasteProfileText,
   } = params;
 
   const selectedByImprovementIndex = new Map<number, FixMyLookProductDetail>();
@@ -1396,6 +1400,12 @@ function buildDeterministicFixMyLookPrompt(params: {
     `- Color harmony: new garments must complement the kept items' colors — avoid clashing.`,
     `- The overall look should communicate ONE clear message (clean, luxurious, casual-elevated, etc.).`,
     `- Fabric quality should look consistent across all items — don't mix cheap-looking with premium.`,
+    ...(tasteProfileText ? [
+      ``,
+      `## USER'S TASTE PROFILE (personalize the fix):`,
+      tasteProfileText,
+      `Use this profile to ensure replacements match the user's established style DNA, preferred materials, and color palette.`,
+    ] : []),
     ``,
     `## QUALITY RULES:`,
     `- The output must be photorealistic — replaced garments must look naturally worn, not digitally pasted.`,
@@ -1746,6 +1756,8 @@ function buildRecommendationsPromptFromCore(
   preferredStores?: string | null,
   budgetLevel?: string | null,
   country?: string | null,
+  tasteProfileText?: string | null,
+  wardrobeText?: string | null,
 ): string {
   const isHebrew = lang === "he";
   const occasionLine = occasion
@@ -1801,6 +1813,10 @@ function buildRecommendationsPromptFromCore(
     : "";
   const doctrineStage2 = getDoctrineForStage2();
 
+  // Stage 33: Taste Profile + Wardrobe injection
+  const tasteProfileSection = tasteProfileText || "";
+  const wardrobeSection = wardrobeText || "";
+
   return isHebrew
     ? `אתה שלב 2 במערכת דו-שלבית: השראה והמלצות בלבד.
 קלט: JSON מובנה של שלב 1 שכבר ביצע ניתוח וזיהוי פריטים.
@@ -1838,6 +1854,10 @@ ${doctrineStage2}
 - trendSources: 2-3 מקורות רלוונטיים.
 - influencerInsight: 2-3 משפטים עם 2 שמות משפיענים.
 - כל הטקסטים בעברית. JSON בלבד.
+
+${tasteProfileSection}
+
+${wardrobeSection}
 
 ${genderLine}
 ${budgetLine}
@@ -1881,6 +1901,10 @@ Rules:
 - trendSources: 2-3 relevant sources.
 - influencerInsight: 2-3 sentences with 2 influencer names.
 - All text in English. JSON only.
+
+${tasteProfileSection}
+
+${wardrobeSection}
 
 ${genderLine}
 ${budgetLine}
@@ -2719,6 +2743,23 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
             }));
           }
 
+          // Stage 33: Build Taste Profile for Stage 1 injection
+          let tasteProfileForStage1: string | null = null;
+          try {
+            const allReviewsForTaste = await getReviewsByUserId(ctx.user.id);
+            const completedForTaste = allReviewsForTaste.filter(r => r.status === "completed" && r.analysisJson);
+            if (completedForTaste.length > 0) {
+              const tasteCtx = buildTasteProfileContext(
+                completedForTaste.map(r => ({ analysisJson: r.analysisJson, overallScore: r.overallScore, createdAt: r.createdAt })),
+                allWardrobeItems.map(w => ({ itemType: w.itemType, name: w.name, color: w.color, brand: w.brand, styleNote: w.styleNote || null })),
+                { stylePreference: profile?.stylePreference, gender: profile?.gender, budgetLevel: profile?.budgetLevel },
+              );
+              if (tasteCtx) tasteProfileForStage1 = formatTasteProfileForPrompt(tasteCtx, input.lang);
+            }
+          } catch (tpErr) {
+            console.warn("[Stage 33] Failed to build taste profile for Stage 1:", tpErr);
+          }
+
           const prompt = buildFashionPrompt(
             review.influencers ?? undefined,
             review.styleNotes ?? undefined,
@@ -2726,6 +2767,7 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
             profileContext,
             wardrobeCtx,
             input.lang,
+            tasteProfileForStage1,
           );
            // Stage 1: core analysis + identification (image-based)
            const stage1Start = Date.now();
@@ -2796,6 +2838,21 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
 
            // Stage 2: inspiration + recommendations (text-only from stage-1 output)
            const stage2Start = Date.now();
+
+          // Stage 33: Reuse taste profile from Stage 1 + build wardrobe for Stage 2
+          const tasteProfileText = tasteProfileForStage1; // Already computed above
+          let wardrobeForStage2: string | null = null;
+          try {
+            if (allWardrobeItems.length > 0) {
+              wardrobeForStage2 = formatWardrobeForStage2(
+                allWardrobeItems.slice(0, 30).map(w => ({ itemType: w.itemType, name: w.name, color: w.color, brand: w.brand, styleNote: w.styleNote || null })),
+                input.lang,
+              );
+            }
+          } catch (tpErr) {
+            console.warn("[Stage 33] Failed to build wardrobe for Stage 2:", tpErr);
+          }
+
           const recommendationSeed = {
             overallScore: analysisCore.overallScore,
             summary: analysisCore.summary,
@@ -2830,6 +2887,8 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
                         profileContext?.preferredStores || null,
                         profileContext?.budgetLevel || null,
                         profileContext?.country || null,
+                        tasteProfileText,
+                        wardrobeForStage2,
                       ),
                     },
                     {
@@ -3548,6 +3607,27 @@ Style: High-end ${genderLabel} fashion editorial flat lay, items arranged aesthe
           relevantImprovements.push(...allImprovements.slice(0, Math.min(allImprovements.length, input.itemIndices.length + 1)));
         }
 
+        // Stage 33: Build Taste Profile for Fix My Look personalization
+        let fixMyLookTasteText: string | null = null;
+        try {
+          const [allReviewsFML, allWardrobeFML, profileFML] = await Promise.all([
+            getReviewsByUserId(ctx.user.id),
+            getWardrobeByUserId(ctx.user.id),
+            getUserProfile(ctx.user.id),
+          ]);
+          const completedFML = allReviewsFML.filter(r => r.status === "completed" && r.analysisJson);
+          if (completedFML.length > 0) {
+            const tasteCtx = buildTasteProfileContext(
+              completedFML.map(r => ({ analysisJson: r.analysisJson, overallScore: r.overallScore, createdAt: r.createdAt })),
+              allWardrobeFML.map(w => ({ itemType: w.itemType, name: w.name, color: w.color, brand: w.brand, styleNote: w.styleNote || null })),
+              { stylePreference: profileFML?.stylePreference, gender: profileFML?.gender, budgetLevel: profileFML?.budgetLevel },
+            );
+            if (tasteCtx) fixMyLookTasteText = formatTasteProfileForPrompt(tasteCtx, "en");
+          }
+        } catch (tpErr) {
+          console.warn("[Stage 33] Failed to build taste profile for Fix My Look:", tpErr);
+        }
+
         const editPrompt = buildDeterministicFixMyLookPrompt({
           analysis,
           itemsToFix,
@@ -3556,6 +3636,7 @@ Style: High-end ${genderLabel} fashion editorial flat lay, items arranged aesthe
           selectedProductDetails: input.selectedProductDetails,
           imageOrientation,
           imageDimensions,
+          tasteProfileText: fixMyLookTasteText,
         });
 
         // Generate the fixed image: user's photo as primary reference + product images as style references
@@ -4828,6 +4909,41 @@ Return ONLY a JSON object with these exact fields:
 
            // Stage 2: inspiration + recommendations (text-only from stage-1 output)
            const stage2Start = Date.now();
+
+          // Stage 33: Build guest Taste Profile + Wardrobe for Stage 2
+          let guestTasteText: string | null = null;
+          let guestWardrobeText: string | null = null;
+          try {
+            if (session.fingerprint) {
+              const guestSessionIds = await getGuestSessionIdsByFingerprint(session.fingerprint);
+              // Build taste from previous guest analyses
+              if (guestSessionIds.length > 1) {
+                // Get all guest sessions to build taste profile
+                const allGuestSessions = guestSessionIds.length > 0 ? await Promise.all(
+                  guestSessionIds.slice(0, 20).map(id => getGuestSessionById(id))
+                ) : [];
+                const completedGuest = allGuestSessions.filter(s => s && s.status === "completed" && (s as any).analysisJson);
+                if (completedGuest.length > 0) {
+                  const tasteCtx = buildTasteProfileContext(
+                    completedGuest.map(s => ({ analysisJson: (s as any).analysisJson, overallScore: (s as any).overallScore, createdAt: s!.createdAt })),
+                    wardrobeItemsList.map(w => ({ itemType: w.itemType, name: w.name || "", color: w.color || "", brand: w.brand || "", styleNote: (w as any).styleNote || null })),
+                    { stylePreference: guestProfile?.stylePreference, gender: guestProfile?.gender, budgetLevel: guestProfile?.budgetLevel },
+                  );
+                  if (tasteCtx) guestTasteText = formatTasteProfileForPrompt(tasteCtx, input.lang);
+                }
+              }
+              // Wardrobe for guest
+              if (wardrobeItemsList.length > 0) {
+                guestWardrobeText = formatWardrobeForStage2(
+                  wardrobeItemsList.slice(0, 20).map(w => ({ itemType: w.itemType, name: w.name || "", color: w.color || "", brand: w.brand || "", styleNote: (w as any).styleNote || null })),
+                  input.lang,
+                );
+              }
+            }
+          } catch (tpErr) {
+            console.warn("[Stage 33] Failed to build guest taste profile for Stage 2:", tpErr);
+          }
+
           const recommendationSeed = {
             overallScore: analysisCore.overallScore,
             summary: analysisCore.summary,
@@ -4862,6 +4978,8 @@ Return ONLY a JSON object with these exact fields:
                         guestProfile?.preferredStores || null,
                         guestProfile?.budgetLevel || null,
                         guestProfile?.country || null,
+                        guestTasteText,
+                        guestWardrobeText,
                       ),
                     },
                     {
@@ -5924,6 +6042,15 @@ Style: High-end ${genderLabel} fashion editorial flat lay, all items arranged ae
             layeringFrequency: null as number | null,
             silhouetteBreakdown: [] as { name: string; count: number; percentage: number }[],
           },
+          doctrineInsights: {
+            archetype: null as string | null,
+            proportionTip: null as string | null,
+            colorTip: null as string | null,
+            dominantMaterial: null as string | null,
+            dominantFit: null as string | null,
+            dominantPattern: null as string | null,
+          },
+          deepTasteProfile: null as null,
           profilePreferences: {
             gender: profile?.gender || null,
             ageRange: profile?.ageRange || null,
@@ -6235,7 +6362,7 @@ Style: High-end ${genderLabel} fashion editorial flat lay, all items arranged ae
         silhouetteBreakdown: silhouettePrefs,
       };
 
-      // ---- Stage 32: Doctrine-based style insights ----
+      // ---- Stage 32+33: Deep Doctrine-based style insights ----
       const doctrineInsights = (() => {
         const topStyle = Object.entries(styleMap).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
         const topMaterial = materialPreferences[0]?.name || null;
@@ -6258,12 +6385,15 @@ Style: High-end ${genderLabel} fashion editorial flat lay, all items arranged ae
         let proportionTip: string | null = null;
         if (dominantProportion === 'top-heavy') proportionTip = 'Your looks tend to be top-heavy — try slimmer tops or wider-leg bottoms to balance.';
         else if (dominantProportion === 'bottom-heavy') proportionTip = 'Your looks lean bottom-heavy — structured shoulders or layered tops can create balance.';
+        else if (dominantProportion === 'balanced') proportionTip = 'Your proportions are naturally balanced — you can experiment with asymmetric silhouettes.';
 
         // Color harmony insight
         let colorTip: string | null = null;
         if (dominantHarmony === 'monochromatic') colorTip = 'You gravitate toward monochromatic palettes — try introducing one accent color for depth.';
         else if (dominantHarmony === 'neutral') colorTip = 'Your palette is neutral-dominant — a rich texture or subtle pattern can add dimension.';
         else if (dominantHarmony === 'colorful') colorTip = 'You love color — anchor bold pieces with neutral basics to keep looks cohesive.';
+        else if (dominantHarmony === 'analogous') colorTip = 'You favor analogous color schemes — great for cohesion, try adding a complementary accent.';
+        else if (dominantHarmony === 'complementary') colorTip = 'You use complementary colors well — ensure one dominates (70%) and the other accents (30%).';
 
         return {
           archetype,
@@ -6272,6 +6402,49 @@ Style: High-end ${genderLabel} fashion editorial flat lay, all items arranged ae
           dominantMaterial: topMaterial,
           dominantFit: topFit,
           dominantPattern: topPattern,
+        };
+      })();
+
+      // ---- Stage 33: Deep Taste Profile sections ----
+      const deepTasteProfile = (() => {
+        // Use the centralized buildTasteProfileContext for deep computation
+        const tasteCtx = buildTasteProfileContext(
+          completedReviews.map(r => ({ analysisJson: r.analysisJson, overallScore: r.overallScore, createdAt: r.createdAt })),
+          wardrobeData.map(w => ({ itemType: w.itemType, name: w.name, color: w.color, brand: w.brand, styleNote: w.styleNote || null })),
+          { stylePreference: profile?.stylePreference, gender: profile?.gender, budgetLevel: profile?.budgetLevel },
+        );
+        if (!tasteCtx) return null;
+
+        return {
+          // Color DNA
+          colorDNA: {
+            temperature: tasteCtx.colorTemperature,
+            contrastLevel: tasteCtx.contrastLevel,
+            topColors: tasteCtx.topColors,
+            dominantHarmony: tasteCtx.dominantColorHarmony,
+          },
+          // Silhouette Profile
+          silhouetteProfile: {
+            dominantSilhouette: tasteCtx.dominantSilhouette,
+            dominantProportions: tasteCtx.dominantProportions,
+            layeringPct: tasteCtx.layeringPct,
+          },
+          // Material Hierarchy
+          materialHierarchy: {
+            topMaterials: tasteCtx.topMaterials,
+            topFits: tasteCtx.topFits,
+            topPatterns: tasteCtx.topPatterns,
+          },
+          // Personal Style Code
+          styleCode: tasteCtx.styleCode,
+          // Style Consistency
+          styleConsistency: tasteCtx.styleConsistency,
+          // Weakness Pattern Analysis
+          weaknessPatterns: tasteCtx.weaknessPatterns,
+          // Growth Trajectory
+          scoreTrend: tasteCtx.scoreTrend,
+          growthNote: tasteCtx.growthNote,
+          avgScore: tasteCtx.avgScore,
         };
       })();
 
@@ -6294,6 +6467,7 @@ Style: High-end ${genderLabel} fashion editorial flat lay, all items arranged ae
         patternPreferences,
         lookStructureInsights,
         doctrineInsights,
+        deepTasteProfile,
         profilePreferences: {
           gender: profile?.gender || null,
           ageRange: profile?.ageRange || null,

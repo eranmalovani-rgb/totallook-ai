@@ -442,3 +442,18 @@
 - [x] 32.7: Inject Doctrine into Taste Profile (doctrineInsights: archetype, proportionTip, colorTip, dominantMaterial/Fit/Pattern)
 - [x] 32.8: Run full test suite — 765/769 pass (same 4 pre-existing API failures), 0 TS errors, 0 new failures
 - [x] 32.9: Save checkpoint
+
+## Stage 33: Pipeline Intelligence — Taste Profile + Wardrobe Injection
+- [x] 33.1: Inject Taste Profile data into Stage 2 prompt (auth + guest flows, via buildTasteProfileContext + formatTasteProfileForPrompt)
+- [x] 33.2: Inject Wardrobe data into Stage 2 prompt (auth + guest flows, via formatWardrobeForStage2)
+- [x] 33.3: Deepen Taste Profile — Color DNA (temperature, contrast, topColors, dominantHarmony)
+- [x] 33.4: Deepen Taste Profile — Silhouette Profile (dominantSilhouette, dominantProportions, layeringPct)
+- [x] 33.5: Deepen Taste Profile — Material Hierarchy (topMaterials, topFits, topPatterns)
+- [x] 33.6: Deepen Taste Profile — Style Consistency Score (focused/mixed/scattered)
+- [x] 33.7: Deepen Taste Profile — Personal Style Code (computed in buildTasteProfileContext)
+- [x] 33.8: Deepen Taste Profile — Weakness Pattern (recurring low-score categories from history)
+- [x] 33.9: Deepen Taste Profile — Growth Trajectory (scoreTrend + growthNote)
+- [x] 33.10: Inject Taste Profile into Stage 1 prompt (auth flow, via buildFashionPrompt tasteProfileText param)
+- [x] 33.11: Inject Taste Profile into Fix My Look prompt (auth flow, via buildDeterministicFixMyLookPrompt tasteProfileText param)
+- [x] 33.12: Run full test suite — 765/769 pass (same 4 pre-existing API failures), 0 TS errors
+- [x] 33.13: Save checkpoint
