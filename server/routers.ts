@@ -1064,34 +1064,75 @@ function buildDeterministicFixMyLookPrompt(params: {
     const improvementIndex = allImprovements.indexOf(imp);
     const selected = improvementIndex >= 0 ? selectedByImprovementIndex.get(improvementIndex) : undefined;
     const targetLabel = selected?.productLabel || imp.afterLabel || imp.title;
-    
-    // Color extraction — priority order:
-    // 1. imp.afterColor (structured field from Stage 2 LLM — most reliable source)
-    // 2. Selected product label (what user actually picked from the store)
-    // 3. detectColorHint fallback from afterLabel/beforeLabel (legacy, least reliable)
+
+    // ---- Build rich BEFORE description from structured metadata ----
+    const beforeParts: string[] = [];
+    if (imp.beforeFit) beforeParts.push(imp.beforeFit);
+    if (imp.beforeMaterial) beforeParts.push(imp.beforeMaterial);
+    if (imp.beforeNeckline && imp.beforeNeckline !== "n/a") beforeParts.push(imp.beforeNeckline);
+    if (imp.beforeSleeveLength && imp.beforeSleeveLength !== "n/a") beforeParts.push(`${imp.beforeSleeveLength}-sleeve`);
+    if (imp.beforePattern && imp.beforePattern !== "solid") beforeParts.push(imp.beforePattern);
+    if (imp.beforeColor) beforeParts.push(imp.beforeColor);
+    if (imp.beforeGarmentType) beforeParts.push(imp.beforeGarmentType);
+    const richBeforeDesc = beforeParts.length >= 3
+      ? beforeParts.join(" ")
+      : (imp.beforeLabel || imp.title);
+
+    // ---- Build rich AFTER description from structured metadata ----
+    const afterParts: string[] = [];
+    if (imp.afterFit) afterParts.push(imp.afterFit);
+    if (imp.afterMaterial) afterParts.push(imp.afterMaterial);
+    if (imp.afterNeckline && imp.afterNeckline !== "n/a") afterParts.push(imp.afterNeckline);
+    if (imp.afterSleeveLength && imp.afterSleeveLength !== "n/a") afterParts.push(`${imp.afterSleeveLength}-sleeve`);
+    if (imp.afterPattern && imp.afterPattern !== "solid") afterParts.push(imp.afterPattern);
+    if (imp.afterColor) afterParts.push(imp.afterColor);
+    if (imp.afterGarmentType) afterParts.push(imp.afterGarmentType);
+    const richAfterDesc = afterParts.length >= 3
+      ? afterParts.join(" ")
+      : targetLabel;
+
+    // ---- Extra detail lines for texture, closure, details, length, style ----
+    const extraAfterSpecs: string[] = [];
+    if (imp.afterTexture) extraAfterSpecs.push(`texture: ${imp.afterTexture}`);
+    if (imp.afterClosure && imp.afterClosure !== "n/a") extraAfterSpecs.push(`closure: ${imp.afterClosure}`);
+    if (imp.afterDetails && imp.afterDetails !== "none") extraAfterSpecs.push(`details: ${imp.afterDetails}`);
+    if (imp.afterLength) extraAfterSpecs.push(`length: ${imp.afterLength}`);
+    if (imp.afterStyle) extraAfterSpecs.push(`style: ${imp.afterStyle}`);
+    const extraSpecsStr = extraAfterSpecs.length > 0 ? ` (${extraAfterSpecs.join(", ")})` : "";
+
+    // ---- Color extraction — priority order ----
     const structuredAfterColor = (imp.afterColor || "").trim() || null;
     const colorFromProduct = !structuredAfterColor && selected?.productLabel ? detectColorHint(selected.productLabel) : null;
     const legacyFallback = !structuredAfterColor && !colorFromProduct
       ? (detectColorHint(imp.afterLabel || "") || detectColorHint(imp.beforeLabel || ""))
       : null;
     const colorHint = structuredAfterColor?.toUpperCase() || colorFromProduct || legacyFallback;
-    
+
     let colorInstruction: string;
     if (colorHint) {
-      colorInstruction = `MANDATORY COLOR: ${colorHint}. Use EXACTLY this color with ZERO substitution — do NOT change, darken, lighten, or substitute this color under any circumstances.`;
+      colorInstruction = `MANDATORY COLOR: ${colorHint}. Use EXACTLY this color with ZERO substitution.`;
     } else if (selected?.productImageUrl) {
-      // No color detected but we have a product reference image — rely on it heavily
-      colorInstruction = `CRITICAL: You MUST copy the EXACT color from the product reference image. Do NOT invent, guess, or substitute any color. If the product image shows a neutral/dark tone, use that EXACT tone. NEVER default to red or warm tones.`;
+      colorInstruction = `CRITICAL: Copy the EXACT color from the product reference image. NEVER default to red or warm tones.`;
     } else {
-      // No color, no product image — keep the original item's color
-      colorInstruction = `WARNING: No specific color was provided. You MUST keep the SAME color as the original garment in image[0]. Do NOT change the color. NEVER introduce red or warm tones.`;
+      colorInstruction = `WARNING: No color provided. Keep the SAME color as the original garment in image[0]. NEVER introduce red or warm tones.`;
     }
+
+    // ---- Pattern instruction ----
+    const patternHint = imp.afterPattern && imp.afterPattern !== "solid"
+      ? ` PATTERN: ${imp.afterPattern.toUpperCase()} — the garment MUST show this pattern.`
+      : imp.afterPattern === "solid" ? " PATTERN: SOLID — single uniform color, no patterns." : "";
+
+    // ---- Material/texture instruction ----
+    const materialHint = imp.afterMaterial
+      ? ` MATERIAL: ${imp.afterMaterial} — render fabric draping, sheen, and texture consistent with ${imp.afterMaterial}.`
+      : "";
+
     let imageRef = "";
     if (selected?.productImageUrl) {
-      imageRef = ` Reference product photo is image[${productImageRefIndex}] — copy its EXACT color, pattern, texture, and style from this image. The color in this reference image OVERRIDES any color you might imagine.`;
+      imageRef = ` Reference product photo is image[${productImageRefIndex}] — copy its EXACT color, pattern, texture, and style from this image.`;
       productImageRefIndex++;
     }
-    return `- Replace "${imp.beforeLabel || imp.title}" with "${targetLabel}". ${colorInstruction}${imageRef} Keep garment type, sleeve length, collar type, and fit aligned with the target item.`;
+    return `- Replace the "${richBeforeDesc}" with a "${richAfterDesc}"${extraSpecsStr}. ${colorInstruction}${patternHint}${materialHint}${imageRef}`;
   });
 
   const fallbackReplacements = itemsToFix.map((item) =>
@@ -1314,6 +1355,32 @@ export const analysisJsonSchema = {
           afterLabel: { type: "string" as const },
           beforeColor: { type: "string" as const, description: "MANDATORY: Explicit color of the BEFORE item in English lowercase (e.g. 'black', 'white', 'navy blue', 'light gray'). MUST always be provided based on the detected item." },
           afterColor: { type: "string" as const, description: "MANDATORY: Explicit color of the AFTER (recommended) item in English lowercase (e.g. 'black', 'white', 'navy blue'). MUST always be provided. Must match the recommended product color." },
+          // Garment Identity
+          beforeGarmentType: { type: "string" as const, description: "Specific garment type of the BEFORE item (e.g. 't-shirt', 'dress shirt', 'polo', 'sweatshirt', 'hoodie', 'blazer', 'jeans', 'chinos', 'sneakers', 'oxford shoes', 'crop top', 'maxi dress')" },
+          afterGarmentType: { type: "string" as const, description: "Specific garment type of the AFTER item (e.g. 't-shirt', 'dress shirt', 'polo', 'sweatshirt', 'hoodie', 'blazer', 'jeans', 'chinos', 'sneakers', 'oxford shoes', 'crop top', 'maxi dress')" },
+          beforeStyle: { type: "string" as const, description: "Style category of the BEFORE item (e.g. 'casual', 'formal', 'smart-casual', 'sporty', 'streetwear', 'minimalist', 'classic', 'bohemian')" },
+          afterStyle: { type: "string" as const, description: "Style category of the AFTER item (e.g. 'casual', 'formal', 'smart-casual', 'sporty', 'streetwear', 'minimalist', 'classic', 'bohemian')" },
+          // Fit & Structure
+          beforeFit: { type: "string" as const, description: "Fit/silhouette of the BEFORE item (e.g. 'slim', 'regular', 'oversized', 'tailored', 'boxy', 'relaxed')" },
+          afterFit: { type: "string" as const, description: "Fit/silhouette of the AFTER item (e.g. 'slim', 'regular', 'oversized', 'tailored', 'boxy', 'relaxed')" },
+          beforeLength: { type: "string" as const, description: "Garment length of the BEFORE item (e.g. 'cropped', 'regular', 'long', 'midi', 'knee-length', 'hip-length')" },
+          afterLength: { type: "string" as const, description: "Garment length of the AFTER item (e.g. 'cropped', 'regular', 'long', 'midi', 'knee-length', 'hip-length')" },
+          beforeSleeveLength: { type: "string" as const, description: "Sleeve length of the BEFORE item (e.g. 'short', 'long', '3/4', 'sleeveless', 'rolled-up', 'n/a' for non-tops)" },
+          afterSleeveLength: { type: "string" as const, description: "Sleeve length of the AFTER item (e.g. 'short', 'long', '3/4', 'sleeveless', 'rolled-up', 'n/a' for non-tops)" },
+          beforeNeckline: { type: "string" as const, description: "Neckline/collar of the BEFORE item (e.g. 'crew neck', 'v-neck', 'polo collar', 'button-down collar', 'turtleneck', 'hoodie', 'n/a')" },
+          afterNeckline: { type: "string" as const, description: "Neckline/collar of the AFTER item (e.g. 'crew neck', 'v-neck', 'polo collar', 'button-down collar', 'turtleneck', 'hoodie', 'n/a')" },
+          beforeClosure: { type: "string" as const, description: "Closure type of the BEFORE item (e.g. 'pullover', 'buttons', 'zipper', 'wrap', 'lace-up', 'n/a')" },
+          afterClosure: { type: "string" as const, description: "Closure type of the AFTER item (e.g. 'pullover', 'buttons', 'zipper', 'wrap', 'lace-up', 'n/a')" },
+          // Material & Texture
+          beforeMaterial: { type: "string" as const, description: "Fabric/material of the BEFORE item (e.g. 'cotton', 'linen', 'denim', 'leather', 'silk', 'wool', 'polyester', 'knit', 'suede')" },
+          afterMaterial: { type: "string" as const, description: "Fabric/material of the AFTER item (e.g. 'cotton', 'linen', 'denim', 'leather', 'silk', 'wool', 'polyester', 'knit', 'suede')" },
+          beforeTexture: { type: "string" as const, description: "Surface texture of the BEFORE item (e.g. 'smooth', 'ribbed', 'knitted', 'matte', 'shiny', 'distressed', 'brushed')" },
+          afterTexture: { type: "string" as const, description: "Surface texture of the AFTER item (e.g. 'smooth', 'ribbed', 'knitted', 'matte', 'shiny', 'distressed', 'brushed')" },
+          // Pattern & Details
+          beforePattern: { type: "string" as const, description: "Pattern of the BEFORE item (e.g. 'solid', 'striped', 'checkered', 'floral', 'graphic print', 'polka dot', 'camouflage')" },
+          afterPattern: { type: "string" as const, description: "Pattern of the AFTER item (e.g. 'solid', 'striped', 'checkered', 'floral', 'graphic print', 'polka dot', 'camouflage')" },
+          beforeDetails: { type: "string" as const, description: "Distinctive visible details of the BEFORE item (e.g. 'visible logo', 'chest pocket', 'embroidery', 'distressed/ripped', 'contrast stitching', 'metal hardware', 'none')" },
+          afterDetails: { type: "string" as const, description: "Distinctive visible details of the AFTER item (e.g. 'visible logo', 'chest pocket', 'embroidery', 'distressed/ripped', 'contrast stitching', 'metal hardware', 'none')" },
           productSearchQuery: { type: "string" as const },
           shoppingLinks: {
             type: "array" as const,
@@ -1330,8 +1397,8 @@ export const analysisJsonSchema = {
             },
           },
         },
-        required: ["title", "description", "beforeLabel", "afterLabel", "beforeColor", "afterColor", "productSearchQuery", "shoppingLinks"] as const,
-        additionalProperties: false,
+        required: ["title", "description", "beforeLabel", "afterLabel", "beforeColor", "afterColor", "beforeGarmentType", "afterGarmentType", "beforeFit", "afterFit", "beforeSleeveLength", "afterSleeveLength", "beforeNeckline", "afterNeckline", "beforeMaterial", "afterMaterial", "beforePattern", "afterPattern", "productSearchQuery", "shoppingLinks"] as const,
+        additionalProperties: true,
       },
     },
     outfitSuggestions: {
@@ -1483,7 +1550,19 @@ function buildRecommendationsPromptFromCore(
 - התבסס על פריטי הלבוש, הציונים והסיכום משלב 1.
 - שמור על התאמה לאירוע ולסגנון המשתמש.
 - improvements: 3 המלצות שדרוג (קטגוריות שונות: חלק עליון, חלק תחתון, נעליים/אקססוריז). כל improvement חייב לכלול בדיוק 3 shoppingLinks (כתובות חיפוש תקינות בחנויות אמיתיות). אל תחזיר פחות מ-3.
-- חובה מוחלטת — beforeColor ו-afterColor: לכל improvement חייב לציין beforeColor (הצבע הנוכחי של הפריט שזוהה בתמונה) ו-afterColor (הצבע המדויק של הפריט המומלץ). הצבעים חייבים להיות באנגלית lowercase (לדוגמה: "white", "black", "navy blue", "light gray", "beige"). אסור להשאיר ריק! הצבע חייב להתאים בדיוק למוצר המומלץ.
+- חובה מוחלטת — מטאדטה מלאה לכל improvement: כל השדות הבאים חייבים להיות באנגלית lowercase. אסור להשאיר ריק!
+  * beforeColor / afterColor: צבע מדויק (לדוגמה: "white", "navy blue", "charcoal gray")
+  * beforeGarmentType / afterGarmentType: סוג הפריט (לדוגמה: "t-shirt", "dress shirt", "polo", "jeans", "chinos", "sneakers", "blazer", "hoodie")
+  * beforeFit / afterFit: גיזרה (לדוגמה: "slim", "regular", "oversized", "tailored", "boxy")
+  * beforeSleeveLength / afterSleeveLength: אורך שרוול (לדוגמה: "short", "long", "3/4", "sleeveless", "n/a")
+  * beforeNeckline / afterNeckline: צווארון/מחשוף (לדוגמה: "crew neck", "v-neck", "polo collar", "button-down collar", "turtleneck", "n/a")
+  * beforeMaterial / afterMaterial: חומר/בד (לדוגמה: "cotton", "linen", "denim", "leather", "silk", "wool", "knit")
+  * beforePattern / afterPattern: דוגמה/הדפס (לדוגמה: "solid", "striped", "checkered", "floral", "graphic print")
+  * beforeStyle / afterStyle: סגנון (לדוגמה: "casual", "formal", "smart-casual", "sporty", "streetwear", "minimalist")
+  * beforeLength / afterLength: אורך הפריט (לדוגמה: "cropped", "regular", "long", "midi")
+  * beforeClosure / afterClosure: סוג סגירה (לדוגמה: "pullover", "buttons", "zipper", "n/a")
+  * beforeTexture / afterTexture: מרקם (לדוגמה: "smooth", "ribbed", "knitted", "matte", "shiny", "distressed")
+  * beforeDetails / afterDetails: פרטים מיוחדים (לדוגמה: "visible logo", "chest pocket", "embroidery", "contrast stitching", "none")
 - חובה: כל 3 ה-shoppingLinks בכל improvement חייבים להיות מ-3 חנויות שונות! לדוגמה: ASOS, Zara, H&M — לא 3 לינקים לאותה חנות.
 - פורמט label חובה: "תיאור מוצר ספציפי — שם חנות". לדוגמה: "חולצת פולו כחולה slim fit — ASOS", "מכנסי צ'ינו בז' — Zara". אסור label שמכיל רק שם חנות!
 - productSearchQuery חייב להיות באנגלית וספציפי: קטגוריה + צבע + סגנון + מגדר. דוגמה: "men's navy slim fit chino pants". ה-productSearchQuery חייב להתאים לקטגוריית ה-improvement (אם ה-title הוא שדרוג חלק עליון, ה-query חייב להיות של חולצה/חלק עליון).
@@ -1510,7 +1589,19 @@ Rules:
 - Base recommendations on stage-1 items, scores, and summary.
 - Keep suggestions occasion-aware and style-consistent.
 - improvements: 3 upgrade suggestions (different categories: top, bottom, shoes/accessories). Each improvement MUST include exactly 3 shoppingLinks (valid search URLs to real stores). Never return fewer than 3.
-- ABSOLUTE REQUIREMENT — beforeColor and afterColor: Every improvement MUST include beforeColor (the exact current color of the detected item) and afterColor (the exact color of the recommended replacement item). Colors MUST be in English lowercase (e.g. "white", "black", "navy blue", "light gray", "beige"). NEVER leave empty! The afterColor MUST exactly match the recommended product color.
+- ABSOLUTE REQUIREMENT — Complete garment metadata for every improvement: ALL fields below MUST be in English lowercase. NEVER leave empty!
+  * beforeColor / afterColor: exact color (e.g. "white", "navy blue", "charcoal gray")
+  * beforeGarmentType / afterGarmentType: specific garment type (e.g. "t-shirt", "dress shirt", "polo", "jeans", "chinos", "sneakers", "blazer", "hoodie")
+  * beforeFit / afterFit: fit/silhouette (e.g. "slim", "regular", "oversized", "tailored", "boxy")
+  * beforeSleeveLength / afterSleeveLength: sleeve length (e.g. "short", "long", "3/4", "sleeveless", "n/a" for non-tops)
+  * beforeNeckline / afterNeckline: neckline/collar (e.g. "crew neck", "v-neck", "polo collar", "button-down collar", "turtleneck", "n/a")
+  * beforeMaterial / afterMaterial: fabric/material (e.g. "cotton", "linen", "denim", "leather", "silk", "wool", "knit")
+  * beforePattern / afterPattern: pattern (e.g. "solid", "striped", "checkered", "floral", "graphic print")
+  * beforeStyle / afterStyle: style category (e.g. "casual", "formal", "smart-casual", "sporty", "streetwear", "minimalist")
+  * beforeLength / afterLength: garment length (e.g. "cropped", "regular", "long", "midi")
+  * beforeClosure / afterClosure: closure type (e.g. "pullover", "buttons", "zipper", "n/a")
+  * beforeTexture / afterTexture: surface texture (e.g. "smooth", "ribbed", "knitted", "matte", "shiny", "distressed")
+  * beforeDetails / afterDetails: distinctive details (e.g. "visible logo", "chest pocket", "embroidery", "contrast stitching", "none")
 - MANDATORY: Each improvement's 3 shoppingLinks MUST be from 3 DIFFERENT stores! Example: ASOS, Zara, H&M — never 3 links to the same store.
 - MANDATORY label format: "specific product description — store name". Example: "Navy slim fit polo shirt — ASOS", "Beige chino pants — Zara". NEVER use just the store name as label!
 - productSearchQuery MUST be specific English: category + color + style + gender. Example: "men's navy slim fit chino pants". The productSearchQuery MUST match the improvement category (if title is about tops, query must be for a top/shirt/blouse).
@@ -1723,6 +1814,29 @@ function normalizeImprovementShoppingLinks(
     afterLabel: (imp.afterLabel || (isHebrew ? "אחרי" : "After")).trim(),
     beforeColor: (imp.beforeColor || "").trim(),
     afterColor: (imp.afterColor || "").trim(),
+    // Pass through all structured garment metadata (optional fields)
+    beforeGarmentType: imp.beforeGarmentType || undefined,
+    afterGarmentType: imp.afterGarmentType || undefined,
+    beforeStyle: imp.beforeStyle || undefined,
+    afterStyle: imp.afterStyle || undefined,
+    beforeFit: imp.beforeFit || undefined,
+    afterFit: imp.afterFit || undefined,
+    beforeLength: imp.beforeLength || undefined,
+    afterLength: imp.afterLength || undefined,
+    beforeSleeveLength: imp.beforeSleeveLength || undefined,
+    afterSleeveLength: imp.afterSleeveLength || undefined,
+    beforeNeckline: imp.beforeNeckline || undefined,
+    afterNeckline: imp.afterNeckline || undefined,
+    beforeClosure: imp.beforeClosure || undefined,
+    afterClosure: imp.afterClosure || undefined,
+    beforeMaterial: imp.beforeMaterial || undefined,
+    afterMaterial: imp.afterMaterial || undefined,
+    beforeTexture: imp.beforeTexture || undefined,
+    afterTexture: imp.afterTexture || undefined,
+    beforePattern: imp.beforePattern || undefined,
+    afterPattern: imp.afterPattern || undefined,
+    beforeDetails: imp.beforeDetails || undefined,
+    afterDetails: imp.afterDetails || undefined,
     productSearchQuery: fallbackQuery,
     shoppingLinks: finalLinks,
     closetMatch: imp.closetMatch,

@@ -48,10 +48,54 @@ export interface Improvement {
   description: string;
   beforeLabel: string;
   afterLabel: string;
+
+  // ── Color ──
   /** Explicit color of the BEFORE item in English (e.g. "black", "white", "navy blue") */
   beforeColor: string;
   /** Explicit color of the AFTER (recommended) item in English (e.g. "black", "white", "navy blue") */
   afterColor: string;
+
+  // ── Garment Identity ──
+  /** Garment type (e.g. "t-shirt", "dress shirt", "polo", "jeans", "sneakers", "blazer") */
+  beforeGarmentType?: string;
+  afterGarmentType?: string;
+  /** Style category (e.g. "casual", "formal", "smart-casual", "sporty", "streetwear", "minimalist") */
+  beforeStyle?: string;
+  afterStyle?: string;
+
+  // ── Fit & Structure ──
+  /** Fit/silhouette (e.g. "slim", "regular", "oversized", "tailored", "boxy", "relaxed") */
+  beforeFit?: string;
+  afterFit?: string;
+  /** Garment length on body (e.g. "cropped", "regular", "long", "midi", "knee-length") */
+  beforeLength?: string;
+  afterLength?: string;
+  /** Sleeve length (e.g. "short", "long", "3/4", "sleeveless", "rolled-up", "n/a") */
+  beforeSleeveLength?: string;
+  afterSleeveLength?: string;
+  /** Neckline/collar (e.g. "crew neck", "v-neck", "polo collar", "button-down collar", "turtleneck", "hoodie", "n/a") */
+  beforeNeckline?: string;
+  afterNeckline?: string;
+  /** Closure type (e.g. "pullover", "buttons", "zipper", "wrap", "lace-up", "n/a") */
+  beforeClosure?: string;
+  afterClosure?: string;
+
+  // ── Material & Texture ──
+  /** Fabric/material (e.g. "cotton", "linen", "denim", "leather", "silk", "wool", "knit") */
+  beforeMaterial?: string;
+  afterMaterial?: string;
+  /** Surface texture (e.g. "smooth", "ribbed", "knitted", "matte", "shiny", "distressed", "brushed") */
+  beforeTexture?: string;
+  afterTexture?: string;
+
+  // ── Pattern & Details ──
+  /** Pattern (e.g. "solid", "striped", "checkered", "floral", "graphic print", "polka dot") */
+  beforePattern?: string;
+  afterPattern?: string;
+  /** Distinctive details (e.g. "visible logo", "chest pocket", "embroidery", "distressed", "contrast stitching", "none") */
+  beforeDetails?: string;
+  afterDetails?: string;
+
   shoppingLinks: ShoppingLink[];
   productSearchQuery: string;
   /** Matching item from user's virtual closet (if found) */

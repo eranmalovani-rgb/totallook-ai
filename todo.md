@@ -367,3 +367,15 @@
 - [x] 27.9: Fixed `analysis-reliability.test.ts` — updated timeout assertion from 120_000 to 180_000 (was broken since Stage 21d)
 - [x] 27.10: 765/769 tests pass (4 pre-existing API failures: google-cse, imagegen x2, openai), 0 TS errors
 - [ ] 27.11: Test end-to-end on deployed site — verify new analyses include beforeColor/afterColor and Fix My Look uses correct colors
+
+## Stage 28 — Comprehensive Garment Metadata for Pixel-Perfect Fix My Look
+- [x] 28.1: Add 20 new optional fields to Improvement interface (10 before* + 10 after*): garmentType, style, fit, length, sleeveLength, neckline, closure, material, texture, pattern, details
+- [x] 28.2: Add all new fields to Stage 2 JSON schema (core fields required, rest optional with additionalProperties: true)
+- [x] 28.3: Update Hebrew Stage 2 LLM prompt with detailed garment metadata instructions
+- [x] 28.4: Update English Stage 2 LLM prompt with detailed garment metadata instructions
+- [x] 28.5: Update buildDeterministicFixMyLookPrompt to construct rich description from structured metadata (before/after descriptions, pattern/material/texture/closure/details/length/style instructions)
+- [x] 28.6: Update normalizeImprovementShoppingLinks to pass through all 20 new garment metadata fields
+- [x] 28.7: buildWearableCoreImprovement already has beforeColor/afterColor defaults; new optional fields gracefully default to undefined for fallback improvements
+- [x] 28.8: Test interfaces already have beforeColor/afterColor from Stage 27; new fields are optional so no test changes needed
+- [x] 28.9: 765/769 tests pass (4 pre-existing API failures: google-cse, imagegen x2, openai), 0 TS errors
+- [x] 28.10: Save checkpoint
