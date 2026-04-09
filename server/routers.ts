@@ -997,14 +997,36 @@ type FixMyLookProductDetail = {
 
 function detectColorHint(text: string): string | null {
   const normalized = text.toLowerCase();
-  const colorHints = [
+  // Map Hebrew forms (masculine, feminine, plural) to canonical English color
+  const hebrewColorMap: [RegExp, string][] = [
+    [/שחור[הים]?/, "BLACK"],
+    [/לבנ[הים]?|לבן/, "WHITE"],
+    [/כחול[הים]?/, "BLUE"],
+    [/כהי[םה]?/, "DARK"],  // modifier: כהים = dark
+    [/אדו[םמה]?/, "RED"],
+    [/ירוק[הים]?/, "GREEN"],
+    [/בז'?|בז'/, "BEIGE"],
+    [/חו[םמ][הים]?/, "BROWN"],
+    [/אפור[הים]?/, "GREY"],
+    [/ורו[דד][הים]?/, "PINK"],
+    [/סגו[לל][הים]?/, "PURPLE"],
+    [/כתו[םמ][הים]?/, "ORANGE"],
+    [/צהו[בב][הים]?/, "YELLOW"],
+    [/זהב|זהוב[הים]?/, "GOLD"],
+    [/כסוף|כסופ[הים]?/, "SILVER"],
+  ];
+  // Check Hebrew first
+  for (const [regex, color] of hebrewColorMap) {
+    if (regex.test(normalized)) return color;
+  }
+  // Check English colors
+  const englishColors = [
     "black", "white", "navy", "blue", "red", "green", "beige", "brown", "gray", "grey",
     "khaki", "cream", "pink", "purple", "orange", "yellow", "gold", "silver", "olive",
-    "burgundy", "teal", "charcoal",
-    "שחור", "לבן", "כחול", "אדום", "ירוק", "בז", "חום", "אפור", "ורוד", "סגול", "כתום", "צהוב", "זהב", "כסוף",
+    "burgundy", "teal", "charcoal", "dark blue", "dark green", "light blue",
   ];
-  for (const hint of colorHints) {
-    if (normalized.includes(hint)) return hint;
+  for (const hint of englishColors) {
+    if (normalized.includes(hint)) return hint.toUpperCase();
   }
   return null;
 }
@@ -1039,13 +1061,28 @@ function buildDeterministicFixMyLookPrompt(params: {
     const improvementIndex = allImprovements.indexOf(imp);
     const selected = improvementIndex >= 0 ? selectedByImprovementIndex.get(improvementIndex) : undefined;
     const targetLabel = selected?.productLabel || imp.afterLabel || imp.title;
-    const colorHint = detectColorHint(targetLabel);
+    
+    // Try to detect color from multiple sources (priority order):
+    // 1. Selected product label (what user actually picked from the store)
+    // 2. Improvement afterLabel (the upgrade description)
+    // 3. Improvement beforeLabel (the original item — fallback to preserve original color)
+    // 4. The matching item name from analysis
+    const colorFromProduct = selected?.productLabel ? detectColorHint(selected.productLabel) : null;
+    const colorFromAfter = detectColorHint(imp.afterLabel || "");
+    const colorFromBefore = detectColorHint(imp.beforeLabel || "");
+    const matchingItem = itemsToFix.find(item => 
+      (imp.beforeLabel && item.name.includes(imp.beforeLabel.split(" — ")[0])) ||
+      (imp.title && item.name.includes(imp.title.split(" — ")[0]))
+    );
+    const colorFromItem = matchingItem ? detectColorHint(matchingItem.name) : null;
+    const colorHint = colorFromProduct || colorFromAfter || colorFromBefore || colorFromItem;
+    
     const colorInstruction = colorHint
-      ? `Use EXACT color "${colorHint}" with ZERO substitution — do NOT change this color under any circumstances.`
-      : "Use a color that is closest to the target product description.";
+      ? `MANDATORY COLOR: ${colorHint}. Use EXACTLY this color with ZERO substitution — do NOT change, darken, lighten, or substitute this color under any circumstances.`
+      : "IMPORTANT: Match the color shown in the product reference image exactly. Do NOT invent a color.";
     let imageRef = "";
     if (selected?.productImageUrl) {
-      imageRef = ` Reference product photo is image[${productImageRefIndex}] — copy its exact color, pattern, texture, and style.`;
+      imageRef = ` Reference product photo is image[${productImageRefIndex}] — copy its EXACT color, pattern, texture, and style from this image.`;
       productImageRefIndex++;
     }
     return `- Replace "${imp.beforeLabel || imp.title}" with "${targetLabel}". ${colorInstruction}${imageRef} Keep garment type, sleeve length, collar type, and fit aligned with the target item.`;

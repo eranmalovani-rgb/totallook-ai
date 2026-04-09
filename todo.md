@@ -337,3 +337,11 @@
 - [x] 24.1: Restored OPENAI_EDIT_QUALITY from "medium" back to "high"
 - [x] 24.2: Strengthened prompt — ABSOLUTE IDENTITY LOCK with itemized preservation list, ABSOLUTE ZERO TOLERANCE color rules, explicit "NEVER generate red/warm tones" rule, unchanged items marked PIXEL-IDENTICAL
 - [x] 24.3: 764/769 tests pass, 0 TS errors
+
+## Stage 25 — Fix My Look: Root Cause Fix — Color Extraction from Multiple Sources
+- [x] 25.1: Root cause found: improvement[1] "חלק עליון נוכחי" → "חולצה/טופ מחויט איכותי" has NO color, so AI invents red
+- [x] 25.2: Fixed detectColorHint to support Hebrew feminine/plural forms (לבנה→WHITE, כחולים→BLUE, כתום→ORANGE)
+- [x] 25.3: Fixed prompt builder to extract color from 4 sources in priority: (1) productLabel, (2) afterLabel, (3) beforeLabel, (4) matching item name
+- [x] 25.4: Verified with test: generic improvement now gets WHITE from productLabel "חולצת פולו לבנה"
+- [x] 25.5: 764/769 tests pass, 0 TS errors
+- [ ] 25.6: Test end-to-end on deployed site
