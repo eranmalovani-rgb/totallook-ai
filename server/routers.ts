@@ -326,18 +326,46 @@ function buildFallbackImprovement(
     const currentFit = matchingItem.fit || "";
     const currentPattern = matchingItem.pattern || "";
 
-    // Generate upgrade suggestions based on current item
-    const upgradeMap: Record<string, { type: string; color: string; material: string; fit: string; style: string }> = {
-      "t-shirt": { type: "dress shirt", color: "navy blue", material: "cotton", fit: "tailored", style: "smart-casual" },
-      "polo": { type: "button-down shirt", color: "light blue", material: "oxford cotton", fit: "slim", style: "smart-casual" },
-      "hoodie": { type: "structured knit sweater", color: "charcoal", material: "merino wool", fit: "regular", style: "minimalist" },
-      "sweatshirt": { type: "structured knit sweater", color: "navy", material: "merino wool", fit: "regular", style: "minimalist" },
-      "jeans": { type: "tailored chinos", color: "khaki", material: "cotton twill", fit: "slim", style: "smart-casual" },
-      "shorts": { type: "tailored shorts", color: "navy", material: "cotton", fit: "slim", style: "smart-casual" },
-      "sneakers": { type: "leather loafers", color: "brown", material: "leather", fit: "n/a", style: "classic" },
-      "sandals": { type: "clean sneakers", color: "white", material: "leather", fit: "n/a", style: "minimalist" },
+    // Generate upgrade suggestions based on current item — multiple options per type for variety
+    const upgradeOptions: Record<string, Array<{ type: string; color: string; material: string; fit: string; style: string }>> = {
+      "t-shirt": [
+        { type: "dress shirt", color: "navy blue", material: "cotton", fit: "tailored", style: "smart-casual" },
+        { type: "linen shirt", color: "white", material: "linen", fit: "relaxed", style: "casual" },
+        { type: "henley", color: "charcoal", material: "cotton jersey", fit: "slim", style: "casual" },
+      ],
+      "polo": [
+        { type: "button-down shirt", color: "light blue", material: "oxford cotton", fit: "slim", style: "smart-casual" },
+        { type: "knit polo", color: "olive", material: "merino wool", fit: "regular", style: "minimalist" },
+      ],
+      "hoodie": [
+        { type: "knit sweater", color: "charcoal", material: "merino wool", fit: "regular", style: "minimalist" },
+        { type: "zip-up cardigan", color: "navy", material: "cotton knit", fit: "regular", style: "smart-casual" },
+      ],
+      "sweatshirt": [
+        { type: "knit sweater", color: "burgundy", material: "merino wool", fit: "regular", style: "minimalist" },
+        { type: "half-zip pullover", color: "olive", material: "cotton", fit: "regular", style: "casual" },
+      ],
+      "jeans": [
+        { type: "tailored chinos", color: "olive", material: "cotton twill", fit: "slim", style: "smart-casual" },
+        { type: "tailored trousers", color: "charcoal", material: "wool blend", fit: "tailored", style: "formal" },
+        { type: "linen pants", color: "beige", material: "linen", fit: "relaxed", style: "casual" },
+      ],
+      "shorts": [
+        { type: "tailored shorts", color: "navy", material: "cotton", fit: "slim", style: "smart-casual" },
+        { type: "linen shorts", color: "beige", material: "linen", fit: "relaxed", style: "casual" },
+      ],
+      "sneakers": [
+        { type: "leather loafers", color: "brown", material: "leather", fit: "n/a", style: "classic" },
+        { type: "suede desert boots", color: "tan", material: "suede", fit: "n/a", style: "smart-casual" },
+        { type: "minimalist leather sneakers", color: "white", material: "leather", fit: "n/a", style: "minimalist" },
+      ],
+      "sandals": [
+        { type: "clean sneakers", color: "white", material: "leather", fit: "n/a", style: "minimalist" },
+        { type: "espadrilles", color: "navy", material: "canvas", fit: "n/a", style: "casual" },
+      ],
     };
-    const upgrade = upgradeMap[currentType.toLowerCase()] || null;
+    const options = upgradeOptions[currentType.toLowerCase()];
+    const upgrade = options ? options[Math.floor(Math.random() * options.length)] : null;
 
     const beforeLabel = isHebrew ? `${matchingItem.name || currentType}` : `${matchingItem.name || currentType}`;
     const afterType = upgrade?.type || `premium ${category}`;
@@ -348,10 +376,31 @@ function buildFallbackImprovement(
     const afterLabel = isHebrew ? `${afterType} ${afterColor}` : `${afterColor} ${afterFit} ${afterMaterial} ${afterType}`;
     const query = `${afterColor} ${afterFit} ${afterMaterial} ${afterType}`.trim();
 
-    // Build marketing-quality title from before→after transformation
+    // Build marketing-quality title — NEVER use "מ-X ל-Y" format!
+    const hebrewTypeMap: Record<string, string> = {
+      "dress shirt": "חולצת כפתורים", "linen shirt": "חולצת פשתן", "henley": "הנלי",
+      "knit sweater": "סוודר סרוג", "zip-up cardigan": "קרדיגן רוכסן",
+      "half-zip pullover": "פולאובר חצי-רוכסן", "button-down shirt": "חולצת כפתורים",
+      "knit polo": "פולו סרוג", "tailored chinos": "צ'ינוס מחויט",
+      "tailored trousers": "מכנסיים מחויטים", "linen pants": "מכנסי פשתן",
+      "tailored shorts": "שורטס מחויטים", "linen shorts": "שורטס פשתן",
+      "leather loafers": "לואפרס עור", "suede desert boots": "מגפי זמש",
+      "minimalist leather sneakers": "סניקרס עור מינימליסטי",
+      "clean sneakers": "סניקרס נקיים", "espadrilles": "אספדרילס",
+    };
+    const hebrewAfterName = hebrewTypeMap[afterType] || afterType;
+    const taglines: Record<string, string[]> = {
+      "smart-casual": ["קפיצת דרג", "נוכחות חדשה", "שידרוג מדויק"],
+      "formal": ["מראה מלוטש", "אלגנטיות נקיה"],
+      "minimalist": ["מינימליזם מדויק", "פשטות שמשנה"],
+      "casual": ["נוחות בלי מאמץ", "רעננות איכותית"],
+      "classic": ["קלאסיקה נצחית", "הפרט שמשלים"],
+    };
+    const taglineOptions = taglines[afterStyle] || ["שדרוג מדויק"];
+    const tagline = taglineOptions[Math.floor(Math.random() * taglineOptions.length)];
     const dynamicTitle = isHebrew
-      ? `מ-${currentType} ${currentColor} ל-${afterType} ${afterColor} — ${afterStyle === "smart-casual" ? "קפיצה ב-Smart Casual" : afterStyle === "formal" ? "מראה רשמי ומלוטש" : afterStyle === "minimalist" ? "מינימליזם מדויק" : "שדרוג שמשנה את הלוק"}`
-      : `From ${currentColor} ${currentType} to ${afterColor} ${afterType} — ${afterStyle === "smart-casual" ? "A Smart Casual Leap" : afterStyle === "formal" ? "Polished & Refined" : afterStyle === "minimalist" ? "Clean Minimalism" : "A Look-Changing Upgrade"}`;
+      ? `${hebrewAfterName} — ${tagline}`
+      : `${afterType.charAt(0).toUpperCase() + afterType.slice(1)} — ${afterStyle === "smart-casual" ? "A Smart Casual Leap" : afterStyle === "formal" ? "Polished & Refined" : afterStyle === "minimalist" ? "Clean Minimalism" : "Fresh Upgrade"}`;
     return {
       title: dynamicTitle,
       description: isHebrew
@@ -1823,12 +1872,15 @@ function buildRecommendationsPromptFromCore(
 
   return isHebrew
     ? `אתה שלב 2 במערכת דו-שלבית: השראה והמלצות בלבד.
-קלט: JSON מובנה של שלב 1 שכבר ביצע ניתוח וזיהוי פריטים.
+קלט: JSON מובנה של שלב 1 + תמונת הלוק המקורית.
 משימה: להחזיר רק JSON עם fields:
 - improvements
 - outfitSuggestions
 - trendSources
 - influencerInsight
+
+❗ כלל קריטי: הסתכל על התמונה המצורפת! ההמלצות חייבות להתייחס למה שאתה רואה בתמונה — הצבעים, הסגנון, הגזרה, החומרים, האקססוריז. אל תחזיר המלצות גנריות שיכולות להתאים לכל תמונה.
+❗ אסור להמליץ תמיד על אותם פריטים: sweater navy, loafers brown, chinos khaki. אלה המלצות "בטוחות" שלא מתייחסות לתמונה. תסתכל על מה שהאדם בתמונה לובש בפועל ותציע שידרוג מדויק לכל פריט.
 
 ${doctrineStage2}
 
@@ -1880,12 +1932,15 @@ ${countryStoreHint}
 ${preferredInfluencersLine}
 ${occasionLine}`
     : `You are Stage 2 of a split pipeline: inspiration and recommendations only.
-Input: structured Stage 1 JSON that already completed analysis and item identification.
+Input: structured Stage 1 JSON + the ORIGINAL PHOTO of the outfit.
 Task: return JSON with fields only:
 - improvements
 - outfitSuggestions
 - trendSources
 - influencerInsight
+
+❗ CRITICAL RULE: LOOK at the attached photo! Your recommendations MUST be SPECIFIC to what you see in THIS photo — the colors, the style, the fit, the materials, the accessories. Do NOT return generic "safe" recommendations that could apply to any photo.
+❗ FORBIDDEN PATTERN: Do NOT always recommend the same items (e.g., navy sweater, brown loafers, khaki chinos). These are "safe" defaults that show you’re not looking at the photo. Instead, analyze what the person is ACTUALLY wearing and suggest a precise, targeted upgrade for EACH specific item.
 
 ${doctrineStage2}
 
@@ -3053,9 +3108,12 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
                     },
                     {
                       role: "user",
-                      content: input.lang === "he"
-                        ? `להלן פלט שלב 1 (ניתוח+זיהוי). החזר רק השראה+המלצות בפורמט המבוקש:\n${JSON.stringify(recommendationSeed)}`
-                        : `Here is the stage-1 analysis+identification output. Return only inspiration+recommendations in the required schema:\n${JSON.stringify(recommendationSeed)}`,
+                      content: [
+                        { type: "text" as const, text: input.lang === "he"
+                          ? `להלן פלט שלב 1 (ניתוח+זיהוי). הסתכל על התמונה המצורפת וודא שההמלצות מתייחסות ספציפית למה שאתה רואה. החזר רק השראה+המלצות בפורמט המבוקש:\n${JSON.stringify(recommendationSeed)}`
+                          : `Here is the stage-1 analysis+identification output. LOOK at the attached photo and ensure recommendations are SPECIFIC to what you see. Return only inspiration+recommendations in the required schema:\n${JSON.stringify(recommendationSeed)}` },
+                        { type: "image_url" as const, image_url: { url: review.imageUrl, detail: "low" as const } },
+                      ],
                     },
                   ],
                   response_format: {
@@ -5144,9 +5202,12 @@ Return ONLY a JSON object with these exact fields:
                     },
                     {
                       role: "user",
-                      content: input.lang === "he"
-                        ? `להלן פלט שלב 1 (ניתוח+זיהוי). החזר רק השראה+המלצות בפורמט המבוקש:\n${JSON.stringify(recommendationSeed)}`
-                        : `Here is the stage-1 analysis+identification output. Return only inspiration+recommendations in the required schema:\n${JSON.stringify(recommendationSeed)}`,
+                      content: [
+                        { type: "text" as const, text: input.lang === "he"
+                          ? `להלן פלט שלב 1 (ניתוח+זיהוי). הסתכל על התמונה המצורפת וודא שההמלצות מתייחסות ספציפית למה שאתה רואה. החזר רק השראה+המלצות בפורמט המבוקש:\n${JSON.stringify(recommendationSeed)}`
+                          : `Here is the stage-1 analysis+identification output. LOOK at the attached photo and ensure recommendations are SPECIFIC to what you see. Return only inspiration+recommendations in the required schema:\n${JSON.stringify(recommendationSeed)}` },
+                        { type: "image_url" as const, image_url: { url: session.imageUrl!, detail: "low" as const } },
+                      ],
                     },
                   ],
                   response_format: {

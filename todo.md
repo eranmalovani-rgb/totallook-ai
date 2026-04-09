@@ -503,3 +503,11 @@
 - [x] 37.3: Fix: changed `additionalProperties: true` to `false`, added all 30 garment metadata fields to required list
 - [x] 37.4: 12 new vitest tests for schema validation, 820/824 pass (same 4 pre-existing API failures), 0 TS errors
 - [x] 37.5: Save checkpoint
+
+## Stage 37b: Fix Repetitive/Generic LLM Recommendations Across Different Photos
+- [x] 37b.1: Root cause: Stage 2 receives ONLY JSON text, not the actual photo — LLM has no visual context to differentiate between photos
+- [x] 37b.2: Added image_url to Stage 2 user message for both registered and guest analysis flows
+- [x] 37b.3: Added explicit instructions in HE+EN: "LOOK at the photo", "FORBIDDEN: navy sweater/brown loafers/khaki chinos"
+- [x] 37b.4: Diversified fallback upgradeMap with 2-3 options per garment type, random selection
+- [x] 37b.5: Replaced "מ-X ל-Y" with "{hebrewName} — {tagline}" format with Hebrew type map + random taglines
+- [x] 37b.6: 0 TS errors, 819/824 tests pass (5 external API failures)
