@@ -392,3 +392,14 @@
 - [x] 29.9: Update wardrobe save (auth + guest) to include garmentType, preciseColor, material, and rich styleNote from structured metadata
 - [x] 29.10: 765/769 tests pass (same 4 pre-existing API failures), 0 TS errors
 - [x] 29.11: Save checkpoint
+
+## Stage 30 — Improvements Pipeline Enhancement (7 Gaps)
+- [x] 30.1: GAP 7 — Update Stage 2 prompt (Hebrew + English) to instruct LLM to use enriched item metadata and personDetection/lookStructure
+- [x] 30.2: GAP 1 — Pass personDetection + lookStructure to Stage 2 recommendation seed (auth + guest flows)
+- [x] 30.3: GAP 4 — Rebuild productSearchQuery from structured metadata (afterGarmentType + afterColor + afterFit + afterMaterial + afterNeckline + afterPattern) as primary source, text parsing as legacy fallback
+- [x] 30.4: GAP 5 — Smart contextual fallback improvements: buildFallbackImprovement now accepts stageOneItems, matches by bodyZone/garmentType, builds contextual upgrade with full metadata (upgradeMap for t-shirt→dress shirt, jeans→chinos, sneakers→loafers, etc.)
+- [x] 30.5: GAP 2 — Use afterGarmentType structured field for closet matching category detection (auth + guest flows) with garmentToCategoryMap + text fallback
+- [x] 30.6: GAP 3 — Use afterStyle structured field for smart style contradiction (formal vs casual detection) in both auth + guest flows, hardcoded pairs kept as secondary check
+- [x] 30.7: GAP 6 — Wardrobe enrichment verified complete from Stage 29 (garmentType, preciseColor, material, rich styleNote)
+- [x] 30.8: 765/769 tests pass (same 4 pre-existing API failures: google-cse, imagegen x2, openai), 0 TS errors, 0 new failures
+- [x] 30.9: Save checkpoint

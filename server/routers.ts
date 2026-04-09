@@ -164,6 +164,13 @@ function normalizeOutfitSuggestionsForWearableCore(
 }
 
 function detectImprovementCategory(imp: Improvement): ClothingCategory {
+  // Stage 30 GAP 2: Use structured afterGarmentType as PRIMARY source
+  const afterType = (imp.afterGarmentType || "").toLowerCase();
+  if (afterType) {
+    const typeCategory = detectClothingCategory(afterType);
+    if (typeCategory !== "other") return typeCategory;
+  }
+  // Fallback to text-based detection (legacy analyses without structured metadata)
   return detectClothingCategory(`${imp.title || ""} ${imp.beforeLabel || ""} ${imp.afterLabel || ""} ${imp.productSearchQuery || ""}`);
 }
 
@@ -240,7 +247,79 @@ function buildFallbackShoppingLinks(
   return getBudgetFallbackStores(encoded, query, budgetLevel);
 }
 
-function buildFallbackImprovement(category: Exclude<ClothingCategory, "accessory" | "other">, isHebrew: boolean): Improvement {
+function buildFallbackImprovement(
+  category: Exclude<ClothingCategory, "accessory" | "other">,
+  isHebrew: boolean,
+  stageOneItems?: Array<{ name?: string; garmentType?: string; preciseColor?: string; color?: string; material?: string; fit?: string; pattern?: string; texture?: string; neckline?: string; sleeveLength?: string; bodyZone?: string; score?: number }>,
+): Improvement {
+  // Stage 30 GAP 5: Try to build a CONTEXTUAL fallback from Stage 1 item data
+  const bodyZoneMap: Record<string, string> = { top: "upper", bottom: "lower", outerwear: "outer", shoes: "feet", dress: "full", onepiece: "full" };
+  const matchingItem = (stageOneItems || []).find((it) => {
+    const zone = (it.bodyZone || "").toLowerCase();
+    const type = (it.garmentType || it.name || "").toLowerCase();
+    if (category === "top") return zone === "upper" || /(shirt|top|tee|t-shirt|polo|sweater|hoodie|blouse|tank)/i.test(type);
+    if (category === "bottom") return zone === "lower" || /(pants|jeans|trouser|chino|shorts|skirt)/i.test(type);
+    if (category === "shoes") return zone === "feet" || /(shoe|sneaker|boot|loafer|sandal)/i.test(type);
+    if (category === "outerwear") return zone === "outer" || /(jacket|coat|blazer|cardigan)/i.test(type);
+    if (category === "dress") return zone === "full" || /(dress|gown)/i.test(type);
+    if (category === "onepiece") return /(jumpsuit|romper|overall)/i.test(type);
+    return false;
+  });
+
+  if (matchingItem && matchingItem.garmentType) {
+    // Build contextual fallback from actual item data
+    const currentType = matchingItem.garmentType;
+    const currentColor = matchingItem.preciseColor || matchingItem.color || "current";
+    const currentMaterial = matchingItem.material || "";
+    const currentFit = matchingItem.fit || "";
+    const currentPattern = matchingItem.pattern || "";
+
+    // Generate upgrade suggestions based on current item
+    const upgradeMap: Record<string, { type: string; color: string; material: string; fit: string; style: string }> = {
+      "t-shirt": { type: "dress shirt", color: "navy blue", material: "cotton", fit: "tailored", style: "smart-casual" },
+      "polo": { type: "button-down shirt", color: "light blue", material: "oxford cotton", fit: "slim", style: "smart-casual" },
+      "hoodie": { type: "structured knit sweater", color: "charcoal", material: "merino wool", fit: "regular", style: "minimalist" },
+      "sweatshirt": { type: "structured knit sweater", color: "navy", material: "merino wool", fit: "regular", style: "minimalist" },
+      "jeans": { type: "tailored chinos", color: "khaki", material: "cotton twill", fit: "slim", style: "smart-casual" },
+      "shorts": { type: "tailored shorts", color: "navy", material: "cotton", fit: "slim", style: "smart-casual" },
+      "sneakers": { type: "leather loafers", color: "brown", material: "leather", fit: "n/a", style: "classic" },
+      "sandals": { type: "clean sneakers", color: "white", material: "leather", fit: "n/a", style: "minimalist" },
+    };
+    const upgrade = upgradeMap[currentType.toLowerCase()] || null;
+
+    const beforeLabel = isHebrew ? `${matchingItem.name || currentType}` : `${matchingItem.name || currentType}`;
+    const afterType = upgrade?.type || `premium ${category}`;
+    const afterColor = upgrade?.color || "matching";
+    const afterMaterial = upgrade?.material || "premium";
+    const afterFit = upgrade?.fit || "tailored";
+    const afterStyle = upgrade?.style || "smart-casual";
+    const afterLabel = isHebrew ? `${afterType} ${afterColor}` : `${afterColor} ${afterFit} ${afterMaterial} ${afterType}`;
+    const query = `${afterColor} ${afterFit} ${afterMaterial} ${afterType}`.trim();
+
+    return {
+      title: isHebrew ? `שדרוג ${matchingItem.name || category}` : `Upgrade your ${matchingItem.name || category}`,
+      description: isHebrew
+        ? `החלף/י את ה-${currentType} ב-${afterType} למראה משודרג יותר.`
+        : `Replace the ${currentType} with a ${afterType} for a more polished look.`,
+      beforeLabel,
+      afterLabel,
+      beforeColor: currentColor,
+      afterColor,
+      beforeGarmentType: currentType,
+      afterGarmentType: afterType,
+      beforeFit: currentFit || "regular",
+      afterFit,
+      beforeMaterial: currentMaterial || undefined,
+      afterMaterial,
+      beforePattern: currentPattern || undefined,
+      afterPattern: "solid",
+      afterStyle,
+      productSearchQuery: query,
+      shoppingLinks: buildFallbackShoppingLinks(query),
+    };
+  }
+
+  // Generic fallback (no Stage 1 data available)
   const map: Record<Exclude<ClothingCategory, "accessory" | "other">, { title: string; description: string; beforeLabel: string; afterLabel: string; query: string }> = isHebrew
     ? {
         top: {
@@ -386,7 +465,7 @@ function normalizeImprovementsForWearableCore(
     const nextCat =
       preferredOrder.find((cat) => !currentClothingCats.has(cat)) ||
       preferredOrder[normalized.length % preferredOrder.length];
-    normalized.push(buildFallbackImprovement(nextCat, isHebrew));
+    normalized.push(buildFallbackImprovement(nextCat, isHebrew, analysis.items));
     currentClothingCats.add(nextCat);
   }
 
@@ -414,7 +493,7 @@ function normalizeImprovementsForWearableCore(
     const missingCat =
       preferredOrder.find((cat) => !keep.some((imp) => detectImprovementCategory(imp) === cat)) ||
       preferredOrder[keep.length % preferredOrder.length];
-    keep.push(buildFallbackImprovement(missingCat, isHebrew));
+    keep.push(buildFallbackImprovement(missingCat, isHebrew, analysis.items));
   }
 
   analysis.improvements = keep;
@@ -1669,6 +1748,8 @@ function buildRecommendationsPromptFromCore(
 כללים:
 - התבסס על פריטי הלבוש, הציונים והסיכום משלב 1.
 - שמור על התאמה לאירוע ולסגנון המשתמש.
+- חשוב מאוד: כל פריט בקלט כולל מטאדאטה מובנית עשירה (garmentType, preciseColor, material, fit, pattern, texture, neckline, sleeveLength, closure, bodyZone, layerIndex). השתמש בנתונים האלה כדי לייצר שידרוגים מדויקים! לדוגמה: אם הפריט הנוכחי הוא garmentType="t-shirt", preciseColor="white", material="cotton", fit="regular", pattern="solid" — ה-before fields חייבים לשקף בדיוק את המטאדאטה הזו.
+- אם הקלט כולל personDetection (מידע על הגוף: fullBodyVisible, feetVisible, bodyPose) ו-lookStructure (מבנה הלוק: colorHarmony, proportions, silhouetteSummary, hasLayering) — השתמש בהם! לדוגמה: אם proportions="top-heavy" הצע שידרוג שמאזן את הפרופורציות. אם colorHarmony="monochromatic" הצע הכנסת צבע קונטרסטי.
 - improvements: 3 המלצות שדרוג (קטגוריות שונות: חלק עליון, חלק תחתון, נעליים/אקססוריז). כל improvement חייב לכלול בדיוק 3 shoppingLinks (כתובות חיפוש תקינות בחנויות אמיתיות). אל תחזיר פחות מ-3.
 - חובה מוחלטת — מטאדטה מלאה לכל improvement: כל השדות הבאים חייבים להיות באנגלית lowercase. אסור להשאיר ריק!
   * beforeColor / afterColor: צבע מדויק (לדוגמה: "white", "navy blue", "charcoal gray")
@@ -1708,6 +1789,8 @@ Task: return JSON with fields only:
 Rules:
 - Base recommendations on stage-1 items, scores, and summary.
 - Keep suggestions occasion-aware and style-consistent.
+- CRITICAL: Each item in the input includes RICH STRUCTURED METADATA (garmentType, preciseColor, material, fit, pattern, texture, neckline, sleeveLength, closure, bodyZone, layerIndex). USE these fields to generate precise improvements! For example: if the current item has garmentType="t-shirt", preciseColor="white", material="cotton", fit="regular", pattern="solid" — the before fields MUST exactly mirror this metadata.
+- If the input includes personDetection (body info: fullBodyVisible, feetVisible, bodyPose) and lookStructure (look composition: colorHarmony, proportions, silhouetteSummary, hasLayering) — USE THEM! For example: if proportions="top-heavy", suggest an upgrade that balances proportions. If colorHarmony="monochromatic", suggest introducing a contrasting accent color.
 - improvements: 3 upgrade suggestions (different categories: top, bottom, shoes/accessories). Each improvement MUST include exactly 3 shoppingLinks (valid search URLs to real stores). Never return fewer than 3.
 - ABSOLUTE REQUIREMENT — Complete garment metadata for every improvement: ALL fields below MUST be in English lowercase. NEVER leave empty!
   * beforeColor / afterColor: exact color (e.g. "white", "navy blue", "charcoal gray")
@@ -2009,6 +2092,29 @@ function validateAndFixProductSearchQuery(
   imp: Improvement,
   userGender?: string | null,
 ): string {
+  const genderPrefix = userGender === "female" ? "women's" : "men's";
+
+  // Stage 30 GAP 4: Build query from structured metadata as PRIMARY source
+  const afterType = (imp.afterGarmentType || "").trim().toLowerCase();
+  const afterColor = (imp.afterColor || "").trim().toLowerCase();
+  const afterFit = (imp.afterFit || "").trim().toLowerCase();
+  const afterMaterial = (imp.afterMaterial || "").trim().toLowerCase();
+  const afterPattern = (imp.afterPattern || "").trim().toLowerCase();
+  const afterNeckline = (imp.afterNeckline || "").trim().toLowerCase();
+
+  // If we have structured metadata, build a rich query directly
+  if (afterType && afterType !== "n/a") {
+    const parts = [genderPrefix];
+    if (afterColor) parts.push(afterColor);
+    if (afterFit && afterFit !== "n/a" && afterFit !== "regular") parts.push(afterFit);
+    if (afterMaterial && afterMaterial !== "n/a" && afterMaterial !== "synthetic") parts.push(afterMaterial);
+    if (afterNeckline && afterNeckline !== "n/a" && afterNeckline !== "crew") parts.push(afterNeckline);
+    parts.push(afterType);
+    if (afterPattern && afterPattern !== "solid" && afterPattern !== "n/a") parts.push(afterPattern);
+    return parts.join(" ");
+  }
+
+  // Fallback: validate/fix the LLM-provided query (legacy path for old analyses)
   const query = (imp.productSearchQuery || "").trim();
   const impCategory = detectImprovementCategory(imp);
 
@@ -2024,7 +2130,6 @@ function validateAndFixProductSearchQuery(
     other: /./i,
   };
 
-  // Category-specific fallback terms for building a proper query
   const categoryFallbackTerms: Record<string, string> = {
     top: "structured button-down shirt",
     bottom: "tailored chino pants",
@@ -2036,49 +2141,31 @@ function validateAndFixProductSearchQuery(
     other: "fashion item",
   };
 
-  // Check if query contains Hebrew (should be English only)
   const hasHebrew = /[\u0590-\u05FF]/.test(query);
-
-  // Check if query is too generic (just "upgrade" or "improve" etc.)
   const isTooGeneric = !query || query.length < 8 || /^(upgrade|improve|שדרוג|שיפור)/i.test(query);
-
-  // Check if query matches the improvement's category
   const matchesCategory = impCategory === "other" || categoryKeywords[impCategory]?.test(query);
-
-  // Check for cross-category contamination (e.g. "pants" in a top improvement)
   const hasCrossCategory = impCategory !== "other" && Object.entries(categoryKeywords)
     .filter(([cat]) => cat !== impCategory && cat !== "other" && cat !== "accessory")
     .some(([_cat, regex]) => regex.test(query) && !categoryKeywords[impCategory].test(query));
 
   if (!hasHebrew && !isTooGeneric && matchesCategory && !hasCrossCategory) {
-    // Query looks good — just ensure gender prefix
-    const genderPrefix = userGender === "female" ? "women's" : "men's";
     if (!/(men|women|גבר|נש)/i.test(query)) {
       return `${genderPrefix} ${query}`;
     }
     return query;
   }
 
-  // Rebuild query from improvement metadata
-  const genderPrefix = userGender === "female" ? "women's" : "men's";
+  // Rebuild from text-based extraction (legacy fallback)
   const afterLabel = (imp.afterLabel || "").replace(/[\u0590-\u05FF]+/g, "").trim();
-  const title = (imp.title || "").replace(/[\u0590-\u05FF]+/g, "").trim();
-
-  // Try to extract useful info from existing query (color, style words)
   const colorMatch = query.match(/(black|white|navy|blue|grey|gray|brown|beige|cream|green|red|pink|olive|khaki|tan|burgundy|maroon|camel)/i);
-  const color = colorMatch ? colorMatch[1].toLowerCase() : "";
-
-  // Try to extract style words
+  const color = afterColor || (colorMatch ? colorMatch[1].toLowerCase() : "");
   const styleMatch = query.match(/(slim fit|regular fit|oversized|tailored|structured|casual|formal|classic|modern|minimalist|relaxed)/i);
-  const style = styleMatch ? styleMatch[1].toLowerCase() : "";
+  const style = afterFit || (styleMatch ? styleMatch[1].toLowerCase() : "");
 
-  // Build the fixed query
   const baseTerm = categoryFallbackTerms[impCategory] || "fashion item";
   const parts = [genderPrefix];
   if (color) parts.push(color);
-  if (style) parts.push(style);
-
-  // If afterLabel has useful English content, prefer it
+  if (style && style !== "regular") parts.push(style);
   if (afterLabel.length > 5 && /[a-zA-Z]/.test(afterLabel)) {
     parts.push(afterLabel);
   } else {
@@ -2206,11 +2293,12 @@ function buildFallbackRecommendationsFromCore(
 ): FashionRecommendationsPayload {
   const genderCat: GenderCategory = userGender === "female" ? "female" : userGender === "unisex" ? "unisex" : "male";
   const isHebrew = lang === "he";
+  const stageOneItems = core.items || [];
   const improvements: Improvement[] = [
-    buildFallbackImprovement("top", isHebrew),
-    buildFallbackImprovement("bottom", isHebrew),
-    buildFallbackImprovement("shoes", isHebrew),
-    buildFallbackImprovement("outerwear", isHebrew),
+    buildFallbackImprovement("top", isHebrew, stageOneItems),
+    buildFallbackImprovement("bottom", isHebrew, stageOneItems),
+    buildFallbackImprovement("shoes", isHebrew, stageOneItems),
+    buildFallbackImprovement("outerwear", isHebrew, stageOneItems),
   ];
 
   const coreItems = (core.items || []).map((it) => it.name).filter(Boolean);
@@ -2645,6 +2733,9 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
             items: (analysisCore.items || []).slice(0, 12),
             scores: analysisCore.scores || [],
             linkedMentions: (analysisCore.linkedMentions || []).slice(0, 20),
+            // Stage 30 GAP 1: Pass enriched metadata to Stage 2
+            personDetection: (analysisCore as any).personDetection || null,
+            lookStructure: (analysisCore as any).lookStructure || null,
             occasion: review.occasion || null,
             influencers: review.influencers || null,
             styleNotes: review.styleNotes || null,
@@ -2946,12 +3037,43 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
                 "scarf": ["צעיף", "scarf", "bandana"],
               };
 
-              // Detect the improvement's category
+              // Stage 30 GAP 2: Use structured afterGarmentType as PRIMARY source for category detection
               let impCategory = "";
-              for (const [cat, keywords] of Object.entries(typeKeywords)) {
-                if (keywords.some(kw => impLower.includes(kw))) {
-                  impCategory = cat;
-                  break;
+              const afterGType = (imp.afterGarmentType || "").toLowerCase();
+              if (afterGType) {
+                // Map structured garment type to closet matching category
+                const garmentToCategoryMap: Record<string, string> = {
+                  "t-shirt": "shirt", "tee": "shirt", "polo": "shirt", "dress shirt": "shirt",
+                  "button-down": "shirt", "blouse": "shirt", "top": "shirt", "sweater": "shirt",
+                  "hoodie": "jacket", "sweatshirt": "jacket", "henley": "shirt", "tank": "shirt",
+                  "jeans": "pants", "chinos": "pants", "trousers": "pants", "shorts": "pants",
+                  "skirt": "pants", "leggings": "pants",
+                  "sneakers": "shoes", "loafers": "shoes", "boots": "shoes", "sandals": "shoes",
+                  "oxfords": "shoes", "derby": "shoes", "heels": "shoes",
+                  "jacket": "jacket", "blazer": "jacket", "coat": "jacket", "cardigan": "jacket",
+                  "bomber": "jacket", "parka": "jacket", "vest": "vest",
+                  "watch": "watch", "belt": "belt", "bag": "bag", "backpack": "bag",
+                  "hat": "hat", "cap": "hat", "sunglasses": "sunglasses", "scarf": "scarf",
+                  "necklace": "accessory", "bracelet": "accessory", "ring": "accessory", "earring": "accessory",
+                };
+                // Try exact match first, then partial match
+                impCategory = garmentToCategoryMap[afterGType] || "";
+                if (!impCategory) {
+                  for (const [gType, cat] of Object.entries(garmentToCategoryMap)) {
+                    if (afterGType.includes(gType) || gType.includes(afterGType)) {
+                      impCategory = cat;
+                      break;
+                    }
+                  }
+                }
+              }
+              // Fallback to text-based detection (legacy)
+              if (!impCategory) {
+                for (const [cat, keywords] of Object.entries(typeKeywords)) {
+                  if (keywords.some(kw => impLower.includes(kw))) {
+                    impCategory = cat;
+                    break;
+                  }
                 }
               }
 
@@ -2998,16 +3120,33 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
                 ];
 
                 let hasStyleConflict = false;
-                for (const [groupA, groupB] of styleConflicts) {
-                  const impMatchesA = groupA.some(kw => impLower.includes(kw));
-                  const impMatchesB = groupB.some(kw => impLower.includes(kw));
-                  const wMatchesA = groupA.some(kw => wAllText.includes(kw));
-                  const wMatchesB = groupB.some(kw => wAllText.includes(kw));
 
-                  // Conflict: improvement wants style A but wardrobe item is style B (or vice versa)
-                  if ((impMatchesA && wMatchesB && !wMatchesA) || (impMatchesB && wMatchesA && !wMatchesB)) {
+                // Stage 30 GAP 3: Use structured afterStyle for smart style contradiction
+                const impStyle = (imp.afterStyle || "").toLowerCase();
+                if (impStyle && wStyleNote) {
+                  const formalStyles = ["formal", "elegant", "classic", "tailored", "smart-casual", "business"];
+                  const casualStyles = ["casual", "sporty", "streetwear", "athletic", "relaxed"];
+                  const impIsFormal = formalStyles.some(s => impStyle.includes(s));
+                  const impIsCasual = casualStyles.some(s => impStyle.includes(s));
+                  const wIsFormal = formalStyles.some(s => wStyleNote.includes(s));
+                  const wIsCasual = casualStyles.some(s => wStyleNote.includes(s));
+                  if ((impIsFormal && wIsCasual && !wIsFormal) || (impIsCasual && wIsFormal && !wIsCasual)) {
                     hasStyleConflict = true;
-                    break;
+                  }
+                }
+
+                // Also check hardcoded pairs (legacy + specific edge cases)
+                if (!hasStyleConflict) {
+                  for (const [groupA, groupB] of styleConflicts) {
+                    const impMatchesA = groupA.some(kw => impLower.includes(kw));
+                    const impMatchesB = groupB.some(kw => impLower.includes(kw));
+                    const wMatchesA = groupA.some(kw => wAllText.includes(kw));
+                    const wMatchesB = groupB.some(kw => wAllText.includes(kw));
+
+                    if ((impMatchesA && wMatchesB && !wMatchesA) || (impMatchesB && wMatchesA && !wMatchesB)) {
+                      hasStyleConflict = true;
+                      break;
+                    }
                   }
                 }
 
@@ -4602,6 +4741,9 @@ Return ONLY a JSON object with these exact fields:
             items: (analysisCore.items || []).slice(0, 12),
             scores: analysisCore.scores || [],
             linkedMentions: (analysisCore.linkedMentions || []).slice(0, 20),
+            // Stage 30 GAP 1: Pass enriched metadata to Stage 2
+            personDetection: (analysisCore as any).personDetection || null,
+            lookStructure: (analysisCore as any).lookStructure || null,
             occasion: input.occasion || null,
             stylePreference: guestProfile?.stylePreference || null,
             favoriteInfluencers: guestProfile?.favoriteInfluencers || null,
@@ -4855,19 +4997,47 @@ Return ONLY a JSON object with these exact fields:
                 "scarf": ["צעיף", "scarf", "bandana"],
               };
 
+               // Stage 30 GAP 2: Use structured afterGarmentType as PRIMARY source
               let impCategory = "";
-              for (const [cat, keywords] of Object.entries(typeKeywords)) {
-                if (keywords.some(kw => impLower.includes(kw))) {
-                  impCategory = cat;
-                  break;
+              const afterGType = (imp.afterGarmentType || "").toLowerCase();
+              if (afterGType) {
+                const garmentToCategoryMap: Record<string, string> = {
+                  "t-shirt": "shirt", "tee": "shirt", "polo": "shirt", "dress shirt": "shirt",
+                  "button-down": "shirt", "blouse": "shirt", "top": "shirt", "sweater": "shirt",
+                  "hoodie": "jacket", "sweatshirt": "jacket", "henley": "shirt", "tank": "shirt",
+                  "jeans": "pants", "chinos": "pants", "trousers": "pants", "shorts": "pants",
+                  "skirt": "pants", "leggings": "pants",
+                  "sneakers": "shoes", "loafers": "shoes", "boots": "shoes", "sandals": "shoes",
+                  "oxfords": "shoes", "derby": "shoes", "heels": "shoes",
+                  "jacket": "jacket", "blazer": "jacket", "coat": "jacket", "cardigan": "jacket",
+                  "bomber": "jacket", "parka": "jacket", "vest": "vest",
+                  "watch": "watch", "belt": "belt", "bag": "bag", "backpack": "bag",
+                  "hat": "hat", "cap": "hat", "sunglasses": "sunglasses", "scarf": "scarf",
+                  "necklace": "accessory", "bracelet": "accessory", "ring": "accessory", "earring": "accessory",
+                };
+                impCategory = garmentToCategoryMap[afterGType] || "";
+                if (!impCategory) {
+                  for (const [gType, cat] of Object.entries(garmentToCategoryMap)) {
+                    if (afterGType.includes(gType) || gType.includes(afterGType)) {
+                      impCategory = cat;
+                      break;
+                    }
+                  }
                 }
               }
-
+              // Fallback to text-based detection (legacy)
+              if (!impCategory) {
+                for (const [cat, keywords] of Object.entries(typeKeywords)) {
+                  if (keywords.some(kw => impLower.includes(kw))) {
+                    impCategory = cat;
+                    break;
+                  }
+                }
+              }
               // STRICT: If we can't identify the improvement's category, skip closet matching entirely
               if (!impCategory) continue;
-
               for (const wItem of wardrobeItemsForMatching) {
-                let matchScore = 0;
+                let matchScore = 0;;
                 const wName = (wItem.name || "").toLowerCase();
                 const wType = (wItem.itemType || "").toLowerCase();
                 const wBrand = (wItem.brand || "").toLowerCase();
@@ -4898,23 +5068,38 @@ Return ONLY a JSON object with these exact fields:
                   [["תיק עסקי", "briefcase", "formal", "פורמלי", "messenger"], ["תיק גב", "backpack", "casual", "ספורטיבי", "gym bag"]],
                 ];
 
-                let hasStyleConflict = false;
-                for (const [groupA, groupB] of styleConflicts) {
-                  const impMatchesA = groupA.some(kw => impLower.includes(kw));
-                  const impMatchesB = groupB.some(kw => impLower.includes(kw));
-                  const wMatchesA = groupA.some(kw => wAllText.includes(kw));
-                  const wMatchesB = groupB.some(kw => wAllText.includes(kw));
+                   let hasStyleConflict = false;
 
-                  if ((impMatchesA && wMatchesB && !wMatchesA) || (impMatchesB && wMatchesA && !wMatchesB)) {
+                // Stage 30 GAP 3: Use structured afterStyle for smart style contradiction
+                const impStyle = (imp.afterStyle || "").toLowerCase();
+                if (impStyle && wStyleNote) {
+                  const formalStyles = ["formal", "elegant", "classic", "tailored", "smart-casual", "business"];
+                  const casualStyles = ["casual", "sporty", "streetwear", "athletic", "relaxed"];
+                  const impIsFormal = formalStyles.some(s => impStyle.includes(s));
+                  const impIsCasual = casualStyles.some(s => impStyle.includes(s));
+                  const wIsFormal = formalStyles.some(s => wStyleNote.includes(s));
+                  const wIsCasual = casualStyles.some(s => wStyleNote.includes(s));
+                  if ((impIsFormal && wIsCasual && !wIsFormal) || (impIsCasual && wIsFormal && !wIsCasual)) {
                     hasStyleConflict = true;
-                    break;
                   }
                 }
 
+                // Also check hardcoded pairs (legacy + specific edge cases)
+                if (!hasStyleConflict) {
+                  for (const [groupA, groupB] of styleConflicts) {
+                    const impMatchesA = groupA.some(kw => impLower.includes(kw));
+                    const impMatchesB = groupB.some(kw => impLower.includes(kw));
+                    const wMatchesA = groupA.some(kw => wAllText.includes(kw));
+                    const wMatchesB = groupB.some(kw => wAllText.includes(kw));
+                    if ((impMatchesA && wMatchesB && !wMatchesA) || (impMatchesB && wMatchesA && !wMatchesB)) {
+                      hasStyleConflict = true;
+                      break;
+                    }
+                  }
+                }
                 if (hasStyleConflict) {
                   continue; // Skip — wardrobe item contradicts the recommendation's spirit
                 }
-
                 // Same category — base score
                 matchScore += 5;
 
