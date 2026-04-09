@@ -496,3 +496,10 @@
 - [x] 36.13: 43 new vitest tests for Stage 36 (all pass)
 - [x] 36.14: Full suite: 808/812 tests pass (same 4 pre-existing API failures), 0 TS errors
 - [x] 36.15: Save checkpoint
+
+## Stage 37: CRITICAL BUG — 3 Different Photos Produce Identical Recommendations
+- [x] 37.1: Investigate server logs for the 3 recent analyses
+- [x] 37.2: Root cause found: JSON Schema had `additionalProperties: true` on improvements items object — OpenAI strict mode rejects this, causing Stage 2 to fail 100% of the time → fallback generates identical generic recommendations
+- [x] 37.3: Fix: changed `additionalProperties: true` to `false`, added all 30 garment metadata fields to required list
+- [x] 37.4: 12 new vitest tests for schema validation, 820/824 pass (same 4 pre-existing API failures), 0 TS errors
+- [x] 37.5: Save checkpoint

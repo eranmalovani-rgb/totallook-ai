@@ -1640,8 +1640,8 @@ export const analysisJsonSchema = {
             },
           },
         },
-        required: ["title", "description", "beforeLabel", "afterLabel", "beforeColor", "afterColor", "beforeGarmentType", "afterGarmentType", "beforeFit", "afterFit", "beforeSleeveLength", "afterSleeveLength", "beforeNeckline", "afterNeckline", "beforeMaterial", "afterMaterial", "beforePattern", "afterPattern", "productSearchQuery", "shoppingLinks"] as const,
-        additionalProperties: true,
+        required: ["title", "description", "beforeLabel", "afterLabel", "beforeColor", "afterColor", "beforeGarmentType", "afterGarmentType", "beforeStyle", "afterStyle", "beforeFit", "afterFit", "beforeLength", "afterLength", "beforeSleeveLength", "afterSleeveLength", "beforeNeckline", "afterNeckline", "beforeClosure", "afterClosure", "beforeMaterial", "afterMaterial", "beforeTexture", "afterTexture", "beforePattern", "afterPattern", "beforeDetails", "afterDetails", "productSearchQuery", "shoppingLinks"] as const,
+        additionalProperties: false,
       },
     },
     outfitSuggestions: {
