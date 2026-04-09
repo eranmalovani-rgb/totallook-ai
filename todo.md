@@ -379,3 +379,16 @@
 - [x] 28.8: Test interfaces already have beforeColor/afterColor from Stage 27; new fields are optional so no test changes needed
 - [x] 28.9: 765/769 tests pass (4 pre-existing API failures: google-cse, imagegen x2, openai), 0 TS errors
 - [x] 28.10: Save checkpoint
+
+## Stage 29 — Comprehensive Stage 1 Metadata Enhancement (Person Detection + Enriched Items + Look Structure)
+- [x] 29.1: Add PersonDetection interface to fashionTypes.ts
+- [x] 29.2: Add enriched fields to FashionItem interface (22 new optional fields)
+- [x] 29.3: Add LookStructure interface to fashionTypes.ts
+- [x] 29.4: Add personDetection and lookStructure fields to FashionAnalysis interface
+- [x] 29.5: Update Stage 1 JSON schema (analysisCoreJsonSchema) with all new fields + personDetection + lookStructure schemas
+- [x] 29.6: Update Stage 1 LLM prompt with detailed extraction instructions for person detection, enriched items, and look structure
+- [x] 29.7: Increase maxTokens for Stage 1 from 2200 to 3200 (both auth and guest)
+- [x] 29.8: Update Fix My Look prompt builder to use enriched FashionItem fields (fallback replacements + keep lines)
+- [x] 29.9: Update wardrobe save (auth + guest) to include garmentType, preciseColor, material, and rich styleNote from structured metadata
+- [x] 29.10: 765/769 tests pass (same 4 pre-existing API failures), 0 TS errors
+- [x] 29.11: Save checkpoint

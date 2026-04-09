@@ -10,6 +10,50 @@ export interface FashionAnalysis {
   influencerInsight: string;
   /** Linked mentions — every brand, influencer, item mentioned gets a hyperlink */
   linkedMentions: LinkedMention[];
+
+  // ── Stage 29: Person Detection ──
+  /** Structured person/body detection from the image */
+  personDetection?: PersonDetection;
+  /** Structured overall look composition analysis */
+  lookStructure?: LookStructure;
+}
+
+/** Person/body detection metadata extracted from the image */
+export interface PersonDetection {
+  /** Number of people visible in the image */
+  peopleCount: number;
+  /** Whether the full body is visible head to toe */
+  fullBodyVisible: boolean;
+  /** Whether the face is clearly visible */
+  faceVisible: boolean;
+  /** Whether the hands are visible */
+  handsVisible: boolean;
+  /** Whether the feet/shoes are visible */
+  feetVisible: boolean;
+  /** How much of the body is occluded: "none" | "partial" | "significant" */
+  bodyOcclusion: string;
+  /** Body pose: "standing" | "sitting" | "walking" | "leaning" | "crouching" | "other" */
+  bodyPose: string;
+  /** Brief pose description, e.g. "standing facing camera, hands in pockets" */
+  poseDescription: string;
+}
+
+/** Overall look composition analysis */
+export interface LookStructure {
+  /** Total number of garments + accessories detected */
+  totalItemCount: number;
+  /** Whether multiple clothing layers are visible */
+  hasLayering: boolean;
+  /** Number of clothing layers (1=single, 2=two layers, 3+=complex) */
+  layerCount: number;
+  /** Color harmony type: "monochromatic" | "neutral" | "complementary" | "contrasting" | "colorful" */
+  colorHarmony: string;
+  /** Which item dominates visually, e.g. "outerwear", "dress", "graphic tee" */
+  dominantItem: string;
+  /** Body proportions impression: "balanced" | "top-heavy" | "bottom-heavy" */
+  proportions: string;
+  /** Brief silhouette summary, e.g. "wide top + narrow bottom", "straight line", "layered" */
+  silhouetteSummary: string;
 }
 
 export interface LinkedMention {
@@ -32,6 +76,64 @@ export interface FashionItem {
   brandUrl?: string;
   /** Brand identification confidence: HIGH, MEDIUM, LOW, or NONE */
   brandConfidence?: string;
+
+  // ── Stage 29: Enriched Garment Metadata ──
+
+  // ── Garment Identity ──
+  /** Specific garment type (e.g. "t-shirt", "dress shirt", "jeans", "sneakers", "blazer", "ring", "watch") */
+  garmentType?: string;
+  /** More specific sub-category (e.g. "crew neck tee", "slim jeans", "leather oxford", "mini dress") */
+  subCategory?: string;
+  /** Body zone: "upper" | "lower" | "outerwear" | "footwear" | "accessory" | "jewelry" | "full-body" */
+  bodyZone?: string;
+  /** Layer index: 1=base, 2=mid, 3=outer (for layering analysis) */
+  layerIndex?: number;
+
+  // ── Visibility ──
+  /** How much of the item is visible: "full" | "partial" | "minimal" */
+  visibility?: string;
+
+  // ── Color (enriched) ──
+  /** Precise color shade (e.g. "navy blue", "charcoal gray", "off-white", "burgundy") */
+  preciseColor?: string;
+  /** Secondary color if multi-color (e.g. "white" for navy/white stripes) */
+  secondaryColor?: string;
+  /** Color family: "blue" | "neutral" | "earth" | "warm" | "cool" | "monochrome" | "multicolor" */
+  colorFamily?: string;
+  /** Number of distinct colors in the item (1=solid, 2+=multi) */
+  colorCount?: number;
+
+  // ── Pattern ──
+  /** Pattern type: "solid" | "striped" | "checkered" | "floral" | "geometric" | "graphic" | "logo" | "animal" | "abstract" */
+  pattern?: string;
+
+  // ── Material & Texture ──
+  /** Primary material/fabric: "cotton" | "denim" | "leather" | "knit" | "linen" | "satin" | "wool" | "synthetic" | "silk" | "suede" */
+  material?: string;
+  /** Surface texture: "smooth" | "ribbed" | "matte" | "shiny" | "washed" | "distressed" | "knitted" | "brushed" */
+  texture?: string;
+
+  // ── Fit & Structure ──
+  /** Fit/silhouette: "slim" | "regular" | "relaxed" | "oversized" | "cropped" | "tailored" | "boxy" */
+  fit?: string;
+  /** Garment length: "short" | "regular" | "long" | "cropped" | "midi" | "maxi" | "knee-length" | "n/a" */
+  garmentLength?: string;
+  /** Sleeve length: "short" | "long" | "3/4" | "sleeveless" | "rolled" | "cap" | "n/a" */
+  sleeveLength?: string;
+  /** Neckline/collar: "crew" | "v-neck" | "polo" | "button-down" | "turtleneck" | "hoodie" | "scoop" | "boat" | "n/a" */
+  neckline?: string;
+  /** Closure type: "buttons" | "zipper" | "pullover" | "open" | "snap" | "lace-up" | "buckle" | "none" | "n/a" */
+  closure?: string;
+
+  // ── Condition & Details ──
+  /** Visible condition: "clean" | "wrinkled" | "worn" | "distressed" | "pristine" */
+  condition?: string;
+  /** Whether a logo is visible on the item */
+  hasLogo?: boolean;
+  /** Whether branding is prominent/large */
+  prominentBranding?: boolean;
+  /** Notable details: "chest pocket", "embroidery", "contrast stitching", "distressed hem", "none" */
+  details?: string;
 }
 
 export interface ScoreCategory {

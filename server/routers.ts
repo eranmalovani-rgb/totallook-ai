@@ -926,14 +926,61 @@ Scan hands, wrists, neck, ears, face for: rings, bracelets, watches, necklaces, 
 Reference 2025-2026 trends from Vogue, GQ, SSENSE, MR PORTER, Milan/Paris Fashion Week, and street style.
 ${influencerSection}${styleNotesSection}${occasionSection}${profileSection}${wardrobeSection}
 
-THIS IS STAGE 1 ONLY — return ONLY: overallScore, summary, items, scores, linkedMentions. Do NOT return improvements, outfitSuggestions, trendSources, or influencerInsight (those come in Stage 2).
+THIS IS STAGE 1 ONLY — return ONLY: overallScore, summary, items, scores, linkedMentions, personDetection, lookStructure. Do NOT return improvements, outfitSuggestions, trendSources, or influencerInsight (those come in Stage 2).
+
+PERSON DETECTION (REQUIRED):
+Before analyzing items, scan the image for person/body information:
+- How many people are in the image?
+- Is the full body visible (head to toe)?
+- Is the face visible? Hands? Feet/shoes?
+- Is any part of the body occluded (hidden behind objects, cropped, etc.)?
+- What is the body pose (standing, sitting, walking, leaning)?
+- Brief pose description (e.g. "standing facing camera, hands in pockets")
+This data is CRITICAL for downstream features — if feet are not visible, we know shoe analysis may be limited.
+
+ENRICHED ITEM METADATA (REQUIRED FOR EACH ITEM):
+For EVERY item, you MUST provide structured metadata beyond just name/description:
+- garmentType: specific type in English ("t-shirt", "dress shirt", "jeans", "sneakers", "ring", "watch")
+- subCategory: more specific ("crew neck tee", "slim jeans", "leather oxford", "aviator sunglasses")
+- bodyZone: "upper" / "lower" / "outerwear" / "footwear" / "accessory" / "jewelry" / "full-body"
+- layerIndex: 1=base, 2=mid, 3=outer
+- visibility: "full" / "partial" / "minimal" — how much of the item is visible in the image
+- preciseColor: exact shade in English ("navy blue", "charcoal gray", "off-white", "burgundy")
+- secondaryColor: if multi-color ("" if solid)
+- colorFamily: "blue" / "neutral" / "earth" / "warm" / "cool" / "monochrome" / "multicolor"
+- colorCount: number of distinct colors (1=solid, 2+=multi)
+- pattern: "solid" / "striped" / "checkered" / "floral" / "geometric" / "graphic" / "logo" / "animal" / "abstract"
+- material: "cotton" / "denim" / "leather" / "knit" / "linen" / "satin" / "wool" / "synthetic" / "silk" / "suede" / "canvas" / "metal" / "rubber"
+- texture: "smooth" / "ribbed" / "matte" / "shiny" / "washed" / "distressed" / "knitted" / "brushed"
+- fit: "slim" / "regular" / "relaxed" / "oversized" / "cropped" / "tailored" / "boxy" / "n/a"
+- garmentLength: "short" / "regular" / "long" / "cropped" / "midi" / "maxi" / "knee-length" / "n/a"
+- sleeveLength: "short" / "long" / "3/4" / "sleeveless" / "rolled" / "cap" / "n/a"
+- neckline: "crew" / "v-neck" / "polo" / "button-down" / "turtleneck" / "hoodie" / "scoop" / "boat" / "n/a"
+- closure: "buttons" / "zipper" / "pullover" / "open" / "snap" / "lace-up" / "buckle" / "none" / "n/a"
+- condition: "clean" / "wrinkled" / "worn" / "distressed" / "pristine"
+- hasLogo: true/false
+- prominentBranding: true/false (large/obvious branding)
+- details: notable details ("chest pocket", "embroidery", "contrast stitching", "none")
+Use "n/a" for fields not applicable to the item type (e.g. sleeveLength for shoes).
+
+LOOK STRUCTURE (REQUIRED):
+After analyzing all items, provide an overall look composition:
+- totalItemCount: total garments + accessories
+- hasLayering: are there multiple clothing layers?
+- layerCount: 1/2/3+
+- colorHarmony: "monochromatic" / "neutral" / "complementary" / "contrasting" / "colorful"
+- dominantItem: which item dominates visually
+- proportions: "balanced" / "top-heavy" / "bottom-heavy"
+- silhouetteSummary: brief ("wide top + narrow bottom", "straight line", "layered")
 
 Respond with valid JSON matching this schema:
 {
   "overallScore": <5-10>,
   "summary": "<4-5 sentence expert summary in ${langLabel}: compliment strongest element, identify style direction, reference 2025-2026 trend, name the aesthetic, suggest one upgrade. No brand names in summary.>",
-  "items": [{ "name": "<item name in ${langLabel}, no brand>", "description": "<material, color shade, construction details in ${langLabel}. No brand names.>", "color": "<main color>", "score": <5-10>, "verdict": "<${isHebrew ? "בחירה מצוינת/ניגודיות טובה/יש פוטנציאל/ניתן לשדרג" : "Excellent choice/Good contrast/Has potential/Can be upgraded"}>", "analysis": "<2-3 sentences: material ID, trend connection, what would make it a 10. No brand names.>", "icon": "<👕/👖/👟/💍/🧥/👔/⌚/🕶️/👜/🧢/💿>" }],
+  "personDetection": { "peopleCount": <number>, "fullBodyVisible": <bool>, "faceVisible": <bool>, "handsVisible": <bool>, "feetVisible": <bool>, "bodyOcclusion": "<none/partial/significant>", "bodyPose": "<standing/sitting/walking/leaning/crouching/other>", "poseDescription": "<brief description>" },
+  "items": [{ "name": "<item name in ${langLabel}, no brand>", "description": "<material, color shade, construction details in ${langLabel}. No brand names.>", "color": "<main color>", "score": <5-10>, "verdict": "<${isHebrew ? "בחירה מצוינת/ניגודיות טובה/יש פוטנציאל/ניתן לשדרג" : "Excellent choice/Good contrast/Has potential/Can be upgraded"}>", "analysis": "<2-3 sentences: material ID, trend connection, what would make it a 10. No brand names.>", "icon": "<👕/👖/👟/💍/🧥/👔/⌚/🕶️/👜/🧢/💿>", "garmentType": "<type>", "subCategory": "<sub-type>", "bodyZone": "<zone>", "layerIndex": <1-3>, "visibility": "<full/partial/minimal>", "preciseColor": "<exact shade>", "secondaryColor": "<or empty>", "colorFamily": "<family>", "colorCount": <number>, "pattern": "<pattern>", "material": "<material>", "texture": "<texture>", "fit": "<fit>", "garmentLength": "<length>", "sleeveLength": "<sleeve>", "neckline": "<neckline>", "closure": "<closure>", "condition": "<condition>", "hasLogo": <bool>, "prominentBranding": <bool>, "details": "<details>" }],
   "scores": [{ "category": "<in ${langLabel}>", "score": <5-10 or null>, "explanation": "<1 sentence WHY this score>", "recommendation": "<if null, suggest what fits>" }],
+  "lookStructure": { "totalItemCount": <number>, "hasLayering": <bool>, "layerCount": <number>, "colorHarmony": "<type>", "dominantItem": "<item>", "proportions": "<type>", "silhouetteSummary": "<brief>" },
   "linkedMentions": [{ "text": "<exact name as in analysis>", "type": "<brand/influencer/item/store>", "url": "<official URL or Instagram>" }]
 }
 
@@ -1135,14 +1182,32 @@ function buildDeterministicFixMyLookPrompt(params: {
     return `- Replace the "${richBeforeDesc}" with a "${richAfterDesc}"${extraSpecsStr}. ${colorInstruction}${patternHint}${materialHint}${imageRef}`;
   });
 
-  const fallbackReplacements = itemsToFix.map((item) =>
-    `- Replace "${item.name}" with a more flattering, premium, trend-aware alternative that matches the overall look.`,
-  );
+  const fallbackReplacements = itemsToFix.map((item) => {
+    // Build rich description from enriched FashionItem metadata (Stage 29)
+    const parts: string[] = [];
+    if (item.fit && item.fit !== "n/a") parts.push(item.fit);
+    if (item.material) parts.push(item.material);
+    if (item.neckline && item.neckline !== "n/a") parts.push(item.neckline);
+    if (item.sleeveLength && item.sleeveLength !== "n/a") parts.push(`${item.sleeveLength}-sleeve`);
+    if (item.preciseColor) parts.push(item.preciseColor);
+    else if (item.color) parts.push(item.color);
+    if (item.garmentType) parts.push(item.garmentType);
+    const richDesc = parts.length >= 3 ? parts.join(" ") : item.name;
+    return `- Replace "${richDesc}" with a more flattering, premium, trend-aware alternative that matches the overall look.`;
+  });
 
   const keepLines = (analysis.items || [])
     .filter(item => !itemsToFix.includes(item))
     .slice(0, 12)
-    .map(item => `- Keep "${item.name}" unchanged.`);
+    .map(item => {
+      // Use enriched metadata for more precise keep instructions
+      const parts: string[] = [];
+      if (item.preciseColor) parts.push(item.preciseColor);
+      else if (item.color) parts.push(item.color);
+      if (item.garmentType) parts.push(item.garmentType);
+      const desc = parts.length > 0 ? `${item.name} (${parts.join(" ")})` : item.name;
+      return `- Keep "${desc}" unchanged.`;
+    });
 
   const orientationText = imageDimensions.width > 0 && imageDimensions.height > 0
     ? `${imageOrientation} (${imageDimensions.width}x${imageDimensions.height})`
@@ -1213,7 +1278,7 @@ function extractLLMTextContent(content: unknown): string {
     .trim();
 }
 
-type FashionAnalysisCorePayload = Pick<FashionAnalysis, "overallScore" | "summary" | "items" | "scores" | "linkedMentions">;
+type FashionAnalysisCorePayload = Pick<FashionAnalysis, "overallScore" | "summary" | "items" | "scores" | "linkedMentions" | "personDetection" | "lookStructure">;
 type FashionRecommendationsPayload = Pick<FashionAnalysis, "improvements" | "outfitSuggestions" | "trendSources" | "influencerInsight">;
 
 function parseFashionAnalysisPayload(llmResult: any): FashionAnalysis {
@@ -1325,8 +1390,30 @@ export const analysisJsonSchema = {
           brand: { type: "string" as const, description: "REQUIRED: The identified or guessed brand name. MUST NOT be empty. Always provide your best guess." },
           brandUrl: { type: "string" as const, description: "URL to brand website. Use BRAND_URLS mapping or brand's official site." },
           brandConfidence: { type: "string" as const, enum: ["HIGH", "MEDIUM", "LOW", "NONE"], description: "Brand identification confidence level" },
+          // ── Stage 29: Enriched Garment Metadata ──
+          garmentType: { type: "string" as const, description: "Specific garment type in English (e.g. 't-shirt', 'dress shirt', 'jeans', 'sneakers', 'blazer', 'ring', 'watch', 'belt', 'sunglasses')" },
+          subCategory: { type: "string" as const, description: "More specific sub-category (e.g. 'crew neck tee', 'slim jeans', 'leather oxford', 'mini dress', 'aviator sunglasses')" },
+          bodyZone: { type: "string" as const, enum: ["upper", "lower", "outerwear", "footwear", "accessory", "jewelry", "full-body"], description: "Body zone where the item is worn" },
+          layerIndex: { type: "number" as const, description: "Layer index: 1=base layer, 2=mid layer, 3=outer layer" },
+          visibility: { type: "string" as const, enum: ["full", "partial", "minimal"], description: "How much of the item is visible in the image" },
+          preciseColor: { type: "string" as const, description: "Precise color shade in English (e.g. 'navy blue', 'charcoal gray', 'off-white', 'burgundy', 'olive green')" },
+          secondaryColor: { type: "string" as const, description: "Secondary color if multi-color item (e.g. 'white' for navy/white stripes). Empty string if solid." },
+          colorFamily: { type: "string" as const, enum: ["blue", "neutral", "earth", "warm", "cool", "monochrome", "multicolor"], description: "Color family group" },
+          colorCount: { type: "number" as const, description: "Number of distinct colors in the item (1=solid, 2+=multi)" },
+          pattern: { type: "string" as const, description: "Pattern type: 'solid', 'striped', 'checkered', 'floral', 'geometric', 'graphic', 'logo', 'animal', 'abstract', 'polka dot'" },
+          material: { type: "string" as const, description: "Primary material/fabric: 'cotton', 'denim', 'leather', 'knit', 'linen', 'satin', 'wool', 'synthetic', 'silk', 'suede', 'canvas', 'metal', 'rubber'" },
+          texture: { type: "string" as const, description: "Surface texture: 'smooth', 'ribbed', 'matte', 'shiny', 'washed', 'distressed', 'knitted', 'brushed', 'glossy'" },
+          fit: { type: "string" as const, description: "Fit/silhouette: 'slim', 'regular', 'relaxed', 'oversized', 'cropped', 'tailored', 'boxy', 'n/a'" },
+          garmentLength: { type: "string" as const, description: "Garment length: 'short', 'regular', 'long', 'cropped', 'midi', 'maxi', 'knee-length', 'n/a'" },
+          sleeveLength: { type: "string" as const, description: "Sleeve length: 'short', 'long', '3/4', 'sleeveless', 'rolled', 'cap', 'n/a'" },
+          neckline: { type: "string" as const, description: "Neckline/collar: 'crew', 'v-neck', 'polo', 'button-down', 'turtleneck', 'hoodie', 'scoop', 'boat', 'n/a'" },
+          closure: { type: "string" as const, description: "Closure type: 'buttons', 'zipper', 'pullover', 'open', 'snap', 'lace-up', 'buckle', 'none', 'n/a'" },
+          condition: { type: "string" as const, description: "Visible condition: 'clean', 'wrinkled', 'worn', 'distressed', 'pristine'" },
+          hasLogo: { type: "boolean" as const, description: "Whether a logo/brand marking is visible on the item" },
+          prominentBranding: { type: "boolean" as const, description: "Whether branding is large/prominent (vs subtle/small)" },
+          details: { type: "string" as const, description: "Notable details: 'chest pocket', 'embroidery', 'contrast stitching', 'distressed hem', 'metal hardware', 'none'" },
         },
-        required: ["name", "description", "color", "score", "verdict", "analysis", "icon", "brand", "brandUrl", "brandConfidence"] as const,
+        required: ["name", "description", "color", "score", "verdict", "analysis", "icon", "brand", "brandUrl", "brandConfidence", "garmentType", "subCategory", "bodyZone", "layerIndex", "visibility", "preciseColor", "secondaryColor", "colorFamily", "colorCount", "pattern", "material", "texture", "fit", "garmentLength", "sleeveLength", "neckline", "closure", "condition", "hasLogo", "prominentBranding", "details"] as const,
         additionalProperties: false,
       },
     },
@@ -1451,6 +1538,37 @@ export const analysisJsonSchema = {
   additionalProperties: false,
 };
 
+const personDetectionSchema = {
+  type: "object" as const,
+  properties: {
+    peopleCount: { type: "number" as const, description: "Number of people visible in the image" },
+    fullBodyVisible: { type: "boolean" as const, description: "Is the full body visible head to toe?" },
+    faceVisible: { type: "boolean" as const, description: "Is the face clearly visible?" },
+    handsVisible: { type: "boolean" as const, description: "Are the hands visible?" },
+    feetVisible: { type: "boolean" as const, description: "Are the feet/shoes visible?" },
+    bodyOcclusion: { type: "string" as const, description: "Body occlusion level: 'none', 'partial', 'significant'" },
+    bodyPose: { type: "string" as const, description: "Body pose: 'standing', 'sitting', 'walking', 'leaning', 'crouching', 'other'" },
+    poseDescription: { type: "string" as const, description: "Brief pose description, e.g. 'standing facing camera, hands in pockets'" },
+  },
+  required: ["peopleCount", "fullBodyVisible", "faceVisible", "handsVisible", "feetVisible", "bodyOcclusion", "bodyPose", "poseDescription"] as const,
+  additionalProperties: false,
+};
+
+const lookStructureSchema = {
+  type: "object" as const,
+  properties: {
+    totalItemCount: { type: "number" as const, description: "Total number of garments + accessories detected" },
+    hasLayering: { type: "boolean" as const, description: "Whether multiple clothing layers are visible" },
+    layerCount: { type: "number" as const, description: "Number of clothing layers (1=single, 2=two, 3+=complex)" },
+    colorHarmony: { type: "string" as const, description: "Color harmony: 'monochromatic', 'neutral', 'complementary', 'contrasting', 'colorful'" },
+    dominantItem: { type: "string" as const, description: "Which item dominates visually (e.g. 'outerwear', 'dress', 'graphic tee')" },
+    proportions: { type: "string" as const, description: "Body proportions impression: 'balanced', 'top-heavy', 'bottom-heavy'" },
+    silhouetteSummary: { type: "string" as const, description: "Brief silhouette summary: 'wide top + narrow bottom', 'straight line', 'layered', 'fitted throughout'" },
+  },
+  required: ["totalItemCount", "hasLayering", "layerCount", "colorHarmony", "dominantItem", "proportions", "silhouetteSummary"] as const,
+  additionalProperties: false,
+};
+
 export const analysisCoreJsonSchema = {
   type: "object" as const,
   properties: {
@@ -1459,8 +1577,10 @@ export const analysisCoreJsonSchema = {
     items: analysisJsonSchema.properties.items,
     scores: analysisJsonSchema.properties.scores,
     linkedMentions: analysisJsonSchema.properties.linkedMentions,
+    personDetection: personDetectionSchema,
+    lookStructure: lookStructureSchema,
   },
-  required: ["overallScore", "summary", "items", "scores", "linkedMentions"] as const,
+  required: ["overallScore", "summary", "items", "scores", "linkedMentions", "personDetection", "lookStructure"] as const,
   additionalProperties: false,
 };
 
@@ -2493,7 +2613,7 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
                     schema: analysisCoreJsonSchema,
                   },
                 },
-                maxTokens: 2200,
+                maxTokens: 3200,
               });
               analysisCore = parseFashionAnalysisCorePayload(llmResult);
               break; // Success
@@ -2948,12 +3068,23 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
             const wardrobeImageUrl = review.imageUrl;
             const wardrobeEntries = analysis.items.map((item) => ({
               userId: ctx.user.id,
-              itemType: item.icon || "clothing",
+              itemType: item.garmentType || item.icon || "clothing",
               name: item.name,
-              color: item.color || null,
+              color: item.preciseColor || item.color || null,
               brand: item.brand || null,
-              material: null,
-              styleNote: item.description || null,
+              material: item.material || null,
+              styleNote: [
+                item.subCategory,
+                item.fit && item.fit !== "n/a" ? `fit: ${item.fit}` : null,
+                item.pattern && item.pattern !== "solid" ? `pattern: ${item.pattern}` : null,
+                item.texture ? `texture: ${item.texture}` : null,
+                item.neckline && item.neckline !== "n/a" ? `neckline: ${item.neckline}` : null,
+                item.closure && item.closure !== "n/a" ? `closure: ${item.closure}` : null,
+                item.sleeveLength && item.sleeveLength !== "n/a" ? `sleeve: ${item.sleeveLength}` : null,
+                item.garmentLength && item.garmentLength !== "n/a" ? `length: ${item.garmentLength}` : null,
+                item.secondaryColor ? `secondary color: ${item.secondaryColor}` : null,
+                item.details && item.details !== "none" ? `details: ${item.details}` : null,
+              ].filter(Boolean).join(", ") || item.description || null,
               score: item.score,
               sourceImageUrl: wardrobeImageUrl || null,
               sourceReviewId: input.reviewId,
@@ -4439,7 +4570,7 @@ Return ONLY a JSON object with these exact fields:
                     schema: analysisCoreJsonSchema,
                   },
                 },
-                maxTokens: 2200,
+                maxTokens: 3200,
               });
               analysisCore = parseFashionAnalysisCorePayload(llmResult);
               break;
@@ -4831,13 +4962,24 @@ Return ONLY a JSON object with these exact fields:
             if (analysis.items && analysis.items.length > 0) {
               const wardrobeEntries = analysis.items.map((item) => ({
                 guestSessionId: input.sessionId,
-                itemType: item.icon || "clothing",
+                itemType: item.garmentType || item.icon || "clothing",
                 name: item.name,
-                color: item.color || null,
+                color: item.preciseColor || item.color || null,
                 brand: item.brand || null,
-                material: null,
+                material: item.material || null,
                 // Store rich style description for smarter closet matching later
-                styleNote: item.description || null,
+                styleNote: [
+                  item.subCategory,
+                  item.fit && item.fit !== "n/a" ? `fit: ${item.fit}` : null,
+                  item.pattern && item.pattern !== "solid" ? `pattern: ${item.pattern}` : null,
+                  item.texture ? `texture: ${item.texture}` : null,
+                  item.neckline && item.neckline !== "n/a" ? `neckline: ${item.neckline}` : null,
+                  item.closure && item.closure !== "n/a" ? `closure: ${item.closure}` : null,
+                  item.sleeveLength && item.sleeveLength !== "n/a" ? `sleeve: ${item.sleeveLength}` : null,
+                  item.garmentLength && item.garmentLength !== "n/a" ? `length: ${item.garmentLength}` : null,
+                  item.secondaryColor ? `secondary color: ${item.secondaryColor}` : null,
+                  item.details && item.details !== "none" ? `details: ${item.details}` : null,
+                ].filter(Boolean).join(", ") || item.description || null,
                 score: item.score,
                 sourceImageUrl: session.imageUrl || null,
                 sourceReviewId: input.sessionId,
