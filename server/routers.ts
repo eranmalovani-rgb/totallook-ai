@@ -64,6 +64,56 @@ async function withAnalysisSlot<T>(jobLabel: string, fn: () => Promise<T>): Prom
 
 type ClothingCategory = "top" | "bottom" | "outerwear" | "dress" | "onepiece" | "shoes" | "accessory" | "other";
 
+/**
+ * Build a rich, structured description of a FashionItem using all available metadata.
+ * Used in image generation prompts for maximum accuracy.
+ * Example output: "slim-fit cotton crew-neck short-sleeve solid navy blue t-shirt by Zara"
+ */
+function buildRichItemDescription(item: { name: string; color?: string; brand?: string; garmentType?: string; subCategory?: string; preciseColor?: string; secondaryColor?: string; pattern?: string; material?: string; texture?: string; fit?: string; garmentLength?: string; sleeveLength?: string; neckline?: string; closure?: string; details?: string; style?: string; }): string {
+  const parts: string[] = [];
+  // Fit (slim, oversized, tailored...)
+  if (item.fit && item.fit !== 'regular') parts.push(item.fit);
+  // Material (cotton, denim, leather...)
+  if (item.material) parts.push(item.material);
+  // Texture if distinctive
+  if (item.texture && !['smooth', 'matte'].includes(item.texture)) parts.push(item.texture);
+  // Neckline (crew-neck, v-neck...)
+  if (item.neckline && item.neckline !== 'n/a') parts.push(item.neckline);
+  // Sleeve length
+  if (item.sleeveLength && item.sleeveLength !== 'n/a') parts.push(`${item.sleeveLength}-sleeve`);
+  // Garment length if notable
+  if (item.garmentLength && !['regular', 'n/a'].includes(item.garmentLength)) parts.push(item.garmentLength);
+  // Pattern
+  if (item.pattern && item.pattern !== 'solid') parts.push(item.pattern);
+  // Color — prefer preciseColor, fall back to color
+  const color = item.preciseColor || item.color;
+  if (color) parts.push(color);
+  // Garment type — prefer garmentType, fall back to name
+  parts.push(item.garmentType || item.subCategory || item.name);
+  // Secondary color note
+  if (item.secondaryColor) parts.push(`with ${item.secondaryColor} accents`);
+  // Closure if notable
+  if (item.closure && !['pullover', 'none', 'n/a'].includes(item.closure)) parts.push(`(${item.closure})`);
+  // Details if present
+  if (item.details && item.details !== 'none') parts.push(`— ${item.details}`);
+  // Brand
+  if (item.brand) parts.push(`by ${item.brand}`);
+  return parts.join(' ');
+}
+
+/**
+ * Build rich descriptions for wardrobe items (which have a different shape than FashionItem).
+ * Wardrobe items store metadata in: name, color, brand, material, styleNote, itemType
+ */
+function buildRichWardrobeItemDescription(item: { name: string; color?: string | null; brand?: string | null; material?: string | null; styleNote?: string | null; itemType?: string | null; }): string {
+  const parts: string[] = [];
+  if (item.color) parts.push(item.color);
+  parts.push(item.name);
+  if (item.material) parts.push(`(${item.material})`);
+  if (item.brand) parts.push(`by ${item.brand}`);
+  return parts.join(' ');
+}
+
 function detectClothingCategory(text: string): ClothingCategory {
   const t = (text || "").toLowerCase();
   if (/(dress|gown|שמלה)/.test(t)) return "dress";
@@ -1057,7 +1107,7 @@ Respond with valid JSON matching this schema:
   "overallScore": <5-10>,
   "summary": "<4-5 sentence expert summary in ${langLabel}: compliment strongest element, identify style direction, reference 2025-2026 trend, name the aesthetic, suggest one upgrade. No brand names in summary.>",
   "personDetection": { "peopleCount": <number>, "fullBodyVisible": <bool>, "faceVisible": <bool>, "handsVisible": <bool>, "feetVisible": <bool>, "bodyOcclusion": "<none/partial/significant>", "bodyPose": "<standing/sitting/walking/leaning/crouching/other>", "poseDescription": "<brief description>" },
-  "items": [{ "name": "<item name in ${langLabel}, no brand>", "description": "<material, color shade, construction details in ${langLabel}. No brand names.>", "color": "<main color>", "score": <5-10>, "verdict": "<${isHebrew ? "בחירה מצוינת/ניגודיות טובה/יש פוטנציאל/ניתן לשדרג" : "Excellent choice/Good contrast/Has potential/Can be upgraded"}>", "analysis": "<2-3 sentences: material ID, trend connection, what would make it a 10. No brand names.>", "icon": "<👕/👖/👟/💍/🧥/👔/⌚/🕶️/👜/🧢/💿>", "garmentType": "<type>", "subCategory": "<sub-type>", "bodyZone": "<zone>", "layerIndex": <1-3>, "visibility": "<full/partial/minimal>", "preciseColor": "<exact shade>", "secondaryColor": "<or empty>", "colorFamily": "<family>", "colorCount": <number>, "pattern": "<pattern>", "material": "<material>", "texture": "<texture>", "fit": "<fit>", "garmentLength": "<length>", "sleeveLength": "<sleeve>", "neckline": "<neckline>", "closure": "<closure>", "condition": "<condition>", "hasLogo": <bool>, "prominentBranding": <bool>, "details": "<details>" }],
+  "items": [{ "name": "<item name in ${langLabel}, no brand>", "description": "<material, color shade, construction details in ${langLabel}. No brand names.>", "color": "<main color>", "score": <5-10>, "verdict": "<${isHebrew ? "בחירה מצוינת/ניגודיות טובה/יש פוטנציאל/ניתן לשדרג" : "Excellent choice/Good contrast/Has potential/Can be upgraded"}>", "analysis": "<2-3 sentences: material ID, trend connection, what would make it a 10. No brand names.>", "icon": "<👕/👖/👟/💍/🧥/👔/⌚/🕶️/👜/🧢/💿>", "garmentType": "<type>", "subCategory": "<sub-type>", "bodyZone": "<zone>", "layerIndex": <1-3>, "visibility": "<full/partial/minimal>", "preciseColor": "<exact shade>", "secondaryColor": "<or empty>", "colorFamily": "<family>", "colorCount": <number>, "pattern": "<pattern>", "material": "<material>", "texture": "<texture>", "fit": "<fit>", "garmentLength": "<length>", "sleeveLength": "<sleeve>", "neckline": "<neckline>", "closure": "<closure>", "style": "<casual/smart-casual/formal/streetwear/minimalist/classic/sporty/bohemian/avant-garde/preppy/elegant>", "condition": "<condition>", "hasLogo": <bool>, "prominentBranding": <bool>, "details": "<details>" }],
   "scores": [{ "category": "<in ${langLabel}>", "score": <5-10 or null>, "explanation": "<1 sentence WHY this score>", "recommendation": "<if null, suggest what fits>" }],
   "lookStructure": { "totalItemCount": <number>, "hasLayering": <bool>, "layerCount": <number>, "colorHarmony": "<type>", "dominantItem": "<item>", "proportions": "<type>", "silhouetteSummary": "<brief>" },
   "linkedMentions": [{ "text": "<exact name as in analysis>", "type": "<brand/influencer/item/store>", "url": "<official URL or Instagram>" }]
@@ -1487,12 +1537,13 @@ export const analysisJsonSchema = {
           sleeveLength: { type: "string" as const, description: "Sleeve length: 'short', 'long', '3/4', 'sleeveless', 'rolled', 'cap', 'n/a'" },
           neckline: { type: "string" as const, description: "Neckline/collar: 'crew', 'v-neck', 'polo', 'button-down', 'turtleneck', 'hoodie', 'scoop', 'boat', 'n/a'" },
           closure: { type: "string" as const, description: "Closure type: 'buttons', 'zipper', 'pullover', 'open', 'snap', 'lace-up', 'buckle', 'none', 'n/a'" },
+          style: { type: "string" as const, description: "Overall style category: 'casual', 'smart-casual', 'formal', 'streetwear', 'minimalist', 'classic', 'sporty', 'bohemian', 'avant-garde', 'preppy', 'elegant'" },
           condition: { type: "string" as const, description: "Visible condition: 'clean', 'wrinkled', 'worn', 'distressed', 'pristine'" },
           hasLogo: { type: "boolean" as const, description: "Whether a logo/brand marking is visible on the item" },
           prominentBranding: { type: "boolean" as const, description: "Whether branding is large/prominent (vs subtle/small)" },
           details: { type: "string" as const, description: "Notable details: 'chest pocket', 'embroidery', 'contrast stitching', 'distressed hem', 'metal hardware', 'none'" },
         },
-        required: ["name", "description", "color", "score", "verdict", "analysis", "icon", "brand", "brandUrl", "brandConfidence", "garmentType", "subCategory", "bodyZone", "layerIndex", "visibility", "preciseColor", "secondaryColor", "colorFamily", "colorCount", "pattern", "material", "texture", "fit", "garmentLength", "sleeveLength", "neckline", "closure", "condition", "hasLogo", "prominentBranding", "details"] as const,
+        required: ["name", "description", "color", "score", "verdict", "analysis", "icon", "brand", "brandUrl", "brandConfidence", "garmentType", "subCategory", "bodyZone", "layerIndex", "visibility", "preciseColor", "secondaryColor", "colorFamily", "colorCount", "pattern", "material", "texture", "fit", "garmentLength", "sleeveLength", "neckline", "closure", "style", "condition", "hasLogo", "prominentBranding", "details"] as const,
         additionalProperties: false,
       },
     },
@@ -3329,16 +3380,23 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
         const userGender = profile?.gender || "male";
         const genderLabel = userGender === "female" ? "women's" : "men's";
 
-        // Build a detailed prompt from the analysis data
-        const improvementItems = (analysis.improvements || []).map((imp: Improvement) => imp.title).join(", ");
+        // Build a detailed prompt from the analysis data using rich structured metadata
+        const richExistingItems = (analysis.items || []).map(item => buildRichItemDescription(item)).join(", ");
+        const improvementItems = (analysis.improvements || []).map((imp: Improvement) => {
+          const parts = [imp.afterColor, imp.afterGarmentType || imp.afterLabel].filter(Boolean);
+          if (imp.afterMaterial) parts.unshift(imp.afterMaterial);
+          if (imp.afterFit) parts.unshift(imp.afterFit);
+          return parts.join(' ') || imp.title;
+        }).join(", ");
         const outfitItems = (analysis.outfitSuggestions || []).slice(0, 1).flatMap((s: OutfitSuggestion) => s.items).join(", ");
         const colors = (analysis.outfitSuggestions || []).slice(0, 1).flatMap((s: OutfitSuggestion) => s.colors).join(", ");
-        const existingItems = (analysis.items || []).map(item => item.name).join(", ");
-         const firstOutfit = (analysis.outfitSuggestions || [])[0];
+        const firstOutfit = (analysis.outfitSuggestions || [])[0];
+        // Silhouette context from lookStructure
+        const silhouetteHint = analysis.lookStructure?.silhouetteSummary ? `\nSilhouette: ${analysis.lookStructure.silhouetteSummary}.` : '';
         // PRIMARY: Generate a full outfit look image via AI (complete head-to-toe look)
         const prompt = `Fashion mood board / flat lay photograph showing a complete ${genderLabel} outfit look. Professional editorial style, clean white marble background, luxury fashion photography.
-Items to include: ${outfitItems || improvementItems || existingItems}.
-Color palette: ${colors || "neutral tones, black, white"}.
+Items to include: ${outfitItems || improvementItems || richExistingItems}.
+Color palette: ${colors || "neutral tones, black, white"}.${silhouetteHint}
 Style: High-end ${genderLabel} fashion editorial flat lay, items arranged aesthetically like a magazine spread. Include shoes, clothing items, accessories, and a watch or jewelry if relevant. No mannequin, no model, just the items laid out beautifully. Crisp lighting, soft shadows, luxury feel.`;
         try {
           const { url } = await generateImage({ prompt });
@@ -3657,12 +3715,15 @@ Return ONLY the JSON object, no markdown.`;
         const outfitGenderLabel = outfitGender === "female" ? "women's" : "men's";
 
         // PRIMARY: Generate a full outfit look image via AI (complete head-to-toe look)
-        const lookDesc = outfit.lookDescription || outfit.items.join(", ");
+        // Use rich item descriptions from analysis items when available
+        const richItems = (analysis.items || []).map(item => buildRichItemDescription(item));
+        const lookDesc = outfit.lookDescription || (richItems.length > 0 ? richItems.join(', ') : outfit.items.join(", "));
         const colors = outfit.colors?.join(", ") || "neutral tones";
+        const silhouetteCtx = analysis.lookStructure?.silhouetteSummary ? `\nSilhouette: ${analysis.lookStructure.silhouetteSummary}.` : '';
         const prompt = `Professional ${outfitGenderLabel} fashion flat lay / mood board photograph. Clean white marble background, luxury editorial style photography.
 Outfit card variation index: ${input.outfitIndex + 1}. Keep this variation visually distinct from other outfit cards.
 Complete ${outfitGenderLabel} outfit: ${lookDesc}.
-Color palette: ${colors}.
+Color palette: ${colors}.${silhouetteCtx}
 Style: High-end ${outfitGenderLabel} fashion editorial flat lay, all items arranged aesthetically like a magazine spread. Include every piece: clothing, shoes, accessories, watch/jewelry. No mannequin, no model — just the items laid out beautifully with crisp lighting, soft shadows, and a luxury feel. Each item clearly visible and identifiable.`;
 
         try {
@@ -4030,13 +4091,8 @@ Return ONLY a JSON object with these exact fields:
         const gender = profile?.gender || "person";
         const genderLabel = gender === "male" ? "man" : gender === "female" ? "woman" : "person";
 
-        // 4. Build a detailed description of each item
-        const itemDescriptions = selectedItems.map(item => {
-          const parts = [item.name];
-          if (item.color) parts.push(`in ${item.color}`);
-          if (item.brand) parts.push(`by ${item.brand}`);
-          return parts.join(" ");
-        }).join(", ");
+        // 4. Build a detailed description of each item using rich metadata
+        const itemDescriptions = selectedItems.map(item => buildRichWardrobeItemDescription(item)).join(", ");
 
         // 5. Build the prompt — if we have a source image, instruct to preserve the person's identity
         const prompt = sourceImageUrl
@@ -4138,13 +4194,32 @@ Return ONLY a JSON object with these exact fields:
         const analysis = review.analysisJson as FashionAnalysis | null;
         const summaryText = analysis?.summary || null;
 
+        // GAP G: Build enriched style tags from lookStructure + item metadata
+        const enrichedTags: string[] = [];
+        if (profile?.stylePreference) enrichedTags.push(profile.stylePreference);
+        if (analysis?.lookStructure) {
+          const ls = analysis.lookStructure;
+          if (ls.colorHarmony) enrichedTags.push(ls.colorHarmony);
+          if (ls.hasLayering) enrichedTags.push('layered');
+          if (ls.proportions && ls.proportions !== 'balanced') enrichedTags.push(ls.proportions);
+          if (ls.silhouetteSummary) enrichedTags.push(ls.silhouetteSummary);
+        }
+        // Add dominant style from items
+        if (analysis?.items) {
+          const itemStyles = analysis.items.map(i => i.style).filter(Boolean) as string[];
+          const styleCounts: Record<string, number> = {};
+          for (const s of itemStyles) { const sl = s.toLowerCase(); styleCounts[sl] = (styleCounts[sl] || 0) + 1; }
+          const topStyle = Object.entries(styleCounts).sort((a, b) => b[1] - a[1])[0];
+          if (topStyle && !enrichedTags.some(t => t.toLowerCase() === topStyle[0])) enrichedTags.push(topStyle[0]);
+        }
+
         const postId = await publishToFeed({
           userId: ctx.user.id,
           reviewId: input.reviewId,
           caption: input.caption || null,
           userName: ctx.user.name || null,
           gender: profile?.gender || null,
-          styleTags: profile?.stylePreference || null,
+          styleTags: enrichedTags.length > 0 ? enrichedTags.join(', ') : (profile?.stylePreference || null),
           occasion: review.occasion || null,
           imageUrl: review.imageUrl,
           overallScore: review.overallScore,
@@ -5331,12 +5406,15 @@ Return ONLY a JSON object with these exact fields:
         const genderLabel = guestGender === "female" ? "women's" : "men's";
 
         // PRIMARY: Generate a full outfit look image via AI (complete head-to-toe look)
-        const lookDesc = outfit.lookDescription || outfit.items.join(", ");
+        // Use rich item descriptions from analysis items when available
+        const guestRichItems = (analysis.items || []).map(item => buildRichItemDescription(item));
+        const lookDesc = outfit.lookDescription || (guestRichItems.length > 0 ? guestRichItems.join(', ') : outfit.items.join(", "));
         const colors = outfit.colors?.join(", ") || "neutral tones";
+        const guestSilhouetteCtx = analysis.lookStructure?.silhouetteSummary ? `\nSilhouette: ${analysis.lookStructure.silhouetteSummary}.` : '';
         const prompt = `Professional ${genderLabel} fashion flat lay / mood board photograph. Clean white marble background, luxury editorial style photography.
 Outfit card variation index: ${input.outfitIndex + 1}. Keep this variation visually distinct from other outfit cards.
 Complete ${genderLabel} outfit: ${lookDesc}.
-Color palette: ${colors}.
+Color palette: ${colors}.${guestSilhouetteCtx}
 Style: High-end ${genderLabel} fashion editorial flat lay, all items arranged aesthetically like a magazine spread. Include every piece: clothing, shoes, accessories, watch/jewelry. No mannequin, no model — just the items laid out beautifully with crisp lighting, soft shadows, and a luxury feel. Each item clearly visible and identifiable.`;
         try {
           const { url } = await generateImage({ prompt });
@@ -5620,13 +5698,15 @@ Style: High-end ${genderLabel} fashion editorial flat lay, all items arranged ae
         const gender = guestProfile?.gender || "person";
         const genderLabel = gender === "male" ? "man" : gender === "female" ? "woman" : "person";
 
-        // 5. Build a detailed description of each item
-        const itemDescriptions = selectedItems.map(item => {
-          const parts = [item.name || item.itemType];
-          if (item.color) parts.push(`in ${item.color}`);
-          if (item.brand) parts.push(`by ${item.brand}`);
-          return parts.join(" ");
-        }).join(", ");
+        // 5. Build a detailed description of each item using rich metadata
+        const itemDescriptions = selectedItems.map(item => buildRichWardrobeItemDescription({
+          name: item.name || item.itemType || 'item',
+          color: item.color,
+          brand: item.brand,
+          material: item.material,
+          styleNote: item.styleNote,
+          itemType: item.itemType,
+        })).join(", ");
 
         // 6. Build the prompt — if we have a source image, instruct to preserve the person's identity
         const prompt = sourceImageUrl
@@ -5815,6 +5895,17 @@ Style: High-end ${genderLabel} fashion editorial flat lay, all items arranged ae
           styleEvolution: [] as { date: string; styles: Record<string, number> }[],
           strengths: [] as string[],
           improvements: [] as string[],
+          materialPreferences: [] as { name: string; count: number; percentage: number }[],
+          texturePreferences: [] as { name: string; count: number; percentage: number }[],
+          fitPreferences: [] as { name: string; count: number; percentage: number }[],
+          patternPreferences: [] as { name: string; count: number; percentage: number }[],
+          lookStructureInsights: {
+            dominantSilhouette: null as string | null,
+            dominantProportions: null as string | null,
+            dominantColorHarmony: null as string | null,
+            layeringFrequency: null as number | null,
+            silhouetteBreakdown: [] as { name: string; count: number; percentage: number }[],
+          },
           profilePreferences: {
             gender: profile?.gender || null,
             ageRange: profile?.ageRange || null,
@@ -5823,6 +5914,20 @@ Style: High-end ${genderLabel} fashion editorial flat lay, all items arranged ae
           },
         };
       }
+
+      // ---- GAP C+D: Material, texture, fit preference tracking ----
+      const materialCounts: Record<string, number> = {};
+      const textureCounts: Record<string, number> = {};
+      const fitCounts: Record<string, number> = {};
+      const patternCounts: Record<string, number> = {};
+
+      // ---- GAP G: LookStructure tracking ----
+      const silhouetteCounts: Record<string, number> = {};
+      const proportionCounts: Record<string, number> = {};
+      const colorHarmonyCounts: Record<string, number> = {};
+      let totalLayeringCount = 0;
+      let layeringYes = 0;
+      let layeringNo = 0;
 
       // ---- Aggregate scores over time ----
       const scoreHistory = completedReviews
@@ -5848,12 +5953,17 @@ Style: High-end ${genderLabel} fashion editorial flat lay, all items arranged ae
         const analysis = review.analysisJson as FashionAnalysis;
         if (!analysis) continue;
 
-        // Colors from items
+        // Colors from items — prefer preciseColor, fall back to color
         if (analysis.items) {
           for (const item of analysis.items) {
-            if (item.color) {
-              const c = item.color.trim().toLowerCase();
-              colorCounts[c] = (colorCounts[c] || 0) + 1;
+            const colorVal = (item.preciseColor || item.color || '').trim().toLowerCase();
+            if (colorVal) {
+              colorCounts[colorVal] = (colorCounts[colorVal] || 0) + 1;
+            }
+            // Also track color families for aggregation
+            if (item.colorFamily) {
+              const cf = `family:${item.colorFamily.trim().toLowerCase()}`;
+              colorCounts[cf] = (colorCounts[cf] || 0) + 1;
             }
             // Brands
             if (item.brand) {
@@ -5862,7 +5972,50 @@ Style: High-end ${genderLabel} fashion editorial flat lay, all items arranged ae
               brandCounts[b].count++;
               brandCounts[b].totalScore += item.score || 0;
             }
+            // GAP A: Structured style detection from item.style field
+            if (item.style) {
+              const s = item.style.trim().toLowerCase();
+              styleSignals[s] = (styleSignals[s] || 0) + 1;
+            }
+            // GAP C: Material/texture tracking
+            if (item.material) {
+              const m = item.material.trim().toLowerCase();
+              if (m && m !== 'n/a') materialCounts[m] = (materialCounts[m] || 0) + 1;
+            }
+            if (item.texture) {
+              const t = item.texture.trim().toLowerCase();
+              if (t && t !== 'n/a') textureCounts[t] = (textureCounts[t] || 0) + 1;
+            }
+            // GAP D: Fit tracking
+            if (item.fit) {
+              const f = item.fit.trim().toLowerCase();
+              if (f && f !== 'n/a') fitCounts[f] = (fitCounts[f] || 0) + 1;
+            }
+            // Pattern tracking
+            if (item.pattern) {
+              const p = item.pattern.trim().toLowerCase();
+              if (p && p !== 'n/a') patternCounts[p] = (patternCounts[p] || 0) + 1;
+            }
           }
+        }
+
+        // GAP G: Extract lookStructure data
+        if (analysis.lookStructure) {
+          const ls = analysis.lookStructure;
+          if (ls.silhouetteSummary) {
+            const s = ls.silhouetteSummary.trim().toLowerCase();
+            silhouetteCounts[s] = (silhouetteCounts[s] || 0) + 1;
+          }
+          if (ls.proportions) {
+            const p = ls.proportions.trim().toLowerCase();
+            proportionCounts[p] = (proportionCounts[p] || 0) + 1;
+          }
+          if (ls.colorHarmony) {
+            const c = ls.colorHarmony.trim().toLowerCase();
+            colorHarmonyCounts[c] = (colorHarmonyCounts[c] || 0) + 1;
+          }
+          totalLayeringCount++;
+          if (ls.hasLayering) layeringYes++; else layeringNo++;
         }
 
         // Category scores
@@ -5878,7 +6031,7 @@ Style: High-end ${genderLabel} fashion editorial flat lay, all items arranged ae
           }
         }
 
-        // Detect style signals from items and summary
+        // Detect style signals — SECONDARY: keyword fallback from summary (for older analyses without item.style)
         const summaryLower = (analysis.summary || "").toLowerCase();
         const styleKeywords: Record<string, string[]> = {
           minimalist: ["מינימליסטי", "מינימלי", "נקי", "minimalist", "clean lines"],
@@ -6038,6 +6191,32 @@ Style: High-end ${genderLabel} fashion editorial flat lay, all items arranged ae
         .slice(0, 5)
         .map(([cat]) => cat);
 
+      // ---- GAP C+D: Build material, texture, fit, pattern preferences ----
+      const buildTopPreferences = (counts: Record<string, number>, limit = 8) => {
+        const total = Object.values(counts).reduce((a, b) => a + b, 0) || 1;
+        return Object.entries(counts)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, limit)
+          .map(([name, count]) => ({ name, count, percentage: Math.round((count / total) * 100) }));
+      };
+
+      const materialPreferences = buildTopPreferences(materialCounts);
+      const texturePreferences = buildTopPreferences(textureCounts);
+      const fitPreferences = buildTopPreferences(fitCounts);
+      const patternPreferences = buildTopPreferences(patternCounts);
+
+      // GAP G: Build lookStructure insights
+      const silhouettePrefs = buildTopPreferences(silhouetteCounts, 5);
+      const proportionPrefs = buildTopPreferences(proportionCounts, 5);
+      const colorHarmonyPrefs = buildTopPreferences(colorHarmonyCounts, 5);
+      const lookStructureInsights = {
+        dominantSilhouette: silhouettePrefs[0]?.name || null,
+        dominantProportions: proportionPrefs[0]?.name || null,
+        dominantColorHarmony: colorHarmonyPrefs[0]?.name || null,
+        layeringFrequency: totalLayeringCount > 0 ? Math.round((layeringYes / totalLayeringCount) * 100) : null,
+        silhouetteBreakdown: silhouettePrefs,
+      };
+
       return {
         hasData: true,
         analysisCount: completedReviews.length,
@@ -6051,6 +6230,11 @@ Style: High-end ${genderLabel} fashion editorial flat lay, all items arranged ae
         styleEvolution,
         strengths,
         improvements,
+        materialPreferences,
+        texturePreferences,
+        fitPreferences,
+        patternPreferences,
+        lookStructureInsights,
         profilePreferences: {
           gender: profile?.gender || null,
           ageRange: profile?.ageRange || null,
@@ -6081,25 +6265,25 @@ Style: High-end ${genderLabel} fashion editorial flat lay, all items arranged ae
         return { hasData: false, matches: [] as { brand: string; matchPct: number; reasons: string[]; url: string }[] };
       }
 
-      // Brand style DNA mapping
-      const BRAND_DNA: Record<string, { styles: string[]; priceLevel: string; colors: string[]; vibe: string }> = {
-        "Zara": { styles: ["smart-casual", "minimalist", "classic"], priceLevel: "mid-range", colors: ["שחור", "לבן", "בז'", "נייבי", "black", "white", "beige", "navy"], vibe: "trendy" },
-        "H&M": { styles: ["smart-casual", "streetwear", "minimalist"], priceLevel: "budget", colors: ["שחור", "לבן", "אפור", "black", "white", "gray"], vibe: "accessible" },
-        "COS": { styles: ["minimalist", "classic"], priceLevel: "mid-range", colors: ["שחור", "לבן", "בז'", "אפור", "black", "white", "beige", "gray"], vibe: "architectural" },
-        "Massimo Dutti": { styles: ["classic", "smart-casual"], priceLevel: "mid-range", colors: ["נייבי", "חום", "בז'", "navy", "brown", "beige"], vibe: "refined" },
-        "Uniqlo": { styles: ["minimalist", "smart-casual"], priceLevel: "budget", colors: ["שחור", "לבן", "נייבי", "black", "white", "navy"], vibe: "essentials" },
-        "Nike": { styles: ["sporty", "streetwear"], priceLevel: "mid-range", colors: ["שחור", "לבן", "אדום", "black", "white", "red"], vibe: "athletic" },
-        "Adidas": { styles: ["sporty", "streetwear"], priceLevel: "mid-range", colors: ["שחור", "לבן", "ירוק", "black", "white", "green"], vibe: "sporty" },
-        "Ralph Lauren": { styles: ["classic", "preppy"], priceLevel: "premium", colors: ["נייבי", "לבן", "אדום", "navy", "white", "red"], vibe: "heritage" },
-        "Calvin Klein": { styles: ["minimalist", "classic"], priceLevel: "mid-range", colors: ["שחור", "לבן", "אפור", "black", "white", "gray"], vibe: "clean" },
-        "Tommy Hilfiger": { styles: ["preppy", "smart-casual"], priceLevel: "mid-range", colors: ["נייבי", "אדום", "לבן", "navy", "red", "white"], vibe: "american" },
-        "BOSS": { styles: ["classic", "smart-casual"], priceLevel: "premium", colors: ["שחור", "נייבי", "אפור", "black", "navy", "gray"], vibe: "power" },
-        "Gucci": { styles: ["avant-garde", "classic"], priceLevel: "luxury", colors: ["ירוק", "אדום", "זהב", "green", "red", "gold"], vibe: "maximalist" },
-        "Prada": { styles: ["minimalist", "avant-garde"], priceLevel: "luxury", colors: ["שחור", "לבן", "כחול", "black", "white", "blue"], vibe: "intellectual" },
-        "Balenciaga": { styles: ["streetwear", "avant-garde"], priceLevel: "luxury", colors: ["שחור", "לבן", "אדום", "black", "white", "red"], vibe: "disruptive" },
-        "Acne Studios": { styles: ["minimalist", "avant-garde"], priceLevel: "premium", colors: ["שחור", "ורוד", "אפור", "black", "pink", "gray"], vibe: "scandinavian" },
-        "Levi's": { styles: ["smart-casual", "streetwear"], priceLevel: "mid-range", colors: ["כחול", "שחור", "לבן", "blue", "black", "white"], vibe: "denim" },
-        "Castro": { styles: ["smart-casual", "classic"], priceLevel: "mid-range", colors: ["שחור", "נייבי", "בז'", "black", "navy", "beige"], vibe: "israeli-chic" },
+      // Brand style DNA mapping — GAP C+D: added materials and fits
+      const BRAND_DNA: Record<string, { styles: string[]; priceLevel: string; colors: string[]; vibe: string; materials?: string[]; fits?: string[] }> = {
+        "Zara": { styles: ["smart-casual", "minimalist", "classic"], priceLevel: "mid-range", colors: ["שחור", "לבן", "בז'", "נייבי", "black", "white", "beige", "navy"], vibe: "trendy", materials: ["cotton", "synthetic", "linen"], fits: ["slim", "regular", "tailored"] },
+        "H&M": { styles: ["smart-casual", "streetwear", "minimalist"], priceLevel: "budget", colors: ["שחור", "לבן", "אפור", "black", "white", "gray"], vibe: "accessible", materials: ["cotton", "synthetic"], fits: ["regular", "relaxed"] },
+        "COS": { styles: ["minimalist", "classic"], priceLevel: "mid-range", colors: ["שחור", "לבן", "בז'", "אפור", "black", "white", "beige", "gray"], vibe: "architectural", materials: ["cotton", "wool", "linen"], fits: ["relaxed", "oversized", "boxy"] },
+        "Massimo Dutti": { styles: ["classic", "smart-casual"], priceLevel: "mid-range", colors: ["נייבי", "חום", "בז'", "navy", "brown", "beige"], vibe: "refined", materials: ["cotton", "wool", "linen", "leather"], fits: ["tailored", "regular", "slim"] },
+        "Uniqlo": { styles: ["minimalist", "smart-casual"], priceLevel: "budget", colors: ["שחור", "לבן", "נייבי", "black", "white", "navy"], vibe: "essentials", materials: ["cotton", "synthetic"], fits: ["regular", "slim"] },
+        "Nike": { styles: ["sporty", "streetwear"], priceLevel: "mid-range", colors: ["שחור", "לבן", "אדום", "black", "white", "red"], vibe: "athletic", materials: ["synthetic", "knit", "rubber"], fits: ["regular", "slim"] },
+        "Adidas": { styles: ["sporty", "streetwear"], priceLevel: "mid-range", colors: ["שחור", "לבן", "ירוק", "black", "white", "green"], vibe: "sporty", materials: ["synthetic", "knit", "rubber"], fits: ["regular", "relaxed"] },
+        "Ralph Lauren": { styles: ["classic", "preppy"], priceLevel: "premium", colors: ["נייבי", "לבן", "אדום", "navy", "white", "red"], vibe: "heritage", materials: ["cotton", "wool", "leather"], fits: ["regular", "tailored"] },
+        "Calvin Klein": { styles: ["minimalist", "classic"], priceLevel: "mid-range", colors: ["שחור", "לבן", "אפור", "black", "white", "gray"], vibe: "clean", materials: ["cotton", "denim", "leather"], fits: ["slim", "regular"] },
+        "Tommy Hilfiger": { styles: ["preppy", "smart-casual"], priceLevel: "mid-range", colors: ["נייבי", "אדום", "לבן", "navy", "red", "white"], vibe: "american", materials: ["cotton", "denim"], fits: ["regular", "slim"] },
+        "BOSS": { styles: ["classic", "smart-casual"], priceLevel: "premium", colors: ["שחור", "נייבי", "אפור", "black", "navy", "gray"], vibe: "power", materials: ["wool", "cotton", "leather"], fits: ["tailored", "slim"] },
+        "Gucci": { styles: ["avant-garde", "classic"], priceLevel: "luxury", colors: ["ירוק", "אדום", "זהב", "green", "red", "gold"], vibe: "maximalist", materials: ["leather", "silk", "wool"], fits: ["regular", "tailored"] },
+        "Prada": { styles: ["minimalist", "avant-garde"], priceLevel: "luxury", colors: ["שחור", "לבן", "כחול", "black", "white", "blue"], vibe: "intellectual", materials: ["leather", "synthetic", "wool"], fits: ["regular", "oversized"] },
+        "Balenciaga": { styles: ["streetwear", "avant-garde"], priceLevel: "luxury", colors: ["שחור", "לבן", "אדום", "black", "white", "red"], vibe: "disruptive", materials: ["synthetic", "leather", "denim"], fits: ["oversized", "boxy"] },
+        "Acne Studios": { styles: ["minimalist", "avant-garde"], priceLevel: "premium", colors: ["שחור", "ורוד", "אפור", "black", "pink", "gray"], vibe: "scandinavian", materials: ["denim", "leather", "wool"], fits: ["regular", "oversized"] },
+        "Levi's": { styles: ["smart-casual", "streetwear"], priceLevel: "mid-range", colors: ["כחול", "שחור", "לבן", "blue", "black", "white"], vibe: "denim", materials: ["denim", "cotton"], fits: ["slim", "regular", "relaxed"] },
+        "Castro": { styles: ["smart-casual", "classic"], priceLevel: "mid-range", colors: ["שחור", "נייבי", "בז'", "black", "navy", "beige"], vibe: "israeli-chic", materials: ["cotton", "synthetic"], fits: ["slim", "regular"] },
         "Fox": { styles: ["smart-casual", "sporty"], priceLevel: "budget", colors: ["שחור", "לבן", "כחול", "black", "white", "blue"], vibe: "casual" },
         "Renuar": { styles: ["classic", "smart-casual"], priceLevel: "mid-range", colors: ["שחור", "נייבי", "בורדו", "black", "navy", "burgundy"], vibe: "workwear" },
         "Terminal X": { styles: ["streetwear", "smart-casual", "avant-garde"], priceLevel: "mid-range", colors: ["שחור", "לבן", "אפור", "black", "white", "gray"], vibe: "multi-brand" },
@@ -6111,13 +6295,32 @@ Style: High-end ${genderLabel} fashion editorial flat lay, all items arranged ae
       const userStyles: Record<string, number> = {};
       const userColors: Record<string, number> = {};
       const userBrands: Record<string, number> = {};
+      const userMaterials: Record<string, number> = {};
+      const userFits: Record<string, number> = {};
       let userBudget = profile?.budgetLevel || "mid-range";
 
       for (const review of completedReviews) {
         const analysis = review.analysisJson as FashionAnalysis;
         if (!analysis) continue;
 
-        // Extract styles from summary
+        // PRIMARY: Extract styles from structured item.style field
+        if (analysis.items) {
+          for (const item of analysis.items) {
+            if (item.style) {
+              const s = item.style.trim().toLowerCase();
+              userStyles[s] = (userStyles[s] || 0) + 1;
+            }
+            // Colors — prefer preciseColor, fall back to color
+            const colorVal = (item.preciseColor || item.color || '').trim().toLowerCase();
+            if (colorVal) { userColors[colorVal] = (userColors[colorVal] || 0) + 1; }
+            if (item.brand) { userBrands[item.brand.trim()] = (userBrands[item.brand.trim()] || 0) + 1; }
+            // GAP C+D: Material and fit tracking
+            if (item.material) { const m = item.material.trim().toLowerCase(); if (m && m !== 'n/a') userMaterials[m] = (userMaterials[m] || 0) + 1; }
+            if (item.fit) { const f = item.fit.trim().toLowerCase(); if (f && f !== 'n/a') userFits[f] = (userFits[f] || 0) + 1; }
+          }
+        }
+
+        // SECONDARY: keyword fallback from summary (for older analyses without item.style)
         const summaryLower = (analysis.summary || "").toLowerCase();
         const styleKws: Record<string, string[]> = {
           minimalist: ["מינימליסטי", "מינימלי", "minimalist", "clean lines"],
@@ -6134,14 +6337,6 @@ Style: High-end ${genderLabel} fashion editorial flat lay, all items arranged ae
             if (summaryLower.includes(kw)) { userStyles[style] = (userStyles[style] || 0) + 1; break; }
           }
         }
-
-        // Extract colors & brands from items
-        if (analysis.items) {
-          for (const item of analysis.items) {
-            if (item.color) { const c = item.color.trim().toLowerCase(); userColors[c] = (userColors[c] || 0) + 1; }
-            if (item.brand) { userBrands[item.brand.trim()] = (userBrands[item.brand.trim()] || 0) + 1; }
-          }
-        }
       }
 
       // Also count wardrobe
@@ -6152,6 +6347,8 @@ Style: High-end ${genderLabel} fashion editorial flat lay, all items arranged ae
 
       const totalStyleSignals = Object.values(userStyles).reduce((a, b) => a + b, 0) || 1;
       const totalColorSignals = Object.values(userColors).reduce((a, b) => a + b, 0) || 1;
+      const totalMaterialSignals = Object.values(userMaterials).reduce((a, b) => a + b, 0) || 1;
+      const totalFitSignals = Object.values(userFits).reduce((a, b) => a + b, 0) || 1;
 
       // Budget level mapping
       const budgetLevels = ["budget", "mid-range", "premium", "luxury"];
@@ -6192,11 +6389,33 @@ Style: High-end ${genderLabel} fashion editorial flat lay, all items arranged ae
           reasons.push("detected");
         }
 
-        // Budget alignment (15% weight)
+        // Material match (bonus, up to 5% weight) — GAP C
+        if (dna.materials) {
+          let matMatch = 0;
+          for (const bMat of dna.materials) {
+            if (userMaterials[bMat]) matMatch += (userMaterials[bMat] / totalMaterialSignals);
+          }
+          matMatch = Math.min(matMatch, 1);
+          score += matMatch * 5;
+          if (matMatch > 0.3) reasons.push("materials");
+        }
+
+        // Fit match (bonus, up to 5% weight) — GAP D
+        if (dna.fits) {
+          let fitMatch = 0;
+          for (const bFit of dna.fits) {
+            if (userFits[bFit]) fitMatch += (userFits[bFit] / totalFitSignals);
+          }
+          fitMatch = Math.min(fitMatch, 1);
+          score += fitMatch * 5;
+          if (fitMatch > 0.3) reasons.push("fit");
+        }
+
+        // Budget alignment (10% weight — reduced from 15% to accommodate material+fit)
         const brandBudgetIdx = budgetLevels.indexOf(dna.priceLevel);
         const budgetDiff = Math.abs(userBudgetIdx - brandBudgetIdx);
         const budgetMatch = budgetDiff === 0 ? 1 : budgetDiff === 1 ? 0.6 : budgetDiff === 2 ? 0.2 : 0;
-        score += budgetMatch * 15;
+        score += budgetMatch * 10;
         if (budgetMatch >= 0.6) reasons.push("budget");
 
         const url = BRAND_URLS[brand] || "";
@@ -6292,13 +6511,48 @@ Style: High-end ${genderLabel} fashion editorial flat lay, all items arranged ae
 
         const pairingTypes = categoryPairings[normalizedCategory] || ["shirt", "pants", "shoes", "accessory"];
 
-        // Helper: resolve an item's categories from its emoji or text itemType
-        const resolveItemCategories = (itemType: string): string[] => {
-          // Check if it's an emoji itemType
-          const emojiCats = emojiToCategory[itemType.trim()];
+        // Helper: resolve an item's categories — prefer garmentType, fall back to emoji/text
+        const resolveItemCategories = (item: { itemType?: string | null; name?: string | null; styleNote?: string | null }): string[] => {
+          // Check styleNote AND name for garmentType keywords (saved from Stage 29 enrichment)
+          const combined = ((item.styleNote || '') + ' ' + (item.name || '') + ' ' + (item.itemType || '')).toLowerCase();
+          // Map garmentType to category — search for longest match first to avoid partial matches
+          const gtToCat: Record<string, string[]> = {
+            'dress-shirt': ['shirt', 'formal-shirt'], 'dress shirt': ['shirt', 'formal-shirt'],
+            't-shirt': ['shirt', 'top', 't-shirt'], 'tank-top': ['top'], 'tank top': ['top'],
+            'crop-top': ['top'], 'crop top': ['top'],
+            'shirt': ['shirt', 'top'], 'polo': ['shirt', 'top'], 'blouse': ['blouse', 'top'],
+            'sweater': ['top', 'sweater'], 'hoodie': ['top', 'hoodie'],
+            'sweatshirt': ['top', 'sweatshirt'], 'cardigan': ['top', 'cardigan'],
+            'chinos': ['pants', 'chinos'], 'trousers': ['pants', 'trousers'],
+            'jeans': ['jeans', 'pants'], 'joggers': ['pants', 'joggers'],
+            'leggings': ['pants', 'leggings'], 'shorts': ['shorts', 'pants'],
+            'pants': ['pants'],
+            'skirt': ['skirt'], 'dress': ['dress'],
+            'blazer': ['blazer', 'jacket'], 'bomber': ['jacket', 'bomber'],
+            'parka': ['jacket', 'coat'], 'vest': ['jacket', 'vest'],
+            'jacket': ['jacket'], 'coat': ['coat'],
+            'sneakers': ['shoes', 'sneakers'], 'loafers': ['shoes', 'loafers'],
+            'boots': ['shoes', 'boots'], 'heels': ['shoes', 'heels'],
+            'sandals': ['shoes', 'sandals'], 'oxford': ['shoes', 'formal-shoes'],
+            'shoes': ['shoes'],
+            'bag': ['bag'], 'backpack': ['bag', 'backpack'], 'handbag': ['bag', 'handbag'],
+            'watch': ['accessory', 'watch'], 'sunglasses': ['accessory', 'sunglasses'],
+            'belt': ['accessory', 'belt'], 'necklace': ['accessory', 'jewelry'],
+            'bracelet': ['accessory', 'jewelry'], 'ring': ['accessory', 'jewelry'],
+            'earrings': ['accessory', 'jewelry'], 'hat': ['accessory', 'hat'],
+            'cap': ['accessory', 'hat', 'cap'], 'scarf': ['accessory', 'scarf'],
+          };
+          // Search for garmentType keywords in combined text (longest match first)
+          const sortedEntries = Object.entries(gtToCat).sort((a, b) => b[0].length - a[0].length);
+          for (const [gt, cats] of sortedEntries) {
+            if (combined.includes(gt)) return cats;
+          }
+          // Fall back to emoji-based detection
+          const itemType = (item.itemType || '').trim();
+          const emojiCats = emojiToCategory[itemType];
           if (emojiCats) return emojiCats;
           // Also check if the name/styleNote contains category hints
-          const lower = itemType.toLowerCase();
+          const lower = (item.name || itemType || '').toLowerCase();
           const allCats: string[] = [];
           for (const cats of Object.values(emojiToCategory)) {
             for (const cat of cats) {
@@ -6311,7 +6565,7 @@ Style: High-end ${genderLabel} fashion editorial flat lay, all items arranged ae
         // Color harmony check — simple complementary/analogous matching
         const matchingWardrobeItems = wardrobeData
           .filter((item) => {
-            const itemCategories = resolveItemCategories(item.itemType || "");
+            const itemCategories = resolveItemCategories(item);
             return pairingTypes.some(pt => itemCategories.some(ic => ic === pt || ic.includes(pt) || pt.includes(ic)));
           })
           .map((item) => ({
@@ -6382,15 +6636,21 @@ Style: High-end ${genderLabel} fashion editorial flat lay, all items arranged ae
           if (!analysis) continue;
           allScores.push(analysis.overallScore || 0);
 
+          // PRIMARY: Use structured item.style and preciseColor fields
           if (analysis.items) {
             for (const item of analysis.items) {
-              if (item.color) {
-                const c = item.color.trim().toLowerCase();
-                colorCounts[c] = (colorCounts[c] || 0) + 1;
+              const colorVal = (item.preciseColor || item.color || '').trim().toLowerCase();
+              if (colorVal) {
+                colorCounts[colorVal] = (colorCounts[colorVal] || 0) + 1;
+              }
+              if (item.style) {
+                const s = item.style.trim().toLowerCase();
+                styleMap[s] = (styleMap[s] || 0) + 1;
               }
             }
           }
 
+          // SECONDARY: keyword fallback from summary (for older analyses without item.style)
           const summaryLower = (analysis.summary || "").toLowerCase();
           const styleKws: Record<string, string[]> = {
             minimalist: ["מינימליסטי", "minimalist"],
@@ -6437,6 +6697,15 @@ Style: High-end ${genderLabel} fashion editorial flat lay, all items arranged ae
           itemImageUrl: item.itemImageUrl,
         }));
 
+        // GAP G: Extract lookStructure insights from most recent analysis
+        const latestAnalysis = completedReviews[0]?.analysisJson as FashionAnalysis | null;
+        const lookStructureContext = latestAnalysis?.lookStructure ? {
+          silhouette: latestAnalysis.lookStructure.silhouetteSummary || null,
+          proportions: latestAnalysis.lookStructure.proportions || null,
+          colorHarmony: latestAnalysis.lookStructure.colorHarmony || null,
+          usesLayering: latestAnalysis.lookStructure.hasLayering || false,
+        } : null;
+
         return {
           hasData: completedReviews.length > 0,
           wardrobeItemCount: wardrobeData.length,
@@ -6451,6 +6720,7 @@ Style: High-end ${genderLabel} fashion editorial flat lay, all items arranged ae
             scoreImprovement,
             totalLooks: completedReviews.length,
           },
+          lookStructureContext,
           profilePreferences: {
             gender: profile?.gender || null,
             stylePreference: profile?.stylePreference || null,
@@ -6567,15 +6837,21 @@ Style: High-end fashion editorial flat lay for a ${genderWord}. Items arranged a
           if (!analysis) continue;
           allScores.push(analysis.overallScore || 0);
 
+          // PRIMARY: Use structured item.style and preciseColor fields
           if (analysis.items) {
             for (const item of analysis.items) {
-              if (item.color) {
-                const c = item.color.trim().toLowerCase();
-                colorCounts[c] = (colorCounts[c] || 0) + 1;
+              const colorVal = (item.preciseColor || item.color || '').trim().toLowerCase();
+              if (colorVal) {
+                colorCounts[colorVal] = (colorCounts[colorVal] || 0) + 1;
+              }
+              if (item.style) {
+                const s = item.style.trim().toLowerCase();
+                styleCounts[s] = (styleCounts[s] || 0) + 1;
               }
             }
           }
 
+          // SECONDARY: keyword fallback from summary (for older analyses without item.style)
           const summaryLower = (analysis.summary || "").toLowerCase();
           const styleKws: Record<string, string[]> = {
             minimalist: ["מינימליסטי", "minimalist", "מינימלי"],
@@ -6604,35 +6880,57 @@ Style: High-end fashion editorial flat lay for a ${genderWord}. Items arranged a
         const dominantStyle = Object.entries(styleCounts)
           .sort((a, b) => b[1] - a[1])[0]?.[0] || "classic";
 
-        // Emoji-to-category mapping (wardrobe items use emoji itemTypes)
-        const emojiToCat: Record<string, string[]> = {
-          "👕": ["shirt", "top", "blouse", "t-shirt"],
-          "👖": ["pants", "jeans"],
-          "👗": ["dress"],
-          "🧥": ["jacket", "blazer", "coat"],
-          "👟": ["shoes", "sneakers"],
-          "👞": ["shoes", "formal-shoes"],
-          "👠": ["shoes", "heels"],
-          "👜": ["bag", "handbag"],
-          "🎒": ["bag", "backpack"],
-          "⌚": ["accessory", "watch"],
-          "🕶️": ["accessory", "sunglasses"],
-          "💍": ["accessory", "jewelry", "ring"],
-          "📿": ["accessory", "jewelry", "necklace"],
-          "🧣": ["accessory", "scarf"],
-          "🧢": ["accessory", "hat", "cap"],
-          "👒": ["accessory", "hat"],
-          "🩳": ["shorts", "pants"],
-          "👔": ["shirt", "formal-shirt"],
+        // GAP F: garmentType-to-category mapping (PRIMARY), emoji as FALLBACK
+        const garmentToCat: Record<string, string[]> = {
+          "t-shirt": ["shirt", "top", "t-shirt"], "dress shirt": ["shirt", "formal-shirt"],
+          "polo": ["shirt", "top", "polo"], "blouse": ["shirt", "top", "blouse"],
+          "sweater": ["top", "sweater", "knitwear"], "hoodie": ["top", "hoodie", "streetwear"],
+          "sweatshirt": ["top", "sweatshirt"], "tank top": ["top", "tank"],
+          "crop top": ["top", "crop"], "cardigan": ["top", "cardigan", "knitwear"],
+          "jeans": ["pants", "jeans", "denim"], "chinos": ["pants", "chinos"],
+          "trousers": ["pants", "trousers"], "shorts": ["shorts", "pants"],
+          "joggers": ["pants", "joggers", "athletic"], "leggings": ["pants", "leggings"],
+          "dress": ["dress"], "skirt": ["skirt"],
+          "blazer": ["jacket", "blazer"], "jacket": ["jacket"],
+          "coat": ["jacket", "coat", "outerwear"], "bomber": ["jacket", "bomber"],
+          "denim jacket": ["jacket", "denim"], "leather jacket": ["jacket", "leather"],
+          "parka": ["jacket", "coat", "outerwear"], "vest": ["jacket", "vest"],
+          "sneakers": ["shoes", "sneakers"], "loafers": ["shoes", "loafers"],
+          "boots": ["shoes", "boots"], "heels": ["shoes", "heels"],
+          "sandals": ["shoes", "sandals"], "oxford": ["shoes", "formal-shoes"],
+          "belt": ["accessory", "belt"], "watch": ["accessory", "watch"],
+          "sunglasses": ["accessory", "sunglasses"], "hat": ["accessory", "hat"],
+          "cap": ["accessory", "hat", "cap"], "scarf": ["accessory", "scarf"],
+          "necklace": ["accessory", "jewelry", "necklace"], "bracelet": ["accessory", "jewelry"],
+          "ring": ["accessory", "jewelry", "ring"], "earrings": ["accessory", "jewelry"],
+          "bag": ["bag"], "backpack": ["bag", "backpack"], "handbag": ["bag", "handbag"],
         };
-        const resolveCategories = (itemType: string): string[] => {
-          const cats = emojiToCat[itemType.trim()];
-          return cats || [itemType.toLowerCase()];
+        const emojiToCat: Record<string, string[]> = {
+          "👕": ["shirt", "top"], "👖": ["pants", "jeans"], "👗": ["dress"],
+          "🧥": ["jacket", "coat"], "👟": ["shoes", "sneakers"], "👞": ["shoes", "formal-shoes"],
+          "👠": ["shoes", "heels"], "👜": ["bag"], "🎒": ["bag", "backpack"],
+          "⌚": ["accessory", "watch"], "🕶️": ["accessory", "sunglasses"],
+          "💍": ["accessory", "jewelry"], "🧣": ["accessory", "scarf"],
+          "🧢": ["accessory", "hat"], "👒": ["accessory", "hat"],
+          "🩳": ["shorts", "pants"], "👔": ["shirt", "formal-shirt"],
+        };
+        const resolveCategories = (item: { itemType?: string | null; styleNote?: string | null }): string[] => {
+          // PRIMARY: extract garmentType from styleNote (saved from Stage 29)
+          const note = (item.styleNote || '').toLowerCase();
+          for (const [gt, cats] of Object.entries(garmentToCat)) {
+            if (note.includes(gt)) return cats;
+          }
+          // FALLBACK: emoji-based detection
+          const itemType = (item.itemType || '').trim();
+          const emojiCats = emojiToCat[itemType];
+          if (emojiCats) return emojiCats;
+          // Last resort: use itemType as-is
+          return itemType ? [itemType.toLowerCase()] : [];
         };
 
         // Check which wardrobe categories the user is missing
         const ownedCategories = new Set(
-          wardrobeData.flatMap((w) => resolveCategories(w.itemType || ""))
+          wardrobeData.flatMap((w) => resolveCategories(w))
         );
 
         // Score each product
@@ -6683,7 +6981,7 @@ Style: High-end fashion editorial flat lay for a ${genderWord}. Items arranged a
           };
           const pairingTypes = categoryPairings[catLower] || [];
           const pairingCount = pairingTypes.filter(pt =>
-            wardrobeData.some(w => resolveCategories(w.itemType || "").some(c => c === pt || c.includes(pt) || pt.includes(c)))
+            wardrobeData.some(w => resolveCategories(w).some(c => c === pt || c.includes(pt) || pt.includes(c)))
           ).length;
           if (pairingCount > 0) {
             score += Math.min(15, pairingCount * 5);

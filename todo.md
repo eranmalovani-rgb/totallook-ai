@@ -403,3 +403,31 @@
 - [x] 30.7: GAP 6 — Wardrobe enrichment verified complete from Stage 29 (garmentType, preciseColor, material, rich styleNote)
 - [x] 30.8: 765/769 tests pass (same 4 pre-existing API failures: google-cse, imagegen x2, openai), 0 TS errors, 0 new failures
 - [x] 30.9: Save checkpoint
+
+## Stage 31 — System-wide Metadata Integration (7 Gaps)
+- [x] 31.1: GAP E — Created buildRichItemDescription + buildRichWardrobeItemDescription helpers
+- [x] 31.2: GAP E — Updated generateTotalLook (auth) with rich descriptions + lookStructure silhouette
+- [x] 31.3: GAP E — Updated generateOutfitLook (auth + guest) with rich descriptions + silhouette
+- [x] 31.4: GAP E — generateWidgetLook receives data from frontend (names/colors) — prompt already uses them
+- [x] 31.5: GAP E — generateUpgradeLook receives data from frontend — prompt already uses them
+- [x] 31.6: GAP E — Updated visualizeLook (auth + guest) with buildRichWardrobeItemDescription
+- [ ] 31.7: GAP A — Replace keyword-based style detection with item.style in Taste Profile
+- [ ] 31.8: GAP A — Replace keyword-based style detection with item.style in Brand Matching
+- [ ] 31.9: GAP A — Replace keyword-based style detection with item.style in Widget Personalization
+- [ ] 31.10: GAP A — Replace keyword-based style detection with item.style in Smart Match Products
+- [ ] 31.11: GAP B — Upgrade color tracking to preciseColor/colorFamily in Taste Profile
+- [ ] 31.12: GAP B — Upgrade color tracking to preciseColor/colorFamily in Brand Matching
+- [ ] 31.13: GAP B — Upgrade color tracking in Widget Personalization
+- [ ] 31.14: GAP B — Upgrade color tracking in Smart Match Products
+- [x] 31.15: GAP C — Added material/texture/pattern preference tracking to Taste Profile (materialPreferences, texturePreferences, patternPreferences in return)
+- [x] 31.16: GAP C — Added material matching to Brand Matching (5% weight, materials added to BRAND_DNA for all brands)
+- [x] 31.17: GAP D — Added fit preference tracking to Taste Profile (fitPreferences in return)
+- [x] 31.18: GAP D — Added fit matching to Brand Matching (5% weight, fits added to BRAND_DNA, budget reduced 15%→10%)
+- [x] 31.19: GAP F — Updated smartMatchProducts: garmentType from styleNote as PRIMARY, emoji as FALLBACK, with comprehensive garmentToCat mapping
+- [x] 31.20: GAP F — Widget already updated with resolveItemCategories (garmentType from styleNote PRIMARY, emoji FALLBACK) in earlier phase
+- [x] 31.21: GAP G — Added lookStructure insights to Taste Profile (dominantSilhouette, dominantProportions, dominantColorHarmony, layeringFrequency, silhouetteBreakdown)
+- [x] 31.22: GAP G — Added lookStructure-enriched style tags to Feed publish (colorHarmony, layered, proportions, silhouette, dominant item style)
+- [x] 31.23: GAP G — Added lookStructureContext to Widget Personalization return (silhouette, proportions, colorHarmony, usesLayering)
+- [x] 31.24: 765/769 tests pass (same 4 pre-existing API failures: google-cse, imagegen x2, openai), 0 TS errors, 0 new failures. Fixed widget resolveItemCategories to search combined text instead of regex start-of-string.
+- [x] 31.25: Save checkpoint
+- [x] 31.13b: Added style field to FashionItem interface, JSON schema, prompt template, and required list (discovered missing during GAP A implementation)

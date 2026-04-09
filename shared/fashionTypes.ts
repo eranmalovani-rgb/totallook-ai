@@ -125,6 +125,10 @@ export interface FashionItem {
   /** Closure type: "buttons" | "zipper" | "pullover" | "open" | "snap" | "lace-up" | "buckle" | "none" | "n/a" */
   closure?: string;
 
+  // ── Style ──
+  /** Overall style category: "casual" | "smart-casual" | "formal" | "streetwear" | "minimalist" | "classic" | "sporty" | "bohemian" | "avant-garde" | "preppy" | "elegant" */
+  style?: string;
+
   // ── Condition & Details ──
   /** Visible condition: "clean" | "wrinkled" | "worn" | "distressed" | "pristine" */
   condition?: string;
