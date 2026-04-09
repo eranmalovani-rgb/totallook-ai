@@ -45,7 +45,7 @@ const trpcClient = trpc.createClient({
       fetch(input, init) {
         // Use 120s timeout for long-running analysis mutations
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 180_000); // 180s for gpt-image-1 edits (60-80s) + server processing
+        const timeoutId = setTimeout(() => controller.abort(), 120_000); // 120s for long-running analysis mutations
         // Combine with any existing signal from tRPC
         const existingSignal = init?.signal;
         if (existingSignal) {

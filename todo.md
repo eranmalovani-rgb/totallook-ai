@@ -326,3 +326,14 @@
 - [x] 21d.1: Root cause: gpt-image-1 takes 60-80s per edit (vs ~10s for mini). Old 45s timeout caused AbortError on every attempt. 3 retry attempts * 45s = 135s total, exceeding 120s frontend timeout.
 - [x] 21d.2: Fixes: (a) Increased server-side edit timeout to 120s, (b) Reduced edit retry attempts to 1 (no retry since each takes 60-80s), (c) Increased frontend timeout to 180s, (d) Added error logging to FixMyLookModal onError handler, (e) Added detailed logging to imageGeneration.ts
 - [ ] 21d.3: Test end-to-end (user needs to test on deployed site)
+
+## Stage 22 — Fix My Look: Complete Rewrite from Root
+- [x] 22.1: Mapped all locations — only 2: ReviewPage (registered) + GuestReview (guest). No widget/closet Fix My Look.
+- [x] 22.2: Rewrote prompt builder — minimalist approach: short focused prompt, explicit CHANGE lines with UPPERCASE colors, no image[N] references
+- [x] 22.3: Rewrote imageGeneration.ts — gpt-image-1-mini, quality medium, REMOVED input_fidelity (not supported on mini, caused 400 error!)
+- [x] 22.4: Updated registered fixMyLook — sends ONLY user photo as reference, no product images
+- [x] 22.5: Updated guest fixMyLook — same approach
+- [x] 22.6: N/A — no widget Fix My Look exists
+- [x] 22.7: N/A — no closet Fix My Look exists
+- [x] 22.8: Tested with real API call — WHITE shirt = WHITE, DARK BLUE jeans = DARK BLUE, 23.6s, identity preserved
+- [x] 22.9: 765/769 tests pass (4 pre-existing API failures), 0 TS errors

@@ -1028,78 +1028,60 @@ function buildDeterministicFixMyLookPrompt(params: {
     imageDimensions,
   } = params;
 
+  // Build a map from improvement index to selected product details
   const selectedByImprovementIndex = new Map<number, FixMyLookProductDetail>();
   for (const detail of selectedProductDetails || []) {
     selectedByImprovementIndex.set(detail.improvementIndex, detail);
   }
 
-  // Track which product images are included as references (image[1], image[2], etc.)
-  let productImageRefIndex = 1; // image[0] is always the user's original photo
-  const replacementLines = relevantImprovements.map((imp) => {
+  // Build simple, direct replacement instructions — NO image references, just precise text descriptions
+  const replacementLines: string[] = [];
+  for (const imp of relevantImprovements) {
     const improvementIndex = allImprovements.indexOf(imp);
     const selected = improvementIndex >= 0 ? selectedByImprovementIndex.get(improvementIndex) : undefined;
     const targetLabel = selected?.productLabel || imp.afterLabel || imp.title;
+    const currentItem = imp.beforeLabel || imp.title;
+    
+    // Extract color from the target label — this is the most critical piece
     const colorHint = detectColorHint(targetLabel);
-    const colorInstruction = colorHint
-      ? `Use EXACT color "${colorHint}" with ZERO substitution — do NOT change this color under any circumstances.`
-      : "Use a color that is closest to the target product description.";
-    let imageRef = "";
-    if (selected?.productImageUrl) {
-      imageRef = ` Reference product photo is image[${productImageRefIndex}] — copy its exact color, pattern, texture, and style.`;
-      productImageRefIndex++;
+    const colorStr = colorHint ? colorHint.toUpperCase() : "";
+    
+    if (colorStr) {
+      replacementLines.push(`CHANGE: "${currentItem}" → ${colorStr} ${targetLabel}. The new item MUST be ${colorStr}.`);
+    } else {
+      replacementLines.push(`CHANGE: "${currentItem}" → ${targetLabel}.`);
     }
-    return `- Replace "${imp.beforeLabel || imp.title}" with "${targetLabel}". ${colorInstruction}${imageRef} Keep garment type, sleeve length, collar type, and fit aligned with the target item.`;
-  });
+  }
 
-  const fallbackReplacements = itemsToFix.map((item) =>
-    `- Replace "${item.name}" with a more flattering, premium, trend-aware alternative that matches the overall look.`,
-  );
+  // Fallback if no improvements matched
+  if (replacementLines.length === 0) {
+    for (const item of itemsToFix) {
+      replacementLines.push(`CHANGE: "${item.name}" → a more stylish, flattering alternative.`);
+    }
+  }
 
-  const keepLines = (analysis.items || [])
+  // Items to keep
+  const keepItems = (analysis.items || [])
     .filter(item => !itemsToFix.includes(item))
-    .slice(0, 12)
-    .map(item => `- Keep "${item.name}" unchanged.`);
+    .slice(0, 6)
+    .map(item => item.name);
 
-  const orientationText = imageDimensions.width > 0 && imageDimensions.height > 0
-    ? `${imageOrientation} (${imageDimensions.width}x${imageDimensions.height})`
-    : imageOrientation;
+  // Build a SHORT, FOCUSED prompt — the shorter the prompt, the better the AI follows it
+  const lines: string[] = [
+    `Edit this photo. Keep the SAME person, face, pose, background, and lighting.`,
+    ``,
+    ...replacementLines,
+    ``,
+    keepItems.length > 0 ? `DO NOT change: ${keepItems.join(", ")}.` : `Keep all other clothing unchanged.`,
+    ``,
+    `CRITICAL RULES:`,
+    `- Same person, same face, same body — NO identity changes`,
+    `- Colors must be EXACTLY as specified above — if it says WHITE, it must be WHITE, not red or beige`,
+    `- Photorealistic result, natural fabric draping`,
+  ];
 
-  return [
-    `IMAGE EDITING TASK — edit the user's photo (image[0]) in-place.`,
-    ``,
-    `## IDENTITY RULES (HIGHEST PRIORITY)`,
-    `image[0] is the USER'S ORIGINAL PHOTO. The output MUST show this EXACT same person.`,
-    `ABSOLUTE IDENTITY LOCK: preserve the user's face, skin tone, body shape, hair, expression, pose, background, camera angle, and lighting EXACTLY as in image[0].`,
-    `Do NOT replace the person. Do NOT beautify, reshape, or retouch the person in any way.`,
-    ``,
-    productImageRefIndex > 1 ? [
-      `## PRODUCT REFERENCE IMAGES`,
-      `image[1]${productImageRefIndex > 2 ? ` through image[${productImageRefIndex - 1}]` : ''} are PRODUCT REFERENCE PHOTOS showing the exact garments to use.`,
-      `CRITICAL: Copy the EXACT color, pattern, and texture from each product reference image onto the corresponding garment on the user.`,
-      `Do NOT invent colors. Do NOT substitute colors. If the product image shows WHITE, the output garment MUST be WHITE.`,
-      `Do NOT copy the model/mannequin from product photos — only copy the garment's appearance.`,
-    ].join('\n') : '',
-    ``,
-    `## COLOR ACCURACY (CRITICAL — ZERO TOLERANCE FOR COLOR ERRORS)`,
-    `The #1 most important rule after identity: MATCH EXACT COLORS from the product reference images.`,
-    `If a replacement item says "white" — the output MUST be white, NOT red, NOT beige, NOT any other color.`,
-    `If a replacement item says "blue" — the output MUST be blue, NOT brown, NOT grey, NOT any other color.`,
-    `When a product reference image is provided, the garment color in the output must be pixel-level identical to the reference.`,
-    ``,
-    `Output orientation and dimensions: ${orientationText}.`,
-    ``,
-    `## GARMENT REPLACEMENTS (apply these changes to the user in image[0]):`,
-    ...(replacementLines.length > 0 ? replacementLines : fallbackReplacements),
-    ``,
-    `## ITEMS TO KEEP UNCHANGED:`,
-    ...(keepLines.length > 0 ? keepLines : ["- Keep all other visible items unchanged."]),
-    ``,
-    `## QUALITY RULES:`,
-    `- Preserve photorealism and natural fabric draping/behavior.`,
-    `- Keep edits coherent with body proportions and perspective.`,
-    `- The replaced garments must look naturally worn by the user, not pasted on.`,
-    `- If anything is ambiguous, prefer minimal change over identity drift.`,
-  ].join("\n");
+  console.log(`[Fix My Look Prompt] ${replacementLines.length} replacements, prompt length: ${lines.join('\n').length} chars`);
+  return lines.join("\n");
 }
 
 function extractLLMTextContent(content: unknown): string {
@@ -3036,33 +3018,13 @@ Style: High-end ${genderLabel} fashion editorial flat lay, items arranged aesthe
           imageDimensions,
         });
 
-        // Generate the fixed image: user's photo as primary reference + product images as style references
+        // Generate the fixed image: send ONLY user's photo as reference, rely on text prompt for accuracy
         try {
-          const targetSize =
-            imageDimensions.width > 0 && imageDimensions.height > 0
-              ? { width: imageDimensions.width, height: imageDimensions.height }
-              : undefined;
-
-          // Build originalImages array: [0] = user photo, [1..N] = selected product images
-          const originalImagesArr: Array<{ url: string; mimeType: string }> = [
-            { url: review.imageUrl, mimeType: "image/jpeg" },
-          ];
-          // Add product reference images for each selected improvement
-          if (input.selectedProductDetails && input.selectedProductDetails.length > 0) {
-            for (const detail of input.selectedProductDetails) {
-              if (detail.productImageUrl && detail.productImageUrl.startsWith('http')) {
-                originalImagesArr.push({
-                  url: detail.productImageUrl,
-                  mimeType: "image/jpeg",
-                });
-              }
-            }
-            console.log(`[Fix My Look] Sending ${originalImagesArr.length} images: 1 user photo + ${originalImagesArr.length - 1} product references`);
-          }
+          console.log(`[Fix My Look] Prompt: ${editPrompt.substring(0, 200)}...`);
 
           let { url: fixedImageUrl } = await generateImage({
             prompt: editPrompt,
-            originalImages: originalImagesArr,
+            originalImages: [{ url: review.imageUrl, mimeType: "image/jpeg" }],
           });
 
           // Collect shopping links from relevant improvements
@@ -5047,30 +5009,11 @@ Style: High-end ${genderLabel} fashion editorial flat lay, all items arranged ae
         });
 
         try {
-          const targetSize =
-            imageDimensions.width > 0 && imageDimensions.height > 0
-              ? { width: imageDimensions.width, height: imageDimensions.height }
-              : undefined;
-
-          // Build originalImages array: [0] = user photo, [1..N] = selected product images
-          const originalImagesArr: Array<{ url: string; mimeType: string }> = [
-            { url: session.imageUrl!, mimeType: "image/jpeg" },
-          ];
-          if (input.selectedProductDetails && input.selectedProductDetails.length > 0) {
-            for (const detail of input.selectedProductDetails) {
-              if (detail.productImageUrl && detail.productImageUrl.startsWith('http')) {
-                originalImagesArr.push({
-                  url: detail.productImageUrl,
-                  mimeType: "image/jpeg",
-                });
-              }
-            }
-            console.log(`[Guest Fix My Look] Sending ${originalImagesArr.length} images: 1 user photo + ${originalImagesArr.length - 1} product references`);
-          }
+          console.log(`[Guest Fix My Look] Prompt: ${editPrompt.substring(0, 200)}...`);
 
           let { url: fixedImageUrl } = await generateImage({
             prompt: editPrompt,
-            originalImages: originalImagesArr,
+            originalImages: [{ url: session.imageUrl!, mimeType: "image/jpeg" }],
           });
 
           const shoppingLinks = relevantImprovements.flatMap(imp => imp.shoppingLinks || []).slice(0, 6);
