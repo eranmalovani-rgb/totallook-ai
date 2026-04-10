@@ -674,7 +674,7 @@ function normalizeImprovementsForWearableCore(
   }
 
   const keep: Improvement[] = [...normalized];
-  while (keep.length > 5) {
+  while (keep.length > 6) {
     let removableIdx: number | undefined;
     for (let idx = keep.length - 1; idx >= 0; idx -= 1) {
       const cat = detectImprovementCategory(keep[idx]);
@@ -693,7 +693,7 @@ function normalizeImprovementsForWearableCore(
     keep.splice(removableIdx, 1);
   }
 
-  while (keep.length < 4) {
+  while (keep.length < 3) {
     const missingCat =
       preferredOrder.find((cat) => !keep.some((imp) => detectImprovementCategory(imp) === cat)) ||
       preferredOrder[keep.length % preferredOrder.length];
@@ -2757,12 +2757,12 @@ function sanitizeRecommendationsPayload(
   });
 
   improvements = improvements.map((imp) => normalizeImprovementShoppingLinks(imp, lang, preferredStores, genderCat, budgetLevel));
-  // Stage 50b: Reduced from 4/5 to 3 to match prompt and prevent JSON truncation
+  // Stage 51g: Allow up to 6 improvements (was limited to 3 for LLM JSON truncation, no longer needed with catalog)
   if (improvements.length < 3 && fallback) {
     const needed = 3 - improvements.length;
     improvements = [...improvements, ...fallback.improvements.slice(0, needed)];
   }
-  if (improvements.length > 3) improvements = improvements.slice(0, 3);
+  if (improvements.length > 6) improvements = improvements.slice(0, 6);
   improvements = improvements.map((imp) => normalizeImprovementShoppingLinks(imp, lang, preferredStores, genderCat, budgetLevel));
 
   // Global deduplication: remove duplicate shopping links across all improvements
@@ -2959,13 +2959,12 @@ async function buildCatalogRecommendations(
   });
   const styleArray = detectedStyles.size > 0 ? [...detectedStyles] : undefined;
 
-  // Find upgrade items for each Stage 1 item (max 3)
+  // Find upgrade items for each Stage 1 item
   const usedCatalogIds: number[] = [];
   const improvements: Improvement[] = [];
   const processedCategories = new Set<string>();
 
-  for (const item of stageOneItems.slice(0, 6)) {
-    if (improvements.length >= 3) break;
+  for (const item of stageOneItems.slice(0, 8)) {
     const garmentType = (item.garmentType || "").toLowerCase();
     const bodyZone = (item.bodyZone || "").toLowerCase();
     const mapping = garmentToCatalog[garmentType] || (bodyZone ? { category: bodyZoneToCatalog[bodyZone] || "tops" } : null);
@@ -3052,10 +3051,9 @@ async function buildCatalogRecommendations(
 
   // If we got fewer than 2 improvements, add generic ones for missing categories
   const defaultCategories = dbGender === "female"
-    ? ["tops", "pants", "shoes", "dresses"]
-    : ["tops", "pants", "shoes", "jackets"];
+    ? ["tops", "pants", "shoes", "dresses", "jackets", "accessories"]
+    : ["tops", "pants", "shoes", "jackets", "accessories"];
   for (const cat of defaultCategories) {
-    if (improvements.length >= 3) break;
     if (processedCategories.has(cat)) continue;
     try {
       const matches = await findCatalogMatches({

@@ -678,3 +678,8 @@
 ### 51f: Critical Bugs (User-reported)
 - [x] 51f.1: Occasion filtering fixed — added coffee/brunch/evening/sport/gym/family/picnic to occasionMap, added -40 penalty for sport items in non-sport occasions, -10 for items with no matching occasion
 - [x] 51f.2: Images fixed — regenerated all 196 catalog images via AI (Forge ImageService), uploaded to Manus S3 (Cloudfront), updated DB. Old R2 URLs (401) replaced with working Cloudfront URLs (200)
+
+### 51g: Only 3 improvements get catalog images (User-reported)
+- [x] 51g.1: Diagnosed — 3 hardcoded limits: buildCatalogRecommendations (line 2968), default categories fallback (line 3058), sanitizeRecommendationsPayload (line 2765)
+- [x] 51g.2: Fixed — removed all 3 limits, now allows up to 6 improvements. Added accessories to default categories. Updated normalizeImprovementsForWearableCore to allow up to 6.
+- [x] 51g.3: Tests pass (819/824, same 5 pre-existing API failures)
