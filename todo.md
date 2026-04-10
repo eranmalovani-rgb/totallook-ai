@@ -615,3 +615,10 @@
 - [x] 49.4: Add variety instructions — rotate between different types of feedback (color theory, silhouette, trend, personal style)
 - [x] 49.5: Leverage existing tasteProfileContext growthNote + scoreTrend for encouraging feedback
 - [x] 49.6: Add "progress milestone" detection — if user improved in a category, celebrate it
+
+## Stage 50: Bug Fix — Stage 2 Extremely Slow in Production
+- [x] 50.1: Add detailed timing logs for each Stage 2 sub-step (LLM, sanitize+postprocess, image gen, save)
+- [x] 50.2: Reduce Stage 2 LLM input — trimmed recommendationSeed (removed linkedMentions 20 items, personDetection; items 12→8 with only essential fields)
+- [x] 50.3: Limit AI image generation to max 3 improvements (both registered + guest)
+- [x] 50.4: Reduce maxTokens from 2400 to 2000 (both registered + guest)
+- [x] 50.5: 0 TS errors, 819/824 tests pass (5 pre-existing API failures)

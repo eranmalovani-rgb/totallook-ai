@@ -3477,17 +3477,19 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
                 console.warn("[Stage 43 BG] Failed to build wardrobe for Stage 2:", tpErr);
               }
 
+              // Stage 50: Trimmed recommendationSeed — removed linkedMentions, personDetection to reduce input tokens
               const recommendationSeed = {
                 overallScore: bgAnalysisCore.overallScore,
                 summary: bgAnalysisCore.summary,
-                items: (bgAnalysisCore.items || []).slice(0, 12),
+                items: (bgAnalysisCore.items || []).slice(0, 8).map((item: any) => ({
+                  title: item.title, garmentType: item.garmentType, preciseColor: item.preciseColor,
+                  material: item.material, fit: item.fit, pattern: item.pattern, style: item.style,
+                  score: item.score, bodyZone: item.bodyZone,
+                })),
                 scores: bgAnalysisCore.scores || [],
-                linkedMentions: (bgAnalysisCore.linkedMentions || []).slice(0, 20),
-                personDetection: (bgAnalysisCore as any).personDetection || null,
                 lookStructure: (bgAnalysisCore as any).lookStructure || null,
                 occasion: bgOccasion || null,
                 influencers: bgInfluencers || null,
-                styleNotes: review.styleNotes || null,
               };
 
               let recommendations: FashionRecommendationsPayload | null = null;
@@ -3530,7 +3532,7 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
                           schema: recommendationsJsonSchema,
                         },
                       },
-                      maxTokens: 2400,
+                      maxTokens: 2000,
                     });
                     recommendations = parseFashionRecommendationsPayload(recResult);
                     break;
@@ -3553,7 +3555,8 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
               } catch (recErr: any) {
                 console.warn(`[Stage 43 BG] Stage-2 recommendations fallback: ${recErr?.message || recErr}`);
               }
-              console.log(`[Stage 43 BG] Stage 2 LLM completed in ${Date.now() - stage2Start}ms`);
+              const llmEndMs = Date.now() - stage2Start;
+              console.log(`[Stage 50 Timing] Stage 2 LLM completed in ${llmEndMs}ms`);
 
               if (!recommendations) {
                 recommendations = buildFallbackRecommendationsFromCore(
@@ -3722,10 +3725,14 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
                 }
               }
 
-              // ── Stage 45: Generate AI images for improvements + outfits ──
+              // ── Stage 45: Generate AI images for improvements (max 3 to save time) ──
+              const sanitizeEndMs = Date.now() - stage2Start;
+              console.log(`[Stage 50 Timing] Stage 2 sanitize+postprocess completed in ${sanitizeEndMs}ms (LLM: ${llmEndMs}ms, post: ${sanitizeEndMs - llmEndMs}ms)`);
               const aiImageStart = Date.now();
               try {
-                const improvementImagePromises = (analysis.improvements || []).map(async (imp, idx) => {
+                // Stage 50: Limit to max 3 AI images to save ~6-10s
+                const improvementsForImages = (analysis.improvements || []).slice(0, 3);
+                const improvementImagePromises = improvementsForImages.map(async (imp, idx) => {
                   try {
                     const genderLabel = bgUserGender === "female" ? "woman" : "man";
                     // Build a hyper-specific single-item prompt for the UPGRADED garment only
@@ -3754,7 +3761,7 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
 
                 // Stage 46: Skip outfit AI images to save ~6-8s — outfits show items list instead
                 await Promise.allSettled(improvementImagePromises);
-                console.log(`[Stage 45] AI image generation completed in ${Date.now() - aiImageStart}ms`);
+                console.log(`[Stage 50 Timing] AI image generation (${improvementsForImages.length} images) completed in ${Date.now() - aiImageStart}ms`);
               } catch (aiImgErr: any) {
                 console.warn(`[Stage 45] AI image generation failed globally: ${aiImgErr?.message}`);
               }
@@ -3766,7 +3773,8 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
               console.log(`[Stage 45 DEBUG] Before save: ${impWithImages.length}/${(analysis.improvements || []).length} improvements have upgradeImageUrl, ${outfitWithImages.length}/${(analysis.outfitSuggestions || []).length} outfits have aiImageUrl`);
               if (impWithImages.length > 0) console.log(`[Stage 45 DEBUG] Sample upgradeImageUrl: ${impWithImages[0].upgradeImageUrl?.substring(0, 80)}...`);
               await updateReviewAnalysis(bgReviewId, analysis.overallScore, analysis);
-              console.log(`[Stage 43 BG] Stage 2 saved to DB (reviewId=${bgReviewId}) in ${Date.now() - stage2Start}ms total`);
+              const totalMs = Date.now() - stage2Start;
+              console.log(`[Stage 50 Timing] Stage 2 TOTAL: ${totalMs}ms (LLM: ${llmEndMs}ms, post: ${sanitizeEndMs - llmEndMs}ms, images: ${Date.now() - aiImageStart}ms, save: ${totalMs - sanitizeEndMs - (Date.now() - aiImageStart)}ms) reviewId=${bgReviewId}`);
 
             } catch (bgErr: any) {
               console.error(`[Stage 43 BG] Stage 2 background failed (reviewId=${bgReviewId}):`, bgErr?.message || bgErr);
@@ -5331,14 +5339,16 @@ Return ONLY a JSON object with these exact fields:
             console.warn("[Stage 33] Failed to build guest taste profile for Stage 2:", tpErr);
           }
 
+          // Stage 50: Trimmed recommendationSeed — removed linkedMentions, personDetection to reduce input tokens
           const recommendationSeed = {
             overallScore: analysisCore.overallScore,
             summary: analysisCore.summary,
-            items: (analysisCore.items || []).slice(0, 12),
+            items: (analysisCore.items || []).slice(0, 8).map((item: any) => ({
+              title: item.title, garmentType: item.garmentType, preciseColor: item.preciseColor,
+              material: item.material, fit: item.fit, pattern: item.pattern, style: item.style,
+              score: item.score, bodyZone: item.bodyZone,
+            })),
             scores: analysisCore.scores || [],
-            linkedMentions: (analysisCore.linkedMentions || []).slice(0, 20),
-            // Stage 30 GAP 1: Pass enriched metadata to Stage 2
-            personDetection: (analysisCore as any).personDetection || null,
             lookStructure: (analysisCore as any).lookStructure || null,
             occasion: input.occasion || null,
             stylePreference: guestProfile?.stylePreference || null,
@@ -5384,7 +5394,7 @@ Return ONLY a JSON object with these exact fields:
                       schema: recommendationsJsonSchema,
                     },
                   },
-                  maxTokens: 2400,
+                             maxTokens: 2000,
                 });
                 recommendations = parseFashionRecommendationsPayload(recResult);
                 break;
@@ -5404,8 +5414,8 @@ Return ONLY a JSON object with these exact fields:
                 }
               }
             }
-           } catch (recErr: any) {
-             console.warn(`[Guest Analysis] Stage-2 recommendations fallback: ${recErr?.message || recErr}`);
+          } catch (recErr: any) {
+            console.warn(`[Guest Stage 2] recommendations fallback: ${recErr?.message || recErr}`);
            }
            console.log(`[Timing] Stage 2 completed in ${Date.now() - stage2Start}ms`);
            if (!recommendations) {
@@ -5756,7 +5766,9 @@ Return ONLY a JSON object with these exact fields:
           const guestAiImageStart = Date.now();
           try {
             const guestGenderForImg = guestGenderBg === "female" ? "woman" : "man";
-            const guestImpImagePromises = (analysis.improvements || []).map(async (imp, idx) => {
+            // Stage 50: Limit to max 3 AI images to save ~6-10s
+            const guestImpForImages = (analysis.improvements || []).slice(0, 3);
+            const guestImpImagePromises = guestImpForImages.map(async (imp, idx) => {
               try {
                 // Build a hyper-specific single-item prompt for the UPGRADED garment only
                 const garmentType = imp.afterGarmentType || imp.beforeGarmentType || imp.afterLabel || imp.title?.replace(/[^a-zA-Z\s]/g, "").trim() || "garment";
@@ -5784,7 +5796,7 @@ Return ONLY a JSON object with these exact fields:
 
             // Stage 46: Skip outfit AI images to save ~6-8s — outfits show items list instead
             await Promise.allSettled(guestImpImagePromises);
-            console.log(`[Stage 45 Guest] AI image generation completed in ${Date.now() - guestAiImageStart}ms`);
+            console.log(`[Stage 50 Timing Guest] AI image generation (${guestImpForImages.length} images) completed in ${Date.now() - guestAiImageStart}ms`);
           } catch (guestAiImgErr: any) {
             console.warn(`[Stage 45 Guest] AI image generation failed globally: ${guestAiImgErr?.message}`);
           }
