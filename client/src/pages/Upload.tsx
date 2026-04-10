@@ -138,7 +138,10 @@ export default function Upload() {
   };
 
   const handleAnalyze = async () => {
-    if (!file && !retryReviewId) return;
+    if (!file && !retryReviewId) {
+      setError(lang === "he" ? "יש לבחור תמונה לפני הניתוח" : "Please choose an image before analyzing");
+      return;
+    }
     setError(null);
 
     try {
@@ -610,6 +613,7 @@ export default function Upload() {
                   <div className="absolute -inset-1 bg-gradient-to-r from-primary via-amber-500 to-primary rounded-2xl blur-lg opacity-40 animate-pulse" />
                   <Button
                     size="lg"
+                    disabled={(!file && !retryReviewId) || uploading || analyzing}
                     className="relative w-full gap-3 text-xl font-bold py-8 rounded-2xl bg-gradient-to-r from-primary to-amber-500 hover:from-primary/90 hover:to-amber-500/90 shadow-2xl shadow-primary/30 hover:shadow-primary/50 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
                     onClick={() => {
                       handleAnalyze();

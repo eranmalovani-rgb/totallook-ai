@@ -867,6 +867,8 @@ export default function GuestReview() {
       },
     }
   );
+  const analyzeMutation = trpc.guest.analyze.useMutation();
+  const resumedStage2Ref = useRef(false);
 
   const { data: limitData } = trpc.guest.checkLimit.useQuery(
     { fingerprint: fingerprint || "" },
@@ -905,6 +907,21 @@ export default function GuestReview() {
   }, [result?.analysisJson]);
   const hasCoreAnalysis = !!(analysis && Array.isArray(analysis.items) && analysis.items.length > 0);
   const recommendationsPending = result?.status === "analyzing" && hasCoreAnalysis;
+
+  // If stage-2 got stuck after core analysis is already saved, auto-trigger a safe resume.
+  useEffect(() => {
+    if (!result || !hasCoreAnalysis) return;
+    if (result.status !== "analyzing") return;
+    if (resumedStage2Ref.current) return;
+    resumedStage2Ref.current = true;
+    const timer = setTimeout(() => {
+      analyzeMutation.mutate({
+        sessionId,
+        lang,
+      });
+    }, 6000);
+    return () => clearTimeout(timer);
+  }, [result?.id, result?.status, hasCoreAnalysis, sessionId, lang]);
 
   const ArrowIcon = lang === "he" ? ArrowLeft : ArrowRight;
 
@@ -985,9 +1002,13 @@ export default function GuestReview() {
   // ── Build story card children ──
 
   const storyCards: React.ReactNode[] = [];
+  const storyCardLabels: string[] = [];
+  const storyCardIcons: string[] = [];
 
   // Card 1: Items
   if (analysis.items.length > 0) {
+    storyCardLabels.push(lang === "he" ? "פריטים" : "Items");
+    storyCardIcons.push("🎯");
     storyCards.push(
       <div key="items" className="space-y-2">
         <Accordion type="multiple" className="space-y-2">
@@ -1055,6 +1076,8 @@ export default function GuestReview() {
   // Card 2: Influencer Insights (right after items)
   const hasInfluencerInsight = !!analysis.influencerInsight;
   if (hasInfluencerInsight) {
+    storyCardLabels.push(lang === "he" ? "משפיענים" : "Influencers");
+    storyCardIcons.push("👥");
     const influencerMentions = mentions.filter(m => m.type === "influencer");
     const bestMatch = influencerMentions.length > 0
       ? POPULAR_INFLUENCERS.find(inf => inf.name === influencerMentions[0].text)
@@ -1103,6 +1126,8 @@ export default function GuestReview() {
 
   // Card 3: Upgrades
   if (analysis.improvements.length > 0) {
+    storyCardLabels.push(lang === "he" ? "שדרוגים" : "Upgrades");
+    storyCardIcons.push("✨");
     storyCards.push(
       <div key="upgrades" className="space-y-2">
         {detectedCountry && (
@@ -1177,6 +1202,8 @@ export default function GuestReview() {
 
   // Card 3: Outfit Suggestions
   if (analysis.outfitSuggestions.length > 0) {
+    storyCardLabels.push(lang === "he" ? "לוקים" : "Looks");
+    storyCardIcons.push("👗");
     storyCards.push(
       <div key="outfits" className="space-y-4">
         {detectedCountry && (
@@ -1205,6 +1232,8 @@ export default function GuestReview() {
 
   // Card 4: Trends & Sources
   if (analysis.trendSources && analysis.trendSources.length > 0) {
+    storyCardLabels.push(lang === "he" ? "טרנדים" : "Trends");
+    storyCardIcons.push("📚");
     storyCards.push(
       <div key="trends" className="space-y-4">
         <div className="grid sm:grid-cols-2 gap-4">
@@ -1266,16 +1295,6 @@ export default function GuestReview() {
       </div>
     );
   }
-
-  // Add influencer insights as 5th card if available
-  // (influencer card already pushed at position 2 above)
-
-  // Build dynamic labels/icons
-  // Tab order: Items, [Influencers], Upgrades, Looks, Trends
-  const guestCardLabels = lang === "he"
-    ? ["פריטים", ...(hasInfluencerInsight ? ["משפיענים"] : []), "שדרוגים", "לוקים", "טרנדים"]
-    : ["Items", ...(hasInfluencerInsight ? ["Influencers"] : []), "Upgrades", "Looks", "Trends"];
-  const guestCardIcons = ["🎯", ...(hasInfluencerInsight ? ["👥"] : []), "✨", "👗", "📚"];
 
   return (
     <div className="min-h-screen bg-background text-foreground" dir={dir}>
@@ -1400,7 +1419,7 @@ export default function GuestReview() {
             ═══════════════════════════════════════════ */}
         {storyCards.length > 0 && (
           <section className="container max-w-2xl mx-auto mb-4">
-            <StoryCardsContainer lang={lang} cardLabels={guestCardLabels} cardIcons={guestCardIcons}>
+            <StoryCardsContainer lang={lang} cardLabels={storyCardLabels} cardIcons={storyCardIcons}>
               {storyCards}
             </StoryCardsContainer>
           </section>

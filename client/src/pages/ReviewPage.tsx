@@ -1280,17 +1280,24 @@ export default function ReviewPage() {
 
   // ── Story card labels ──
   const hasInfluencerInsight = !!analysis.influencerInsight;
+  const hasUpgrades = (analysis.improvements?.length ?? 0) > 0;
+  const hasOutfits = (analysis.outfitSuggestions?.length ?? 0) > 0;
+  const hasTrends = (analysis.trendSources?.length ?? 0) > 0;
 
-  const storyLabels = lang === "he"
-    ? ["🎯 פריטים", ...(hasInfluencerInsight ? ["👥 משפיענים"] : []), "✨ שדרוגים", "👗 לוקים", "📚 טרנדים"]
-    : ["🎯 Items", ...(hasInfluencerInsight ? ["👥 Influencers"] : []), "✨ Upgrades", "👗 Outfits", "📚 Trends"];
+  const storyLabels = [
+    lang === "he" ? "🎯 פריטים" : "🎯 Items",
+    ...(hasInfluencerInsight ? [lang === "he" ? "👥 משפיענים" : "👥 Influencers"] : []),
+    ...(hasUpgrades ? [lang === "he" ? "✨ שדרוגים" : "✨ Upgrades"] : []),
+    ...(hasOutfits ? [lang === "he" ? "👗 לוקים" : "👗 Outfits"] : []),
+    ...(hasTrends ? [lang === "he" ? "📚 טרנדים" : "📚 Trends"] : []),
+  ];
 
   const storyIcons = [
     <Eye className="w-3.5 h-3.5" key="items" />,
     ...(hasInfluencerInsight ? [<Users className="w-3.5 h-3.5" key="influencers" />] : []),
-    <Sparkles className="w-3.5 h-3.5" key="upgrades" />,
-    <ShoppingBag className="w-3.5 h-3.5" key="outfits" />,
-    <BookOpen className="w-3.5 h-3.5" key="trends" />,
+    ...(hasUpgrades ? [<Sparkles className="w-3.5 h-3.5" key="upgrades" />] : []),
+    ...(hasOutfits ? [<ShoppingBag className="w-3.5 h-3.5" key="outfits" />] : []),
+    ...(hasTrends ? [<BookOpen className="w-3.5 h-3.5" key="trends" />] : []),
   ];
 
   return (
