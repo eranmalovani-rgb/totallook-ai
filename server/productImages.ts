@@ -745,7 +745,12 @@ export async function generateImagesForImprovement(
 /**
  * Build a unique prompt for each specific product.
  */
-function buildProductImagePrompt(linkLabel: string, categoryQuery: string, productUrl?: string): string {
+function buildProductImagePrompt(
+  linkLabel: string,
+  categoryQuery: string,
+  productUrl?: string,
+  promptSalt?: string,
+): string {
   const [productNameRaw, storeFromLabelRaw] = linkLabel.split(/\s*[—–]\s*/);
   const productName = (productNameRaw || linkLabel).trim();
   const storeFromLabel = (storeFromLabelRaw || "").trim();
@@ -758,7 +763,7 @@ function buildProductImagePrompt(linkLabel: string, categoryQuery: string, produ
     }
   }
   const storeHint = storeFromLabel || storeHost || "fashion store";
-  const seed = `${linkLabel}|${categoryQuery}|${storeHint}`;
+  const seed = `${linkLabel}|${categoryQuery}|${storeHint}|${promptSalt || ""}`;
   let hash = 0;
   for (let i = 0; i < seed.length; i++) hash = ((hash << 5) - hash + seed.charCodeAt(i)) | 0;
   const variants = [
