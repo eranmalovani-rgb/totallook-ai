@@ -278,7 +278,15 @@ export default function GuestUpload() {
 
   /* ─── Analyze ─── */
   const handleAnalyze = async () => {
-    if (!file || !fingerprint) return;
+    if (!file) return;
+    if (!fingerprint) {
+      setError(
+        lang === "he"
+          ? "מכין את סביבת הניתוח... נסה שוב בעוד כמה שניות."
+          : "Preparing analysis session... please try again in a few seconds."
+      );
+      return;
+    }
     setError(null);
     try {
       let sessionId = retryReviewId;
@@ -1102,8 +1110,8 @@ export default function GuestUpload() {
                       <div className="absolute -inset-1 bg-gradient-to-r from-primary via-amber-500 to-primary rounded-2xl blur-lg opacity-40 animate-pulse" />
                       <Button
                         size="lg"
-                        disabled={!guestAgreedToTerms}
-                        className={`relative w-full gap-3 text-xl font-bold py-8 rounded-2xl bg-gradient-to-r from-primary to-amber-500 hover:from-primary/90 hover:to-amber-500/90 shadow-2xl shadow-primary/30 hover:shadow-primary/50 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] ${!guestAgreedToTerms ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        disabled={!guestAgreedToTerms || !fingerprint || analyzing || uploading}
+                        className={`relative w-full gap-3 text-xl font-bold py-8 rounded-2xl bg-gradient-to-r from-primary to-amber-500 hover:from-primary/90 hover:to-amber-500/90 shadow-2xl shadow-primary/30 hover:shadow-primary/50 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] ${(!guestAgreedToTerms || !fingerprint || analyzing || uploading) ? 'opacity-50 cursor-not-allowed' : ''}`}
                         onClick={() => {
                           handleAnalyze();
                           setTimeout(() => {

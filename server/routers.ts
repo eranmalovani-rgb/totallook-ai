@@ -4203,7 +4203,9 @@ Return ONLY a JSON object with these exact fields:
         const session = await getGuestSessionById(input.sessionId);
         if (!session) throw new Error("Session not found");
         if (session.status === "completed") throw new Error("Analysis already completed");
-        if (session.status === "analyzing") throw new Error("Analysis in progress");
+        // Allow re-entry while "analyzing" if we already have stage-1 core in DB.
+        // This enables the client to safely resume stage-2 if a previous background worker died.
+        if (session.status === "analyzing" && !session.analysisJson) throw new Error("Analysis in progress");
 
         try {
           return await withAnalysisSlot(`guest:${input.sessionId}`, async () => {
