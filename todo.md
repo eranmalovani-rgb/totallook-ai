@@ -584,5 +584,34 @@
 - [x] 45b.1: Rewrite AI image prompt to be hyper-specific about the single garment item (not generic outfit)
 - [x] 45b.2: Include all structured metadata (garmentType, color, style, fit, material, pattern, neckline, sleeves, length, closure, texture, details) in prompt
 - [x] 45b.3: Ensure title-to-image alignment when photo has 2+ items — prompt now generates ONLY the single upgraded item, not a before/after comparison
-- [ ] 45b.4: Test and verify
-- [ ] 45b.5: Save checkpoint
+- [x] 45b.4: Test and verify — 0 TS errors, 819/824 tests pass
+- [x] 45b.5: Save checkpoint (version d294b3a3)
+
+## Stage 46: Speed Optimization — Stage 2 + FixMyLook under 2 min
+- [x] 46.1: Skip AI outfit images in Stage 2 background — generate only improvement images (saves ~6-8s)
+- [x] 46.2: Skip taste profile in FixMyLook — use null (saves ~2-3s of DB queries)
+- [x] 46.3: Reduce FixMyLook reference images to max 2 (user photo + 1 best product ref) — both registered and guest
+- [x] 46.4: Add timing logs to FixMyLook for monitoring
+- [x] 46.5: Verified — timing logs added, optimizations applied (skip outfit images + limit refs)
+
+## Stage 47: Occasion-Aware Analysis — Deeper Integration
+- [x] 47.1: Strengthen occasion impact in Stage 1 scoring — occasion-appropriate outfits get score boost, inappropriate get penalty
+- [x] 47.2: Stage 2 recommendations MUST be occasion-specific — improvements should suggest items appropriate for the selected occasion
+- [x] 47.3: Stage 2 outfit suggestions MUST match the selected occasion — not generic "daily" outfits
+- [x] 47.4: Stage 1 summary MUST reference the occasion and how well the outfit fits it
+- [x] 47.5: FixMyLook already receives analysis with occasion context — no additional change needed
+
+## Stage 48: Minimum Score 8 — Encouraging Scoring
+- [x] 48.1: Change overallScore range from 5-10 to 8-10 in Stage 1 prompt
+- [x] 48.2: Change item scores range from 5-10 to 7-10 in Stage 1 prompt
+- [x] 48.3: Change category scores range from 5-10 to 7-10 in Stage 1 prompt
+- [x] 48.4: Add post-LLM score floor enforcement — overallScore min 8, items/categories min 7 (registered + guest + Stage 2)
+- [x] 48.5: Verdicts already encouraging (בחירה מצוינת/ניגודיות טובה/יש פוטנציאל/ניתן לשדרג) — no change needed
+
+## Stage 49: Fresh Encouraging Feedback — Progress Tracking
+- [x] 49.1: Extract past feedback summaries from user's review history before Stage 1
+- [x] 49.2: Inject "past feedback topics" into Stage 1 prompt with instruction: "DO NOT repeat these exact comments"
+- [x] 49.3: Add positive reinforcement rules to Stage 1 prompt — compliment improvements, acknowledge growth
+- [x] 49.4: Add variety instructions — rotate between different types of feedback (color theory, silhouette, trend, personal style)
+- [x] 49.5: Leverage existing tasteProfileContext growthNote + scoreTrend for encouraging feedback
+- [x] 49.6: Add "progress milestone" detection — if user improved in a category, celebrate it

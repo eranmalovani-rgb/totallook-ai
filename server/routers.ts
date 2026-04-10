@@ -19,6 +19,105 @@ import { getDoctrineForStage1, getDoctrineForStage2, getDoctrineForFixMyLook, ge
 import { buildTasteProfileContext, formatTasteProfileForPrompt, formatWardrobeForStage2 } from "./tasteProfileContext";
 import probeImageSize from "probe-image-size";
 
+/**
+ * Stage 49: Build past feedback context for anti-repetition and progress celebration.
+ * Extracts key feedback topics from the user's last N analyses to prevent the AI
+ * from repeating the same comments, and highlights areas of improvement.
+ */
+function buildPastFeedbackContext(
+  completedReviews: Array<{ analysisJson: unknown; overallScore: number | null; createdAt: Date | string | null }>,
+  lang: "he" | "en",
+): string | null {
+  if (completedReviews.length < 2) return null; // Need at least 2 reviews for meaningful context
+  const isHebrew = lang === "he";
+
+  // Take the last 5 reviews (most recent first)
+  const recentReviews = completedReviews.slice(0, 5);
+  const pastSummaries: string[] = [];
+  const pastItemComments: string[] = [];
+  const pastScores: number[] = [];
+  const improvedAreas: string[] = [];
+
+  for (const review of recentReviews) {
+    const analysis = review.analysisJson as FashionAnalysis | null;
+    if (!analysis) continue;
+    if (review.overallScore) pastScores.push(review.overallScore);
+    // Extract summary key phrases (first 80 chars)
+    if (analysis.summary) {
+      const shortSummary = analysis.summary.substring(0, 80).replace(/\n/g, " ");
+      pastSummaries.push(shortSummary);
+    }
+    // Extract item-level feedback themes
+    for (const item of (analysis.items || []).slice(0, 5)) {
+      if (item.analysis) {
+        const shortAnalysis = item.analysis.substring(0, 60).replace(/\n/g, " ");
+        pastItemComments.push(shortAnalysis);
+      }
+    }
+    // Track high-scoring categories as improved areas
+    for (const cat of (analysis.scores || [])) {
+      if (cat.score !== null && cat.score >= 9) {
+        improvedAreas.push(cat.category);
+      }
+    }
+  }
+
+  if (pastSummaries.length === 0) return null;
+
+  // Detect score trend
+  const isImproving = pastScores.length >= 2 && pastScores[0] > pastScores[pastScores.length - 1];
+  const avgScore = pastScores.length > 0 ? (pastScores.reduce((a, b) => a + b, 0) / pastScores.length) : 0;
+
+  const lines: string[] = [];
+  if (isHebrew) {
+    lines.push("=== Stage 49: הנחיות רעננות ומפרגנות — אל תחזור על אותם דברים! ===");
+    lines.push(`למשתמש יש ${completedReviews.length} ניתוחים קודמים. ציון ממוצע: ${avgScore.toFixed(1)}/10.`);
+    if (isImproving) {
+      lines.push(`⭐ המשתמש משתפר! הציון עלה מ-${pastScores[pastScores.length - 1]} ל-${pastScores[0]}. חגגו את זה בסיכום!`);
+    }
+    if (improvedAreas.length > 0) {
+      const uniqueAreas = [...new Set(improvedAreas)].slice(0, 3);
+      lines.push(`✅ תחומים שהמשתמש כבר מצטיין בהם: ${uniqueAreas.join(", ")}`);
+    }
+    lines.push("");
+    lines.push("סיכומי הערות קודמות (אל תחזור עליהם!):");
+    for (const summary of pastSummaries.slice(0, 3)) {
+      lines.push(`  - \"…${summary}…\"`);
+    }
+    lines.push("");
+    lines.push("הנחיות קריטיות:");
+    lines.push("- אל תחזור על אותם הערות במילים זהות — המשתמש כבר שמע אותם וזה משעמם.");
+    lines.push("- מצא זוויות חדשות לשבח — דברים שלא אמרת עדיין.");
+    lines.push("- תן פידבק מפרגן וחיובי — המשתמש רוצה להרגיש התפתחות, לא רק ביקורת.");
+    lines.push("- אם המשתמש משתפר — ציין את זה בסיכום! (\"אני רואה שהשתפרת ב...\", \"יפה לראות שהקשבת ל...\").");
+    lines.push("- אם יש חולשה חוזרת — נסח אותה באופן חדש ויצירתי, לא באותה מילים כמו פעם קודמת.");
+  } else {
+    lines.push("=== Stage 49: Fresh & Encouraging Feedback — DO NOT repeat the same comments! ===");
+    lines.push(`User has ${completedReviews.length} previous analyses. Average score: ${avgScore.toFixed(1)}/10.`);
+    if (isImproving) {
+      lines.push(`⭐ User is IMPROVING! Score went from ${pastScores[pastScores.length - 1]} to ${pastScores[0]}. Celebrate this in the summary!`);
+    }
+    if (improvedAreas.length > 0) {
+      const uniqueAreas = [...new Set(improvedAreas)].slice(0, 3);
+      lines.push(`✅ Areas where user already excels: ${uniqueAreas.join(", ")}`);
+    }
+    lines.push("");
+    lines.push("Previous feedback summaries (DO NOT repeat these!):");
+    for (const summary of pastSummaries.slice(0, 3)) {
+      lines.push(`  - \"…${summary}…\"`);
+    }
+    lines.push("");
+    lines.push("CRITICAL INSTRUCTIONS:");
+    lines.push("- DO NOT repeat the same observations in the same words — the user has already heard them and it's boring.");
+    lines.push("- Find NEW angles to praise and NEW areas to suggest improvement.");
+    lines.push("- Give ENCOURAGING and POSITIVE feedback — the user wants to feel progress, not just criticism.");
+    lines.push("- If the user is improving — celebrate it in the summary! (\"I can see you've improved in...\", \"Great to see you've been paying attention to...\")");
+    lines.push("- If there's a recurring weakness — frame it in a NEW creative way, not the same words as before.");
+  }
+
+  return lines.join("\n");
+}
+
 const ANALYSIS_CONCURRENCY_LIMIT = 2;
 const ANALYSIS_QUEUE_MAX_WAITERS = 40;
 const ANALYSIS_QUEUE_WAIT_TIMEOUT_MS = 12000;
@@ -920,6 +1019,7 @@ export function buildFashionPrompt(
   wardrobeItems?: WardrobeContext[],
   lang: "he" | "en" = "he",
   tasteProfileText?: string | null,
+  pastFeedbackText?: string | null,
 ): string {
   const isHebrew = lang === "he";
   const langLabel = isHebrew ? "Hebrew" : "English";
@@ -960,7 +1060,7 @@ ${genderConstraint}`;
     weekend: "WEEKEND — Relaxed weekend day — market, park, shopping, strolling around the city. Laid-back but stylish. Overdressing would be odd.",
   };
   const occasionFitRules = occasion && occasion !== 'general'
-    ? `\n\nCRITICAL OCCASION-FIT SCORING RULES:\n- The outfit's appropriateness for this specific occasion is a MAJOR factor in the overall score.\n- If the outfit is clearly WRONG for the occasion (e.g., gym clothes to a wedding, suit to the beach, flip-flops to a business meeting), the overall score MUST be 6 or below, regardless of how nice the individual items are.\n- If the outfit is somewhat appropriate but not ideal (e.g., slightly too casual for a date, slightly overdressed for coffee), deduct 1-2 points from the overall score.\n- If the outfit perfectly matches the occasion, this should boost the score.\n- The 'summary' MUST mention how well the outfit fits the specific occasion.\n- All outfit suggestions MUST be appropriate for this specific occasion.`
+    ? `\n\nCRITICAL OCCASION-FIT SCORING RULES:\n- The user chose this specific occasion because they are GOING TO THIS EVENT. Every piece of feedback must be through the lens of "how well does this outfit work for ${occasionMap[occasion]?.split(' — ')[0] || occasion}?"\n- The outfit's appropriateness for this specific occasion is the PRIMARY factor in the overall score and summary.\n- If the outfit is clearly WRONG for the occasion (e.g., gym clothes to a wedding, suit to the beach), the overall score MUST be 8 or below (after Stage 48 floor).\n- If the outfit is somewhat appropriate but not ideal, note what specific changes would make it perfect FOR THIS OCCASION.\n- If the outfit perfectly matches the occasion, celebrate it and boost the score.\n- The 'summary' MUST open with how well the outfit fits the specific occasion — this is the #1 thing the user wants to know.\n- Every item analysis MUST mention occasion-appropriateness (e.g., "perfect for a date night" or "might be too casual for a formal dinner").\n- The score category "התאמה לגיל ולסגנון" / "Age & Style Match" MUST heavily factor in occasion fit.`
     : "";
   const occasionSection = occasion && occasionMap[occasion]
     ? `\n\nOCCASION CONTEXT: ${occasionMap[occasion]}${occasionFitRules}`
@@ -1081,7 +1181,7 @@ ${genderConstraint}`;
 
 ${doctrineStage1}
 
-${tasteProfileText ? tasteProfileText + "\n\n" : ""}METHODOLOGY: Scan head-to-toe systematically. For each item: identify specific material/fabric, precise color shade, fit/silhouette, construction details. Then identify brands from visual evidence. Finally evaluate styling coherence using the Fashion Doctrine principles above.
+${tasteProfileText ? tasteProfileText + "\n\n" : ""}${pastFeedbackText ? pastFeedbackText + "\n\n" : ""}METHODOLOGY: Scan head-to-toe systematically. For each item: identify specific material/fabric, precise color shade, fit/silhouette, construction details. Then identify brands from visual evidence. Finally evaluate styling coherence using the Fashion Doctrine principles above.
 
 BRAND IDENTIFICATION: Use confidence levels — HIGH (logo visible), MEDIUM (strong visual cues, use hedging: "כפי הנראה"/"appears to be"), LOW (educated guess). Item "name" field stays generic (no brand). A wrong confident ID is worse than no ID.
 
@@ -1163,18 +1263,18 @@ After analyzing all items, provide an overall look composition:
 
 Respond with valid JSON matching this schema:
 {
-  "overallScore": <5-10>,
+  "overallScore": <8-10>,
   "summary": "<4-5 sentence expert summary in ${langLabel}: compliment strongest element, identify style direction, reference 2025-2026 trend, name the aesthetic, suggest one upgrade. No brand names in summary.>",
   "personDetection": { "peopleCount": <number>, "fullBodyVisible": <bool>, "faceVisible": <bool>, "handsVisible": <bool>, "feetVisible": <bool>, "bodyOcclusion": "<none/partial/significant>", "bodyPose": "<standing/sitting/walking/leaning/crouching/other>", "poseDescription": "<brief description>" },
-  "items": [{ "name": "<item name in ${langLabel}, no brand>", "description": "<material, color shade, construction details in ${langLabel}. No brand names.>", "color": "<main color>", "score": <5-10>, "verdict": "<${isHebrew ? "בחירה מצוינת/ניגודיות טובה/יש פוטנציאל/ניתן לשדרג" : "Excellent choice/Good contrast/Has potential/Can be upgraded"}>", "analysis": "<2-3 sentences: material ID, trend connection, what would make it a 10. No brand names.>", "icon": "<👕/👖/👟/💍/🧥/👔/⌚/🕶️/👜/🧢/💿>", "garmentType": "<type>", "subCategory": "<sub-type>", "bodyZone": "<zone>", "layerIndex": <1-3>, "visibility": "<full/partial/minimal>", "preciseColor": "<exact shade>", "secondaryColor": "<or empty>", "colorFamily": "<family>", "colorCount": <number>, "pattern": "<pattern>", "material": "<material>", "texture": "<texture>", "fit": "<fit>", "garmentLength": "<length>", "sleeveLength": "<sleeve>", "neckline": "<neckline>", "closure": "<closure>", "style": "<casual/smart-casual/formal/streetwear/minimalist/classic/sporty/bohemian/avant-garde/preppy/elegant>", "condition": "<condition>", "hasLogo": <bool>, "prominentBranding": <bool>, "details": "<details>" }],
-  "scores": [{ "category": "<in ${langLabel}>", "score": <5-10 or null>, "explanation": "<1 sentence WHY this score>", "recommendation": "<if null, suggest what fits>" }],
+  "items": [{ "name": "<item name in ${langLabel}, no brand>", "description": "<material, color shade, construction details in ${langLabel}. No brand names.>", "color": "<main color>", "score": <7-10>, "verdict": "<${isHebrew ? "בחירה מצוינת/ניגודיות טובה/יש פוטנציאל/ניתן לשדרג" : "Excellent choice/Good contrast/Has potential/Can be upgraded"}>", "analysis": "<2-3 sentences: material ID, trend connection, what would make it a 10. No brand names.>", "icon": "<👕/👖/👟/💍/🧥/👔/⌚/🕶️/👜/🧢/💿>", "garmentType": "<type>", "subCategory": "<sub-type>", "bodyZone": "<zone>", "layerIndex": <1-3>, "visibility": "<full/partial/minimal>", "preciseColor": "<exact shade>", "secondaryColor": "<or empty>", "colorFamily": "<family>", "colorCount": <number>, "pattern": "<pattern>", "material": "<material>", "texture": "<texture>", "fit": "<fit>", "garmentLength": "<length>", "sleeveLength": "<sleeve>", "neckline": "<neckline>", "closure": "<closure>", "style": "<casual/smart-casual/formal/streetwear/minimalist/classic/sporty/bohemian/avant-garde/preppy/elegant>", "condition": "<condition>", "hasLogo": <bool>, "prominentBranding": <bool>, "details": "<details>" }],
+  "scores": [{ "category": "<in ${langLabel}>", "score": <7-10 or null>, "explanation": "<1 sentence WHY this score>", "recommendation": "<if null, suggest what fits>" }],
   "lookStructure": { "totalItemCount": <number>, "hasLayering": <bool>, "layerCount": <number>, "colorHarmony": "<type>", "dominantItem": "<item>", "proportions": "<type>", "silhouetteSummary": "<brief>" },
   "linkedMentions": [{ "text": "<exact name as in analysis>", "type": "<brand/influencer/item/store>", "url": "<official URL or Instagram>" }]
 }
 
 Score categories (in ${langLabel}): ${isHebrew ? "איכות הפריטים, התאמת גזרה, צבעוניות, שכבתיות, אקססוריז ותכשיטים, התאמה לגיל ולסגנון, נעליים, זיהוי מותגים" : "Item Quality, Fit, Color Palette, Layering, Accessories & Jewelry, Age & Style Match, Footwear, Brand Recognition"}. Phone case doesn't affect Accessories score.
 
-SCORING: 5-10 range. Differentiate scores (not all 7-8). Justify concretely. Be encouraging.
+SCORING: 8-10 range for overallScore, 7-10 for item and category scores. Be ENCOURAGING and POSITIVE — users come to feel good about their style. Differentiate scores within this range (not all 8). Justify concretely. Even if an item isn't perfect, find something positive to say about it. The minimum overallScore is 8.0 — every outfit has something worth celebrating.
 BRAND IDENTIFICATION — ZERO TOLERANCE FOR EMPTY BRANDS (CRITICAL):
 This is the #1 premium feature of our app. You MUST identify or guess a brand for EVERY SINGLE ITEM. Empty brand fields are UNACCEPTABLE.
 
@@ -1812,8 +1912,10 @@ function buildRecommendationsPromptFromCore(
   wardrobeText?: string | null,
 ): string {
   const isHebrew = lang === "he";
-  const occasionLine = occasion
-    ? (isHebrew ? `אירוע יעד: ${occasion}` : `Target occasion: ${occasion}`)
+  const occasionLine = occasion && occasion !== 'general'
+    ? (isHebrew
+      ? `אירוע יעד: ${occasion}\n❗ קריטי: המשתמש הולך לאירוע הזה! כל ההמלצות, השדרוגים, הלוקים והשילובים חייבים להתאים ספציפית לאירוע הזה.\n- כל improvement חייב להסביר למה השדרוג מתאים לאירוע ("פולו פיקה — מושלם לדייט כי...")\n- outfitSuggestions חייבים להיות לוקים שמתאימים בדיוק לאירוע הזה, לא לוקים גנריים\n- אם הפריט הנוכחי לא מתאים לאירוע — ההמלצה חייבת להציע חלופה שכן מתאימה`
+      : `Target occasion: ${occasion}\n❗ CRITICAL: The user is GOING TO THIS EVENT! ALL recommendations, upgrades, outfits, and styling advice MUST be specifically tailored for this occasion.\n- Every improvement must explain why the upgrade is right for this occasion\n- outfitSuggestions must be looks specifically suited for this occasion, not generic outfits\n- If the current item doesn't fit the occasion, the recommendation must suggest an occasion-appropriate alternative`)
     : (isHebrew ? "אין אירוע יעד מחייב." : "No strict target occasion.");
   const normalizedGender = (userGender || "").toLowerCase();
   const genderLine = normalizedGender === "male"
@@ -3095,6 +3197,7 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
 
           // Stage 33: Build Taste Profile for Stage 1 injection
           let tasteProfileForStage1: string | null = null;
+          let pastFeedbackContext: string | null = null;
           try {
             const allReviewsForTaste = await getReviewsByUserId(ctx.user.id);
             const completedForTaste = allReviewsForTaste.filter(r => r.status === "completed" && r.analysisJson);
@@ -3105,6 +3208,8 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
                 { stylePreference: profile?.stylePreference, gender: profile?.gender, budgetLevel: profile?.budgetLevel },
               );
               if (tasteCtx) tasteProfileForStage1 = formatTasteProfileForPrompt(tasteCtx, input.lang);
+              // Stage 49: Extract past feedback for anti-repetition
+              pastFeedbackContext = buildPastFeedbackContext(completedForTaste, input.lang);
             }
           } catch (tpErr) {
             console.warn("[Stage 33] Failed to build taste profile for Stage 1:", tpErr);
@@ -3118,6 +3223,7 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
             wardrobeCtx,
             input.lang,
             tasteProfileForStage1,
+            pastFeedbackContext,
           );
            // Stage 1: core analysis + identification (image-based)
            const stage1Start = Date.now();
@@ -3233,9 +3339,9 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
           for (const item of stage1Analysis.items) {
             if (!item.brand || item.brand.trim() === "" || item.brand === "N/A") { item.brand = "לא זוהה"; item.brandConfidence = "NONE"; }
           }
-          // Score clamping
-          for (const item of stage1Analysis.items) { if (item.score < 5) item.score = 5; }
-          for (const cat of stage1Analysis.scores) { if (cat.score !== null && cat.score < 5) cat.score = 5; }
+          // Score clamping (Stage 48: min 7 for items/categories)
+          for (const item of stage1Analysis.items) { if (item.score < 7) item.score = 7; }
+          for (const cat of stage1Analysis.scores) { if (cat.score !== null && cat.score < 7) cat.score = 7; }
           // Premium brand score boost
           const isPremiumForScoring = profileContext?.budgetLevel === 'premium' || profileContext?.budgetLevel === 'luxury';
           if (isPremiumForScoring) {
@@ -3262,7 +3368,14 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
             if (cat.score !== null) { const w = categoryWeightsS1[cat.category.toLowerCase()] ?? 1.0; wSum += cat.score * w; tWeight += w; }
           }
           if (tWeight > 0) stage1Analysis.overallScore = Math.round((wSum / tWeight) * 10) / 10;
-          if (stage1Analysis.overallScore < 5) stage1Analysis.overallScore = 5;
+          // Stage 48: Floor enforcement — minimum overallScore 8.0, item scores 7, category scores 7
+          if (stage1Analysis.overallScore < 8) stage1Analysis.overallScore = 8.0;
+          for (const item of stage1Analysis.items || []) {
+            if (item.score < 7) item.score = 7;
+          }
+          for (const cat of stage1Analysis.scores || []) {
+            if (cat.score !== null && cat.score < 7) cat.score = 7;
+          }
           // Material quality validation
           const isPremiumUserS1 = profileContext?.budgetLevel === 'premium' || profileContext?.budgetLevel === 'luxury';
           const cheapMaterialTermsS1 = [
@@ -3639,21 +3752,8 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
                   }
                 });
 
-                const outfitImagePromises = (analysis.outfitSuggestions || []).map(async (outfit, idx) => {
-                  try {
-                    const genderLabel = bgUserGender === "female" ? "woman" : "man";
-                    const itemsList = outfit.items.slice(0, 5).join(", ");
-                    const colorPalette = outfit.colors.slice(0, 4).join(", ");
-                    const prompt = `Complete outfit flat-lay for a ${genderLabel}: ${outfit.name}. Items: ${itemsList}. Color palette: ${colorPalette}. Occasion: ${outfit.occasion}. ${outfit.lookDescription || ""}. Professional fashion photography, clean white background, neatly arranged flat-lay style showing all items together as a cohesive outfit. No mannequin, no person.`;
-                    const { url } = await generateImage({ prompt });
-                    if (url) outfit.aiImageUrl = url;
-                    console.log(`[Stage 45] Outfit ${idx} AI image generated`);
-                  } catch (imgErr: any) {
-                    console.warn(`[Stage 45] Outfit ${idx} AI image failed: ${imgErr?.message}`);
-                  }
-                });
-
-                await Promise.allSettled([...improvementImagePromises, ...outfitImagePromises]);
+                // Stage 46: Skip outfit AI images to save ~6-8s — outfits show items list instead
+                await Promise.allSettled(improvementImagePromises);
                 console.log(`[Stage 45] AI image generation completed in ${Date.now() - aiImageStart}ms`);
               } catch (aiImgErr: any) {
                 console.warn(`[Stage 45] AI image generation failed globally: ${aiImgErr?.message}`);
@@ -3817,6 +3917,8 @@ Style: High-end ${genderLabel} fashion editorial flat lay, items arranged aesthe
         })).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
+        const fixMyLookStart = Date.now();
+        console.log(`[Fix My Look] Started for reviewId=${input.reviewId}`);
         const review = await getReviewById(input.reviewId);
         if (!review) throw new Error("Review not found");
         if (review.userId !== ctx.user.id) throw new Error("Unauthorized");
@@ -3905,26 +4007,9 @@ Style: High-end ${genderLabel} fashion editorial flat lay, items arranged aesthe
           relevantImprovements.push(...allImprovements.slice(0, Math.min(allImprovements.length, input.itemIndices.length + 1)));
         }
 
-        // Stage 33: Build Taste Profile for Fix My Look personalization
-        let fixMyLookTasteText: string | null = null;
-        try {
-          const [allReviewsFML, allWardrobeFML, profileFML] = await Promise.all([
-            getReviewsByUserId(ctx.user.id),
-            getWardrobeByUserId(ctx.user.id),
-            getUserProfile(ctx.user.id),
-          ]);
-          const completedFML = allReviewsFML.filter(r => r.status === "completed" && r.analysisJson);
-          if (completedFML.length > 0) {
-            const tasteCtx = buildTasteProfileContext(
-              completedFML.map(r => ({ analysisJson: r.analysisJson, overallScore: r.overallScore, createdAt: r.createdAt })),
-              allWardrobeFML.map(w => ({ itemType: w.itemType, name: w.name, color: w.color, brand: w.brand, styleNote: w.styleNote || null })),
-              { stylePreference: profileFML?.stylePreference, gender: profileFML?.gender, budgetLevel: profileFML?.budgetLevel },
-            );
-            if (tasteCtx) fixMyLookTasteText = formatTasteProfileForPrompt(tasteCtx, "en");
-          }
-        } catch (tpErr) {
-          console.warn("[Stage 33] Failed to build taste profile for Fix My Look:", tpErr);
-        }
+        // Stage 46: Skip taste profile in FixMyLook to save ~2-3s of DB queries
+        // The edit prompt already has full analysis context which is sufficient
+        const fixMyLookTasteText: string | null = null;
 
         const editPrompt = buildDeterministicFixMyLookPrompt({
           analysis,
@@ -3948,17 +4033,16 @@ Style: High-end ${genderLabel} fashion editorial flat lay, items arranged aesthe
           const originalImagesArr: Array<{ url: string; mimeType: string }> = [
             { url: review.imageUrl, mimeType: "image/jpeg" },
           ];
-          // Add product reference images for each selected improvement
+          // Stage 46: Limit to max 1 product reference image (saves significant time in edit mode)
           if (input.selectedProductDetails && input.selectedProductDetails.length > 0) {
-            for (const detail of input.selectedProductDetails) {
-              if (detail.productImageUrl && detail.productImageUrl.startsWith('http')) {
-                originalImagesArr.push({
-                  url: detail.productImageUrl,
-                  mimeType: "image/jpeg",
-                });
-              }
+            const firstValidDetail = input.selectedProductDetails.find(d => d.productImageUrl && d.productImageUrl.startsWith('http'));
+            if (firstValidDetail) {
+              originalImagesArr.push({
+                url: firstValidDetail.productImageUrl,
+                mimeType: "image/jpeg",
+              });
             }
-            console.log(`[Fix My Look] Sending ${originalImagesArr.length} images: 1 user photo + ${originalImagesArr.length - 1} product references`);
+            console.log(`[Fix My Look] Sending ${originalImagesArr.length} images: 1 user photo + ${originalImagesArr.length - 1} product reference (Stage 46: limited to 1)`);
           }
 
           let { url: fixedImageUrl } = await generateImage({
@@ -4004,9 +4088,9 @@ Style: High-end ${genderLabel} fashion editorial flat lay, items arranged aesthe
             });
           } catch (saveErr) {
             console.warn("[Fix My Look] Failed to save result to DB:", saveErr);
-            // Don't fail the request if save fails
           }
 
+          console.log(`[Fix My Look] Completed in ${Date.now() - fixMyLookStart}ms for reviewId=${input.reviewId}`);
           return resultData;
         } catch (err: any) {
           console.error("[Fix My Look] Image generation failed:", err);
@@ -4189,7 +4273,7 @@ Return ONLY a JSON object with these exact fields:
           const content = llmResult.choices[0]?.message?.content;
           const text = typeof content === "string" ? content : "";
           const correctedItem = JSON.parse(text);
-          if (correctedItem.score < 5) correctedItem.score = 5;
+          if (correctedItem.score < 7) correctedItem.score = 7; // Stage 48
           // Enrich with known brand URL
           if (correctedItem.brand) {
             for (const [brand, url] of Object.entries(BRAND_URLS)) {
@@ -4243,7 +4327,8 @@ Return ONLY a JSON object with these exact fields:
           } else {
             analysis.overallScore = Math.round(avgItemScore * 10) / 10;
           }
-          if (analysis.overallScore < 5) analysis.overallScore = 5;
+          // Stage 48: Floor enforcement
+          if (analysis.overallScore < 8) analysis.overallScore = 8.0;
           if (analysis.overallScore > 10) analysis.overallScore = 10;
           // Save updated analysis
           await updateReviewAnalysis(input.reviewId, analysis.overallScore, analysis);
@@ -5085,8 +5170,9 @@ Return ONLY a JSON object with these exact fields:
             if (!item.brand || item.brand.trim() === "" || item.brand === "N/A") { item.brand = "לא זוהה"; item.brandConfidence = "NONE"; }
           }
           // Clamp scores
-          for (const item of analysisCore.items) { if (item.score < 5) item.score = 5; }
-          for (const cat of analysisCore.scores) { if (cat.score !== null && cat.score < 5) cat.score = 5; }
+          // Stage 48: min 7 for items/categories
+          for (const item of analysisCore.items) { if (item.score < 7) item.score = 7; }
+          for (const cat of analysisCore.scores) { if (cat.score !== null && cat.score < 7) cat.score = 7; }
           // Premium scoring
           const isGuestPremiumForScoringEarly = profileForPrompt?.budgetLevel === 'premium' || profileForPrompt?.budgetLevel === 'luxury';
           if (isGuestPremiumForScoringEarly) {
@@ -5124,7 +5210,14 @@ Return ONLY a JSON object with these exact fields:
           if (guestTotalWeightEarly > 0) {
             analysisCore.overallScore = Math.round((guestWeightedSumEarly / guestTotalWeightEarly) * 10) / 10;
           }
-          if (analysisCore.overallScore < 5) analysisCore.overallScore = 5;
+          // Stage 48: Floor enforcement — minimum overallScore 8.0, item scores 7, category scores 7
+          if (analysisCore.overallScore < 8) analysisCore.overallScore = 8.0;
+          for (const item of analysisCore.items || []) {
+            if (item.score < 7) item.score = 7;
+          }
+          for (const cat of analysisCore.scores || []) {
+            if (cat.score !== null && cat.score < 7) cat.score = 7;
+          }
           // Material quality validation
           const isGuestPremiumEarly = profileForPrompt?.budgetLevel === 'premium' || profileForPrompt?.budgetLevel === 'luxury';
           const cheapMaterialTermsGuestEarly = [
@@ -5392,12 +5485,12 @@ Return ONLY a JSON object with these exact fields:
             }
           }
 
-          // Clamp scores
+          // Clamp scores (Stage 48: min 7)
           for (const item of analysis.items) {
-            if (item.score < 5) item.score = 5;
+            if (item.score < 7) item.score = 7;
           }
           for (const cat of analysis.scores) {
-            if (cat.score !== null && cat.score < 5) cat.score = 5;
+            if (cat.score !== null && cat.score < 7) cat.score = 7;
           }
           // Premium/Luxury guests: Brand identification score must be at least 8
           const isGuestPremiumForScoring = profileForPrompt?.budgetLevel === 'premium' || profileForPrompt?.budgetLevel === 'luxury';
@@ -5436,7 +5529,14 @@ Return ONLY a JSON object with these exact fields:
           if (guestTotalWeight > 0) {
             analysis.overallScore = Math.round((guestWeightedSum / guestTotalWeight) * 10) / 10;
           }
-          if (analysis.overallScore < 5) analysis.overallScore = 5;
+          // Stage 48: Floor enforcement
+          if (analysis.overallScore < 8) analysis.overallScore = 8.0;
+          for (const item of analysis.items || []) {
+            if (item.score < 7) item.score = 7;
+          }
+          for (const cat of analysis.scores || []) {
+            if (cat.score !== null && cat.score < 7) cat.score = 7;
+          }
 
           // POST-PROCESSING QUALITY VALIDATION (guest)
           const isGuestPremium = profileForPrompt?.budgetLevel === 'premium' || profileForPrompt?.budgetLevel === 'luxury';
@@ -5682,20 +5782,8 @@ Return ONLY a JSON object with these exact fields:
               }
             });
 
-            const guestOutfitImagePromises = (analysis.outfitSuggestions || []).map(async (outfit, idx) => {
-              try {
-                const itemsList = outfit.items.slice(0, 5).join(", ");
-                const colorPalette = outfit.colors.slice(0, 4).join(", ");
-                const prompt = `Complete outfit flat-lay for a ${guestGenderForImg}: ${outfit.name}. Items: ${itemsList}. Color palette: ${colorPalette}. Occasion: ${outfit.occasion}. ${outfit.lookDescription || ""}. Professional fashion photography, clean white background, neatly arranged flat-lay style showing all items together as a cohesive outfit. No mannequin, no person.`;
-                const { url } = await generateImage({ prompt });
-                if (url) outfit.aiImageUrl = url;
-                console.log(`[Stage 45 Guest] Outfit ${idx} AI image generated`);
-              } catch (imgErr: any) {
-                console.warn(`[Stage 45 Guest] Outfit ${idx} AI image failed: ${imgErr?.message}`);
-              }
-            });
-
-            await Promise.allSettled([...guestImpImagePromises, ...guestOutfitImagePromises]);
+            // Stage 46: Skip outfit AI images to save ~6-8s — outfits show items list instead
+            await Promise.allSettled(guestImpImagePromises);
             console.log(`[Stage 45 Guest] AI image generation completed in ${Date.now() - guestAiImageStart}ms`);
           } catch (guestAiImgErr: any) {
             console.warn(`[Stage 45 Guest] AI image generation failed globally: ${guestAiImgErr?.message}`);
@@ -5955,16 +6043,16 @@ Return ONLY a JSON object with these exact fields:
           const originalImagesArr: Array<{ url: string; mimeType: string }> = [
             { url: session.imageUrl!, mimeType: "image/jpeg" },
           ];
+          // Stage 46: Limit to max 1 product reference image (saves significant time in edit mode)
           if (input.selectedProductDetails && input.selectedProductDetails.length > 0) {
-            for (const detail of input.selectedProductDetails) {
-              if (detail.productImageUrl && detail.productImageUrl.startsWith('http')) {
-                originalImagesArr.push({
-                  url: detail.productImageUrl,
-                  mimeType: "image/jpeg",
-                });
-              }
+            const firstValidDetail = input.selectedProductDetails.find(d => d.productImageUrl && d.productImageUrl.startsWith('http'));
+            if (firstValidDetail) {
+              originalImagesArr.push({
+                url: firstValidDetail.productImageUrl,
+                mimeType: "image/jpeg",
+              });
             }
-            console.log(`[Guest Fix My Look] Sending ${originalImagesArr.length} images: 1 user photo + ${originalImagesArr.length - 1} product references`);
+            console.log(`[Guest Fix My Look] Sending ${originalImagesArr.length} images: 1 user photo + ${originalImagesArr.length - 1} product reference (Stage 46: limited to 1)`);
           }
 
           let { url: fixedImageUrl } = await generateImage({

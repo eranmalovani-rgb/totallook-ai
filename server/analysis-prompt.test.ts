@@ -521,9 +521,9 @@ describe("Occasion-fit scoring rules in prompt", () => {
   it("includes critical occasion-fit scoring instructions when occasion is set", () => {
     const prompt = buildFashionPrompt(undefined, undefined, "date", null, [], "he");
     expect(prompt).toContain("CRITICAL OCCASION-FIT SCORING RULES");
-    expect(prompt).toContain("overall score MUST be 6 or below");
+    expect(prompt).toContain("overall score MUST be 8 or below");
     expect(prompt).toContain("summary");
-    expect(prompt).toContain("mention how well the outfit fits");
+    expect(prompt).toContain("MUST open with how well the outfit fits");
   });
 
   it("does NOT include occasion-fit rules when no occasion is set", () => {
