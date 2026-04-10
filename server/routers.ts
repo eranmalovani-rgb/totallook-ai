@@ -2726,11 +2726,12 @@ function sanitizeRecommendationsPayload(
   });
 
   improvements = improvements.map((imp) => normalizeImprovementShoppingLinks(imp, lang, preferredStores, genderCat, budgetLevel));
-  if (improvements.length < 4 && fallback) {
-    const needed = 4 - improvements.length;
+  // Stage 50b: Reduced from 4/5 to 3 to match prompt and prevent JSON truncation
+  if (improvements.length < 3 && fallback) {
+    const needed = 3 - improvements.length;
     improvements = [...improvements, ...fallback.improvements.slice(0, needed)];
   }
-  if (improvements.length > 5) improvements = improvements.slice(0, 5);
+  if (improvements.length > 3) improvements = improvements.slice(0, 3);
   improvements = improvements.map((imp) => normalizeImprovementShoppingLinks(imp, lang, preferredStores, genderCat, budgetLevel));
 
   // Global deduplication: remove duplicate shopping links across all improvements
@@ -3532,7 +3533,7 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
                           schema: recommendationsJsonSchema,
                         },
                       },
-                      maxTokens: 2000,
+                      maxTokens: 2800,
                     });
                     recommendations = parseFashionRecommendationsPayload(recResult);
                     break;
@@ -5394,7 +5395,7 @@ Return ONLY a JSON object with these exact fields:
                       schema: recommendationsJsonSchema,
                     },
                   },
-                             maxTokens: 2000,
+                             maxTokens: 2800,
                 });
                 recommendations = parseFashionRecommendationsPayload(recResult);
                 break;

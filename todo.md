@@ -622,3 +622,9 @@
 - [x] 50.3: Limit AI image generation to max 3 improvements (both registered + guest)
 - [x] 50.4: Reduce maxTokens from 2400 to 2000 (both registered + guest)
 - [x] 50.5: 0 TS errors, 819/824 tests pass (5 pre-existing API failures)
+
+## Stage 50b: Fix Stage 2 JSON Truncation (Root Cause of Slowness)
+- [x] 50b.1: Increased maxTokens to 2800 (was 2000, originally 2400) to prevent JSON truncation
+- [x] 50b.2: Reduced post-processing improvement cap from 4-5 to 3 (prompt already asks for 3)
+- [x] 50b.3: Kept 2 outfitSuggestions (no change needed)
+- [ ] 50b.4: Verify no INVALID_LLM_JSON errors in logs after fix (needs production test)
