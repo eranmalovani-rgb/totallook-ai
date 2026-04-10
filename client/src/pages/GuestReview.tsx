@@ -903,6 +903,8 @@ export default function GuestReview() {
       return null;
     }
   }, [result?.analysisJson]);
+  const hasCoreAnalysis = !!(analysis && Array.isArray(analysis.items) && analysis.items.length > 0);
+  const recommendationsPending = result?.status === "analyzing" && hasCoreAnalysis;
 
   const ArrowIcon = lang === "he" ? ArrowLeft : ArrowRight;
 
@@ -950,7 +952,7 @@ export default function GuestReview() {
     );
   }
 
-  if (result.status === "analyzing" || result.status === "pending") {
+  if ((result.status === "analyzing" || result.status === "pending") && !hasCoreAnalysis) {
     return (
       <div className="min-h-screen bg-background text-foreground flex items-center justify-center" dir={dir}>
         <div className="text-center space-y-4">
@@ -961,7 +963,7 @@ export default function GuestReview() {
     );
   }
 
-  if (result.status === "failed" || !analysis) {
+  if ((result.status === "failed" && !hasCoreAnalysis) || !analysis) {
     return (
       <div className="min-h-screen bg-background text-foreground" dir={dir}>
         <Navbar />
@@ -1336,6 +1338,13 @@ export default function GuestReview() {
               <p className="text-sm text-muted-foreground leading-relaxed">
                 <LinkedText text={analysis.summary} mentions={mentions} onInfluencerClick={handleInfluencerClick} />
               </p>
+              {recommendationsPending && (
+                <div className="rounded-xl border border-primary/30 bg-primary/10 px-3 py-2 text-xs text-primary">
+                  {lang === "he"
+                    ? "הניתוח הראשוני מוכן. המלצות השדרוג מתעדכנות ברקע..."
+                    : "Core analysis is ready. Upgrade recommendations are updating in the background..."}
+                </div>
+              )}
 
               {/* Detailed Scores — compact accordion */}
               {analysis.scores.length > 0 && (

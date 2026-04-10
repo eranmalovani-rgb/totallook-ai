@@ -1179,7 +1179,26 @@ export default function ReviewPage() {
     );
   }
 
-  if (review.status === "pending" || review.status === "analyzing") {
+  const isOwner = user?.id === review.userId;
+
+  const rawAnalysis = review.analysisJson as FashionAnalysis;
+  const analysis = rawAnalysis ? {
+    ...rawAnalysis,
+    summary: rawAnalysis.summary ?? "",
+    overallScore: rawAnalysis.overallScore ?? 0,
+    items: rawAnalysis.items ?? [],
+    scores: rawAnalysis.scores ?? [],
+    improvements: rawAnalysis.improvements ?? [],
+    outfitSuggestions: rawAnalysis.outfitSuggestions ?? [],
+    trendSources: rawAnalysis.trendSources ?? [],
+    linkedMentions: rawAnalysis.linkedMentions ?? [],
+    influencerInsight: rawAnalysis.influencerInsight ?? "",
+  } : null;
+
+  const hasCoreAnalysis = !!(analysis && Array.isArray(analysis.items) && analysis.items.length > 0);
+  const recommendationsPending = review.status === "analyzing" && hasCoreAnalysis;
+
+  if ((review.status === "pending" || review.status === "analyzing") && !hasCoreAnalysis) {
     return (
       <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center gap-6" dir={dir}>
         <Navbar />
@@ -1194,7 +1213,7 @@ export default function ReviewPage() {
     );
   }
 
-  if (review.status === "failed") {
+  if (review.status === "failed" && !hasCoreAnalysis) {
     return (
       <div className="min-h-screen bg-background text-foreground" dir={dir}>
         <Navbar />
@@ -1216,22 +1235,6 @@ export default function ReviewPage() {
       </div>
     );
   }
-
-  const isOwner = user?.id === review.userId;
-
-  const rawAnalysis = review.analysisJson as FashionAnalysis;
-  const analysis = rawAnalysis ? {
-    ...rawAnalysis,
-    summary: rawAnalysis.summary ?? "",
-    overallScore: rawAnalysis.overallScore ?? 0,
-    items: rawAnalysis.items ?? [],
-    scores: rawAnalysis.scores ?? [],
-    improvements: rawAnalysis.improvements ?? [],
-    outfitSuggestions: rawAnalysis.outfitSuggestions ?? [],
-    trendSources: rawAnalysis.trendSources ?? [],
-    linkedMentions: rawAnalysis.linkedMentions ?? [],
-    influencerInsight: rawAnalysis.influencerInsight ?? "",
-  } : null;
 
   if (!analysis) {
     return (
@@ -1347,6 +1350,13 @@ export default function ReviewPage() {
               <LinkedText text={analysis.summary} mentions={mentions} onInfluencerClick={handleInfluencerClick} />
             </p>
             <p className="text-xs font-medium text-primary">{scoreComment}</p>
+            {recommendationsPending && (
+              <div className="rounded-xl border border-primary/30 bg-primary/10 px-3 py-2 text-xs text-primary">
+                {lang === "he"
+                  ? "הניתוח הראשוני מוכן. המלצות השדרוג מתעדכנות ברקע..."
+                  : "Core analysis is ready. Upgrade recommendations are updating in the background..."}
+              </div>
+            )}
 
 
 

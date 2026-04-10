@@ -199,6 +199,28 @@ export async function updateReviewAnalysis(id: number, overallScore: number, ana
   }
 }
 
+export async function updateReviewAnalysisPartial(id: number, overallScore: number, analysisJson: unknown) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  try {
+    await db.update(reviews).set({
+      overallScore,
+      analysisJson,
+    }).where(eq(reviews.id, id));
+  } catch (error: any) {
+    const fullMsg = `${error?.message || ""} ${error?.cause?.message || ""}`;
+    if (fullMsg.includes("Incorrect string value")) {
+      const sanitized = sanitizeJsonForMysql(analysisJson);
+      await db.update(reviews).set({
+        overallScore,
+        analysisJson: sanitized,
+      }).where(eq(reviews.id, id));
+      return;
+    }
+    throw error;
+  }
+}
+
 export async function updateReviewStatus(id: number, status: "pending" | "analyzing" | "completed" | "failed") {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -1364,6 +1386,28 @@ export async function updateGuestSessionAnalysis(id: number, overallScore: numbe
       const sanitized = sanitizeJsonForMysql(analysisJson);
       await db.update(guestSessions).set({
         status: "completed",
+        overallScore,
+        analysisJson: sanitized,
+      }).where(eq(guestSessions.id, id));
+      return;
+    }
+    throw error;
+  }
+}
+
+export async function updateGuestSessionAnalysisPartial(id: number, overallScore: number, analysisJson: unknown) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  try {
+    await db.update(guestSessions).set({
+      overallScore,
+      analysisJson,
+    }).where(eq(guestSessions.id, id));
+  } catch (error: any) {
+    const fullMsg = `${error?.message || ""} ${error?.cause?.message || ""}`;
+    if (fullMsg.includes("Incorrect string value")) {
+      const sanitized = sanitizeJsonForMysql(analysisJson);
+      await db.update(guestSessions).set({
         overallScore,
         analysisJson: sanitized,
       }).where(eq(guestSessions.id, id));
