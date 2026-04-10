@@ -572,4 +572,10 @@
 ### Cleanup & Verification
 - [x] 45.17: 0 TypeScript errors confirmed
 - [x] 45.18: 819/824 tests pass (5 external API failures only)
-- [ ] 45.19: Save checkpoint
+- [x] 45.19: Save checkpoint (version 3f4d8e97)
+
+## Bug: AI upgrade images not being generated
+- [x] Investigate server logs — AI images ARE generated and saved to DB correctly
+- [x] Root cause: normalizeImprovementShoppingLinks returns new object without upgradeImageUrl — every getById call strips it
+- [x] Fix: added upgradeImageUrl passthrough in normalizeImprovementShoppingLinks return object
+- [ ] Verify images appear in frontend after fix (requires publish)

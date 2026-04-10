@@ -2253,6 +2253,7 @@ function normalizeImprovementShoppingLinks(
     productSearchQuery: fallbackQuery,
     shoppingLinks: finalLinks,
     closetMatch: imp.closetMatch,
+    upgradeImageUrl: imp.upgradeImageUrl || undefined,
   };
 }
 
@@ -3659,6 +3660,11 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
               }
 
               // ── Save Stage 2 results to DB (updates the existing row) ──
+              // Debug: check if upgradeImageUrl is present before save
+              const impWithImages = (analysis.improvements || []).filter((i: any) => i.upgradeImageUrl);
+              const outfitWithImages = (analysis.outfitSuggestions || []).filter((o: any) => o.aiImageUrl);
+              console.log(`[Stage 45 DEBUG] Before save: ${impWithImages.length}/${(analysis.improvements || []).length} improvements have upgradeImageUrl, ${outfitWithImages.length}/${(analysis.outfitSuggestions || []).length} outfits have aiImageUrl`);
+              if (impWithImages.length > 0) console.log(`[Stage 45 DEBUG] Sample upgradeImageUrl: ${impWithImages[0].upgradeImageUrl?.substring(0, 80)}...`);
               await updateReviewAnalysis(bgReviewId, analysis.overallScore, analysis);
               console.log(`[Stage 43 BG] Stage 2 saved to DB (reviewId=${bgReviewId}) in ${Date.now() - stage2Start}ms total`);
 
