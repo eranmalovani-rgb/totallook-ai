@@ -15,7 +15,7 @@ import { notifyOwner } from "./_core/notification";
 import { ENV } from "./_core/env";
 import { generateImage } from "./_core/imageGeneration";
 import type { OutfitSuggestion, Improvement, ShoppingLink } from "../shared/fashionTypes";
-import { getDoctrineForStage1, getDoctrineForStage2, getDoctrineForFixMyLook, getDoctrineForPersonalization } from "../shared/fashionDoctrine";
+import { getDoctrineForStage1, getDoctrineForStage2Slim, getDoctrineForFixMyLook, getDoctrineForPersonalization } from "../shared/fashionDoctrine";
 import { buildTasteProfileContext, formatTasteProfileForPrompt, formatWardrobeForStage2 } from "./tasteProfileContext";
 import probeImageSize from "probe-image-size";
 
@@ -1888,10 +1888,52 @@ export const analysisCoreJsonSchema = {
   additionalProperties: false,
 };
 
+// Stage 50c: Slim schema for Stage 2 — removed 12 heavy before/after fields per improvement
+// to prevent JSON truncation and reduce LLM output time from ~60s to ~25s
 export const recommendationsJsonSchema = {
   type: "object" as const,
   properties: {
-    improvements: analysisJsonSchema.properties.improvements,
+    improvements: {
+      type: "array" as const,
+      items: {
+        type: "object" as const,
+        properties: {
+          title: { type: "string" as const },
+          description: { type: "string" as const },
+          beforeLabel: { type: "string" as const },
+          afterLabel: { type: "string" as const },
+          beforeColor: { type: "string" as const },
+          afterColor: { type: "string" as const },
+          beforeGarmentType: { type: "string" as const },
+          afterGarmentType: { type: "string" as const },
+          beforeStyle: { type: "string" as const },
+          afterStyle: { type: "string" as const },
+          beforeFit: { type: "string" as const },
+          afterFit: { type: "string" as const },
+          beforeMaterial: { type: "string" as const },
+          afterMaterial: { type: "string" as const },
+          beforePattern: { type: "string" as const },
+          afterPattern: { type: "string" as const },
+          productSearchQuery: { type: "string" as const },
+          shoppingLinks: {
+            type: "array" as const,
+            minItems: 3,
+            items: {
+              type: "object" as const,
+              properties: {
+                label: { type: "string" as const },
+                url: { type: "string" as const },
+                imageUrl: { type: "string" as const },
+              },
+              required: ["label", "url", "imageUrl"] as const,
+              additionalProperties: false,
+            },
+          },
+        },
+        required: ["title", "description", "beforeLabel", "afterLabel", "beforeColor", "afterColor", "beforeGarmentType", "afterGarmentType", "beforeStyle", "afterStyle", "beforeFit", "afterFit", "beforeMaterial", "afterMaterial", "beforePattern", "afterPattern", "productSearchQuery", "shoppingLinks"] as const,
+        additionalProperties: false,
+      },
+    },
     outfitSuggestions: analysisJsonSchema.properties.outfitSuggestions,
     trendSources: analysisJsonSchema.properties.trendSources,
     influencerInsight: { type: "string" as const },
@@ -1965,7 +2007,7 @@ function buildRecommendationsPromptFromCore(
       ? `המשתמש נמצא ב-${country}. העדף חנויות שזמינות באזור הזה.`
       : `User is located in ${country}. Prefer stores available in this region.`)
     : "";
-  const doctrineStage2 = getDoctrineForStage2();
+  const doctrineStage2 = getDoctrineForStage2Slim();
 
   // Stage 33: Taste Profile + Wardrobe injection
   const tasteProfileSection = tasteProfileText || "";
@@ -2025,20 +2067,14 @@ ${doctrineStage2}
   * חייבת לשקף את המהות — מה ה-before ומה ה-after.
   * דוגמאות מושלמות: "פולו פיקה במקום טישרט", "לואפרס עור במקום סניקרס", "שעון מינימליסטי — הפרט שמשלים", "ג'ינס סלים במקום ג'וגר", "בלייזר פשתן — קפיצת דרג", "צ'ינוס כותנה — בסיס חדש", "סניקרס עור — נוכחות ברגל"
   * דוגמאות פסולות: "שדרוג חלק עליון", "שיפור הנעליים", "Upgrade your top", "From Basic Cotton Tee to Piqué Polo", "מטישרט לפולו — קפיצה בסטייל", "שדרוג premium"
-- חובה מוחלטת — מטאדטה מלאה לכל improvement: כל השדות הבאים חייבים להיות באנגלית lowercase. אסור להשאיר ריק!
-  * CRITICAL: afterColor, afterMaterial, afterGarmentType MUST be SPECIFIC REAL VALUES. FORBIDDEN placeholder values: "matching", "premium", "upgraded", "similar", "complementary", "better", "improved", "quality", "stylish", "elegant", "luxury", "appropriate", "suitable", "recommended". These are NOT colors, NOT materials, NOT garment types!
-  * beforeColor / afterColor: צבע מדויק (לדוגמה: "white", "navy blue", "charcoal gray"). afterColor חייב להיות צבע אמיתי! "matching" = פסול!
-  * beforeGarmentType / afterGarmentType: סוג הפריט (לדוגמה: "t-shirt", "dress shirt", "polo", "jeans", "chinos", "sneakers", "blazer", "hoodie"). afterGarmentType חייב להיות סוג בגד ספציפי! "premium top" = פסול! כתוב "polo" או "dress shirt" במקום.
-  * beforeFit / afterFit: גיזרה (לדוגמה: "slim", "regular", "oversized", "tailored", "boxy")
-  * beforeSleeveLength / afterSleeveLength: אורך שרוול (לדוגמה: "short", "long", "3/4", "sleeveless", "n/a")
-  * beforeNeckline / afterNeckline: צווארון/מחשוף (לדוגמה: "crew neck", "v-neck", "polo collar", "button-down collar", "turtleneck", "n/a")
-  * beforeMaterial / afterMaterial: חומר/בד (לדוגמה: "cotton", "linen", "denim", "leather", "silk", "wool", "knit"). afterMaterial חייב להיות חומר אמיתי! "premium" = פסול! כתוב "piqué cotton" או "merino wool" במקום.
-  * beforePattern / afterPattern: דוגמה/הדפס (לדוגמה: "solid", "striped", "checkered", "floral", "graphic print")
-  * beforeStyle / afterStyle: סגנון (לדוגמה: "casual", "formal", "smart-casual", "sporty", "streetwear", "minimalist")
-  * beforeLength / afterLength: אורך הפריט (לדוגמה: "cropped", "regular", "long", "midi")
-  * beforeClosure / afterClosure: סוג סגירה (לדוגמה: "pullover", "buttons", "zipper", "n/a")
-  * beforeTexture / afterTexture: מרקם (לדוגמה: "smooth", "ribbed", "knitted", "matte", "shiny", "distressed")
-  * beforeDetails / afterDetails: פרטים מיוחדים (לדוגמה: "visible logo", "chest pocket", "embroidery", "contrast stitching", "none")
+- חובה מוחלטת — מטאדטה לכל improvement: כל השדות באנגלית lowercase. אסור להשאיר ריק!
+  * CRITICAL: afterColor, afterMaterial, afterGarmentType MUST be SPECIFIC REAL VALUES. FORBIDDEN: "matching", "premium", "upgraded", "similar", "complementary".
+  * beforeColor / afterColor: צבע מדויק ("white", "navy blue", "charcoal gray"). "matching" = פסול!
+  * beforeGarmentType / afterGarmentType: סוג ספציפי ("t-shirt", "polo", "chinos", "sneakers"). "premium top" = פסול!
+  * beforeFit / afterFit: גיזרה ("slim", "regular", "oversized", "tailored")
+  * beforeMaterial / afterMaterial: חומר ("cotton", "linen", "denim", "leather"). "premium" = פסול!
+  * beforePattern / afterPattern: דוגמה ("solid", "striped", "checkered", "floral")
+  * beforeStyle / afterStyle: סגנון ("casual", "formal", "smart-casual", "sporty")
 - חובה: כל 3 ה-shoppingLinks בכל improvement חייבים להיות מ-3 חנויות שונות! לדוגמה: ASOS, Zara, H&M — לא 3 לינקים לאותה חנות.
 - פורמט label חובה: "תיאור מוצר ספציפי — שם חנות". לדוגמה: "חולצת פולו כחולה slim fit — ASOS", "מכנסי צ'ינו בז' — Zara". אסור label שמכיל רק שם חנות!
 - productSearchQuery חייב להיות באנגלית וספציפי: קטגוריה + צבע + סגנון + מגדר. דוגמה: "men's navy slim fit chino pants". ה-productSearchQuery חייב להתאים לקטגוריית ה-improvement (אם ה-title הוא שדרוג חלק עליון, ה-query חייב להיות של חולצה/חלק עליון).
@@ -2099,20 +2135,14 @@ Rules:
   * MUST capture the before→after essence in minimal words.
   * PERFECT examples: "Piqué Polo Over Basic Tee", "Leather Loafers, Not Sneakers", "Minimalist Watch — Finishing Touch", "Slim Chinos Over Joggers", "Linen Blazer — Level Up"
   * REJECTED examples: "Upgrade your top", "Improve shoes", "From Basic Cotton Tee to Piqué Polo — A Smart Casual Leap" (too long!)
-- ABSOLUTE REQUIREMENT — Complete garment metadata for every improvement: ALL fields below MUST be in English lowercase. NEVER leave empty!
-  * CRITICAL: afterColor, afterMaterial, afterGarmentType MUST be SPECIFIC REAL VALUES. FORBIDDEN placeholder values: "matching", "premium", "upgraded", "similar", "complementary", "better", "improved", "quality", "stylish", "elegant", "luxury", "appropriate", "suitable", "recommended". These are NOT colors, NOT materials, NOT garment types!
-  * beforeColor / afterColor: exact color (e.g. "white", "navy blue", "charcoal gray"). afterColor MUST be a REAL color! "matching" = REJECTED! Write "navy blue" or "white" instead.
-  * beforeGarmentType / afterGarmentType: specific garment type (e.g. "t-shirt", "dress shirt", "polo", "jeans", "chinos", "sneakers", "blazer", "hoodie"). afterGarmentType MUST be a SPECIFIC garment! "premium top" = REJECTED! Write "polo" or "dress shirt" instead.
-  * beforeFit / afterFit: fit/silhouette (e.g. "slim", "regular", "oversized", "tailored", "boxy")
-  * beforeSleeveLength / afterSleeveLength: sleeve length (e.g. "short", "long", "3/4", "sleeveless", "n/a" for non-tops)
-  * beforeNeckline / afterNeckline: neckline/collar (e.g. "crew neck", "v-neck", "polo collar", "button-down collar", "turtleneck", "n/a")
-  * beforeMaterial / afterMaterial: fabric/material (e.g. "cotton", "linen", "denim", "leather", "silk", "wool", "knit"). afterMaterial MUST be a REAL material! "premium" = REJECTED! Write "piqué cotton" or "merino wool" instead.
-  * beforePattern / afterPattern: pattern (e.g. "solid", "striped", "checkered", "floral", "graphic print")
-  * beforeStyle / afterStyle: style category (e.g. "casual", "formal", "smart-casual", "sporty", "streetwear", "minimalist")
-  * beforeLength / afterLength: garment length (e.g. "cropped", "regular", "long", "midi")
-  * beforeClosure / afterClosure: closure type (e.g. "pullover", "buttons", "zipper", "n/a")
-  * beforeTexture / afterTexture: surface texture (e.g. "smooth", "ribbed", "knitted", "matte", "shiny", "distressed")
-  * beforeDetails / afterDetails: distinctive details (e.g. "visible logo", "chest pocket", "embroidery", "contrast stitching", "none")
+- REQUIRED — Garment metadata for every improvement: ALL fields in English lowercase. NEVER leave empty!
+  * CRITICAL: afterColor, afterMaterial, afterGarmentType MUST be SPECIFIC REAL VALUES. FORBIDDEN: "matching", "premium", "upgraded", "similar", "complementary".
+  * beforeColor / afterColor: exact color ("white", "navy blue", "charcoal gray"). "matching" = REJECTED!
+  * beforeGarmentType / afterGarmentType: specific type ("t-shirt", "polo", "chinos", "sneakers"). "premium top" = REJECTED!
+  * beforeFit / afterFit: fit ("slim", "regular", "oversized", "tailored")
+  * beforeMaterial / afterMaterial: fabric ("cotton", "linen", "denim", "leather"). "premium" = REJECTED!
+  * beforePattern / afterPattern: pattern ("solid", "striped", "checkered", "floral")
+  * beforeStyle / afterStyle: style ("casual", "formal", "smart-casual", "sporty")
 - MANDATORY: Each improvement's 3 shoppingLinks MUST be from 3 DIFFERENT stores! Example: ASOS, Zara, H&M — never 3 links to the same store.
 - MANDATORY label format: "specific product description — store name". Example: "Navy slim fit polo shirt — ASOS", "Beige chino pants — Zara". NEVER use just the store name as label!
 - productSearchQuery MUST be specific English: category + color + style + gender. Example: "men's navy slim fit chino pants". The productSearchQuery MUST match the improvement category (if title is about tops, query must be for a top/shirt/blouse).
@@ -3726,13 +3756,13 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
                 }
               }
 
-              // ── Stage 45: Generate AI images for improvements (max 3 to save time) ──
+              // ── Stage 45: Generate AI images for improvements (max 2 to save time) ──
               const sanitizeEndMs = Date.now() - stage2Start;
               console.log(`[Stage 50 Timing] Stage 2 sanitize+postprocess completed in ${sanitizeEndMs}ms (LLM: ${llmEndMs}ms, post: ${sanitizeEndMs - llmEndMs}ms)`);
               const aiImageStart = Date.now();
               try {
                 // Stage 50: Limit to max 3 AI images to save ~6-10s
-                const improvementsForImages = (analysis.improvements || []).slice(0, 3);
+                const improvementsForImages = (analysis.improvements || []).slice(0, 2);
                 const improvementImagePromises = improvementsForImages.map(async (imp, idx) => {
                   try {
                     const genderLabel = bgUserGender === "female" ? "woman" : "man";
@@ -5768,7 +5798,7 @@ Return ONLY a JSON object with these exact fields:
           try {
             const guestGenderForImg = guestGenderBg === "female" ? "woman" : "man";
             // Stage 50: Limit to max 3 AI images to save ~6-10s
-            const guestImpForImages = (analysis.improvements || []).slice(0, 3);
+            const guestImpForImages = (analysis.improvements || []).slice(0, 2);
             const guestImpImagePromises = guestImpForImages.map(async (imp, idx) => {
               try {
                 // Build a hyper-specific single-item prompt for the UPGRADED garment only

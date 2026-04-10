@@ -244,7 +244,7 @@ describe("Stage 36: Prompt instructions for metadata", () => {
   });
 
   it("should list FORBIDDEN placeholder values", () => {
-    expect(routersSource).toContain('FORBIDDEN placeholder values: "matching", "premium", "upgraded", "similar", "complementary"');
+    expect(routersSource).toContain('FORBIDDEN: "matching", "premium", "upgraded", "similar", "complementary"');
   });
 
   it("should have specific examples for afterColor", () => {
@@ -252,10 +252,10 @@ describe("Stage 36: Prompt instructions for metadata", () => {
   });
 
   it("should have specific examples for afterGarmentType", () => {
-    expect(routersSource).toContain('"t-shirt", "dress shirt", "polo", "jeans", "chinos"');
+    expect(routersSource).toContain('"t-shirt", "polo", "chinos", "sneakers"');
   });
 
   it("should have specific examples for afterMaterial", () => {
-    expect(routersSource).toContain('"cotton", "linen", "denim", "leather", "silk", "wool"');
+    expect(routersSource).toContain('"cotton", "linen", "denim", "leather"');
   });
 });

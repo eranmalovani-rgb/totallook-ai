@@ -534,6 +534,24 @@ export function getDoctrineForStage2(): string {
 }
 
 /**
+ * Slim doctrine for Stage 2 — only the most critical sections to reduce LLM input tokens.
+ * Keeps: coreStyleLaws, upgradeStrategy, colorHarmonyRules, combinationLogic, currentTrends, occasionGuidelines.
+ * Removes: proportionRules, clientArchetypes, budgetGuidelines, lookFormulas, israelAdaptations, personalStyleCode, ultimatePrinciple.
+ */
+export function getDoctrineForStage2Slim(): string {
+  return [
+    `[FASHION DOCTRINE v${DOCTRINE_VERSION} — Compact Upgrade Guide]`,
+    coreStyleLaws(),
+    upgradeStrategy(),
+    colorHarmonyRules(),
+    combinationLogic(),
+    currentTrends(),
+    occasionGuidelines(),
+    `[END FASHION DOCTRINE]`,
+  ].join("\n\n");
+}
+
+/**
  * Compact doctrine for Fix My Look — visual replacement guidance.
  * Focuses on: core laws, vocabulary, trends (for visual accuracy), combination logic.
  */

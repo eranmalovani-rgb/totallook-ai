@@ -105,7 +105,7 @@ describe("Stage 37: JSON Schema — additionalProperties: false everywhere", () 
 
   it("should have additionalProperties: false on recommendationsJsonSchema", () => {
     const idx = routersSource.indexOf("export const recommendationsJsonSchema");
-    const section = routersSource.substring(idx, idx + 500);
+    const section = routersSource.substring(idx, idx + 2500);
     expect(section).toContain("additionalProperties: false");
     expect(section).not.toContain("additionalProperties: true");
   });

@@ -628,3 +628,17 @@
 - [x] 50b.2: Reduced post-processing improvement cap from 4-5 to 3 (prompt already asks for 3)
 - [x] 50b.3: Kept 2 outfitSuggestions (no change needed)
 - [ ] 50b.4: Verify no INVALID_LLM_JSON errors in logs after fix (needs production test)
+
+## Stage 50c: Aggressive Stage 2 Speed Fix — Simplify JSON Schema
+- [x] 50c.1: maxTokens set to 2800 (sufficient with slim schema)
+- [x] 50c.2: Created slim recommendationsJsonSchema — removed 12 fields per improvement (beforeLength, afterLength, beforeSleeveLength, afterSleeveLength, beforeNeckline, afterNeckline, beforeClosure, afterClosure, beforeTexture, afterTexture, beforeDetails, afterDetails) = 36 fewer fields for 3 improvements!
+- [x] 50c.3: Kept 2 outfitSuggestions (already lightweight)
+- [x] 50c.4: Kept influencerInsight (single string, minimal cost)
+- [ ] 50c.5: Test and verify Stage 2 completes in <45s (needs live test)
+
+## Stage 50d: Further Speed Optimization — Target <35s Total
+- [x] 50d.1: Reduce AI images from 3 to 2 (saves ~6s) — both registered + guest
+- [ ] 50d.2: Start AI image generation IN PARALLEL with LLM post-processing (skipped — already parallel)
+- [x] 50d.3: Reduce Stage 2 prompt size — created getDoctrineForStage2Slim (6 sections vs 13, ~10K chars vs ~21K), trimmed metadata instructions (removed 6 field pairs)
+- [ ] 50d.4: Reduce trendSources (kept at 2-3, minimal impact)
+- [ ] 50d.5: Test and verify Stage 2 completes in <35s (needs live test after deploy)
