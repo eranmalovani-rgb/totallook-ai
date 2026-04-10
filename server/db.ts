@@ -2311,6 +2311,7 @@ export async function findCatalogMatches(params: CatalogMatchParams): Promise<Ca
     eq(catalogItems.gender, genderValue),
     eq(catalogItems.category, category),
     eq(catalogItems.isActive, 1),
+    sql`${catalogItems.imageUrl} IS NOT NULL`, // Stage 51i: Only items with images
   ];
 
   if (excludeIds.length > 0) {
@@ -2333,6 +2334,7 @@ export async function findCatalogMatches(params: CatalogMatchParams): Promise<Ca
       .where(and(
         eq(catalogItems.gender, genderValue),
         eq(catalogItems.isActive, 1),
+        sql`${catalogItems.imageUrl} IS NOT NULL`, // Stage 51i: Only items with images
       ))
       .limit(50);
     return scoreCandidates(fallback, params).slice(0, limit);

@@ -690,3 +690,7 @@
 - [x] 51h.3: Occasion dress code — OCCASION_DRESS_CODE map for work/wedding/date/formal/shabbat. Penalty -100 for violations (shorts at work, jeans at wedding, etc.)
 - [x] 51h.4: Wired into scoreCandidates (db.ts) + buildCatalogRecommendations (routers.ts). detectedSeason + originalSubCategory passed to findCatalogMatches.
 - [x] 51h.5: Tests pass (819/824, same 5 pre-existing API failures). 0 TS errors.
+
+### 51i: Missing image for "סריג טקסטורות — קפיצת דרג" (User-reported)
+- [x] 51i.1: Diagnosed — 1212/1408 items have null imageUrl. Item 77 (Textured Knit Sweater) was missed in batch upload.
+- [x] 51i.2: Fixed — added imageUrl IS NOT NULL as hard filter in findCatalogMatches SQL query (both main query and fallback). Items without images will never be suggested.
