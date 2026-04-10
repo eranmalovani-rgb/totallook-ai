@@ -3,7 +3,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, adminProcedure, router } from "./_core/trpc";
 import { z } from "zod";
-import { createReview, getReviewById, getReviewsByUserId, updateReviewAnalysis, updateReviewStatus, getUserProfile, upsertUserProfile, deleteAllReviewsByUserId, deleteUserAccount, addWardrobeItems, getWardrobeByUserId, deleteWardrobeItem, clearWardrobe, updateWardrobeItemImage, publishToFeed, getFeedPosts, deleteFeedPost, likeFeedPost, unlikeFeedPost, saveFeedPost, unsaveFeedPost, getUserFeedInteractions, getSavedPosts, isReviewPublished, followUser, unfollowUser, getFollowingIds, isFollowing, getFollowingFeedPosts, getFollowerCount, getFollowingCount, createNewPostNotifications, getUserNotifications, getUnreadNotificationCount, markNotificationsRead, getAllReviews, getAllUsers, getAdminStats, adminDeleteReview, getReviewCountsByUser, getFeedPostCountsByUser, addFeedComment, getFeedComments, getFeedCommentCount, deleteFeedComment, setWardrobeShareToken, getWardrobeByShareToken, getWardrobeShareToken, createCommentNotification, createReplyNotification, createLikeNotification, saveFixMyLookResult, getFixMyLookResult, getOccasionCounts, createGuestSession, getGuestSessionById, hasGuestUsedAnalysis, updateGuestSessionAnalysis, updateGuestSessionStatus, getGuestAnalytics, getAllGuestSessions, trackDemoView, markDemoSignupClick, getAllDemoViews, trackPageView, getFunnelStats, getDailyFunnelStats, getGuestAnalysisCount, saveGuestProfile, getGuestProfile, saveGuestEmail, getGuestWardrobe, getGuestSessionIdsByFingerprint, addGuestWardrobeItems, deleteGuestWardrobeItem, migrateGuestToUser, deleteReviewById, deleteGuestSession, upsertIgConnection, getIgConnection, disconnectIg, getStoryMentionsByUserId, getStoryMentionStats, getStyleDiary, saveStyleDiaryEntry, findUserByPhoneNumber, getGuestSessionByToken, markGuestSessionViewed, isPhoneTaken, logConsent, getUserConsents, getReviewByShareToken, setReviewShareToken, adminUpdateUser, getUserById } from "./db";
+import { createReview, getReviewById, getReviewsByUserId, updateReviewAnalysis, updateReviewAnalysisPartial, updateReviewStatus, getUserProfile, upsertUserProfile, deleteAllReviewsByUserId, deleteUserAccount, addWardrobeItems, getWardrobeByUserId, deleteWardrobeItem, clearWardrobe, updateWardrobeItemImage, publishToFeed, getFeedPosts, deleteFeedPost, likeFeedPost, unlikeFeedPost, saveFeedPost, unsaveFeedPost, getUserFeedInteractions, getSavedPosts, isReviewPublished, followUser, unfollowUser, getFollowingIds, isFollowing, getFollowingFeedPosts, getFollowerCount, getFollowingCount, createNewPostNotifications, getUserNotifications, getUnreadNotificationCount, markNotificationsRead, getAllReviews, getAllUsers, getAdminStats, adminDeleteReview, getReviewCountsByUser, getFeedPostCountsByUser, addFeedComment, getFeedComments, getFeedCommentCount, deleteFeedComment, setWardrobeShareToken, getWardrobeByShareToken, getWardrobeShareToken, createCommentNotification, createReplyNotification, createLikeNotification, saveFixMyLookResult, getFixMyLookResult, getOccasionCounts, createGuestSession, getGuestSessionById, hasGuestUsedAnalysis, updateGuestSessionAnalysis, updateGuestSessionAnalysisPartial, updateGuestSessionStatus, getGuestAnalytics, getAllGuestSessions, trackDemoView, markDemoSignupClick, getAllDemoViews, trackPageView, getFunnelStats, getDailyFunnelStats, getGuestAnalysisCount, saveGuestProfile, getGuestProfile, saveGuestEmail, getGuestWardrobe, getGuestSessionIdsByFingerprint, addGuestWardrobeItems, deleteGuestWardrobeItem, migrateGuestToUser, deleteReviewById, deleteGuestSession, upsertIgConnection, getIgConnection, disconnectIg, getStoryMentionsByUserId, getStoryMentionStats, getStyleDiary, saveStyleDiaryEntry, findUserByPhoneNumber, getGuestSessionByToken, markGuestSessionViewed, isPhoneTaken, logConsent, getUserConsents, getReviewByShareToken, setReviewShareToken, adminUpdateUser, getUserById } from "./db";
 import { storagePut } from "./storage";
 import { invokeLLM } from "./_core/llm";
 import { nanoid } from "nanoid";
@@ -2441,6 +2441,16 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
           }
           if (!analysisCore) throw new Error("Analysis failed after retries");
 
+          const stage1Analysis: FashionAnalysis = {
+            ...analysisCore,
+            improvements: [],
+            outfitSuggestions: [],
+            trendSources: [],
+            influencerInsight: "",
+          };
+          await updateReviewAnalysisPartial(input.reviewId, stage1Analysis.overallScore, stage1Analysis);
+
+          void (async () => {
           // Stage 2: inspiration + recommendations (text-only from stage-1 output)
           const recommendationSeed = {
             overallScore: analysisCore.overallScore,
@@ -2888,6 +2898,16 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
           }
 
           return { success: true, analysis };
+          })().catch(async (backgroundError: any) => {
+            console.error("[Fashion Analysis] Background stage-2 failed:", backgroundError?.message || backgroundError);
+            try {
+              await updateReviewStatus(input.reviewId, "completed");
+            } catch (statusErr: any) {
+              console.error("[Fashion Analysis] Failed to mark review completed after background error:", statusErr?.message || statusErr);
+            }
+          });
+
+          return { success: true, analysis: stage1Analysis, stage: "core", recommendationsPending: true };
           });
         } catch (error: any) {
           console.error("[Fashion Analysis] Failed:", error);
@@ -4273,6 +4293,16 @@ Return ONLY a JSON object with these exact fields:
           }
           if (!analysisCore) throw new Error("Analysis failed after retries");
 
+          const stage1Analysis: FashionAnalysis = {
+            ...analysisCore,
+            improvements: [],
+            outfitSuggestions: [],
+            trendSources: [],
+            influencerInsight: "",
+          };
+          await updateGuestSessionAnalysisPartial(input.sessionId, stage1Analysis.overallScore, stage1Analysis);
+
+          void (async () => {
           // Stage 2: inspiration + recommendations (text-only from stage-1 output)
           const recommendationSeed = {
             overallScore: analysisCore.overallScore,
@@ -4665,6 +4695,16 @@ Return ONLY a JSON object with these exact fields:
           ).catch(() => {}); // swallow any unhandled rejection
 
           return { success: true, analysis };
+          })().catch(async (backgroundError: any) => {
+            console.error("[Guest Analysis] Background stage-2 failed:", backgroundError?.message || backgroundError);
+            try {
+              await updateGuestSessionStatus(input.sessionId, "completed");
+            } catch (statusErr: any) {
+              console.error("[Guest Analysis] Failed to mark session completed after background error:", statusErr?.message || statusErr);
+            }
+          });
+
+          return { success: true, analysis: stage1Analysis, stage: "core", recommendationsPending: true };
           });
         } catch (error: any) {
           console.error("[Guest Analysis] Failed:", error?.message);
