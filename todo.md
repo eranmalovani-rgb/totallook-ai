@@ -549,3 +549,9 @@
 - [x] 43.7: Frontend — Loading skeleton with spinner + "מכין המלצות שידרוג..." for improvements, outfits, trends
 - [x] 43.8: Frontend — Stage 2 failure is non-fatal — user sees Stage 1 results, improvements stay empty (no crash)
 - [x] 43.9: 0 TS errors, 819/824 tests pass (5 external API failures), timing test updated
+
+## Stage 44: Align buildFallbackImprovement with production version
+- [x] 44.1: Replaced buildFallbackImprovement with production version (simple 2-arg signature, no stageOneItems dependency)
+- [x] 44.2: Analysis — buildRecommendationsPromptFromCore, sanitizeRecommendationsPayload, normalizeImprovementShoppingLinks, buildFallbackRecommendationsFromCore are MORE ADVANCED in Manus deploy than production (include doctrine, gender verbs, metadata rules, budget/stores/country, taste profile, title rewriting, description sanitization, cross-category validation, global dedup). Kept Manus versions as-is to avoid regression.
+- [x] 44.3: Fixed all call sites passing 3 args to buildFallbackImprovement (normalizeImprovementsForWearableCore + buildFallbackRecommendationsFromCore)
+- [x] 44.4: Verified 0 TS errors, 819/824 tests pass (5 external API failures unchanged)

@@ -299,171 +299,47 @@ function buildFallbackShoppingLinks(
   return getBudgetFallbackStores(encoded, query, budgetLevel);
 }
 
-function buildFallbackImprovement(
-  category: Exclude<ClothingCategory, "accessory" | "other">,
-  isHebrew: boolean,
-  stageOneItems?: Array<{ name?: string; garmentType?: string; preciseColor?: string; color?: string; material?: string; fit?: string; pattern?: string; texture?: string; neckline?: string; sleeveLength?: string; bodyZone?: string; score?: number }>,
-): Improvement {
-  // Stage 30 GAP 5: Try to build a CONTEXTUAL fallback from Stage 1 item data
-  const bodyZoneMap: Record<string, string> = { top: "upper", bottom: "lower", outerwear: "outer", shoes: "feet", dress: "full", onepiece: "full" };
-  const matchingItem = (stageOneItems || []).find((it) => {
-    const zone = (it.bodyZone || "").toLowerCase();
-    const type = (it.garmentType || it.name || "").toLowerCase();
-    if (category === "top") return zone === "upper" || /(shirt|top|tee|t-shirt|polo|sweater|hoodie|blouse|tank)/i.test(type);
-    if (category === "bottom") return zone === "lower" || /(pants|jeans|trouser|chino|shorts|skirt)/i.test(type);
-    if (category === "shoes") return zone === "feet" || /(shoe|sneaker|boot|loafer|sandal)/i.test(type);
-    if (category === "outerwear") return zone === "outer" || /(jacket|coat|blazer|cardigan)/i.test(type);
-    if (category === "dress") return zone === "full" || /(dress|gown)/i.test(type);
-    if (category === "onepiece") return /(jumpsuit|romper|overall)/i.test(type);
-    return false;
-  });
-
-  if (matchingItem && matchingItem.garmentType) {
-    // Build contextual fallback from actual item data
-    const currentType = matchingItem.garmentType;
-    const currentColor = matchingItem.preciseColor || matchingItem.color || "current";
-    const currentMaterial = matchingItem.material || "";
-    const currentFit = matchingItem.fit || "";
-    const currentPattern = matchingItem.pattern || "";
-
-    // Generate upgrade suggestions based on current item — multiple options per type for variety
-    const upgradeOptions: Record<string, Array<{ type: string; color: string; material: string; fit: string; style: string }>> = {
-      "t-shirt": [
-        { type: "dress shirt", color: "navy blue", material: "cotton", fit: "tailored", style: "smart-casual" },
-        { type: "linen shirt", color: "white", material: "linen", fit: "relaxed", style: "casual" },
-        { type: "henley", color: "charcoal", material: "cotton jersey", fit: "slim", style: "casual" },
-      ],
-      "polo": [
-        { type: "button-down shirt", color: "light blue", material: "oxford cotton", fit: "slim", style: "smart-casual" },
-        { type: "knit polo", color: "olive", material: "merino wool", fit: "regular", style: "minimalist" },
-      ],
-      "hoodie": [
-        { type: "knit sweater", color: "charcoal", material: "merino wool", fit: "regular", style: "minimalist" },
-        { type: "zip-up cardigan", color: "navy", material: "cotton knit", fit: "regular", style: "smart-casual" },
-      ],
-      "sweatshirt": [
-        { type: "knit sweater", color: "burgundy", material: "merino wool", fit: "regular", style: "minimalist" },
-        { type: "half-zip pullover", color: "olive", material: "cotton", fit: "regular", style: "casual" },
-      ],
-      "jeans": [
-        { type: "tailored chinos", color: "olive", material: "cotton twill", fit: "slim", style: "smart-casual" },
-        { type: "tailored trousers", color: "charcoal", material: "wool blend", fit: "tailored", style: "formal" },
-        { type: "linen pants", color: "beige", material: "linen", fit: "relaxed", style: "casual" },
-      ],
-      "shorts": [
-        { type: "tailored shorts", color: "navy", material: "cotton", fit: "slim", style: "smart-casual" },
-        { type: "linen shorts", color: "beige", material: "linen", fit: "relaxed", style: "casual" },
-      ],
-      "sneakers": [
-        { type: "leather loafers", color: "brown", material: "leather", fit: "n/a", style: "classic" },
-        { type: "suede desert boots", color: "tan", material: "suede", fit: "n/a", style: "smart-casual" },
-        { type: "minimalist leather sneakers", color: "white", material: "leather", fit: "n/a", style: "minimalist" },
-      ],
-      "sandals": [
-        { type: "clean sneakers", color: "white", material: "leather", fit: "n/a", style: "minimalist" },
-        { type: "espadrilles", color: "navy", material: "canvas", fit: "n/a", style: "casual" },
-      ],
-    };
-    const options = upgradeOptions[currentType.toLowerCase()];
-    const upgrade = options ? options[Math.floor(Math.random() * options.length)] : null;
-
-    const beforeLabel = isHebrew ? `${matchingItem.name || currentType}` : `${matchingItem.name || currentType}`;
-    const afterType = upgrade?.type || `premium ${category}`;
-    const afterColor = upgrade?.color || "matching";
-    const afterMaterial = upgrade?.material || "premium";
-    const afterFit = upgrade?.fit || "tailored";
-    const afterStyle = upgrade?.style || "smart-casual";
-    const afterLabel = isHebrew ? `${afterType} ${afterColor}` : `${afterColor} ${afterFit} ${afterMaterial} ${afterType}`;
-    const query = `${afterColor} ${afterFit} ${afterMaterial} ${afterType}`.trim();
-
-    // Build marketing-quality title — NEVER use "מ-X ל-Y" format!
-    const hebrewTypeMap: Record<string, string> = {
-      "dress shirt": "חולצת כפתורים", "linen shirt": "חולצת פשתן", "henley": "הנלי",
-      "knit sweater": "סוודר סרוג", "zip-up cardigan": "קרדיגן רוכסן",
-      "half-zip pullover": "פולאובר חצי-רוכסן", "button-down shirt": "חולצת כפתורים",
-      "knit polo": "פולו סרוג", "tailored chinos": "צ'ינוס מחויט",
-      "tailored trousers": "מכנסיים מחויטים", "linen pants": "מכנסי פשתן",
-      "tailored shorts": "שורטס מחויטים", "linen shorts": "שורטס פשתן",
-      "leather loafers": "לואפרס עור", "suede desert boots": "מגפי זמש",
-      "minimalist leather sneakers": "סניקרס עור מינימליסטי",
-      "clean sneakers": "סניקרס נקיים", "espadrilles": "אספדרילס",
-    };
-    const hebrewAfterName = hebrewTypeMap[afterType] || afterType;
-    const taglines: Record<string, string[]> = {
-      "smart-casual": ["קפיצת דרג", "נוכחות חדשה", "שידרוג מדויק"],
-      "formal": ["מראה מלוטש", "אלגנטיות נקיה"],
-      "minimalist": ["מינימליזם מדויק", "פשטות שמשנה"],
-      "casual": ["נוחות בלי מאמץ", "רעננות איכותית"],
-      "classic": ["קלאסיקה נצחית", "הפרט שמשלים"],
-    };
-    const taglineOptions = taglines[afterStyle] || ["שדרוג מדויק"];
-    const tagline = taglineOptions[Math.floor(Math.random() * taglineOptions.length)];
-    const dynamicTitle = isHebrew
-      ? `${hebrewAfterName} — ${tagline}`
-      : `${afterType.charAt(0).toUpperCase() + afterType.slice(1)} — ${afterStyle === "smart-casual" ? "A Smart Casual Leap" : afterStyle === "formal" ? "Polished & Refined" : afterStyle === "minimalist" ? "Clean Minimalism" : "Fresh Upgrade"}`;
-    return {
-      title: dynamicTitle,
-      description: isHebrew
-        ? `ה${hebrewAfterName} ב${afterColor} מעניק מרקם ונוכחות לסילואט. שילוב ${afterColor} עם שאר הפריטים יוצר הרמוניה צבעונית נעימה.`
-        : `The ${afterColor} ${afterType} adds structure and presence to the silhouette. The ${afterColor} tone pairs beautifully with the rest of the outfit.`,
-      beforeLabel,
-      afterLabel,
-      beforeColor: currentColor,
-      afterColor,
-      beforeGarmentType: currentType,
-      afterGarmentType: afterType,
-      beforeFit: currentFit || "regular",
-      afterFit,
-      beforeMaterial: currentMaterial || undefined,
-      afterMaterial,
-      beforePattern: currentPattern || undefined,
-      afterPattern: "solid",
-      afterStyle,
-      productSearchQuery: query,
-      shoppingLinks: buildFallbackShoppingLinks(query),
-    };
-  }
-
-  // Generic fallback (no Stage 1 data available)
+function buildFallbackImprovement(category: Exclude<ClothingCategory, "accessory" | "other">, isHebrew: boolean): Improvement {
   const map: Record<Exclude<ClothingCategory, "accessory" | "other">, { title: string; description: string; beforeLabel: string; afterLabel: string; query: string }> = isHebrew
     ? {
         top: {
-          title: "חולצה מחויטת יותר — הפרט שמשנה את הרושם הראשון",
-          description: "חלק עליון מחויט מעניק מבנה לסילואט ומרים את רמת הסטייל הכללית — טרנד ה-quiet luxury של 2025.",
+          title: "שדרוג חלק עליון",
+          description: "הוסף/י חלק עליון מחויט ומחמיא כדי לחזק את הלוק ולהעלות את רמת הסטייל הכללית.",
           beforeLabel: "חלק עליון נוכחי",
           afterLabel: "חולצה/טופ מחויט איכותי",
           query: "tailored shirt premium",
         },
-         bottom: {
-          title: "גזרה נקיה ומדויקת — הבסיס לכל לוק מאוזן",          description: "פריט תחתון בגזרה נקייה ומדויקת יוצר בסיס איתן לכל הלוק. הגזרה הנכונה מאזנת את הפרופורציות ומעניקה מראה מושקע.",
+        bottom: {
+          title: "שדרוג חלק תחתון",
+          description: "בחר/י פריט תחתון בגזרה נקייה ומדויקת שיוצר בסיס חזק ללוק מלא ומאוזן.",
           beforeLabel: "חלק תחתון נוכחי",
           afterLabel: "מכנסיים/חצאית בגזרה נקייה",
           query: "tailored pants clean fit",
         },
         outerwear: {
-          title: "שכבה עליונה מובנית — עומק ונוכחות ברגע אחד",
-          description: "שכבה עליונה מובנית מוסיפה עומק, נוכחות וקו סילואט ברור — אחד הטרנדים החזקים של 2025.",
+          title: "שדרוג שכבה עליונה",
+          description: "שלב/י שכבה עליונה מובנית שתיתן עומק, נוכחות וקו סילואט ברור.",
           beforeLabel: "ללא שכבה עליונה מובנית",
           afterLabel: "בלייזר/ג׳קט מובנה",
           query: "structured blazer jacket",
         },
         dress: {
           title: "שדרוג לפריט מרכזי",
-          description: "שמלה בגזרה מחמיא יוצרת הופעה שלמה ומאוזנת. הגזרה המחמיא מדגישה את הסילואט ומעניקה מראה מעודכן.",
+          description: "בחר/י שמלה בגזרה מחמיאה כדי ליצור הופעה שלמה, מאוזנת ומעודכנת.",
           beforeLabel: "שמלה נוכחית",
           afterLabel: "שמלה בגזרה מחמיאה",
           query: "structured flattering dress",
         },
         onepiece: {
           title: "שדרוג לפריט one-piece",
-          description: "פריט one-piece מחויט מייצר מראה נקי ואלגנטי. הגזרה המחויטת מארכת את הסילואט ומעניקה מראה מושקע.",
+          description: "החלף/י לפריט one-piece מחויט שמייצר מראה נקי ואלגנטי יותר.",
           beforeLabel: "one-piece נוכחי",
           afterLabel: "one-piece מחויט",
           query: "tailored jumpsuit one piece",
         },
         shoes: {
-          title: "נעליים תואמות — הסגירה שמשלימה את הלוק",
-          description: "נעליים תואמות ללוק משלימות את המראה הכללי ויוצרות סגירה חזקה והרמונית. הנעל הנכונה מעניק תחושת של שלמות ותשומת לפרטים.",
+          title: "שדרוג נעליים",
+          description: "הוסף/י נעליים תואמות ומדויקות ללוק כדי לייצר סגירה חזקה והרמונית.",
           beforeLabel: "נעליים נוכחיות",
           afterLabel: "נעליים תואמות ללוק",
           query: "premium outfit matching shoes",
@@ -471,21 +347,21 @@ function buildFallbackImprovement(
       }
     : {
         top: {
-          title: "A Tailored Top — The Detail That Changes the First Impression",
+          title: "Upgrade your top",
           description: "Add a better-structured top to sharpen the silhouette and elevate the full look.",
           beforeLabel: "Current top",
           afterLabel: "Well-fitted structured top",
           query: "tailored shirt premium",
         },
         bottom: {
-          title: "Clean-Cut Bottoms — The Foundation of Every Balanced Look",
+          title: "Upgrade your bottoms",
           description: "Use cleaner-cut bottoms that anchor the outfit and improve overall balance.",
           beforeLabel: "Current bottoms",
           afterLabel: "Clean tailored bottoms",
           query: "tailored pants clean fit",
         },
         outerwear: {
-          title: "A Structured Layer — Depth & Presence in One Move",
+          title: "Add a structured outer layer",
           description: "Introduce a structured outer layer to create depth and a stronger style profile.",
           beforeLabel: "No structured outer layer",
           afterLabel: "Structured blazer or jacket",
@@ -499,14 +375,14 @@ function buildFallbackImprovement(
           query: "structured flattering dress",
         },
         onepiece: {
-          title: "A Tailored One-Piece — Clean Lines, Maximum Impact",
+          title: "Upgrade your one-piece option",
           description: "Switch to a tailored one-piece garment for a cleaner and more elevated outfit.",
           beforeLabel: "Current one-piece",
           afterLabel: "Tailored one-piece garment",
           query: "tailored jumpsuit one piece",
         },
         shoes: {
-          title: "Coordinated Footwear — The Finishing Touch That Ties It All Together",
+          title: "Upgrade your footwear",
           description: "Use coordinated shoes that lock the look together and improve visual harmony.",
           beforeLabel: "Current shoes",
           afterLabel: "Coordinated footwear",
@@ -569,7 +445,7 @@ function normalizeImprovementsForWearableCore(
     const nextCat =
       preferredOrder.find((cat) => !currentClothingCats.has(cat)) ||
       preferredOrder[normalized.length % preferredOrder.length];
-    normalized.push(buildFallbackImprovement(nextCat, isHebrew, analysis.items));
+    normalized.push(buildFallbackImprovement(nextCat, isHebrew));
     currentClothingCats.add(nextCat);
   }
 
@@ -597,7 +473,7 @@ function normalizeImprovementsForWearableCore(
     const missingCat =
       preferredOrder.find((cat) => !keep.some((imp) => detectImprovementCategory(imp) === cat)) ||
       preferredOrder[keep.length % preferredOrder.length];
-    keep.push(buildFallbackImprovement(missingCat, isHebrew, analysis.items));
+    keep.push(buildFallbackImprovement(missingCat, isHebrew));
   }
 
   analysis.improvements = keep;
@@ -2735,12 +2611,11 @@ function buildFallbackRecommendationsFromCore(
 ): FashionRecommendationsPayload {
   const genderCat: GenderCategory = userGender === "female" ? "female" : userGender === "unisex" ? "unisex" : "male";
   const isHebrew = lang === "he";
-  const stageOneItems = core.items || [];
   const improvements: Improvement[] = [
-    buildFallbackImprovement("top", isHebrew, stageOneItems),
-    buildFallbackImprovement("bottom", isHebrew, stageOneItems),
-    buildFallbackImprovement("shoes", isHebrew, stageOneItems),
-    buildFallbackImprovement("outerwear", isHebrew, stageOneItems),
+    buildFallbackImprovement("top", isHebrew),
+    buildFallbackImprovement("bottom", isHebrew),
+    buildFallbackImprovement("shoes", isHebrew),
+    buildFallbackImprovement("outerwear", isHebrew),
   ];
 
   const coreItems = (core.items || []).map((it) => it.name).filter(Boolean);
