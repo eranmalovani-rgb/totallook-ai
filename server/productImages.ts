@@ -671,12 +671,28 @@ export async function generateImagesForImprovement(
     }
 
     try {
-      const resolvedUrl = await resolveShoppingLinkImage({
+      let resolvedUrl = await resolveShoppingLinkImage({
         label: link.label,
         url: link.url,
         categoryQuery: improvement.productSearchQuery,
         logPrefix: `[ProductImages] Lazy [${linkIdx}]`,
       });
+
+      // Reliability hardening:
+      // If provider hiccup/timeout produced an empty result, retry once with AI-only fallback
+      // and cache/store-image bypass to force a fresh generation attempt.
+      if (!resolvedUrl) {
+        resolvedUrl = await resolveShoppingLinkImage({
+          label: link.label,
+          url: link.url,
+          categoryQuery: improvement.productSearchQuery,
+          logPrefix: `[ProductImages] Lazy [${linkIdx}] [retry]`,
+          skipCache: true,
+          skipStoreImage: true,
+          allowAIFallback: true,
+          promptSalt: `lazy-retry-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        });
+      }
       if (resolvedUrl) {
         links[linkIdx].imageUrl = resolvedUrl;
         if (onImageReady) {

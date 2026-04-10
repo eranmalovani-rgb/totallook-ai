@@ -309,10 +309,19 @@ export async function generateImage(
   }
 
   if (!imageData) {
-    console.warn("[ImageGen] All providers failed, using placeholder product image");
-    imageData = await buildPlaceholderProductImage(options.prompt);
-    if (openAIFailure) {
-      console.warn(`[ImageGen] Original OpenAI failure: ${openAIFailure?.message || openAIFailure}`);
+    // For core user-facing look generation, fail loudly so callers can retry or fallback explicitly.
+    // Placeholder images are only acceptable for product previews where a visual stub is better than nothing.
+    const promptLower = (options.prompt || "").toLowerCase();
+    const isProductPrompt = promptLower.includes("e-commerce product photo");
+    if (isProductPrompt) {
+      console.warn("[ImageGen] All providers failed, using placeholder product image");
+      imageData = await buildPlaceholderProductImage(options.prompt);
+      if (openAIFailure) {
+        console.warn(`[ImageGen] Original OpenAI failure: ${openAIFailure?.message || openAIFailure}`);
+      }
+    } else {
+      const reason = openAIFailure?.message || "all image providers failed";
+      throw new Error(`IMAGE_GENERATION_UNAVAILABLE: ${reason}`);
     }
   }
 
