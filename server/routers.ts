@@ -15,7 +15,7 @@ import { sendWhatsAppWelcome } from "./whatsapp";
 import { notifyOwner } from "./_core/notification";
 import { ENV } from "./_core/env";
 import { generateImage } from "./_core/imageGeneration";
-import type { OutfitSuggestion, Improvement, ShoppingLink } from "../shared/fashionTypes";
+import type { OutfitSuggestion, Improvement, ShoppingLink, ImprovementAlternative } from "../shared/fashionTypes";
 import { getDoctrineForStage1, getDoctrineForStage2Slim, getDoctrineForFixMyLook, getDoctrineForPersonalization } from "../shared/fashionDoctrine";
 import { buildTasteProfileContext, formatTasteProfileForPrompt, formatWardrobeForStage2 } from "./tasteProfileContext";
 import probeImageSize from "probe-image-size";
@@ -2860,6 +2860,67 @@ function sanitizeRecommendationsPayload(
 }
 
 /**
+ * Stage 52: Color harmony compatibility map for look coherence.
+ * Groups that pair well together.
+ */
+const COLOR_HARMONY_COMPAT: Record<string, string[]> = {
+  "neutrals": ["neutrals", "earth-tones", "cool-blues", "pastels", "warm-reds", "greens", "bold"],
+  "earth-tones": ["neutrals", "earth-tones", "warm-reds", "greens"],
+  "cool-blues": ["neutrals", "cool-blues", "pastels", "greens"],
+  "warm-reds": ["neutrals", "earth-tones", "warm-reds", "bold"],
+  "pastels": ["neutrals", "cool-blues", "pastels"],
+  "greens": ["neutrals", "earth-tones", "cool-blues", "greens"],
+  "bold": ["neutrals", "bold", "warm-reds"],
+};
+
+/** Stage 52: Build a lightweight ImprovementAlternative from a catalog item */
+function buildAlternativeFromCatalog(
+  catalogItem: any,
+  isHebrew: boolean,
+  taglines: Record<string, string[]>,
+  preferredStores: string | null | undefined,
+  genderCat: GenderCategory,
+  budgetLevel: string | null | undefined,
+): ImprovementAlternative {
+  const afterName = isHebrew ? (catalogItem.nameHe || catalogItem.name) : catalogItem.name;
+  const afterColor = catalogItem.color || "";
+  const afterStyle = (catalogItem.styleTags as string[] || [])[0] || "smart-casual";
+  const taglineOptions = taglines[afterStyle] || (isHebrew ? ["שדרוג מדויק"] : ["Precise Upgrade"]);
+  const tagline = taglineOptions[Math.floor(Math.random() * taglineOptions.length)];
+  const upgradeReason = isHebrew ? (catalogItem.upgradeReasonHe || catalogItem.upgradeReason || "") : (catalogItem.upgradeReason || "");
+  const query = catalogItem.productSearchQuery || `${catalogItem.brand} ${catalogItem.name}`;
+  return {
+    title: `${afterName} — ${tagline}`,
+    description: upgradeReason || (isHebrew
+      ? `${afterName} ב${afterColor} מעניק מרקם ונוכחות חדשה לסילואט.`
+      : `The ${afterColor} ${afterName} adds structure and a fresh presence to the silhouette.`),
+    afterLabel: afterName,
+    afterColor,
+    afterGarmentType: catalogItem.subCategory || catalogItem.category,
+    afterStyle,
+    afterFit: catalogItem.fit || "regular",
+    afterMaterial: catalogItem.material || "",
+    afterPattern: catalogItem.pattern || "solid",
+    productSearchQuery: query,
+    shoppingLinks: buildFallbackShoppingLinks(query, preferredStores, genderCat, budgetLevel),
+    upgradeImageUrl: catalogItem.imageUrl || undefined,
+  };
+}
+
+/** Stage 52: Check if two color harmony groups are compatible */
+function areColorsCompatible(groups1: string[], groups2: string[]): boolean {
+  if (groups1.length === 0 || groups2.length === 0) return true; // No data = assume OK
+  for (const g1 of groups1) {
+    const compat = COLOR_HARMONY_COMPAT[g1.toLowerCase()];
+    if (!compat) continue;
+    for (const g2 of groups2) {
+      if (compat.includes(g2.toLowerCase())) return true;
+    }
+  }
+  return false;
+}
+
+/**
  * Stage 51: Build recommendations from pre-built catalog instead of LLM.
  * Maps Stage 1 items to catalog upgrades using smart DB matching.
  * Returns the same FashionRecommendationsPayload structure as the LLM path.
@@ -2984,6 +3045,19 @@ async function buildCatalogRecommendations(
   const usedCatalogIds: number[] = [];
   const improvements: Improvement[] = [];
   const processedCategories = new Set<string>();
+  // Stage 52: Track catalog items per improvement for coherence check
+  const catalogItemsPerImprovement: Array<{ improvement: Improvement; catalogItem: any; altMatches: any[] }> = [];
+  // Stage 52: Shared taglines (used in improvements + coherence swap)
+  const taglines: Record<string, string[]> = {
+    "smart-casual": isHebrew ? ["קפיצת דרג", "נוכחות חדשה", "שידרוג מדויק"] : ["A Smart Upgrade", "New Presence", "Precise Elevation"],
+    "formal": isHebrew ? ["מראה מלוטש", "אלגנטיות נקיה"] : ["Polished Look", "Clean Elegance"],
+    "minimalist": isHebrew ? ["מינימליזם מדויק", "פשטות שמשנה"] : ["Precise Minimalism", "Simplicity That Transforms"],
+    "casual": isHebrew ? ["נוחות בלי מאמץ", "רעננות איכותית"] : ["Effortless Comfort", "Quality Freshness"],
+    "classic": isHebrew ? ["קלאסיקה נצחית", "הפרט שמשלים"] : ["Timeless Classic", "The Completing Touch"],
+    "streetwear": isHebrew ? ["סטריט חד", "אנרגיה עירונית"] : ["Sharp Street", "Urban Energy"],
+    "sporty": isHebrew ? ["ספורט אלגנטי", "דינמיות מעוצבת"] : ["Elegant Sport", "Designed Dynamism"],
+    "trendy": isHebrew ? ["על הגל", "טרנד מדויק"] : ["On Trend", "Precise Trend"],
+  };
 
   for (const item of stageOneItems.slice(0, 8)) {
     const garmentType = (item.garmentType || "").toLowerCase();
@@ -3004,13 +3078,16 @@ async function buildCatalogRecommendations(
         colors: item.preciseColor ? [item.preciseColor] : undefined,
         budgetTier: budgetLevel || undefined,
         excludeIds: usedCatalogIds,
-        limit: 1,
+        limit: 3, // Stage 52: fetch 3 options per category
         detectedSeason,
         originalSubCategory: mapping.subCategory,
       });
       if (matches.length === 0) continue;
       const catalogItem = matches[0];
       usedCatalogIds.push(catalogItem.id);
+      // Stage 52: Store alternatives (2nd and 3rd matches)
+      const altMatches = matches.slice(1);
+      altMatches.forEach(m => usedCatalogIds.push(m.id));
 
       // Build Improvement from catalog item
       const currentName = item.name || item.garmentType || "current item";
@@ -3025,16 +3102,6 @@ async function buildCatalogRecommendations(
       const afterStyle = (catalogItem.styleTags as string[] || [])[0] || "smart-casual";
 
       // Build marketing-quality title
-      const taglines: Record<string, string[]> = {
-        "smart-casual": isHebrew ? ["קפיצת דרג", "נוכחות חדשה", "שידרוג מדויק"] : ["A Smart Upgrade", "New Presence", "Precise Elevation"],
-        "formal": isHebrew ? ["מראה מלוטש", "אלגנטיות נקיה"] : ["Polished Look", "Clean Elegance"],
-        "minimalist": isHebrew ? ["מינימליזם מדויק", "פשטות שמשנה"] : ["Precise Minimalism", "Simplicity That Transforms"],
-        "casual": isHebrew ? ["נוחות בלי מאמץ", "רעננות איכותית"] : ["Effortless Comfort", "Quality Freshness"],
-        "classic": isHebrew ? ["קלאסיקה נצחית", "הפרט שמשלים"] : ["Timeless Classic", "The Completing Touch"],
-        "streetwear": isHebrew ? ["סטריט חד", "אנרגיה עירונית"] : ["Sharp Street", "Urban Energy"],
-        "sporty": isHebrew ? ["ספורט אלגנטי", "דינמיות מעוצבת"] : ["Elegant Sport", "Designed Dynamism"],
-        "trendy": isHebrew ? ["על הגל", "טרנד מדויק"] : ["On Trend", "Precise Trend"],
-      };
       const taglineOptions = taglines[afterStyle] || (isHebrew ? ["שדרוג מדויק"] : ["Precise Upgrade"]);
       const tagline = taglineOptions[Math.floor(Math.random() * taglineOptions.length)];
       const title = `${afterName} — ${tagline}`;
@@ -3046,6 +3113,11 @@ async function buildCatalogRecommendations(
         : `The ${afterColor} ${afterName} adds structure and a fresh presence to the silhouette.`);
 
       const query = catalogItem.productSearchQuery || `${catalogItem.brand} ${catalogItem.name}`;
+
+      // Stage 52: Build alternatives from remaining matches
+      const alternatives: ImprovementAlternative[] = altMatches.map(alt =>
+        buildAlternativeFromCatalog(alt, isHebrew, taglines, preferredStores, genderCat, budgetLevel)
+      );
 
       improvements.push({
         title,
@@ -3066,7 +3138,10 @@ async function buildCatalogRecommendations(
         productSearchQuery: query,
         shoppingLinks: buildFallbackShoppingLinks(query, preferredStores, genderCat, budgetLevel),
         upgradeImageUrl: catalogItem.imageUrl || undefined,
+        alternatives: alternatives.length > 0 ? alternatives : undefined,
       });
+      // Stage 52: Track catalog items for coherence check
+      catalogItemsPerImprovement.push({ improvement: improvements[improvements.length - 1], catalogItem, altMatches });
     } catch (matchErr: any) {
       console.warn(`[Stage 51] Catalog match failed for ${garmentType}: ${matchErr?.message}`);
     }
@@ -3086,16 +3161,22 @@ async function buildCatalogRecommendations(
         styles: styleArray,
         budgetTier: budgetLevel || undefined,
         excludeIds: usedCatalogIds,
-        limit: 1,
+        limit: 3, // Stage 52: fetch 3 options
         detectedSeason,
       });
       if (matches.length === 0) continue;
       const catalogItem = matches[0];
       usedCatalogIds.push(catalogItem.id);
+      const altMatches = matches.slice(1);
+      altMatches.forEach(m => usedCatalogIds.push(m.id));
       const afterName = isHebrew ? (catalogItem.nameHe || catalogItem.name) : catalogItem.name;
       const afterStyle = (catalogItem.styleTags as string[] || [])[0] || "smart-casual";
       const upgradeReason = isHebrew ? (catalogItem.upgradeReasonHe || catalogItem.upgradeReason || "") : (catalogItem.upgradeReason || "");
       const query = catalogItem.productSearchQuery || `${catalogItem.brand} ${catalogItem.name}`;
+      // Stage 52: taglines already declared at function scope
+      const alternatives: ImprovementAlternative[] = altMatches.map(alt =>
+        buildAlternativeFromCatalog(alt, isHebrew, taglines, preferredStores, genderCat, budgetLevel)
+      );
       improvements.push({
         title: `${afterName} — ${isHebrew ? "השלמה מושלמת" : "Perfect Addition"}`,
         description: upgradeReason || (isHebrew ? `${afterName} ישלים את הלוק בצורה מדויקת.` : `${afterName} will complete the look precisely.`),
@@ -3111,7 +3192,9 @@ async function buildCatalogRecommendations(
         productSearchQuery: query,
         shoppingLinks: buildFallbackShoppingLinks(query, preferredStores, genderCat, budgetLevel),
         upgradeImageUrl: catalogItem.imageUrl || undefined,
+        alternatives: alternatives.length > 0 ? alternatives : undefined,
       });
+      catalogItemsPerImprovement.push({ improvement: improvements[improvements.length - 1], catalogItem, altMatches });
     } catch (e) { /* skip */ }
   }
 
@@ -3176,6 +3259,102 @@ async function buildCatalogRecommendations(
   const influencerInsight = buildDetailedInfluencerInsightFromCore(
     core, lang, userGender, preferredInfluencers,
   ).insight;
+
+  // ── Stage 52: Look Coherence Check ──
+  // Verify that all primary selections work together as a cohesive look.
+  // If a primary clashes with the majority, swap it with a compatible alternative.
+  if (catalogItemsPerImprovement.length >= 2) {
+    // Collect dominant style and color harmony from all primary items
+    const allStyles: string[] = [];
+    const allHarmonyGroups: string[][] = [];
+    for (const entry of catalogItemsPerImprovement) {
+      const styles = Array.isArray(entry.catalogItem.styleTags) ? entry.catalogItem.styleTags : [];
+      allStyles.push(...styles);
+      const groups = Array.isArray(entry.catalogItem.colorHarmonyGroups)
+        ? entry.catalogItem.colorHarmonyGroups.map((g: any) => String(g).toLowerCase())
+        : [];
+      allHarmonyGroups.push(groups);
+    }
+    // Find dominant style (most frequent)
+    const styleCounts: Record<string, number> = {};
+    for (const s of allStyles) { styleCounts[s] = (styleCounts[s] || 0) + 1; }
+    const dominantStyle = Object.entries(styleCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || "";
+    // Find dominant color harmony group
+    const harmonyCounts: Record<string, number> = {};
+    for (const groups of allHarmonyGroups) {
+      for (const g of groups) { harmonyCounts[g] = (harmonyCounts[g] || 0) + 1; }
+    }
+    const dominantHarmony = Object.entries(harmonyCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || "";
+    const dominantHarmonyArr = dominantHarmony ? [dominantHarmony] : [];
+
+    console.log(`[Stage 52] Look coherence: dominant style=${dominantStyle}, dominant harmony=${dominantHarmony}`);
+
+    // Check each improvement for coherence and swap if needed
+    for (let i = 0; i < catalogItemsPerImprovement.length; i++) {
+      const entry = catalogItemsPerImprovement[i];
+      const itemStyles = Array.isArray(entry.catalogItem.styleTags) ? entry.catalogItem.styleTags : [];
+      const itemHarmony = Array.isArray(entry.catalogItem.colorHarmonyGroups)
+        ? entry.catalogItem.colorHarmonyGroups.map((g: any) => String(g).toLowerCase())
+        : [];
+
+      const styleMatch = !dominantStyle || itemStyles.includes(dominantStyle);
+      const colorMatch = !dominantHarmony || areColorsCompatible(itemHarmony, dominantHarmonyArr);
+
+      if (!styleMatch && !colorMatch && entry.altMatches.length > 0) {
+        // Try to find a better alternative
+        for (const alt of entry.altMatches) {
+          const altStyles = Array.isArray(alt.styleTags) ? alt.styleTags : [];
+          const altHarmony = Array.isArray(alt.colorHarmonyGroups)
+            ? alt.colorHarmonyGroups.map((g: any) => String(g).toLowerCase())
+            : [];
+          const altStyleMatch = !dominantStyle || altStyles.includes(dominantStyle);
+          const altColorMatch = !dominantHarmony || areColorsCompatible(altHarmony, dominantHarmonyArr);
+
+          if (altStyleMatch || altColorMatch) {
+            // Swap: move current primary to alternatives, promote this alt to primary
+            console.log(`[Stage 52] Coherence swap: ${entry.catalogItem.name} → ${alt.name} (style: ${altStyleMatch}, color: ${altColorMatch})`);
+            const imp = entry.improvement;
+            const altData = buildAlternativeFromCatalog(alt, isHebrew, taglines, preferredStores, genderCat, budgetLevel);
+            // Save current primary as alternative
+            const currentAsAlt: ImprovementAlternative = {
+              title: imp.title,
+              description: imp.description,
+              afterLabel: imp.afterLabel,
+              afterColor: imp.afterColor,
+              afterGarmentType: imp.afterGarmentType,
+              afterStyle: imp.afterStyle,
+              afterFit: imp.afterFit,
+              afterMaterial: imp.afterMaterial,
+              afterPattern: imp.afterPattern,
+              productSearchQuery: imp.productSearchQuery,
+              shoppingLinks: imp.shoppingLinks,
+              upgradeImageUrl: imp.upgradeImageUrl,
+            };
+            // Promote alt to primary
+            imp.title = altData.title;
+            imp.description = altData.description;
+            imp.afterLabel = altData.afterLabel;
+            imp.afterColor = altData.afterColor;
+            imp.afterGarmentType = altData.afterGarmentType;
+            imp.afterStyle = altData.afterStyle;
+            imp.afterFit = altData.afterFit;
+            imp.afterMaterial = altData.afterMaterial;
+            imp.afterPattern = altData.afterPattern;
+            imp.productSearchQuery = altData.productSearchQuery;
+            imp.shoppingLinks = altData.shoppingLinks;
+            imp.upgradeImageUrl = altData.upgradeImageUrl;
+            // Update alternatives: remove promoted, add demoted
+            const newAlts = (imp.alternatives || []).filter(
+              (a: ImprovementAlternative) => a.afterLabel !== altData.afterLabel
+            );
+            newAlts.unshift(currentAsAlt);
+            imp.alternatives = newAlts.length > 0 ? newAlts : undefined;
+            break;
+          }
+        }
+      }
+    }
+  }
 
   return {
     improvements: improvements.map((imp) => normalizeImprovementShoppingLinks(imp, lang, preferredStores, genderCat, budgetLevel)),

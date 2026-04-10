@@ -208,6 +208,24 @@ export interface Improvement {
   upgradeImageUrl?: string;
   /** Matching item from user's virtual closet (if found) */
   closetMatch?: ClosetMatch;
+  /** Alternative upgrade options for the same category (Stage 52) */
+  alternatives?: ImprovementAlternative[];
+}
+
+/** Lightweight alternative option for the same category (Stage 52) */
+export interface ImprovementAlternative {
+  title: string;
+  description: string;
+  afterLabel: string;
+  afterColor: string;
+  afterGarmentType?: string;
+  afterStyle?: string;
+  afterFit?: string;
+  afterMaterial?: string;
+  afterPattern?: string;
+  productSearchQuery: string;
+  shoppingLinks: ShoppingLink[];
+  upgradeImageUrl?: string;
 }
 
 export interface ClosetMatch {

@@ -694,3 +694,12 @@
 ### 51i: Missing image for "סריג טקסטורות — קפיצת דרג" (User-reported)
 - [x] 51i.1: Diagnosed — 1212/1408 items have null imageUrl. Item 77 (Textured Knit Sweater) was missed in batch upload.
 - [x] 51i.2: Fixed — added imageUrl IS NOT NULL as hard filter in findCatalogMatches SQL query (both main query and fallback). Items without images will never be suggested.
+
+### 52: Multiple Options Per Category + Look Coherence
+- [x] 52.1: Backend — return 3 upgrade options per category (limit: 3 in findCatalogMatches)
+- [x] 52.2: Backend — look coherence: finds dominant style + color harmony, swaps clashing primaries with compatible alternatives
+- [x] 52.3: Added ImprovementAlternative type + alternatives field to Improvement interface
+- [x] 52.4: Frontend — tab selector UI (⭐ מומלץ / אפשרות 2 / אפשרות 3) with image/title/description switching
+- [x] 52.5: Frontend — clicking tab switches all content (image, title, description, afterLabel, shopping links)
+- [x] 52.6: All rules apply to all 3 options (same findCatalogMatches with season/length/occasion scoring)
+- [x] 52.7: Tests pass (819/824, same 5 pre-existing). 0 TS errors.

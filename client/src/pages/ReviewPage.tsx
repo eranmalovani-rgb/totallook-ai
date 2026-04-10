@@ -9,7 +9,7 @@ import { ArrowRight, ArrowLeft, Upload, ExternalLink, Sparkles, TrendingUp, User
 import { toast } from "sonner";
 import { translations } from "@/i18n/translations";
 import FashionSpinner, { FashionButtonSpinner } from "@/components/FashionSpinner";
-import type { FashionAnalysis, ShoppingLink, LinkedMention, OutfitSuggestion, ClosetMatch } from "../../../shared/fashionTypes";
+import type { FashionAnalysis, ShoppingLink, LinkedMention, OutfitSuggestion, ClosetMatch, ImprovementAlternative } from "../../../shared/fashionTypes";
 import { BRAND_URLS, POPULAR_INFLUENCERS } from "../../../shared/fashionTypes";
 import ShareButtons from "@/components/ShareButtons";
 import {
@@ -344,7 +344,32 @@ function ImprovementCard({
   const [closetPopupOpen, setClosetPopupOpen] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
   const [imgError, setImgError] = useState(false);
-  const links = imp.shoppingLinks || [];
+  // Stage 52: Track which option is selected (0 = primary, 1/2 = alternatives)
+  const [selectedOption, setSelectedOption] = useState(0);
+  const alternatives: ImprovementAlternative[] = imp.alternatives || [];
+  const hasAlternatives = alternatives.length > 0;
+
+  // Build array of all options (primary + alternatives)
+  const allOptions = useMemo(() => {
+    const primary = {
+      title: imp.title,
+      description: imp.description,
+      afterLabel: imp.afterLabel,
+      afterColor: imp.afterColor,
+      afterGarmentType: imp.afterGarmentType,
+      afterStyle: imp.afterStyle,
+      afterFit: imp.afterFit,
+      afterMaterial: imp.afterMaterial,
+      afterPattern: imp.afterPattern,
+      productSearchQuery: imp.productSearchQuery,
+      shoppingLinks: imp.shoppingLinks || [],
+      upgradeImageUrl: imp.upgradeImageUrl,
+    };
+    return [primary, ...alternatives];
+  }, [imp, alternatives]);
+
+  const activeOption = allOptions[selectedOption] || allOptions[0];
+  const links = activeOption.shoppingLinks || [];
 
   const typeKeywords: Record<string, string[]> = {
     shirt: ["חולצ", "טי שירט", "shirt", "top", "tee", "polo", "blouse", "t-shirt", "👕"],
@@ -381,8 +406,34 @@ function ImprovementCard({
 
   return (
     <div className="rounded-2xl border border-white/5 bg-card overflow-hidden">
-      {/* AI Before/After Image */}
-      {imp.upgradeImageUrl && !imgError ? (
+      {/* Stage 52: Option selector tabs — show when alternatives exist */}
+      {hasAlternatives && (
+        <div className="flex border-b border-white/5 bg-white/[0.02]">
+          {allOptions.map((opt, idx) => (
+            <button
+              key={idx}
+              onClick={() => { setSelectedOption(idx); setImgLoaded(false); setImgError(false); }}
+              className={`flex-1 py-2.5 px-3 text-xs font-medium transition-all duration-200 relative ${
+                selectedOption === idx
+                  ? 'text-primary bg-primary/5'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-white/[0.03]'
+              }`}
+            >
+              <span className="truncate block">
+                {idx === 0
+                  ? (lang === "he" ? "⭐ מומלץ" : "⭐ Top Pick")
+                  : (lang === "he" ? `אפשרות ${idx + 1}` : `Option ${idx + 1}`)}
+              </span>
+              {selectedOption === idx && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Product Image */}
+      {activeOption.upgradeImageUrl && !imgError ? (
         <div className="relative">
           {!imgLoaded && (
             <div className="w-full aspect-[2/1] bg-gradient-to-br from-primary/5 via-rose-500/5 to-transparent flex items-center justify-center">
@@ -391,14 +442,14 @@ function ImprovementCard({
           )}
           <img
             loading="lazy"
-            src={imp.upgradeImageUrl}
-            alt={`${imp.beforeLabel} → ${imp.afterLabel}`}
+            src={activeOption.upgradeImageUrl}
+            alt={`${imp.beforeLabel} → ${activeOption.afterLabel}`}
             className={`w-full aspect-[2/1] object-cover ${imgLoaded ? 'opacity-100' : 'opacity-0 absolute inset-0'}`}
             onLoad={() => setImgLoaded(true)}
             onError={() => setImgError(true)}
           />
         </div>
-      ) : !imp.upgradeImageUrl ? (
+      ) : !activeOption.upgradeImageUrl ? (
         <div className="w-full aspect-[2/1] bg-gradient-to-br from-primary/5 via-rose-500/5 to-transparent flex flex-col items-center justify-center gap-3">
           <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center animate-pulse">
             <Sparkles className="w-5 h-5 text-primary/50" />
@@ -417,10 +468,10 @@ function ImprovementCard({
           </div>
           <div className="flex-1 min-w-0">
             <h4 className="font-bold text-sm mb-1">
-              <LinkedText text={imp.title} mentions={mentions} onInfluencerClick={onInfluencerClick} />
+              <LinkedText text={activeOption.title} mentions={mentions} onInfluencerClick={onInfluencerClick} />
             </h4>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              <LinkedText text={imp.description} mentions={mentions} onInfluencerClick={onInfluencerClick} />
+              <LinkedText text={activeOption.description} mentions={mentions} onInfluencerClick={onInfluencerClick} />
             </p>
           </div>
         </div>
@@ -432,7 +483,7 @@ function ImprovementCard({
           </span>
           <span className="text-[10px] self-center">→</span>
           <span className="text-[10px] px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-            {t("review", "after")}: {imp.afterLabel}
+            {t("review", "after")}: {activeOption.afterLabel}
           </span>
         </div>
 
