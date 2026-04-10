@@ -571,3 +571,8 @@
 - [x] 44b.12: Removed stage36-fixes.test.ts (23 tests for removed features), rewrote personalized-recommendations.test.ts (7 tests for 2-arg contract), removed 3 tests from productImageFixes.test.ts
 - [x] 44b.13: 771/776 tests pass (5 external API failures only)
 - [x] 44b.14: Save checkpoint
+
+## Bug: Stage 2 stuck after 44b rollback
+- [x] Investigate why Stage 2 (improvements/recommendations) is stuck after production rollback — maxTokens was 2000 instead of production's 2400
+- [x] Fix the root cause — changed maxTokens from 2000 to 2400 in both registered and guest Stage 2 LLM calls
+- [ ] Verify analysis completes end-to-end (requires publish to deployed version)

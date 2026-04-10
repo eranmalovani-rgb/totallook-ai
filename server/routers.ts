@@ -2598,28 +2598,28 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
                           schema: recommendationsJsonSchema,
                         },
                       },
-                      maxTokens: 2000,
+                      maxTokens: 2400,
                     });
                     recommendations = parseFashionRecommendationsPayload(recResult);
                     break;
-                  } catch (retryErr: any) {
-                    const msg = retryErr?.message || "";
-                    const statusCode = retryErr?.status || retryErr?.statusCode || 0;
-                    const isRetryable =
-                      msg.includes("exhausted") || msg.includes("412") ||
-                      msg.includes("quota") || msg.includes("rate limit") || msg.includes("rate_limit") ||
-                      msg.includes("429") || msg.includes("503") || msg.includes("500") ||
-                      msg.includes("timeout") || msg.includes("ECONNRESET") || msg.includes("ETIMEDOUT") ||
-                      msg.includes("ECONNREFUSED") || msg.includes("fetch failed") ||
-                      msg.includes("INVALID_LLM_JSON") ||
-                      statusCode === 429 || statusCode === 503 || statusCode === 500 || statusCode === 502;
-                    if (!isRetryable || attempt === MAX_RECOMMENDATION_RETRIES - 1) {
-                      throw retryErr;
-                    }
-                  }
+              } catch (retryErr: any) {
+                const msg = retryErr?.message || "";
+                const statusCode = retryErr?.status || retryErr?.statusCode || 0;
+                const isRetryable =
+                  msg.includes("exhausted") || msg.includes("412") ||
+                  msg.includes("quota") || msg.includes("rate limit") || msg.includes("rate_limit") ||
+                  msg.includes("429") || msg.includes("503") || msg.includes("500") ||
+                  msg.includes("timeout") || msg.includes("ECONNRESET") || msg.includes("ETIMEDOUT") ||
+                  msg.includes("ECONNREFUSED") || msg.includes("fetch failed") ||
+                  msg.includes("INVALID_LLM_JSON") ||
+                  statusCode === 429 || statusCode === 503 || statusCode === 500 || statusCode === 502;
+                if (!isRetryable || attempt === MAX_RECOMMENDATION_RETRIES - 1) {
+                  throw retryErr;
                 }
-              } catch (recErr: any) {
-                console.warn(`[Stage 43 BG] Stage-2 recommendations fallback: ${recErr?.message || recErr}`);
+              }
+            }
+           } catch (recErr: any) {
+             console.warn(`[Stage 43 BG] Stage-2 recommendations fallback: ${recErr?.message || recErr}`);
               }
               console.log(`[Stage 43 BG] Stage 2 LLM completed in ${Date.now() - stage2Start}ms`);
 
@@ -4573,7 +4573,7 @@ Return ONLY a JSON object with these exact fields:
                       schema: recommendationsJsonSchema,
                     },
                   },
-                  maxTokens: 2000,
+                  maxTokens: 2400,
                 });
                 recommendations = parseFashionRecommendationsPayload(recResult);
                 break;
