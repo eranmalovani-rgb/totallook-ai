@@ -2898,13 +2898,9 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
           }
 
           return { success: true, analysis };
-          })().catch(async (backgroundError: any) => {
+          })().catch((backgroundError: any) => {
+            // Keep status as "analyzing" on Stage-2 failure so client retry/resume can continue safely.
             console.error("[Fashion Analysis] Background stage-2 failed:", backgroundError?.message || backgroundError);
-            try {
-              await updateReviewStatus(input.reviewId, "completed");
-            } catch (statusErr: any) {
-              console.error("[Fashion Analysis] Failed to mark review completed after background error:", statusErr?.message || statusErr);
-            }
           });
 
           return { success: true, analysis: stage1Analysis, stage: "core", recommendationsPending: true };
@@ -4203,7 +4199,9 @@ Return ONLY a JSON object with these exact fields:
         const session = await getGuestSessionById(input.sessionId);
         if (!session) throw new Error("Session not found");
         if (session.status === "completed") throw new Error("Analysis already completed");
-        if (session.status === "analyzing") throw new Error("Analysis in progress");
+        // Allow re-entry while "analyzing" if stage-1 core is already stored.
+        // This lets client resume stage-2 when the previous background worker failed.
+        if (session.status === "analyzing" && !session.analysisJson) throw new Error("Analysis in progress");
 
         try {
           return await withAnalysisSlot(`guest:${input.sessionId}`, async () => {
@@ -4695,13 +4693,9 @@ Return ONLY a JSON object with these exact fields:
           ).catch(() => {}); // swallow any unhandled rejection
 
           return { success: true, analysis };
-          })().catch(async (backgroundError: any) => {
+          })().catch((backgroundError: any) => {
+            // Keep status as "analyzing" on Stage-2 failure so client retry/resume can continue safely.
             console.error("[Guest Analysis] Background stage-2 failed:", backgroundError?.message || backgroundError);
-            try {
-              await updateGuestSessionStatus(input.sessionId, "completed");
-            } catch (statusErr: any) {
-              console.error("[Guest Analysis] Failed to mark session completed after background error:", statusErr?.message || statusErr);
-            }
           });
 
           return { success: true, analysis: stage1Analysis, stage: "core", recommendationsPending: true };
