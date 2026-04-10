@@ -3,7 +3,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, adminProcedure, router } from "./_core/trpc";
 import { z } from "zod";
-import { createReview, getReviewById, getReviewsByUserId, updateReviewAnalysis, updateReviewAnalysisPartial, updateReviewStatus, getUserProfile, upsertUserProfile, deleteAllReviewsByUserId, deleteUserAccount, addWardrobeItems, getWardrobeByUserId, deleteWardrobeItem, clearWardrobe, updateWardrobeItemImage, publishToFeed, getFeedPosts, deleteFeedPost, likeFeedPost, unlikeFeedPost, saveFeedPost, unsaveFeedPost, getUserFeedInteractions, getSavedPosts, isReviewPublished, followUser, unfollowUser, getFollowingIds, isFollowing, getFollowingFeedPosts, getFollowerCount, getFollowingCount, createNewPostNotifications, getUserNotifications, getUnreadNotificationCount, markNotificationsRead, getAllReviews, getAllUsers, getAdminStats, adminDeleteReview, getReviewCountsByUser, getFeedPostCountsByUser, addFeedComment, getFeedComments, getFeedCommentCount, deleteFeedComment, setWardrobeShareToken, getWardrobeByShareToken, getWardrobeShareToken, createCommentNotification, createReplyNotification, createLikeNotification, saveFixMyLookResult, getFixMyLookResult, getOccasionCounts, createGuestSession, getGuestSessionById, hasGuestUsedAnalysis, updateGuestSessionAnalysis, updateGuestSessionAnalysisPartial, updateGuestSessionStatus, getGuestAnalytics, getAllGuestSessions, trackDemoView, markDemoSignupClick, getAllDemoViews, trackPageView, getFunnelStats, getDailyFunnelStats, getGuestAnalysisCount, saveGuestProfile, getGuestProfile, saveGuestEmail, getGuestWardrobe, getGuestSessionIdsByFingerprint, addGuestWardrobeItems, deleteGuestWardrobeItem, migrateGuestToUser, deleteReviewById, deleteGuestSession, upsertIgConnection, getIgConnection, disconnectIg, getStoryMentionsByUserId, getStoryMentionStats, getStyleDiary, saveStyleDiaryEntry, findUserByPhoneNumber, getGuestSessionByToken, markGuestSessionViewed, isPhoneTaken, logConsent, getUserConsents, getReviewByShareToken, setReviewShareToken, adminUpdateUser, getUserById } from "./db";
+import { createReview, getReviewById, getReviewsByUserId, updateReviewAnalysis, updateReviewStatus, getUserProfile, upsertUserProfile, deleteAllReviewsByUserId, deleteUserAccount, addWardrobeItems, getWardrobeByUserId, deleteWardrobeItem, clearWardrobe, updateWardrobeItemImage, publishToFeed, getFeedPosts, deleteFeedPost, likeFeedPost, unlikeFeedPost, saveFeedPost, unsaveFeedPost, getUserFeedInteractions, getSavedPosts, isReviewPublished, followUser, unfollowUser, getFollowingIds, isFollowing, getFollowingFeedPosts, getFollowerCount, getFollowingCount, createNewPostNotifications, getUserNotifications, getUnreadNotificationCount, markNotificationsRead, getAllReviews, getAllUsers, getAdminStats, adminDeleteReview, getReviewCountsByUser, getFeedPostCountsByUser, addFeedComment, getFeedComments, getFeedCommentCount, deleteFeedComment, setWardrobeShareToken, getWardrobeByShareToken, getWardrobeShareToken, createCommentNotification, createReplyNotification, createLikeNotification, saveFixMyLookResult, getFixMyLookResult, getOccasionCounts, createGuestSession, getGuestSessionById, hasGuestUsedAnalysis, updateGuestSessionAnalysis, updateGuestSessionStatus, getGuestAnalytics, getAllGuestSessions, trackDemoView, markDemoSignupClick, getAllDemoViews, trackPageView, getFunnelStats, getDailyFunnelStats, getGuestAnalysisCount, saveGuestProfile, getGuestProfile, saveGuestEmail, getGuestWardrobe, getGuestSessionIdsByFingerprint, addGuestWardrobeItems, deleteGuestWardrobeItem, migrateGuestToUser, deleteReviewById, deleteGuestSession, upsertIgConnection, getIgConnection, disconnectIg, getStoryMentionsByUserId, getStoryMentionStats, getStyleDiary, saveStyleDiaryEntry, findUserByPhoneNumber, getGuestSessionByToken, markGuestSessionViewed, isPhoneTaken, logConsent, getUserConsents, getReviewByShareToken, setReviewShareToken, adminUpdateUser, getUserById } from "./db";
 import { storagePut } from "./storage";
 import { invokeLLM } from "./_core/llm";
 import { nanoid } from "nanoid";
@@ -24,8 +24,6 @@ const MAX_WARDROBE_ITEMS_FOR_ANALYSIS = 60;
 const MAX_WARDROBE_ITEMS_FOR_MATCHING = 40;
 let activeAnalysisJobs = 0;
 const waitingAnalysisResolvers: Array<() => void> = [];
-const activeStage2ReviewJobs = new Set<number>();
-const activeStage2GuestJobs = new Set<number>();
 
 async function withAnalysisSlot<T>(jobLabel: string, fn: () => Promise<T>): Promise<T> {
   if (activeAnalysisJobs >= ANALYSIS_CONCURRENCY_LIMIT) {
@@ -62,66 +60,6 @@ async function withAnalysisSlot<T>(jobLabel: string, fn: () => Promise<T>): Prom
       console.log(`[AnalysisQueue] ${jobLabel} done. active=${activeAnalysisJobs} waiting=${waitingAnalysisResolvers.length}`);
     }
   }
-}
-
-function normalizeShoppingLinkKey(
-  categoryQuery: string | undefined,
-  label: string | undefined,
-  rawUrl: string | undefined,
-): string {
-  const normalizedQuery = (categoryQuery || "").toLowerCase().replace(/\s+/g, " ").trim();
-  const normalizedLabel = (label || "").toLowerCase().replace(/\s+/g, " ").trim();
-  let normalizedUrl = (rawUrl || "").trim().toLowerCase();
-  if (normalizedUrl) {
-    try {
-      const parsed = new URL(normalizedUrl);
-      const q = parsed.searchParams.get("q") || parsed.searchParams.get("search") || "";
-      normalizedUrl = `${parsed.hostname}${parsed.pathname}${q ? `?q=${q.toLowerCase()}` : ""}`;
-    } catch {
-      normalizedUrl = normalizedUrl
-        .replace(/^https?:\/\//, "")
-        .replace(/^www\./, "")
-        .split("#")[0];
-    }
-  }
-  return `${normalizedQuery}||${normalizedLabel}||${normalizedUrl}`;
-}
-
-function preserveGeneratedShoppingImages(
-  existingAnalysis: FashionAnalysis | null | undefined,
-  nextAnalysis: FashionAnalysis,
-): FashionAnalysis {
-  if (!existingAnalysis?.improvements?.length || !nextAnalysis?.improvements?.length) {
-    return nextAnalysis;
-  }
-
-  const existingImageByKey = new Map<string, string>();
-  for (const imp of existingAnalysis.improvements || []) {
-    for (const link of imp.shoppingLinks || []) {
-      if (typeof link?.imageUrl === "string" && link.imageUrl.length > 5) {
-        const key = normalizeShoppingLinkKey(imp.productSearchQuery, link.label, link.url);
-        if (!existingImageByKey.has(key)) {
-          existingImageByKey.set(key, link.imageUrl);
-        }
-      }
-    }
-  }
-  if (existingImageByKey.size === 0) return nextAnalysis;
-
-  const mergedImprovements = (nextAnalysis.improvements || []).map((imp) => ({
-    ...imp,
-    shoppingLinks: (imp.shoppingLinks || []).map((link) => {
-      if (typeof link?.imageUrl === "string" && link.imageUrl.length > 5) return link;
-      const key = normalizeShoppingLinkKey(imp.productSearchQuery, link?.label, link?.url);
-      const preservedUrl = existingImageByKey.get(key);
-      return preservedUrl ? { ...link, imageUrl: preservedUrl } : link;
-    }),
-  }));
-
-  return {
-    ...nextAnalysis,
-    improvements: mergedImprovements,
-  };
 }
 
 type ClothingCategory = "top" | "bottom" | "outerwear" | "dress" | "onepiece" | "shoes" | "accessory" | "other";
@@ -2503,22 +2441,6 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
           }
           if (!analysisCore) throw new Error("Analysis failed after retries");
 
-          const stage1Analysis: FashionAnalysis = {
-            ...analysisCore,
-            improvements: [],
-            outfitSuggestions: [],
-            trendSources: [],
-            influencerInsight: "",
-          };
-          await updateReviewAnalysisPartial(input.reviewId, stage1Analysis.overallScore, stage1Analysis);
-
-          void (async () => {
-          if (activeStage2ReviewJobs.has(input.reviewId)) {
-            console.log(`[Fashion Analysis] Stage-2 already running for review ${input.reviewId}, skipping duplicate trigger`);
-            return;
-          }
-          activeStage2ReviewJobs.add(input.reviewId);
-          try {
           // Stage 2: inspiration + recommendations (text-only from stage-1 output)
           const recommendationSeed = {
             overallScore: analysisCore.overallScore,
@@ -2929,14 +2851,6 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
             }
           }
 
-          // Preserve already-generated shopping image URLs (if any) to avoid
-          // race-condition overwrite when stage-2 is triggered more than once.
-          const latestReviewForMerge = await getReviewById(input.reviewId);
-          analysis = preserveGeneratedShoppingImages(
-            (latestReviewForMerge?.analysisJson as FashionAnalysis | null) || null,
-            analysis,
-          );
-
           // Save analysis to DB immediately (without waiting for product images)
           await updateReviewAnalysis(input.reviewId, analysis.overallScore, analysis);
 
@@ -2974,19 +2888,6 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
           }
 
           return { success: true, analysis };
-          } finally {
-            activeStage2ReviewJobs.delete(input.reviewId);
-          }
-          })().catch(async (backgroundError: any) => {
-            console.error("[Fashion Analysis] Background stage-2 failed:", backgroundError?.message || backgroundError);
-            try {
-              await updateReviewStatus(input.reviewId, "completed");
-            } catch (statusErr: any) {
-              console.error("[Fashion Analysis] Failed to mark review completed after background error:", statusErr?.message || statusErr);
-            }
-          });
-
-          return { success: true, analysis: stage1Analysis, stage: "core", recommendationsPending: true };
           });
         } catch (error: any) {
           console.error("[Fashion Analysis] Failed:", error);
@@ -4282,9 +4183,7 @@ Return ONLY a JSON object with these exact fields:
         const session = await getGuestSessionById(input.sessionId);
         if (!session) throw new Error("Session not found");
         if (session.status === "completed") throw new Error("Analysis already completed");
-        // Allow re-entry while "analyzing" if we already have stage-1 core in DB.
-        // This enables the client to safely resume stage-2 if a previous background worker died.
-        if (session.status === "analyzing" && !session.analysisJson) throw new Error("Analysis in progress");
+        if (session.status === "analyzing") throw new Error("Analysis in progress");
 
         try {
           return await withAnalysisSlot(`guest:${input.sessionId}`, async () => {
@@ -4374,22 +4273,6 @@ Return ONLY a JSON object with these exact fields:
           }
           if (!analysisCore) throw new Error("Analysis failed after retries");
 
-          const stage1Analysis: FashionAnalysis = {
-            ...analysisCore,
-            improvements: [],
-            outfitSuggestions: [],
-            trendSources: [],
-            influencerInsight: "",
-          };
-          await updateGuestSessionAnalysisPartial(input.sessionId, stage1Analysis.overallScore, stage1Analysis);
-
-          void (async () => {
-          if (activeStage2GuestJobs.has(input.sessionId)) {
-            console.log(`[Guest Analysis] Stage-2 already running for session ${input.sessionId}, skipping duplicate trigger`);
-            return;
-          }
-          activeStage2GuestJobs.add(input.sessionId);
-          try {
           // Stage 2: inspiration + recommendations (text-only from stage-1 output)
           const recommendationSeed = {
             overallScore: analysisCore.overallScore,
@@ -4741,14 +4624,6 @@ Return ONLY a JSON object with these exact fields:
             }
           }
 
-          // Preserve already-generated shopping image URLs (if any) to avoid
-          // race-condition overwrite when stage-2 is triggered more than once.
-          const latestSessionForMerge = await getGuestSessionById(input.sessionId);
-          analysis = preserveGeneratedShoppingImages(
-            (latestSessionForMerge?.analysisJson as FashionAnalysis | null) || null,
-            analysis,
-          );
-
           // Save analysis to DB immediately (without waiting for product images)
           await updateGuestSessionAnalysis(input.sessionId, analysis.overallScore, analysis);
 
@@ -4790,19 +4665,6 @@ Return ONLY a JSON object with these exact fields:
           ).catch(() => {}); // swallow any unhandled rejection
 
           return { success: true, analysis };
-          } finally {
-            activeStage2GuestJobs.delete(input.sessionId);
-          }
-          })().catch(async (backgroundError: any) => {
-            console.error("[Guest Analysis] Background stage-2 failed:", backgroundError?.message || backgroundError);
-            try {
-              await updateGuestSessionStatus(input.sessionId, "completed");
-            } catch (statusErr: any) {
-              console.error("[Guest Analysis] Failed to mark session completed after background error:", statusErr?.message || statusErr);
-            }
-          });
-
-          return { success: true, analysis: stage1Analysis, stage: "core", recommendationsPending: true };
           });
         } catch (error: any) {
           console.error("[Guest Analysis] Failed:", error?.message);
