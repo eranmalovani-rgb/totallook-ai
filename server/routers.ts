@@ -3416,7 +3416,7 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
                           schema: recommendationsJsonSchema,
                         },
                       },
-                      maxTokens: 2000,
+                      maxTokens: 2400,
                     });
                     recommendations = parseFashionRecommendationsPayload(recResult);
                     break;
@@ -5399,7 +5399,7 @@ Return ONLY a JSON object with these exact fields:
                       schema: recommendationsJsonSchema,
                     },
                   },
-                  maxTokens: 2000,
+                  maxTokens: 2400,
                 });
                 recommendations = parseFashionRecommendationsPayload(recResult);
                 break;
