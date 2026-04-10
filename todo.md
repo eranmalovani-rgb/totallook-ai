@@ -549,3 +549,27 @@
 - [x] 43.7: Frontend — Loading skeleton with spinner + "מכין המלצות שידרוג..." for improvements, outfits, trends
 - [x] 43.8: Frontend — Stage 2 failure is non-fatal — user sees Stage 1 results, improvements stay empty (no crash)
 - [x] 43.9: 0 TS errors, 819/824 tests pass (5 external API failures), timing test updated
+
+## Stage 45: Option C Hybrid — Rebuild upgrades & looks sections
+### Backend
+- [x] 45.1: Add AI before/after image generation in Stage 2 background (registered + guest) — generates 1 image per improvement
+- [x] 45.2: Add AI outfit image generation in Stage 2 background (registered + guest) — generates 1 image per outfit
+- [x] 45.3: Remove enrichAnalysisWithProductImages imports from routers.ts
+- [x] 45.4: Remove 6 lazy endpoints: generateProductImages, generateAllProductImages, generateOutfitLook (protected + guest)
+- [x] 45.5: Remove generateOutfitLookFromMetadata mosaic fallback from generateTotalLook
+- [x] 45.6: Shopping links remain as static search URLs (no image search needed)
+- [x] 45.7: maxTokens fixed 2000→2400 (matching production)
+- [x] 45.8: Added upgradeImageUrl to Improvement type in fashionTypes.ts
+- [x] 45.9: Added aiImageUrl to OutfitSuggestion type in fashionTypes.ts
+### Frontend
+- [x] 45.10: Redesigned ImprovementCard — AI before/after image + store buttons (no product thumbnails)
+- [x] 45.11: Redesigned OutfitCard — AI image + items list + occasion (no lazy generation)
+- [x] 45.12: Removed lazy image trigger logic from ReviewPage.tsx
+- [x] 45.13: Removed lazy image trigger logic from GuestReview.tsx
+- [x] 45.14: Store buttons use preferred stores from profile (fallback to defaults)
+- [x] 45.15: Rewrote FixMyLookModal — AI upgrade image + closet toggle (no lazy product images)
+- [x] 45.16: Rewrote GuestFixMyLookModal — same changes
+### Cleanup & Verification
+- [x] 45.17: 0 TypeScript errors confirmed
+- [x] 45.18: 819/824 tests pass (5 external API failures only)
+- [ ] 45.19: Save checkpoint

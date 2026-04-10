@@ -323,13 +323,12 @@ function ClosetItemPopup({
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   ImprovementCard — renders a single improvement category.
+   ImprovementCard — Stage 45 Option C: AI before/after image + store buttons
    ══════════════════════════════════════════════════════════════════ */
 
 function ImprovementCard({
   imp,
   index,
-  reviewId,
   lang,
   mentions,
   onInfluencerClick,
@@ -337,22 +336,15 @@ function ImprovementCard({
 }: {
   imp: any;
   index: number;
-  reviewId: number;
   lang: "he" | "en";
   mentions?: LinkedMention[];
   onInfluencerClick?: (name: string, handle?: string, igUrl?: string) => void;
   t: (ns: string, key: string) => string;
 }) {
-  // Progressive image loading: server saves each image to DB as it resolves.
-  // The parent review.get query polls every 3s and passes fresh imp.shoppingLinks.
-  // We also use local state from mutation results for immediate updates.
-  const serverLinks = imp.shoppingLinks || [];
-  const [localLinks, setLocalLinks] = useState<any[] | null>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [hasTriggered, setHasTriggered] = useState(false);
   const [closetPopupOpen, setClosetPopupOpen] = useState(false);
-  const cardRef = useRef<HTMLDivElement>(null);
-  const generateMutation = trpc.review.generateProductImages.useMutation();
+  const [imgLoaded, setImgLoaded] = useState(false);
+  const [imgError, setImgError] = useState(false);
+  const links = imp.shoppingLinks || [];
 
   const typeKeywords: Record<string, string[]> = {
     shirt: ["חולצ", "טי שירט", "shirt", "top", "tee", "polo", "blouse", "t-shirt", "👕"],
@@ -387,156 +379,133 @@ function ImprovementCard({
     return cm;
   }, [imp]);
 
-  // Check if a URL is from our own storage (safe to display) vs external CDN (may be blocked)
-  const isOwnStorageUrl = (url: string) => {
-    if (!url) return false;
-    try {
-      const h = new URL(url).hostname;
-      return h === 'd2xsxph8kpxj0f.cloudfront.net' || h.includes('r2.') || h.includes('manus') || h.includes('pub-') || h.includes('unsplash') || h.includes('openai');
-    } catch { return false; }
-  };
-
-  // Merge: prefer local mutation results, but also accept server polling updates
-  const links = useMemo(() => {
-    if (!localLinks) return serverLinks;
-    return serverLinks.map((sl: any, i: number) => {
-      const ll = localLinks[i];
-      if (!ll) return sl;
-      if (ll.imageUrl && ll.imageUrl.length > 5 && (!sl.imageUrl || sl.imageUrl.length < 5)) return ll;
-      if (sl.imageUrl && sl.imageUrl.length > 5) return sl;
-      return ll;
-    });
-  }, [serverLinks, localLinks]);
-
-  const hasEmptyImages = links.some((l: any) => !l.imageUrl || l.imageUrl.length < 5);
-  const hasExternalImages = links.some((l: any) => l.imageUrl && l.imageUrl.length > 5 && !isOwnStorageUrl(l.imageUrl));
-  const allImagesLoaded = links.length > 0 && links.every((l: any) => l.imageUrl && l.imageUrl.length > 5) && !hasExternalImages;
-
-  // Track images that failed to load in browser (e.g. blocked CDNs)
-  const [failedImages, setFailedImages] = useState<Set<number>>(new Set());
-  const onImageError = useCallback((linkIndex: number) => {
-    setFailedImages(prev => {
-      const next = new Set(prev);
-      next.add(linkIndex);
-      return next;
-    });
-  }, []);
-  const hasFailedImages = failedImages.size > 0;
-
-  // If server already has all images on safe domains, mark as triggered
-  useEffect(() => {
-    if (allImagesLoaded && !hasTriggered) setHasTriggered(true);
-  }, [allImagesLoaded]);
-
-  // Trigger generation and USE the result immediately
-  const triggerGeneration = useCallback(() => {
-    if (hasTriggered) return;
-    setHasTriggered(true);
-    setIsGenerating(true);
-    generateMutation.mutateAsync({ reviewId, improvementIndex: index })
-      .then((res) => {
-        if (res?.links && Array.isArray(res.links)) {
-          setLocalLinks(res.links);
-        }
-      })
-      .catch((err) => console.warn(`[ImprovementCard] Image generation failed for index ${index}:`, err))
-      .finally(() => setIsGenerating(false));
-  }, [hasTriggered, reviewId, index]);
-
-  const handleRetryImages = useCallback(() => {
-    setFailedImages(new Set());
-    setIsGenerating(true);
-    generateMutation.mutateAsync({ reviewId, improvementIndex: index })
-      .then((res) => {
-        if (res?.links && Array.isArray(res.links)) {
-          setLocalLinks(res.links);
-        }
-      })
-      .catch((err) => console.warn(`[ImprovementCard] Retry image generation failed for index ${index}:`, err))
-      .finally(() => setIsGenerating(false));
-  }, [reviewId, index]);
-
-  // Auto-trigger generation immediately on mount if images are missing or from external CDNs
-  useEffect(() => {
-    if (hasTriggered || allImagesLoaded) return;
-    // Trigger if: empty images, external CDN images, or browser-failed images
-    triggerGeneration();
-  }, [hasTriggered, allImagesLoaded, triggerGeneration]);
-
   return (
-    <div ref={cardRef} className="space-y-3">
-      <div className="flex items-start gap-3">
-        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 text-primary font-bold text-sm">
-          {index + 1}
-        </div>
-        <div className="flex-1 min-w-0">
-          <h4 className="font-bold text-sm mb-1">
-            <LinkedText text={imp.title} mentions={mentions} onInfluencerClick={onInfluencerClick} />
-          </h4>
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            <LinkedText text={imp.description} mentions={mentions} onInfluencerClick={onInfluencerClick} />
-          </p>
-          <div className="flex flex-wrap gap-2 mt-2">
-            <span className="text-[10px] px-2 py-1 rounded-full bg-red-500/10 text-red-400 border border-red-500/20">
-              {t("review", "before")}: {imp.beforeLabel}
-            </span>
-            <span className="text-[10px] self-center">→</span>
-            <span className="text-[10px] px-2 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
-              {t("review", "after")}: {imp.afterLabel}
-            </span>
-          </div>
-
-          {validClosetMatch && (
-            <>
-              <div
-                role="button"
-                tabIndex={0}
-                onClick={() => setClosetPopupOpen(true)}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setClosetPopupOpen(true); }}
-                className="flex items-center gap-2 mt-2 px-2.5 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 cursor-pointer hover:bg-emerald-500/15 transition-colors"
-              >
-                <span className="text-xs" style={{ fontSize: '12px' }}>♻️</span>
-                <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                  {(validClosetMatch.itemImageUrl || validClosetMatch.sourceImageUrl) && (
-                    <img loading="lazy" src={validClosetMatch.itemImageUrl || validClosetMatch.sourceImageUrl}
-                      alt={validClosetMatch.name}
-                      className="w-6 h-6 rounded-md object-cover border border-emerald-500/30"
-                    />
-                  )}
-                  <span className="text-[10px] text-emerald-400 font-medium truncate">
-                    {lang === "he" ? "יש לך בארון: " : "In your closet: "}
-                    <span className="font-bold">{validClosetMatch.name}</span>
-                  </span>
-                </div>
-                <Eye className="w-3 h-3 text-emerald-400/60 shrink-0" />
-              </div>
-              <ClosetItemPopup open={closetPopupOpen} onOpenChange={setClosetPopupOpen} closetMatch={validClosetMatch} lang={lang} />
-            </>
+    <div className="rounded-2xl border border-white/5 bg-card overflow-hidden">
+      {/* AI Before/After Image */}
+      {imp.upgradeImageUrl && !imgError ? (
+        <div className="relative">
+          {!imgLoaded && (
+            <div className="w-full aspect-[2/1] bg-gradient-to-br from-primary/5 via-rose-500/5 to-transparent flex items-center justify-center">
+              <FashionButtonSpinner />
+            </div>
           )}
+          <img
+            loading="lazy"
+            src={imp.upgradeImageUrl}
+            alt={`${imp.beforeLabel} → ${imp.afterLabel}`}
+            className={`w-full aspect-[2/1] object-cover ${imgLoaded ? 'opacity-100' : 'opacity-0 absolute inset-0'}`}
+            onLoad={() => setImgLoaded(true)}
+            onError={() => setImgError(true)}
+          />
         </div>
-      </div>
+      ) : !imp.upgradeImageUrl ? (
+        <div className="w-full aspect-[2/1] bg-gradient-to-br from-primary/5 via-rose-500/5 to-transparent flex flex-col items-center justify-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center animate-pulse">
+            <Sparkles className="w-5 h-5 text-primary/50" />
+          </div>
+          <span className="text-xs text-muted-foreground">
+            {lang === "he" ? "מייצר תמונת שידרוג..." : "Generating upgrade image..."}
+          </span>
+        </div>
+      ) : null}
 
-      {links && links.length > 0 && (
-        <div className="pt-2">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-[10px] text-muted-foreground font-medium flex items-center gap-1">
+      {/* Content */}
+      <div className="p-4 space-y-3">
+        <div className="flex items-start gap-3">
+          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 text-primary font-bold text-sm">
+            {index + 1}
+          </div>
+          <div className="flex-1 min-w-0">
+            <h4 className="font-bold text-sm mb-1">
+              <LinkedText text={imp.title} mentions={mentions} onInfluencerClick={onInfluencerClick} />
+            </h4>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              <LinkedText text={imp.description} mentions={mentions} onInfluencerClick={onInfluencerClick} />
+            </p>
+          </div>
+        </div>
+
+        {/* Before → After badges */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[10px] px-2 py-1 rounded-full bg-red-500/10 text-red-400 border border-red-500/20">
+            {t("review", "before")}: {imp.beforeLabel}
+          </span>
+          <span className="text-[10px] self-center">→</span>
+          <span className="text-[10px] px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+            {t("review", "after")}: {imp.afterLabel}
+          </span>
+        </div>
+
+        {/* Closet Match */}
+        {validClosetMatch && (
+          <>
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={() => setClosetPopupOpen(true)}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setClosetPopupOpen(true); }}
+              className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 cursor-pointer hover:bg-emerald-500/15 transition-colors"
+            >
+              <span className="text-xs" style={{ fontSize: '12px' }}>♻️</span>
+              <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                {(validClosetMatch.itemImageUrl || validClosetMatch.sourceImageUrl) && (
+                  <img loading="lazy" src={validClosetMatch.itemImageUrl || validClosetMatch.sourceImageUrl}
+                    alt={validClosetMatch.name}
+                    className="w-6 h-6 rounded-md object-cover border border-emerald-500/30"
+                  />
+                )}
+                <span className="text-[10px] text-emerald-400 font-medium truncate">
+                  {lang === "he" ? "יש לך בארון: " : "In your closet: "}
+                  <span className="font-bold">{validClosetMatch.name}</span>
+                </span>
+              </div>
+              <Eye className="w-3 h-3 text-emerald-400/60 shrink-0" />
+            </div>
+            <ClosetItemPopup open={closetPopupOpen} onOpenChange={setClosetPopupOpen} closetMatch={validClosetMatch} lang={lang} />
+          </>
+        )}
+
+        {/* Store Buttons — static search URLs, no product images */}
+        {links.length > 0 && (
+          <div className="pt-1">
+            <p className="text-[10px] text-muted-foreground font-medium flex items-center gap-1 mb-2">
               <ShoppingBag className="w-3 h-3" />
               {t("review", "recommendedProducts")}
             </p>
-            {hasEmptyImages && !isGenerating && hasTriggered && (
-              <button onClick={handleRetryImages} className="text-[10px] text-primary/70 hover:text-primary flex items-center gap-1 transition-colors">
-                <RefreshCw className="w-2.5 h-2.5" />
-                {lang === "he" ? "טען תמונות" : "Load images"}
-              </button>
-            )}
+            <div className="flex flex-wrap gap-2">
+              {links.map((link: any, j: number) => {
+                const storeName = extractStoreFromUrl(link.url) || extractStoreFromLabel(link.label);
+                return (
+                  <a
+                    key={j}
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.08] hover:border-primary/30 transition-all duration-200 group"
+                  >
+                    {storeName ? (
+                      <div className="flex items-center gap-2">
+                        <div className="bg-white/90 rounded-lg px-1.5 py-0.5">
+                          <StoreLogo name={storeName} size="sm" />
+                        </div>
+                        <span className="text-xs text-muted-foreground group-hover:text-primary transition-colors flex items-center gap-1">
+                          {lang === "he" ? "חפש" : "Search"}
+                          <ExternalLink className="w-2.5 h-2.5" />
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-xs font-medium group-hover:text-primary transition-colors flex items-center gap-1">
+                        {link.label}
+                        <ExternalLink className="w-2.5 h-2.5" />
+                      </span>
+                    )}
+                  </a>
+                );
+              })}
+            </div>
           </div>
-          <div className="grid grid-cols-3 gap-2">
-            {links.map((link: any, j: number) => (
-              <ProductCard key={j} link={link} lang={lang} isGeneratingImages={isGenerating || (!allImagesLoaded && hasTriggered)} />
-            ))}
-          </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
@@ -623,73 +592,56 @@ function RetryAnalyzeButton({ reviewId }: { reviewId: number }) {
   );
 }
 
-/** Visual-first outfit card */
+/** Visual-first outfit card — Stage 45: uses aiImageUrl from background, no lazy generation */
 function OutfitCard({
   outfit,
   index,
-  reviewId,
   mentions,
   onInfluencerClick,
   lang,
-  isOwner,
 }: {
   outfit: OutfitSuggestion;
   index: number;
-  reviewId: number;
   mentions: LinkedMention[];
   onInfluencerClick: (name: string, handle?: string, igUrl?: string) => void;
   lang: "he" | "en";
-  isOwner: boolean;
 }) {
   const { t } = useLanguage();
-  const preGeneratedImage = (outfit as any)?._lookImage || null;
-  const [lookImage, setLookImage] = useState<string | null>(preGeneratedImage);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(false);
   const [expanded, setExpanded] = useState(false);
-  const generateLook = trpc.review.generateOutfitLook.useMutation();
-  const hasTriedRef = useRef(false);
-
-  const doGenerate = useCallback(() => {
-    setLoading(true);
-    setError(false);
-    generateLook.mutateAsync({ reviewId, outfitIndex: index })
-      .then((result) => setLookImage(result.imageUrl))
-      .catch((err) => { console.error("Failed to generate outfit look:", err); setError(true); })
-      .finally(() => setLoading(false));
-  }, [reviewId, index]);
-
-  useEffect(() => {
-    if (hasTriedRef.current || lookImage) return;
-    hasTriedRef.current = true;
-    doGenerate();
-    const fallback = setTimeout(() => {
-      if (!lookImage && !loading && !error) doGenerate();
-    }, 5000);
-    return () => clearTimeout(fallback);
-  }, [reviewId, index]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [imgLoaded, setImgLoaded] = useState(false);
+  const [imgError, setImgError] = useState(false);
+  // Use aiImageUrl from background generation, fallback to legacy _lookImage
+  const lookImage = (outfit as any).aiImageUrl || (outfit as any)?._lookImage || null;
 
   return (
     <div className="rounded-2xl border border-white/5 bg-card overflow-hidden flex flex-col">
       <div className="relative">
-        {lookImage ? (
-          <img loading="lazy" src={lookImage} alt={outfit.name} className="w-full aspect-[3/4] object-cover" />
-        ) : loading ? (
+        {lookImage && !imgError ? (
+          <>
+            {!imgLoaded && (
+              <div className="w-full aspect-[3/4] bg-gradient-to-br from-primary/5 via-rose-500/5 to-transparent flex flex-col items-center justify-center gap-4">
+                <FashionButtonSpinner />
+              </div>
+            )}
+            <img
+              loading="lazy"
+              src={lookImage}
+              alt={outfit.name}
+              className={`w-full aspect-[3/4] object-cover ${imgLoaded ? 'opacity-100' : 'opacity-0 absolute inset-0'}`}
+              onLoad={() => setImgLoaded(true)}
+              onError={() => setImgError(true)}
+            />
+          </>
+        ) : (
           <div className="w-full aspect-[3/4] bg-gradient-to-br from-primary/5 via-rose-500/5 to-transparent flex flex-col items-center justify-center gap-4">
-            <FashionButtonSpinner />
-            <p className="text-sm text-muted-foreground">{t("review", "generating")}</p>
-          </div>
-        ) : error ? (
-          <div className="w-full aspect-[3/4] bg-gradient-to-br from-primary/5 via-rose-500/5 to-transparent flex flex-col items-center justify-center gap-4 p-6">
-            <p className="text-sm text-muted-foreground text-center">
-              {lang === "he" ? "לא הצלחנו לייצר את התמונה" : "Couldn't generate the image"}
+            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center animate-pulse">
+              <Sparkles className="w-6 h-6 text-primary/50" />
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {lang === "he" ? "מייצר תמונת לוק..." : "Generating look image..."}
             </p>
-            <Button variant="outline" size="sm" className="gap-2" onClick={doGenerate}>
-              <RefreshCw className="w-4 h-4" />
-              {t("common", "tryAgain")}
-            </Button>
           </div>
-        ) : null}
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent flex flex-col justify-end p-5 pointer-events-none">
           <h3 className="text-white text-lg font-bold drop-shadow-lg">{outfit.name}</h3>
           <p className="text-white/70 text-sm">{outfit.occasion}</p>
@@ -1680,7 +1632,6 @@ export default function ReviewPage() {
                       <ImprovementCard
                         imp={imp}
                         index={i}
-                        reviewId={reviewId}
                         lang={lang}
                         mentions={mentions}
                         onInfluencerClick={handleInfluencerClick}
@@ -1767,11 +1718,9 @@ export default function ReviewPage() {
                       key={i}
                       outfit={outfit}
                       index={i}
-                      reviewId={reviewId}
                       mentions={mentions}
                       onInfluencerClick={handleInfluencerClick}
                       lang={lang}
-                      isOwner={isOwner}
                     />
                   ))
                 )}

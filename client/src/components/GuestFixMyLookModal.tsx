@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
-import { Wand2, Download, ShoppingBag, ExternalLink, RotateCcw, Sparkles, Check, RefreshCw, ImageIcon, Plus, CheckCheck, X, Eye } from "lucide-react";
+import { Wand2, Download, ShoppingBag, ExternalLink, RotateCcw, Sparkles, Check, X, Eye } from "lucide-react";
 import StoreLogo, { extractStoreFromUrl, extractStoreFromLabel } from "@/components/StoreLogo";
 import FashionSpinner from "@/components/FashionSpinner";
 import BeforeAfterSlider from "@/components/BeforeAfterSlider";
@@ -89,77 +89,6 @@ function findMatchingItem(imp: Improvement, items: FashionItem[]): { item: Fashi
   return bestItem;
 }
 
-/* ──────────────────────── Selectable Product Image ──────────────────────── */
-
-function SelectableProductImage({
-  imageUrl, label, isGenerating, lang, isSelected, onSelect,
-}: {
-  imageUrl?: string; label: string; isGenerating: boolean; lang: "he" | "en";
-  isSelected: boolean; onSelect: () => void;
-}) {
-  const [imgError, setImgError] = useState(false);
-  const [imgLoading, setImgLoading] = useState(true);
-  const hasImage = imageUrl && imageUrl.length > 5;
-
-  return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={(e) => { e.stopPropagation(); onSelect(); }}
-      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.stopPropagation(); onSelect(); } }}
-      className={`aspect-square rounded-lg overflow-hidden relative cursor-pointer transition-all duration-200 ${
-        isSelected
-          ? "ring-2 ring-primary shadow-lg shadow-primary/20 scale-105"
-          : "ring-1 ring-white/10 hover:ring-white/30 opacity-70 hover:opacity-100 hover:scale-[1.02]"
-      }`}
-    >
-      {hasImage && !imgError ? (
-        <>
-          {imgLoading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-white/5 z-10">
-              <RefreshCw className="w-5 h-5 text-primary/40 animate-spin" style={{ animationDuration: "3s" }} />
-            </div>
-          )}
-          <img loading="lazy" src={imageUrl}
-            alt={label}
-            className={`w-full h-full object-cover transition-opacity duration-300 ${imgLoading ? "opacity-0" : "opacity-100"}`}
-            onError={() => { setImgError(true); setImgLoading(false); }}
-            onLoad={() => setImgLoading(false)}
-          />
-        </>
-      ) : isGenerating ? (
-        <div className="w-full h-full flex flex-col items-center justify-center gap-2 relative overflow-hidden bg-white/5">
-          <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-          <RefreshCw className="w-5 h-5 text-primary/40 animate-spin relative z-10" style={{ animationDuration: "3s" }} />
-          <span className="text-[9px] text-primary/50 relative z-10">{lang === "he" ? "טוען..." : "Loading..."}</span>
-        </div>
-      ) : (
-        <div className="w-full h-full flex items-center justify-center bg-white/5">
-          <ImageIcon className="w-6 h-6 text-muted-foreground/30" />
-        </div>
-      )}
-
-      {isSelected && (
-        <div className="absolute top-1 right-1 w-6 h-6 rounded-full bg-primary flex items-center justify-center z-20 shadow-md">
-          <Check className="w-4 h-4 text-white" strokeWidth={3} />
-        </div>
-      )}
-
-      {hasImage && !imgError && !imgLoading && label && (
-        <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent px-1 py-0.5 z-10 flex items-center justify-center">
-          {(() => {
-            const storeName = extractStoreFromLabel(label) || extractStoreFromUrl(label);
-            if (storeName) {
-              return <StoreLogo name={storeName} size="sm" />;
-            }
-            return <p className="text-[9px] text-white/90 truncate text-center">{label}</p>;
-          })()}
-        </div>
-      )}
-    </div>
-  );
-}
-
 /* ──────────────────────── Main component ──────────────────────── */
 
 export default function GuestFixMyLookModal({ sessionId, analysis, trigger, closetItems }: GuestFixMyLookModalProps) {
@@ -167,27 +96,26 @@ export default function GuestFixMyLookModal({ sessionId, analysis, trigger, clos
   const [open, setOpen] = useState(false);
   const [result, setResult] = useState<FixResult | null>(null);
   const [step, setStep] = useState<"select" | "loading" | "result">("select");
-  const [loadedImpImages, setLoadedImpImages] = useState<Record<number, ShoppingLink[]>>({});
-  const [loadingImpImages, setLoadingImpImages] = useState<Set<number>>(new Set());
-  const [selectedProductPerImp, setSelectedProductPerImp] = useState<Record<number, number>>({});
-  const [closetSwitchConfirm, setClosetSwitchConfirm] = useState<{ impIdx: number; productIdx: number; closetName: string } | null>(null);
-  const [closetPreviewItem, setClosetPreviewItem] = useState<{ closetMatch: ClosetMatch; impIdx: number } | null>(null);
 
-  const generateProductImagesMutation = trpc.guest.generateProductImages.useMutation();
+  // Per-improvement: -1 = closet item, 0 = buy new
+  const [selectedPerImp, setSelectedPerImp] = useState<Record<number, number>>({});
+
+  // Closet switch confirmation and preview
+  const [closetSwitchConfirm, setClosetSwitchConfirm] = useState<{ impIdx: number; closetName: string } | null>(null);
+  const [closetPreviewItem, setClosetPreviewItem] = useState<{ closetMatch: ClosetMatch; impIdx: number } | null>(null);
 
   const isHighScore = analysis.overallScore >= 9;
   const isHe = lang === "he";
   const allImprovements = analysis.improvements || [];
   const allItems = analysis.items || [];
 
-  // Build improvement cards with closet match validation
+  // Build improvement cards
   const improvementCards = useMemo(() => {
     return allImprovements.map((imp, impIdx) => {
       const match = findMatchingItem(imp, allItems);
       const impCategory = detectCategory(imp.title) || detectCategory(imp.beforeLabel) || detectCategory(imp.productSearchQuery || "") || detectCategory(imp.description);
       const icon = match?.item.icon || (impCategory ? CATEGORY_ICONS[impCategory] : "✨");
 
-      // Check closet match from analysis data
       let validClosetMatch: ClosetMatch | null = null;
       if (imp.closetMatch) {
         const cm = imp.closetMatch;
@@ -210,101 +138,65 @@ export default function GuestFixMyLookModal({ sessionId, analysis, trigger, clos
     });
   }, [allImprovements, allItems]);
 
-  // Auto-select first product for each improvement when images load
+  // Auto-select all improvements on open
   useEffect(() => {
-    const newSelections: Record<number, number> = { ...selectedProductPerImp };
-    let changed = false;
-    for (const [impIdxStr, images] of Object.entries(loadedImpImages)) {
-      const impIdx = Number(impIdxStr);
-      if (newSelections[impIdx] === undefined && images.length > 0) {
-        const firstValidIdx = images.findIndex(l => l.imageUrl && l.imageUrl.length > 5);
-        if (firstValidIdx >= 0) {
-          newSelections[impIdx] = firstValidIdx;
-          changed = true;
-        }
+    if (open && step === "select" && Object.keys(selectedPerImp).length === 0) {
+      const initial: Record<number, number> = {};
+      for (const card of improvementCards) {
+        initial[card.impIdx] = card.closetMatch ? -1 : 0;
       }
+      setSelectedPerImp(initial);
     }
-    if (changed) setSelectedProductPerImp(newSelections);
-  }, [loadedImpImages]);
-
-  // Lazy load product images
-  const loadImprovementImages = (improvementIndex: number) => {
-    if (loadedImpImages[improvementIndex] || loadingImpImages.has(improvementIndex)) return;
-
-    const imp = allImprovements[improvementIndex];
-    if (!imp) return;
-    if (imp.shoppingLinks.every(l => l.imageUrl && l.imageUrl.length > 5)) {
-      setLoadedImpImages(prev => ({ ...prev, [improvementIndex]: imp.shoppingLinks }));
-      return;
-    }
-
-    setLoadingImpImages(prev => { const next = new Set(prev); next.add(improvementIndex); return next; });
-    generateProductImagesMutation.mutateAsync({ sessionId, improvementIndex })
-      .then((res) => {
-        if (res?.links) setLoadedImpImages(prev => ({ ...prev, [improvementIndex]: res.links as ShoppingLink[] }));
-      })
-      .catch((err) => console.warn(`[GuestFixMyLook] Image generation failed for improvement ${improvementIndex}:`, err))
-      .finally(() => {
-        setLoadingImpImages(prev => { const next = new Set(prev); next.delete(improvementIndex); return next; });
-      });
-  };
-
-  // Auto-load images when modal opens
-  useEffect(() => {
-    if (open && step === "select") {
-      improvementCards.forEach(card => loadImprovementImages(card.impIdx));
-    }
-  }, [open, step]);
-
-  const getImpImages = (impIndex: number): ShoppingLink[] => {
-    if (loadedImpImages[impIndex]) return loadedImpImages[impIndex];
-    return allImprovements[impIndex]?.shoppingLinks || [];
-  };
+  }, [open, step, improvementCards]);
 
   const handleOpen = (isOpen: boolean) => {
     setOpen(isOpen);
     if (isOpen) {
-      setLoadedImpImages({});
-      setLoadingImpImages(new Set());
-      setSelectedProductPerImp({});
+      setSelectedPerImp({});
       setResult(null);
       setStep("select");
     } else {
       setResult(null);
       setStep("select");
-      setSelectedProductPerImp({});
+      setSelectedPerImp({});
     }
   };
 
-  const selectProductForImp = (impIdx: number, productIdx: number) => {
-    const currentSelection = selectedProductPerImp[impIdx];
+  const toggleImp = (impIdx: number) => {
+    setSelectedPerImp(prev => {
+      const next = { ...prev };
+      if (next[impIdx] !== undefined) {
+        delete next[impIdx];
+      } else {
+        const card = improvementCards.find(c => c.impIdx === impIdx);
+        next[impIdx] = card?.closetMatch ? -1 : 0;
+      }
+      return next;
+    });
+  };
+
+  const switchToCloset = (impIdx: number) => {
+    setSelectedPerImp(prev => ({ ...prev, [impIdx]: -1 }));
+  };
+
+  const switchToBuyNew = (impIdx: number) => {
     const card = improvementCards.find(c => c.impIdx === impIdx);
-    if (currentSelection === -1 && productIdx !== -1 && card?.closetMatch) {
-      setClosetSwitchConfirm({ impIdx, productIdx, closetName: card.closetMatch.name });
+    if (selectedPerImp[impIdx] === -1 && card?.closetMatch) {
+      setClosetSwitchConfirm({ impIdx, closetName: card.closetMatch.name });
       return;
     }
-
-    setSelectedProductPerImp(prev => {
-      if (prev[impIdx] === productIdx) {
-        const next = { ...prev };
-        delete next[impIdx];
-        return next;
-      }
-      return { ...prev, [impIdx]: productIdx };
-    });
+    setSelectedPerImp(prev => ({ ...prev, [impIdx]: 0 }));
   };
 
   const confirmClosetSwitch = () => {
     if (!closetSwitchConfirm) return;
-    setSelectedProductPerImp(prev => ({ ...prev, [closetSwitchConfirm.impIdx]: closetSwitchConfirm.productIdx }));
+    setSelectedPerImp(prev => ({ ...prev, [closetSwitchConfirm.impIdx]: 0 }));
     setClosetSwitchConfirm(null);
   };
 
-  const cancelClosetSwitch = () => {
-    setClosetSwitchConfirm(null);
-  };
+  const cancelClosetSwitch = () => setClosetSwitchConfirm(null);
 
-  const selectedCount = Object.keys(selectedProductPerImp).length;
+  const selectedCount = Object.keys(selectedPerImp).length;
 
   const fixMutation = trpc.guest.fixMyLook.useMutation({
     onSuccess: (data) => {
@@ -321,7 +213,7 @@ export default function GuestFixMyLookModal({ sessionId, analysis, trigger, clos
     const itemIndicesSet = new Set<number>();
     const directImpIndices: number[] = [];
 
-    for (const impIdxStr of Object.keys(selectedProductPerImp)) {
+    for (const impIdxStr of Object.keys(selectedPerImp)) {
       const impIdx = Number(impIdxStr);
       directImpIndices.push(impIdx);
       const card = improvementCards.find(c => c.impIdx === impIdx);
@@ -332,11 +224,12 @@ export default function GuestFixMyLookModal({ sessionId, analysis, trigger, clos
 
     const itemIndices = itemIndicesSet.size > 0 ? Array.from(itemIndicesSet) : allItems.map((_, i) => i);
 
+    // Build selectedProductDetails
     const selectedProductDetails: { improvementIndex: number; productLabel: string; productImageUrl: string }[] = [];
-    for (const [impIdxStr, productIdx] of Object.entries(selectedProductPerImp)) {
+    for (const [impIdxStr, mode] of Object.entries(selectedPerImp)) {
       const impIdx = Number(impIdxStr);
       const card = improvementCards.find(c => c.impIdx === impIdx);
-      if (productIdx === -1 && card?.closetMatch) {
+      if (mode === -1 && card?.closetMatch) {
         const cm = card.closetMatch;
         selectedProductDetails.push({
           improvementIndex: impIdx,
@@ -344,15 +237,12 @@ export default function GuestFixMyLookModal({ sessionId, analysis, trigger, clos
           productImageUrl: cm.itemImageUrl || cm.sourceImageUrl || "",
         });
       } else {
-        const images = getImpImages(impIdx);
-        const selectedProduct = images[productIdx];
-        if (selectedProduct) {
-          selectedProductDetails.push({
-            improvementIndex: impIdx,
-            productLabel: selectedProduct.label || "",
-            productImageUrl: selectedProduct.imageUrl || "",
-          });
-        }
+        const imp = allImprovements[impIdx];
+        selectedProductDetails.push({
+          improvementIndex: impIdx,
+          productLabel: imp?.afterLabel || imp?.title || "",
+          productImageUrl: imp?.upgradeImageUrl || "",
+        });
       }
     }
 
@@ -367,7 +257,7 @@ export default function GuestFixMyLookModal({ sessionId, analysis, trigger, clos
   const handleGenerateNew = () => {
     setResult(null);
     setStep("select");
-    setSelectedProductPerImp({});
+    setSelectedPerImp({});
   };
 
   const handleDownload = async () => {
@@ -407,84 +297,40 @@ export default function GuestFixMyLookModal({ sessionId, analysis, trigger, clos
           </DialogTitle>
         </DialogHeader>
 
-        {/* Step 1: Select products per improvement */}
+        {/* Step 1: Select improvements */}
         {step === "select" && (
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
               {isHe
-                ? "בחר מוצר מכל קטגוריה על ידי לחיצה על התמונה. ה-AI ייצר הדמיה לפי הבחירות שלך."
-                : "Select a product from each category by clicking on its image. AI will generate a visualization based on your choices."}
+                ? "בחר את השידרוגים שתרצה ליישם. לכל שידרוג תוכל לבחור בין פריט מהארון או קנייה חדשה."
+                : "Select the upgrades you want to apply. For each upgrade you can choose between a closet item or buying new."}
             </p>
 
-            {/* Select All / Clear All */}
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => {
-                  const allSelections: Record<number, number> = {};
-                  for (const card of improvementCards) {
-                    const images = getImpImages(card.impIdx);
-                    const firstValid = images.findIndex(l => l.imageUrl && l.imageUrl.length > 5);
-                    if (firstValid >= 0) allSelections[card.impIdx] = firstValid;
-                    else if (images.length > 0) allSelections[card.impIdx] = 0;
-                  }
-                  setSelectedProductPerImp(allSelections);
-                }}
-                className="inline-flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-full border border-primary/20 text-primary hover:bg-primary/10 transition-colors"
-              >
-                <CheckCheck className="w-3 h-3" />
-                {isHe ? "בחר הכל" : "Select all"}
-              </button>
-              <button
-                onClick={() => setSelectedProductPerImp({})}
-                className="inline-flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-full border border-white/10 text-muted-foreground hover:bg-white/5 transition-colors"
-              >
-                <X className="w-3 h-3" />
-                {isHe ? "נקה הכל" : "Clear all"}
-              </button>
-            </div>
-
-            <div className="space-y-4">
+            <div className="space-y-3">
               {improvementCards.map(({ imp, impIdx, matchedItem, icon, closetMatch }) => {
-                const impImages = getImpImages(impIdx);
-                const isLoadingImages = loadingImpImages.has(impIdx);
-                const visibleImages = impImages.slice(0, 4);
-                const isNewItem = !matchedItem;
-                const hasSelection = selectedProductPerImp[impIdx] !== undefined;
+                const isSelected = selectedPerImp[impIdx] !== undefined;
+                const isCloset = selectedPerImp[impIdx] === -1;
                 const hasClosetItem = !!closetMatch;
 
                 return (
                   <div
                     key={impIdx}
                     className={`rounded-xl border transition-all overflow-hidden ${
-                      hasSelection
-                        ? "border-primary/40 bg-primary/5"
-                        : "border-white/5 bg-background/50"
+                      isSelected
+                        ? isCloset ? "border-emerald-500/40 bg-emerald-500/5" : "border-primary/40 bg-primary/5"
+                        : "border-white/5 bg-background/50 opacity-60"
                     }`}
                   >
-                    {/* Header */}
-                    <div className="flex items-center gap-3 p-3 pb-1">
+                    {/* Header with toggle */}
+                    <div className="flex items-center gap-3 p-3 cursor-pointer" onClick={() => toggleImp(impIdx)}>
+                      <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-all ${
+                        isSelected ? "border-primary bg-primary" : "border-white/20"
+                      }`}>
+                        {isSelected && <Check className="w-4 h-4 text-white" strokeWidth={3} />}
+                      </div>
                       <span className="text-xl">{icon}</span>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-bold text-sm">{imp.title}</span>
-                          {isNewItem && (
-                            <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 shrink-0">
-                              <Plus className="w-2.5 h-2.5" />
-                              {isHe ? "פריט חדש" : "New item"}
-                            </span>
-                          )}
-                          {hasSelection && selectedProductPerImp[impIdx] === -1 ? (
-                            <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 shrink-0">
-                              <span style={{ fontSize: '10px' }}>♻️</span>
-                              {isHe ? "מהארון" : "From closet"}
-                            </span>
-                          ) : hasSelection ? (
-                            <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary shrink-0">
-                              <Check className="w-2.5 h-2.5" />
-                              {isHe ? "נבחר" : "Selected"}
-                            </span>
-                          ) : null}
-                        </div>
+                        <span className="font-bold text-sm">{imp.title}</span>
                         {matchedItem && (
                           <div className="flex items-center gap-2 mt-0.5">
                             <span className="text-xs text-muted-foreground truncate">{matchedItem.name}</span>
@@ -494,6 +340,13 @@ export default function GuestFixMyLookModal({ sessionId, analysis, trigger, clos
                           </div>
                         )}
                       </div>
+                      {isSelected && (
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                          isCloset ? "bg-emerald-500/10 text-emerald-400" : "bg-primary/10 text-primary"
+                        }`}>
+                          {isCloset ? (isHe ? "מהארון" : "Closet") : (isHe ? "קנייה חדשה" : "Buy new")}
+                        </span>
+                      )}
                     </div>
 
                     {/* Before → After labels */}
@@ -505,104 +358,100 @@ export default function GuestFixMyLookModal({ sessionId, analysis, trigger, clos
                       </div>
                     </div>
 
-                    {/* Closet match badge */}
-                    {hasClosetItem && (
+                    {/* AI Upgrade Image */}
+                    {isSelected && imp.upgradeImageUrl && (
                       <div className="px-3 pb-2">
-                        <div
-                          className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all ${
-                            selectedProductPerImp[impIdx] === -1
-                              ? "bg-emerald-500/20 border-2 border-emerald-500/50 shadow-md shadow-emerald-500/10"
-                              : "bg-emerald-500/5 border border-emerald-500/20"
-                          }`}
-                        >
-                          <span style={{ fontSize: '16px' }}>♻️</span>
-                          {(closetMatch!.itemImageUrl || closetMatch!.sourceImageUrl) && (
-                            <img loading="lazy" src={closetMatch!.itemImageUrl || closetMatch!.sourceImageUrl}
-                              alt={closetMatch!.name}
-                              className="w-8 h-8 rounded-md object-cover border border-emerald-500/30"
-                            />
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <span className="text-xs text-emerald-400 font-bold">
-                              {isHe ? "יש לך פריט מתאים בארון!" : "You have a matching item!"}
-                            </span>
-                            <span className="text-[10px] text-emerald-400/70 block truncate">
-                              {closetMatch!.name}
-                              {closetMatch!.brand && ` (${closetMatch!.brand})`}
-                            </span>
-                          </div>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); setClosetPreviewItem({ closetMatch: closetMatch!, impIdx }); }}
-                            className="p-1.5 rounded-full hover:bg-emerald-500/20 transition-colors shrink-0"
-                            title={isHe ? "צפה בפריט" : "View item"}
-                          >
-                            <Eye className="w-4 h-4 text-emerald-400" />
-                          </button>
-                          {selectedProductPerImp[impIdx] === -1 ? (
-                            <button
-                              onClick={(e) => { e.stopPropagation(); selectProductForImp(impIdx, -1); }}
-                              className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-500 text-white text-[10px] font-bold shrink-0"
-                            >
-                              <Check className="w-3 h-3" strokeWidth={3} />
-                              {isHe ? "נבחר" : "Selected"}
-                            </button>
-                          ) : (
-                            <button
-                              onClick={(e) => { e.stopPropagation(); selectProductForImp(impIdx, -1); }}
-                              className="inline-flex items-center gap-1 px-2 py-1 rounded-full border border-emerald-500/30 text-emerald-400 text-[10px] font-bold hover:bg-emerald-500/10 transition-colors shrink-0"
-                            >
-                              {isHe ? "בחר" : "Select"}
-                            </button>
-                          )}
-                        </div>
+                        <img
+                          loading="lazy"
+                          src={imp.upgradeImageUrl}
+                          alt={`${imp.beforeLabel} → ${imp.afterLabel}`}
+                          className="w-full aspect-[2/1] object-cover rounded-lg"
+                        />
                       </div>
                     )}
 
-                    {/* Instruction text */}
-                    <div className="px-3 pb-1.5">
-                      <p className="text-[10px] text-muted-foreground/70">
-                        {isHe ? "לחץ על תמונה כדי לבחור:" : "Click an image to select:"}
-                      </p>
-                    </div>
-
-                    {/* Product images grid */}
-                    {(() => {
-                      const totalSlots = visibleImages.length;
-                      const cols = totalSlots <= 2 ? "grid-cols-2" : totalSlots === 3 ? "grid-cols-3" : "grid-cols-4";
-                      return (
-                        <div className={`grid gap-2 px-3 pb-3 ${cols}`}>
-                          {visibleImages.length > 0 ? (
-                            visibleImages.map((link, li) => (
-                              <SelectableProductImage
-                                key={li}
-                                imageUrl={link.imageUrl}
-                                label={link.label}
-                                isGenerating={isLoadingImages}
-                                lang={lang}
-                                isSelected={selectedProductPerImp[impIdx] === li}
-                                onSelect={() => selectProductForImp(impIdx, li)}
+                    {/* Closet match option */}
+                    {isSelected && hasClosetItem && (
+                      <div className="px-3 pb-2">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); switchToCloset(impIdx); }}
+                            className={`flex-1 flex items-center gap-2 px-3 py-2 rounded-lg transition-all ${
+                              isCloset
+                                ? "bg-emerald-500/20 border-2 border-emerald-500/50"
+                                : "bg-white/[0.02] border border-white/10 hover:border-emerald-500/30"
+                            }`}
+                          >
+                            <span style={{ fontSize: '14px' }}>♻️</span>
+                            {(closetMatch!.itemImageUrl || closetMatch!.sourceImageUrl) && (
+                              <img loading="lazy" src={closetMatch!.itemImageUrl || closetMatch!.sourceImageUrl}
+                                alt={closetMatch!.name}
+                                className="w-7 h-7 rounded-md object-cover border border-emerald-500/30"
                               />
-                            ))
-                          ) : isLoadingImages ? (
-                            Array.from({ length: 3 }).map((_, li) => (
-                              <SelectableProductImage
-                                key={`loading-${li}`}
-                                imageUrl=""
-                                label=""
-                                isGenerating={true}
-                                lang={lang}
-                                isSelected={false}
-                                onSelect={() => {}}
-                              />
-                            ))
-                          ) : (
-                            <div className="col-span-full text-center py-3">
-                              <p className="text-xs text-muted-foreground/50">{isHe ? "אין תמונות זמינות" : "No images available"}</p>
+                            )}
+                            <div className="flex-1 min-w-0 text-start">
+                              <span className="text-xs font-medium truncate block">{closetMatch!.name}</span>
+                              <span className="text-[10px] text-muted-foreground">{isHe ? "מהארון שלך" : "From your closet"}</span>
                             </div>
-                          )}
+                            {isCloset && <Check className="w-4 h-4 text-emerald-400 shrink-0" />}
+                          </button>
+
+                          <button
+                            onClick={(e) => { e.stopPropagation(); switchToBuyNew(impIdx); }}
+                            className={`flex-1 flex items-center gap-2 px-3 py-2 rounded-lg transition-all ${
+                              !isCloset
+                                ? "bg-primary/20 border-2 border-primary/50"
+                                : "bg-white/[0.02] border border-white/10 hover:border-primary/30"
+                            }`}
+                          >
+                            <ShoppingBag className="w-4 h-4 text-primary shrink-0" />
+                            <div className="flex-1 min-w-0 text-start">
+                              <span className="text-xs font-medium">{isHe ? "קנה חדש" : "Buy new"}</span>
+                              <span className="text-[10px] text-muted-foreground block">{imp.afterLabel}</span>
+                            </div>
+                            {!isCloset && <Check className="w-4 h-4 text-primary shrink-0" />}
+                          </button>
                         </div>
-                      );
-                    })()}
+
+                        {/* Preview closet item */}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setClosetPreviewItem({ closetMatch: closetMatch!, impIdx }); }}
+                          className="mt-1.5 inline-flex items-center gap-1 text-[10px] text-emerald-400 hover:text-emerald-300 transition-colors"
+                        >
+                          <Eye className="w-3 h-3" />{isHe ? "צפה בפריט מהארון" : "View closet item"}
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Shopping links as store buttons (when buy new is selected) */}
+                    {isSelected && !isCloset && imp.shoppingLinks && imp.shoppingLinks.length > 0 && (
+                      <div className="px-3 pb-3">
+                        <p className="text-[10px] text-muted-foreground mb-1.5">{isHe ? "חפש בחנויות:" : "Search in stores:"}</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {imp.shoppingLinks.map((link, j) => {
+                            const storeName = extractStoreFromUrl(link.url) || extractStoreFromLabel(link.label);
+                            return (
+                              <a
+                                key={j}
+                                href={link.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-white/10 bg-white/[0.03] hover:bg-white/[0.08] hover:border-primary/30 transition-all text-xs"
+                              >
+                                {storeName ? (
+                                  <>
+                                    <div className="bg-white/90 rounded px-1 py-0.5"><StoreLogo name={storeName} size="sm" /></div>
+                                    <ExternalLink className="w-2.5 h-2.5 text-muted-foreground" />
+                                  </>
+                                ) : (
+                                  <>{link.label}<ExternalLink className="w-2.5 h-2.5" /></>
+                                )}
+                              </a>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -612,8 +461,8 @@ export default function GuestFixMyLookModal({ sessionId, analysis, trigger, clos
             <div className="flex items-center justify-between pt-2 sticky bottom-0 bg-card/95 backdrop-blur-sm pb-1 -mx-1 px-1">
               <span className="text-xs text-muted-foreground">
                 {isHe
-                  ? `${selectedCount} מתוך ${improvementCards.length} קטגוריות נבחרו`
-                  : `${selectedCount} of ${improvementCards.length} categories selected`}
+                  ? `${selectedCount} מתוך ${improvementCards.length} שידרוגים נבחרו`
+                  : `${selectedCount} of ${improvementCards.length} upgrades selected`}
               </span>
               <Button
                 onClick={handleFix}
@@ -686,20 +535,24 @@ export default function GuestFixMyLookModal({ sessionId, analysis, trigger, clos
                   <ShoppingBag className="w-4 h-4 text-primary" />
                   {isHe ? "קנה את הפריטים המומלצים:" : "Shop the recommended items:"}
                 </p>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="flex flex-wrap gap-2">
                   {result.shoppingLinks.map((link, i) => {
                     const storeName = extractStoreFromUrl(link.url) || extractStoreFromLabel(link.label);
                     return (
-                      <a key={i} href={link.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2.5 rounded-xl border border-white/5 bg-card hover:border-primary/20 transition-colors group">
-                        {link.imageUrl && <img loading="lazy" src={link.imageUrl} alt={link.label} className="w-10 h-10 rounded-lg object-cover" />}
-                        <div className="flex-1 min-w-0">
-                          {storeName ? (
-                            <StoreLogo name={storeName} size="sm" />
-                          ) : (
-                            <p className="text-xs font-medium truncate group-hover:text-primary transition-colors">{link.label}</p>
-                          )}
-                        </div>
-                        <ExternalLink className="w-3 h-3 text-muted-foreground shrink-0" />
+                      <a key={i} href={link.url} target="_blank" rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.08] hover:border-primary/30 transition-all group">
+                        {storeName ? (
+                          <div className="flex items-center gap-2">
+                            <div className="bg-white/90 rounded-lg px-1.5 py-0.5"><StoreLogo name={storeName} size="sm" /></div>
+                            <span className="text-xs text-muted-foreground group-hover:text-primary flex items-center gap-1">
+                              {isHe ? "חפש" : "Search"}<ExternalLink className="w-2.5 h-2.5" />
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-xs font-medium group-hover:text-primary flex items-center gap-1">
+                            {link.label}<ExternalLink className="w-2.5 h-2.5" />
+                          </span>
+                        )}
                       </a>
                     );
                   })}
@@ -759,7 +612,7 @@ export default function GuestFixMyLookModal({ sessionId, analysis, trigger, clos
         {closetPreviewItem && (() => {
           const cm = closetPreviewItem.closetMatch;
           const imgSrc = cm.itemImageUrl || cm.sourceImageUrl;
-          const isSelected = selectedProductPerImp[closetPreviewItem.impIdx] === -1;
+          const isSelected = selectedPerImp[closetPreviewItem.impIdx] === -1;
           return (
             <div className="space-y-4 py-2">
               <div className="text-center">
@@ -812,7 +665,7 @@ export default function GuestFixMyLookModal({ sessionId, analysis, trigger, clos
                 <Button
                   size="sm"
                   onClick={() => {
-                    selectProductForImp(closetPreviewItem.impIdx, -1);
+                    switchToCloset(closetPreviewItem.impIdx);
                     setClosetPreviewItem(null);
                   }}
                   className={`gap-1.5 ${

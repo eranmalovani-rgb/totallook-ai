@@ -233,13 +233,12 @@ function ProductCard({ link, lang, isGeneratingImages }: { link: ShoppingLink; l
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   GUEST IMPROVEMENT ACCORDION CARD
+   GUEST IMPROVEMENT ACCORDION CARD — Stage 45 Option C
    ═══════════════════════════════════════════════════════════════ */
 
 function GuestImprovementAccordionCard({
   imp,
   index,
-  sessionId,
   lang,
   mentions,
   onInfluencerClick,
@@ -248,80 +247,47 @@ function GuestImprovementAccordionCard({
 }: {
   imp: any;
   index: number;
-  sessionId: number;
   lang: "he" | "en";
   mentions?: LinkedMention[];
   onInfluencerClick?: (name: string, handle?: string, igUrl?: string) => void;
   t: (ns: string, key: string) => string;
   closetMatch?: any;
 }) {
-  // Progressive image loading: server saves each image to DB as it resolves.
-  // The parent guest session query polls and passes fresh imp.shoppingLinks.
-  // We also use local state from mutation results for immediate updates.
-  const serverLinks = imp.shoppingLinks || [];
-  const [localLinks, setLocalLinks] = useState<any[] | null>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [hasTriggered, setHasTriggered] = useState(false);
-  const cardRef = useRef<HTMLDivElement>(null);
-  const generateMutation = trpc.guest.generateProductImages.useMutation();
-
-  // Check if a URL is from our own storage (safe to display) vs external CDN (may be blocked)
-  const isOwnStorageUrl = (url: string) => {
-    if (!url) return false;
-    try {
-      const h = new URL(url).hostname;
-      return h === 'd2xsxph8kpxj0f.cloudfront.net' || h.includes('r2.') || h.includes('manus') || h.includes('pub-') || h.includes('unsplash') || h.includes('openai');
-    } catch { return false; }
-  };
-
-  // Merge: prefer local mutation results, but also accept server polling updates
-  const links = useMemo(() => {
-    if (!localLinks) return serverLinks;
-    // Merge: for each link, pick the one with a valid imageUrl
-    return serverLinks.map((sl: any, i: number) => {
-      const ll = localLinks[i];
-      if (!ll) return sl;
-      // If local has image and server doesn't, use local
-      if (ll.imageUrl && ll.imageUrl.length > 5 && (!sl.imageUrl || sl.imageUrl.length < 5)) return ll;
-      // If server has image (from polling), prefer server
-      if (sl.imageUrl && sl.imageUrl.length > 5) return sl;
-      return ll;
-    });
-  }, [serverLinks, localLinks]);
-
-  const hasEmptyImages = links.some((l: any) => !l.imageUrl || l.imageUrl.length < 5);
-  const hasExternalImages = links.some((l: any) => l.imageUrl && l.imageUrl.length > 5 && !isOwnStorageUrl(l.imageUrl));
-  const allImagesLoaded = links.length > 0 && links.every((l: any) => l.imageUrl && l.imageUrl.length > 5) && !hasExternalImages;
-
-  // If server already has all images on safe domains, mark as triggered
-  useEffect(() => {
-    if (allImagesLoaded && !hasTriggered) setHasTriggered(true);
-  }, [allImagesLoaded]);
-
-  // Trigger generation and USE the result immediately
-  const triggerGeneration = useCallback(() => {
-    if (hasTriggered) return;
-    setHasTriggered(true);
-    setIsGenerating(true);
-    generateMutation.mutateAsync({ sessionId, improvementIndex: index })
-      .then((res) => {
-        if (res?.links && Array.isArray(res.links)) {
-          setLocalLinks(res.links);
-        }
-      })
-      .catch((err) => console.warn(`[GuestImprovementCard] Image generation failed:`, err))
-      .finally(() => setIsGenerating(false));
-  }, [hasTriggered, sessionId, index]);
-
-  // Auto-trigger generation immediately on mount if images are missing or from external CDNs
-  useEffect(() => {
-    if (hasTriggered || allImagesLoaded) return;
-    triggerGeneration();
-  }, [hasTriggered, allImagesLoaded, triggerGeneration]);
+  const links = imp.shoppingLinks || [];
+  const [imgLoaded, setImgLoaded] = useState(false);
+  const [imgError, setImgError] = useState(false);
 
   return (
-    <div ref={cardRef}>
-      <AccordionItem value={`imp-${index}`} className="border border-white/5 rounded-xl bg-card/50 px-4 overflow-hidden">
+    <AccordionItem value={`imp-${index}`} className="border border-white/5 rounded-xl bg-card/50 overflow-hidden">
+      {/* AI Before/After Image at top of accordion */}
+      {imp.upgradeImageUrl && !imgError ? (
+        <div className="relative">
+          {!imgLoaded && (
+            <div className="w-full aspect-[2/1] bg-gradient-to-br from-primary/5 via-rose-500/5 to-transparent flex items-center justify-center">
+              <FashionButtonSpinner />
+            </div>
+          )}
+          <img
+            loading="lazy"
+            src={imp.upgradeImageUrl}
+            alt={`${imp.beforeLabel} → ${imp.afterLabel}`}
+            className={`w-full aspect-[2/1] object-cover ${imgLoaded ? 'opacity-100' : 'opacity-0 absolute inset-0'}`}
+            onLoad={() => setImgLoaded(true)}
+            onError={() => setImgError(true)}
+          />
+        </div>
+      ) : !imp.upgradeImageUrl ? (
+        <div className="w-full aspect-[2/1] bg-gradient-to-br from-primary/5 via-rose-500/5 to-transparent flex flex-col items-center justify-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center animate-pulse">
+            <Sparkles className="w-5 h-5 text-primary/50" />
+          </div>
+          <span className="text-xs text-muted-foreground">
+            {lang === "he" ? "מייצר תמונת שידרוג..." : "Generating upgrade image..."}
+          </span>
+        </div>
+      ) : null}
+
+      <div className="px-4">
         <AccordionTrigger className="hover:no-underline py-3">
           <div className="flex items-center gap-3 flex-1">
             <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 text-primary font-bold text-sm">{index + 1}</div>
@@ -330,7 +296,7 @@ function GuestImprovementAccordionCard({
               <div className="flex gap-2 mt-1">
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-500/10 text-red-400">{imp.beforeLabel}</span>
                 <span className="text-[10px] self-center">→</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400">{imp.afterLabel}</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400">{imp.afterLabel}</span>
               </div>
             </div>
           </div>
@@ -354,89 +320,103 @@ function GuestImprovementAccordionCard({
               </div>
             )}
 
-            {links && links.length > 0 && (
+            {/* Store Buttons — static search URLs, no product images */}
+            {links.length > 0 && (
               <div>
                 <p className="text-xs text-muted-foreground mb-3 font-medium flex items-center gap-1.5">
                   <ShoppingBag className="w-3.5 h-3.5" />{t("review", "recommendedProducts")}
                 </p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {links.map((link: any, j: number) => (
-                    <ProductCard key={j} link={link} lang={lang} isGeneratingImages={isGenerating || (!allImagesLoaded && hasTriggered)} />
-                  ))}
+                <div className="flex flex-wrap gap-2">
+                  {links.map((link: any, j: number) => {
+                    const storeName = extractStoreFromUrl(link.url) || extractStoreFromLabel(link.label);
+                    return (
+                      <a
+                        key={j}
+                        href={link.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.08] hover:border-primary/30 transition-all duration-200 group"
+                      >
+                        {storeName ? (
+                          <div className="flex items-center gap-2">
+                            <div className="bg-white/90 rounded-lg px-1.5 py-0.5">
+                              <StoreLogo name={storeName} size="sm" />
+                            </div>
+                            <span className="text-xs text-muted-foreground group-hover:text-primary transition-colors flex items-center gap-1">
+                              {lang === "he" ? "חפש" : "Search"}
+                              <ExternalLink className="w-2.5 h-2.5" />
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-xs font-medium group-hover:text-primary transition-colors flex items-center gap-1">
+                            {link.label}
+                            <ExternalLink className="w-2.5 h-2.5" />
+                          </span>
+                        )}
+                      </a>
+                    );
+                  })}
                 </div>
               </div>
             )}
           </div>
         </AccordionContent>
-      </AccordionItem>
-    </div>
+      </div>
+    </AccordionItem>
   );
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   GUEST OUTFIT CARD
+   GUEST OUTFIT CARD — Stage 45 Option C
    ═══════════════════════════════════════════════════════════════ */
 
 function GuestOutfitCard({
   outfit,
   index,
-  sessionId,
   mentions,
   onInfluencerClick,
   lang,
 }: {
   outfit: OutfitSuggestion;
   index: number;
-  sessionId: number;
   mentions: LinkedMention[];
   onInfluencerClick?: (name: string, handle?: string, igUrl?: string) => void;
   lang: "he" | "en";
 }) {
-  const [lookImage, setLookImage] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(false);
   const [expanded, setExpanded] = useState(false);
-  const generateLook = trpc.guest.generateOutfitLook.useMutation();
-  const hasTriedRef = useRef(false);
-
-  useEffect(() => {
-    if (hasTriedRef.current || lookImage) return;
-    hasTriedRef.current = true;
-    setLoading(true);
-    setError(false);
-    generateLook.mutateAsync({ sessionId, outfitIndex: index })
-      .then((result) => setLookImage(result.imageUrl))
-      .catch((err) => { console.error("Failed to generate guest outfit look:", err); setError(true); })
-      .finally(() => setLoading(false));
-  }, [sessionId, index]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const handleRetry = () => {
-    setLoading(true);
-    setError(false);
-    generateLook.mutateAsync({ sessionId, outfitIndex: index })
-      .then((result) => setLookImage(result.imageUrl))
-      .catch(() => setError(true))
-      .finally(() => setLoading(false));
-  };
+  const [imgLoaded, setImgLoaded] = useState(false);
+  const [imgError, setImgError] = useState(false);
+  const lookImage = (outfit as any).aiImageUrl || (outfit as any)?._lookImage || null;
 
   return (
     <div className="rounded-2xl border border-white/5 bg-card overflow-hidden flex flex-col">
       <div className="relative">
-        {lookImage ? (
-          <img loading="lazy" src={lookImage} alt={outfit.name} className="w-full aspect-[3/4] object-cover" />
-        ) : loading ? (
+        {lookImage && !imgError ? (
+          <>
+            {!imgLoaded && (
+              <div className="w-full aspect-[3/4] bg-gradient-to-br from-primary/5 via-rose-500/5 to-transparent flex flex-col items-center justify-center gap-4">
+                <FashionButtonSpinner />
+              </div>
+            )}
+            <img
+              loading="lazy"
+              src={lookImage}
+              alt={outfit.name}
+              className={`w-full aspect-[3/4] object-cover ${imgLoaded ? 'opacity-100' : 'opacity-0 absolute inset-0'}`}
+              onLoad={() => setImgLoaded(true)}
+              onError={() => setImgError(true)}
+            />
+          </>
+        ) : (
           <div className="w-full aspect-[3/4] bg-gradient-to-br from-primary/5 via-rose-500/5 to-transparent flex flex-col items-center justify-center gap-4">
-            <FashionButtonSpinner />
-            <p className="text-sm text-muted-foreground">{lang === "he" ? "יוצר הדמיית לוק..." : "Generating look..."}</p>
+            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center animate-pulse">
+              <Sparkles className="w-6 h-6 text-primary/50" />
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {lang === "he" ? "מייצר תמונת לוק..." : "Generating look image..."}
+            </p>
           </div>
-        ) : error ? (
-          <div className="w-full aspect-[3/4] bg-gradient-to-br from-primary/5 via-rose-500/5 to-transparent flex flex-col items-center justify-center gap-4 p-6">
-            <p className="text-sm text-muted-foreground text-center">{lang === "he" ? "לא הצלחנו לייצר את התמונה" : "Couldn't generate the image"}</p>
-            <Button variant="outline" size="sm" className="gap-2" onClick={handleRetry}>
-              <RefreshCw className="w-4 h-4" />{lang === "he" ? "נסה שוב" : "Try Again"}
-            </Button>
-          </div>
-        ) : null}
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent flex flex-col justify-end p-5 pointer-events-none">
           <h3 className="text-white text-lg font-bold drop-shadow-lg">{outfit.name}</h3>
           <p className="text-white/70 text-sm">{outfit.occasion}</p>
@@ -1173,7 +1153,6 @@ export default function GuestReview() {
               key={i}
               imp={imp}
               index={i}
-              sessionId={sessionId}
               lang={lang}
               mentions={mentions}
               onInfluencerClick={handleInfluencerClick}
@@ -1266,7 +1245,6 @@ export default function GuestReview() {
               key={i}
               outfit={outfit}
               index={i}
-              sessionId={sessionId}
               mentions={mentions}
               onInfluencerClick={handleInfluencerClick}
               lang={lang}

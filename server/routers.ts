@@ -9,7 +9,7 @@ import { invokeLLM } from "./_core/llm";
 import { nanoid } from "nanoid";
 import type { FashionAnalysis } from "../shared/fashionTypes";
 import { POPULAR_INFLUENCERS, BRAND_URLS, COUNTRY_STORE_MAP, COUNTRY_LOCAL_BRANDS, filterStoresForUser } from "../shared/fashionTypes";
-import { enrichAnalysisWithProductImages, generateImagesForImprovement, generateOutfitLookFromMetadata } from "./productImages";
+// productImages pipeline removed in Stage 45 (Option C)
 import { sendWhatsAppWelcome } from "./whatsapp";
 import { notifyOwner } from "./_core/notification";
 import { ENV } from "./_core/env";
@@ -3608,6 +3608,56 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
                 }
               }
 
+              // ── Stage 45: Generate AI images for improvements + outfits ──
+              const aiImageStart = Date.now();
+              try {
+                const improvementImagePromises = (analysis.improvements || []).map(async (imp, idx) => {
+                  try {
+                    const genderLabel = bgUserGender === "female" ? "woman" : "man";
+                    const beforeDesc = [
+                      imp.beforeGarmentType || imp.beforeLabel,
+                      imp.beforeColor ? `in ${imp.beforeColor}` : "",
+                      imp.beforeMaterial ? `made of ${imp.beforeMaterial}` : "",
+                      imp.beforeFit ? `${imp.beforeFit} fit` : "",
+                      imp.beforePattern && imp.beforePattern !== "solid" ? `with ${imp.beforePattern} pattern` : "",
+                    ].filter(Boolean).join(", ");
+                    const afterDesc = [
+                      imp.afterGarmentType || imp.afterLabel,
+                      imp.afterColor ? `in ${imp.afterColor}` : "",
+                      imp.afterMaterial ? `made of ${imp.afterMaterial}` : "",
+                      imp.afterFit ? `${imp.afterFit} fit` : "",
+                      imp.afterPattern && imp.afterPattern !== "solid" ? `with ${imp.afterPattern} pattern` : "",
+                      imp.afterStyle ? `${imp.afterStyle} style` : "",
+                    ].filter(Boolean).join(", ");
+                    const prompt = `Fashion upgrade comparison for a ${genderLabel}. LEFT side labeled "BEFORE": ${beforeDesc}. RIGHT side labeled "AFTER": ${afterDesc}. Clean white background, professional fashion photography style, side-by-side flat-lay comparison. The AFTER item should look clearly more stylish and elevated than the BEFORE item. No text overlay except BEFORE/AFTER labels.`;
+                    const { url } = await generateImage({ prompt });
+                    if (url) imp.upgradeImageUrl = url;
+                    console.log(`[Stage 45] Improvement ${idx} AI image generated`);
+                  } catch (imgErr: any) {
+                    console.warn(`[Stage 45] Improvement ${idx} AI image failed: ${imgErr?.message}`);
+                  }
+                });
+
+                const outfitImagePromises = (analysis.outfitSuggestions || []).map(async (outfit, idx) => {
+                  try {
+                    const genderLabel = bgUserGender === "female" ? "woman" : "man";
+                    const itemsList = outfit.items.slice(0, 5).join(", ");
+                    const colorPalette = outfit.colors.slice(0, 4).join(", ");
+                    const prompt = `Complete outfit flat-lay for a ${genderLabel}: ${outfit.name}. Items: ${itemsList}. Color palette: ${colorPalette}. Occasion: ${outfit.occasion}. ${outfit.lookDescription || ""}. Professional fashion photography, clean white background, neatly arranged flat-lay style showing all items together as a cohesive outfit. No mannequin, no person.`;
+                    const { url } = await generateImage({ prompt });
+                    if (url) outfit.aiImageUrl = url;
+                    console.log(`[Stage 45] Outfit ${idx} AI image generated`);
+                  } catch (imgErr: any) {
+                    console.warn(`[Stage 45] Outfit ${idx} AI image failed: ${imgErr?.message}`);
+                  }
+                });
+
+                await Promise.allSettled([...improvementImagePromises, ...outfitImagePromises]);
+                console.log(`[Stage 45] AI image generation completed in ${Date.now() - aiImageStart}ms`);
+              } catch (aiImgErr: any) {
+                console.warn(`[Stage 45] AI image generation failed globally: ${aiImgErr?.message}`);
+              }
+
               // ── Save Stage 2 results to DB (updates the existing row) ──
               await updateReviewAnalysis(bgReviewId, analysis.overallScore, analysis);
               console.log(`[Stage 43 BG] Stage 2 saved to DB (reviewId=${bgReviewId}) in ${Date.now() - stage2Start}ms total`);
@@ -3736,18 +3786,7 @@ Style: High-end ${genderLabel} fashion editorial flat lay, items arranged aesthe
         } catch (err: any) {
           console.error("[LookImage] AI image generation failed, falling back to metadata mosaic:", err);
         }
-        // FALLBACK: Build a mosaic from product images (metadata-based)
-        if (firstOutfit) {
-          const metadataLook = await generateOutfitLookFromMetadata({
-            analysis,
-            outfit: firstOutfit,
-            outfitIndex: 0,
-            gender: userGender,
-          });
-          if (metadataLook?.imageUrl) {
-            return { imageUrl: metadataLook.imageUrl };
-          }
-        }
+        // Metadata mosaic fallback removed in Stage 45 (Option C)
         try {
           const { url: retryUrl } = await generateImage({ prompt });
           return { imageUrl: retryUrl || "" };
@@ -4045,77 +4084,7 @@ Return ONLY the JSON object, no markdown.`;
         }
       }),
 
-    generateOutfitLook: protectedProcedure
-      .input(z.object({ reviewId: z.number(), outfitIndex: z.number() }))
-      .mutation(async ({ ctx, input }) => {
-        const review = await getReviewById(input.reviewId);
-        if (!review) throw new Error("Review not found");
-        // Allow owner or anyone viewing a published review
-        if (review.userId !== ctx.user.id) {
-          const published = await isReviewPublished(input.reviewId, review.userId);
-          if (!published) throw new Error("Unauthorized");
-        }
-        const analysis = review.analysisJson as FashionAnalysis;
-        if (!analysis) throw new Error("No analysis available");
-
-          const outfit = analysis.outfitSuggestions?.[input.outfitIndex];
-        if (!outfit) throw new Error("Outfit suggestion not found");
-
-        // Get user gender for gender-appropriate image search
-        const outfitProfile = await getUserProfile(ctx.user.id);
-        const outfitGender = outfitProfile?.gender || "male";
-        const outfitGenderLabel = outfitGender === "female" ? "women's" : "men's";
-
-        // PRIMARY: Generate a full outfit look image via AI (complete head-to-toe look)
-        // Use rich item descriptions from analysis items when available
-        const richItems = (analysis.items || []).map(item => buildRichItemDescription(item));
-        const lookDesc = outfit.lookDescription || (richItems.length > 0 ? richItems.join(', ') : outfit.items.join(", "));
-        const colors = outfit.colors?.join(", ") || "neutral tones";
-        const silhouetteCtx = analysis.lookStructure?.silhouetteSummary ? `\nSilhouette: ${analysis.lookStructure.silhouetteSummary}.` : '';
-        const prompt = `Professional ${outfitGenderLabel} fashion flat lay / mood board photograph. Clean white marble background, luxury editorial style photography.
-Outfit card variation index: ${input.outfitIndex + 1}. Keep this variation visually distinct from other outfit cards.
-Complete ${outfitGenderLabel} outfit: ${lookDesc}.
-Color palette: ${colors}.${silhouetteCtx}
-Style: High-end ${outfitGenderLabel} fashion editorial flat lay, all items arranged aesthetically like a magazine spread. Include every piece: clothing, shoes, accessories, watch/jewelry. No mannequin, no model — just the items laid out beautifully with crisp lighting, soft shadows, and a luxury feel. Each item clearly visible and identifiable.`;
-
-        try {
-          const { url } = await generateImage({ prompt });
-          if (url && url.trim().length > 0) {
-            return { imageUrl: url };
-          }
-        } catch (err: any) {
-          console.error("[Outfit Look] AI image generation failed, falling back to metadata mosaic:", err);
-        }
-
-        // FALLBACK 1: Build a mosaic from product images (metadata-based)
-        const metadataLook = await generateOutfitLookFromMetadata({
-          analysis,
-          outfit,
-          outfitIndex: input.outfitIndex,
-          gender: outfitGender,
-        });
-        if (metadataLook?.imageUrl) {
-          return { imageUrl: metadataLook.imageUrl };
-        }
-
-        // FALLBACK 2: Metadata mosaic with AI-generated product images
-        const resilientMetadataLook = await generateOutfitLookFromMetadata({
-          analysis,
-          outfit,
-          outfitIndex: input.outfitIndex,
-          allowAIFallbackForLinks: true,
-          gender: outfitGender,
-        });
-        if (resilientMetadataLook?.imageUrl) {
-          return { imageUrl: resilientMetadataLook.imageUrl };
-        }
-
-        // If all else fails, return the original uploaded photo as a reference
-        if (review.imageUrl) {
-          return { imageUrl: review.imageUrl };
-        }
-        throw new Error("יצירת הדמיית הלוק נכשלה. נסה שוב.");
-      }),
+    // generateOutfitLook removed in Stage 45 (Option C) — outfit images now pre-generated in background
 
     correctItem: protectedProcedure
       .input(z.object({
@@ -4303,90 +4272,7 @@ Return ONLY a JSON object with these exact fields:
         }
       }),
 
-    /** Lazy load: generate product images for a specific improvement category */
-    generateProductImages: protectedProcedure
-      .input(z.object({ reviewId: z.number(), improvementIndex: z.number() }))
-      .mutation(async ({ ctx, input }) => {
-        const review = await getReviewById(input.reviewId);
-        if (!review) throw new Error("Review not found");
-        if (review.userId !== ctx.user.id) throw new Error("Unauthorized");
-        if (review.status !== "completed") throw new Error("Review not completed");
-        const analysis = review.analysisJson as FashionAnalysis;
-        if (!analysis?.improvements?.[input.improvementIndex]) {
-          throw new Error("Invalid improvement index");
-        }
-        // Re-apply store diversity normalization before generating images
-        const lang: "he" | "en" = /[\u0590-\u05FF]/.test(analysis.summary || "") ? "he" : "en";
-        // Get user gender and preferred stores for personalized image search
-        const profile = await getUserProfile(ctx.user.id);
-        const userGender = profile?.gender || "male";
-        const genderCat: GenderCategory = userGender === "female" ? "female" : userGender === "unisex" ? "unisex" : "male";
-        const imp = normalizeImprovementShoppingLinks(analysis.improvements[input.improvementIndex], lang, profile?.preferredStores || null, genderCat, profile?.budgetLevel || null);
-        const impIdx = input.improvementIndex;;
-
-        // Generate images for this single improvement category
-        const updatedLinks = await generateImagesForImprovement(imp, async (linkIdx, imageUrl) => {
-          try {
-            const currentReview = await getReviewById(input.reviewId);
-            if (currentReview?.analysisJson) {
-              const currentAnalysis = currentReview.analysisJson as FashionAnalysis;
-              if (currentAnalysis.improvements?.[impIdx]?.shoppingLinks?.[linkIdx]) {
-                currentAnalysis.improvements[impIdx].shoppingLinks[linkIdx].imageUrl = imageUrl;
-                await updateReviewAnalysis(input.reviewId, currentAnalysis.overallScore, currentAnalysis);
-              }
-            }
-          } catch (dbErr: any) {
-            console.warn(`[Lazy ProductImages] DB update failed:`, dbErr?.message);
-          }
-        }, userGender);
-        return { links: updatedLinks };
-      }),
-
-    /** Batch: generate product images for ALL improvements in one call */
-    generateAllProductImages: protectedProcedure
-      .input(z.object({ reviewId: z.number() }))
-      .mutation(async ({ ctx, input }) => {
-        const review = await getReviewById(input.reviewId);
-        if (!review) throw new Error("Review not found");
-        if (review.userId !== ctx.user.id) throw new Error("Unauthorized");
-        if (review.status !== "completed") throw new Error("Review not completed");
-        const analysis = review.analysisJson as FashionAnalysis;
-        if (!analysis?.improvements?.length) return { results: [] };
-        // Re-apply store diversity normalization before generating images
-        const batchLang: "he" | "en" = /[\u0590-\u05FF]/.test(analysis.summary || "") ? "he" : "en";
-        const profile = await getUserProfile(ctx.user.id);
-        const userGender = profile?.gender || "male";
-        const batchGenderCat: GenderCategory = userGender === "female" ? "female" : userGender === "unisex" ? "unisex" : "male";
-        analysis.improvements = analysis.improvements.map((imp) => normalizeImprovementShoppingLinks(imp, batchLang, profile?.preferredStores || null, batchGenderCat, profile?.budgetLevel || null));
-        // Process ALL improvements in parallel
-        const results = await Promise.all(
-          analysis.improvements.map(async (imp, impIdx) => {
-            const hasEmptyImages = imp.shoppingLinks?.some(l => !l.imageUrl || l.imageUrl.length < 5);
-            if (!hasEmptyImages) return { index: impIdx, links: imp.shoppingLinks };
-            try {
-              const updatedLinks = await generateImagesForImprovement(imp, async (linkIdx, imageUrl) => {
-                try {
-                  const currentReview = await getReviewById(input.reviewId);
-                  if (currentReview?.analysisJson) {
-                    const currentAnalysis = currentReview.analysisJson as FashionAnalysis;
-                    if (currentAnalysis.improvements?.[impIdx]?.shoppingLinks?.[linkIdx]) {
-                      currentAnalysis.improvements[impIdx].shoppingLinks[linkIdx].imageUrl = imageUrl;
-                      await updateReviewAnalysis(input.reviewId, currentAnalysis.overallScore, currentAnalysis);
-                    }
-                  }
-                } catch (dbErr: any) {
-                  console.warn(`[Batch ProductImages] DB update failed:`, dbErr?.message);
-                }
-              }, userGender);
-              return { index: impIdx, links: updatedLinks };
-            } catch (err: any) {
-              console.warn(`[Batch ProductImages] Failed for improvement ${impIdx}:`, err?.message);
-              return { index: impIdx, links: imp.shoppingLinks };
-            }
-          })
-        );
-        return { results };
-      }),
+    // generateProductImages + generateAllProductImages removed in Stage 45 (Option C) — upgrade images now pre-generated in background
 
     deleteAll: protectedProcedure
       .mutation(async ({ ctx }) => {
@@ -5760,6 +5646,55 @@ Return ONLY a JSON object with these exact fields:
 
           // Closet matching already ran above
 
+          // ── Stage 45: Generate AI images for guest improvements + outfits ──
+          const guestAiImageStart = Date.now();
+          try {
+            const guestGenderForImg = guestGenderBg === "female" ? "woman" : "man";
+            const guestImpImagePromises = (analysis.improvements || []).map(async (imp, idx) => {
+              try {
+                const beforeDesc = [
+                  imp.beforeGarmentType || imp.beforeLabel,
+                  imp.beforeColor ? `in ${imp.beforeColor}` : "",
+                  imp.beforeMaterial ? `made of ${imp.beforeMaterial}` : "",
+                  imp.beforeFit ? `${imp.beforeFit} fit` : "",
+                  imp.beforePattern && imp.beforePattern !== "solid" ? `with ${imp.beforePattern} pattern` : "",
+                ].filter(Boolean).join(", ");
+                const afterDesc = [
+                  imp.afterGarmentType || imp.afterLabel,
+                  imp.afterColor ? `in ${imp.afterColor}` : "",
+                  imp.afterMaterial ? `made of ${imp.afterMaterial}` : "",
+                  imp.afterFit ? `${imp.afterFit} fit` : "",
+                  imp.afterPattern && imp.afterPattern !== "solid" ? `with ${imp.afterPattern} pattern` : "",
+                  imp.afterStyle ? `${imp.afterStyle} style` : "",
+                ].filter(Boolean).join(", ");
+                const prompt = `Fashion upgrade comparison for a ${guestGenderForImg}. LEFT side labeled "BEFORE": ${beforeDesc}. RIGHT side labeled "AFTER": ${afterDesc}. Clean white background, professional fashion photography style, side-by-side flat-lay comparison. The AFTER item should look clearly more stylish and elevated than the BEFORE item. No text overlay except BEFORE/AFTER labels.`;
+                const { url } = await generateImage({ prompt });
+                if (url) imp.upgradeImageUrl = url;
+                console.log(`[Stage 45 Guest] Improvement ${idx} AI image generated`);
+              } catch (imgErr: any) {
+                console.warn(`[Stage 45 Guest] Improvement ${idx} AI image failed: ${imgErr?.message}`);
+              }
+            });
+
+            const guestOutfitImagePromises = (analysis.outfitSuggestions || []).map(async (outfit, idx) => {
+              try {
+                const itemsList = outfit.items.slice(0, 5).join(", ");
+                const colorPalette = outfit.colors.slice(0, 4).join(", ");
+                const prompt = `Complete outfit flat-lay for a ${guestGenderForImg}: ${outfit.name}. Items: ${itemsList}. Color palette: ${colorPalette}. Occasion: ${outfit.occasion}. ${outfit.lookDescription || ""}. Professional fashion photography, clean white background, neatly arranged flat-lay style showing all items together as a cohesive outfit. No mannequin, no person.`;
+                const { url } = await generateImage({ prompt });
+                if (url) outfit.aiImageUrl = url;
+                console.log(`[Stage 45 Guest] Outfit ${idx} AI image generated`);
+              } catch (imgErr: any) {
+                console.warn(`[Stage 45 Guest] Outfit ${idx} AI image failed: ${imgErr?.message}`);
+              }
+            });
+
+            await Promise.allSettled([...guestImpImagePromises, ...guestOutfitImagePromises]);
+            console.log(`[Stage 45 Guest] AI image generation completed in ${Date.now() - guestAiImageStart}ms`);
+          } catch (guestAiImgErr: any) {
+            console.warn(`[Stage 45 Guest] AI image generation failed globally: ${guestAiImgErr?.message}`);
+          }
+
           // Save full analysis (with recommendations) to DB
           await updateGuestSessionAnalysis(input.sessionId, analysis.overallScore, analysis);
           console.log(`[Guest Analysis] Stage 2 background complete, saved to DB in ${Date.now() - stage2Start}ms`);
@@ -5828,147 +5763,7 @@ Return ONLY a JSON object with these exact fields:
         };
       }),
 
-     /** Lazy load: generate product images for a specific improvement category (guest) */
-    generateProductImages: publicProcedure
-      .input(z.object({ sessionId: z.number(), improvementIndex: z.number() }))
-      .mutation(async ({ input }) => {
-        const session = await getGuestSessionById(input.sessionId);
-        if (!session) throw new Error("Session not found");
-        if (session.status !== "completed") throw new Error("Session not completed");
-        const analysis = session.analysisJson as FashionAnalysis;
-        if (!analysis?.improvements?.[input.improvementIndex]) {
-          throw new Error("Invalid improvement index");
-        }
-        // Re-apply store diversity normalization before generating images
-        const lang: "he" | "en" = /[\u0590-\u05FF]/.test(analysis.summary || "") ? "he" : "en";
-        // Get guest profile for preferred stores
-        const guestProfile = session.fingerprint ? await getGuestProfile(session.fingerprint) : null;
-        const guestGender = guestProfile?.gender || (session as any).gender || "male";
-        const guestGenderCat: GenderCategory = guestGender === "female" ? "female" : guestGender === "unisex" ? "unisex" : "male";
-        const imp = normalizeImprovementShoppingLinks(analysis.improvements[input.improvementIndex], lang, guestProfile?.preferredStores || null, guestGenderCat, guestProfile?.budgetLevel || null);
-        const impIdx = input.improvementIndex;;
-
-        const updatedLinks = await generateImagesForImprovement(imp, async (linkIdx, imageUrl) => {
-          try {
-            const currentSession = await getGuestSessionById(input.sessionId);
-            if (currentSession?.analysisJson) {
-              const currentAnalysis = currentSession.analysisJson as FashionAnalysis;
-              if (currentAnalysis.improvements?.[impIdx]?.shoppingLinks?.[linkIdx]) {
-                currentAnalysis.improvements[impIdx].shoppingLinks[linkIdx].imageUrl = imageUrl;
-                await updateGuestSessionAnalysis(input.sessionId, currentAnalysis.overallScore, currentAnalysis);
-              }
-            }
-           } catch (dbErr: any) {
-            console.warn(`[Guest Lazy ProductImages] DB update failed:`, dbErr?.message);
-          }
-        }, guestGender);
-        return { links: updatedLinks };
-      }),
-
-    /** Batch: generate product images for ALL improvements in one call (guest) */
-    generateAllProductImages: publicProcedure
-      .input(z.object({ sessionId: z.number() }))
-      .mutation(async ({ input }) => {
-        const session = await getGuestSessionById(input.sessionId);
-        if (!session) throw new Error("Session not found");
-        if (session.status !== "completed") throw new Error("Session not completed");
-        const analysis = session.analysisJson as FashionAnalysis;
-        if (!analysis?.improvements?.length) return { results: [] };
-
-        const guestGender = (session as any).gender || "male";
-
-        const results = await Promise.all(
-          analysis.improvements.map(async (imp, impIdx) => {
-            const hasEmptyImages = imp.shoppingLinks?.some(l => !l.imageUrl || l.imageUrl.length < 5);
-            if (!hasEmptyImages) return { index: impIdx, links: imp.shoppingLinks };
-            try {
-              const updatedLinks = await generateImagesForImprovement(imp, async (linkIdx, imageUrl) => {
-                try {
-                  const currentSession = await getGuestSessionById(input.sessionId);
-                  if (currentSession?.analysisJson) {
-                    const currentAnalysis = currentSession.analysisJson as FashionAnalysis;
-                    if (currentAnalysis.improvements?.[impIdx]?.shoppingLinks?.[linkIdx]) {
-                      currentAnalysis.improvements[impIdx].shoppingLinks[linkIdx].imageUrl = imageUrl;
-                      await updateGuestSessionAnalysis(input.sessionId, currentAnalysis.overallScore, currentAnalysis);
-                    }
-                  }
-                } catch (dbErr: any) {
-                  console.warn(`[Guest Batch ProductImages] DB update failed:`, dbErr?.message);
-                }
-              }, guestGender);
-              return { index: impIdx, links: updatedLinks };
-            } catch (err: any) {
-              console.warn(`[Guest Batch ProductImages] Failed for improvement ${impIdx}:`, err?.message);
-              return { index: impIdx, links: imp.shoppingLinks };
-            }
-          })
-        );
-        return { results };
-      }),
-
-    /** Generate outfit look image for guest session */
-    generateOutfitLook: publicProcedure
-      .input(z.object({ sessionId: z.number(), outfitIndex: z.number() }))
-      .mutation(async ({ input }) => {
-        const session = await getGuestSessionById(input.sessionId);
-        if (!session) throw new Error("Session not found");
-        if (session.status !== "completed") throw new Error("Analysis not completed");
-        const analysis = session.analysisJson as FashionAnalysis;
-        if (!analysis) throw new Error("No analysis available");
-        const outfit = analysis.outfitSuggestions?.[input.outfitIndex];
-        if (!outfit) throw new Error("Outfit suggestion not found");
-
-        // Get guest gender from session record
-        const guestGender = (session as any).gender || "male";
-        const genderLabel = guestGender === "female" ? "women's" : "men's";
-
-        // PRIMARY: Generate a full outfit look image via AI (complete head-to-toe look)
-        // Use rich item descriptions from analysis items when available
-        const guestRichItems = (analysis.items || []).map(item => buildRichItemDescription(item));
-        const lookDesc = outfit.lookDescription || (guestRichItems.length > 0 ? guestRichItems.join(', ') : outfit.items.join(", "));
-        const colors = outfit.colors?.join(", ") || "neutral tones";
-        const guestSilhouetteCtx = analysis.lookStructure?.silhouetteSummary ? `\nSilhouette: ${analysis.lookStructure.silhouetteSummary}.` : '';
-        const prompt = `Professional ${genderLabel} fashion flat lay / mood board photograph. Clean white marble background, luxury editorial style photography.
-Outfit card variation index: ${input.outfitIndex + 1}. Keep this variation visually distinct from other outfit cards.
-Complete ${genderLabel} outfit: ${lookDesc}.
-Color palette: ${colors}.${guestSilhouetteCtx}
-Style: High-end ${genderLabel} fashion editorial flat lay, all items arranged aesthetically like a magazine spread. Include every piece: clothing, shoes, accessories, watch/jewelry. No mannequin, no model — just the items laid out beautifully with crisp lighting, soft shadows, and a luxury feel. Each item clearly visible and identifiable.`;
-        try {
-          const { url } = await generateImage({ prompt });
-          if (url && url.trim().length > 0) {
-            return { imageUrl: url };
-          }
-        } catch (err: any) {
-          console.error("[Guest Outfit Look] AI image generation failed, falling back to metadata mosaic:", err);
-        }
-
-        // FALLBACK 1: Build a mosaic from product images (metadata-based)
-        const metadataLook = await generateOutfitLookFromMetadata({
-          analysis,
-          outfit,
-          outfitIndex: input.outfitIndex,
-          gender: guestGender,
-        });
-        if (metadataLook?.imageUrl) {
-          return { imageUrl: metadataLook.imageUrl };
-        }
-
-        // FALLBACK 2: Metadata mosaic with AI-generated product images
-        const resilientMetadataLook = await generateOutfitLookFromMetadata({
-          analysis,
-          outfit,
-          outfitIndex: input.outfitIndex,
-          allowAIFallbackForLinks: true,
-          gender: guestGender,
-        });
-        if (resilientMetadataLook?.imageUrl) {
-          return { imageUrl: resilientMetadataLook.imageUrl };
-        }
-        if (session.imageUrl) {
-          return { imageUrl: session.imageUrl };
-        }
-        throw new Error("יצירת הדמיית הלוק נכשלה. נסה שוב.");
-      }),
+    // Guest generateProductImages + generateAllProductImages + generateOutfitLook removed in Stage 45 (Option C)
 
     /** Save guest onboarding profile */
     saveProfile: publicProcedure

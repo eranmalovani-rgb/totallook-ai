@@ -204,6 +204,8 @@ export interface Improvement {
 
   shoppingLinks: ShoppingLink[];
   productSearchQuery: string;
+  /** AI-generated before/after visualization image URL */
+  upgradeImageUrl?: string;
   /** Matching item from user's virtual closet (if found) */
   closetMatch?: ClosetMatch;
 }
@@ -239,6 +241,8 @@ export interface OutfitSuggestion {
   /** English description for AI image generation of the complete look as a flat-lay mood board */
   lookDescription?: string;
   inspirationNote: string;
+  /** AI-generated outfit look image URL */
+  aiImageUrl?: string;
 }
 
 export interface TrendSource {
