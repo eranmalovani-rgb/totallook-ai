@@ -2268,6 +2268,10 @@ export interface CatalogMatchParams {
   excludeIds?: number[];
   /** Max items to return */
   limit?: number;
+  /** Detected season from photo: cold, warm, transitional */
+  detectedSeason?: "cold" | "warm" | "transitional";
+  /** Original sub-category from the photo (for length preservation rule) */
+  originalSubCategory?: string;
 }
 
 /**
@@ -2337,6 +2341,46 @@ export async function findCatalogMatches(params: CatalogMatchParams): Promise<Ca
   return scoreCandidates(candidates, params).slice(0, limit);
 }
 
+// ── Stage 51h: Seasonality, Length Preservation, and Occasion Dress Code rules ──
+
+/** Sub-categories classified as "short" (warm-weather / casual) */
+const SHORT_ITEMS = new Set(["shorts", "tank top", "crop top", "sandals", "sandal", "sands", "mini dress", "mini skirt"]);
+/** Sub-categories classified as "long/warm" (cold-weather) */
+const COLD_ITEMS = new Set(["parka", "puffer", "trench coat", "sweater", "hoodie", "boots", "scarf", "cardigan"]);
+
+/** Map from detected season → forbidden sub-categories */
+const SEASON_FORBIDDEN: Record<string, Set<string>> = {
+  cold: new Set(["shorts", "tank top", "crop top", "sandals", "sandal", "sands", "mini dress", "mini skirt"]),
+  warm: new Set(["parka", "puffer", "trench coat", "scarf"]),
+  // transitional: no hard blocks
+};
+
+/** Length hierarchy — higher number = longer. NEVER suggest going from higher to lower. */
+const LENGTH_RANK: Record<string, number> = {
+  // Pants
+  "shorts": 1, "culottes": 2, "joggers": 3, "cargo pants": 3,
+  "chinos": 4, "jeans": 4, "dress pants": 4, "wide-leg pants": 4, "leggings": 4,
+  // Tops
+  "tank top": 1, "crop top": 1, "bodysuit": 2,
+  "t-shirt": 3, "polo": 3, "henley": 3, "blouse": 3, "shirt": 3, "linen shirt": 3,
+  "dress shirt": 4, "sweater": 5, "hoodie": 5, "cardigan": 5,
+  // Dresses
+  "mini dress": 1, "mini skirt": 1, "midi dress": 2, "midi skirt": 2, "pleated skirt": 2,
+  "maxi dress": 3, "wrap dress": 2,
+  // Shoes
+  "sandals": 1, "sandal": 1, "sands": 1, "flats": 2, "mules": 2,
+  "sneakers": 3, "loafers": 3, "dress shoes": 4, "heels": 3, "boots": 5,
+};
+
+/** Occasion dress code violations — these combos get -100 penalty */
+const OCCASION_DRESS_CODE: Record<string, Set<string>> = {
+  work: new Set(["shorts", "tank top", "crop top", "sandals", "sandal", "sands", "joggers", "hoodie", "mini dress", "mini skirt"]),
+  wedding: new Set(["jeans", "sneakers", "t-shirt", "shorts", "tank top", "crop top", "joggers", "hoodie", "cargo pants"]),
+  date: new Set(["joggers", "tank top", "cargo pants", "sandals", "sandal", "sands", "parka", "puffer"]),
+  formal: new Set(["jeans", "sneakers", "hoodie", "shorts", "t-shirt", "tank top", "crop top", "joggers", "cargo pants", "sandals", "sandal"]),
+  shabbat: new Set(["shorts", "tank top", "crop top", "joggers"]),
+};
+
 function scoreCandidates(candidates: CatalogItem[], params: CatalogMatchParams): CatalogItem[] {
   const {
     subCategory,
@@ -2345,10 +2389,49 @@ function scoreCandidates(candidates: CatalogItem[], params: CatalogMatchParams):
     colors = [],
     budgetTier,
     season,
+    detectedSeason,
+    originalSubCategory,
   } = params;
 
   const scored = candidates.map(item => {
     let score = 0;
+    const itemSub = item.subCategory.toLowerCase();
+
+    // ── IRON RULE: Length Preservation (never downgrade length) ──
+    if (originalSubCategory) {
+      const originalRank = LENGTH_RANK[originalSubCategory.toLowerCase()] ?? 3;
+      const candidateRank = LENGTH_RANK[itemSub] ?? 3;
+      // Same category group check: only compare within same category
+      if (item.category === params.category && candidateRank < originalRank) {
+        score -= 100; // Hard block — never suggest shorter
+      }
+    }
+
+    // ── Seasonality Rule ──
+    if (detectedSeason && detectedSeason !== "transitional") {
+      const forbidden = SEASON_FORBIDDEN[detectedSeason];
+      if (forbidden && forbidden.has(itemSub)) {
+        score -= 50; // Season conflict
+      }
+      // Bonus for season-appropriate items
+      const itemSeason = (item.season || "").toLowerCase();
+      if (detectedSeason === "cold" && (itemSeason === "winter" || itemSeason === "fall-winter" || itemSeason === "autumn-winter")) {
+        score += 8;
+      } else if (detectedSeason === "warm" && itemSeason === "summer") {
+        score += 8;
+      } else if (itemSeason === "all-season" || itemSeason === "spring-fall") {
+        score += 3;
+      }
+    }
+
+    // ── Occasion Dress Code Rule ──
+    if (occasion) {
+      const occasionLower = occasion.toLowerCase();
+      const dressCodeViolations = OCCASION_DRESS_CODE[occasionLower];
+      if (dressCodeViolations && dressCodeViolations.has(itemSub)) {
+        score -= 100; // Hard block — dress code violation
+      }
+    }
 
     // Sub-category match (high)
     if (subCategory && item.subCategory.toLowerCase() === subCategory.toLowerCase()) {

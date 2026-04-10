@@ -2959,6 +2959,27 @@ async function buildCatalogRecommendations(
   });
   const styleArray = detectedStyles.size > 0 ? [...detectedStyles] : undefined;
 
+  // ── Stage 51h: Detect season from photo items ──
+  const coldSignals = new Set(["sweater", "hoodie", "cardigan", "parka", "puffer", "trench coat", "coat",
+    "leather jacket", "boots", "scarf", "blazer", "dress shirt", "jeans", "dress pants"]);
+  const warmSignals = new Set(["shorts", "tank top", "crop top", "sandals", "sandal",
+    "mini dress", "mini skirt", "t-shirt", "linen shirt"]);
+  let coldCount = 0;
+  let warmCount = 0;
+  for (const item of stageOneItems) {
+    const gt = (item.garmentType || "").toLowerCase();
+    const sl = (item.sleeveLength || "").toLowerCase();
+    if (coldSignals.has(gt)) coldCount++;
+    if (warmSignals.has(gt)) warmCount++;
+    // Sleeve length signals
+    if (sl === "long" || sl === "full") coldCount++;
+    if (sl === "sleeveless" || sl === "short") warmCount++;
+  }
+  const detectedSeason: "cold" | "warm" | "transitional" =
+    coldCount >= 2 && coldCount > warmCount ? "cold" :
+    warmCount >= 2 && warmCount > coldCount ? "warm" : "transitional";
+  console.log(`[Stage 51h] Detected season: ${detectedSeason} (cold=${coldCount}, warm=${warmCount})`);
+
   // Find upgrade items for each Stage 1 item
   const usedCatalogIds: number[] = [];
   const improvements: Improvement[] = [];
@@ -2984,6 +3005,8 @@ async function buildCatalogRecommendations(
         budgetTier: budgetLevel || undefined,
         excludeIds: usedCatalogIds,
         limit: 1,
+        detectedSeason,
+        originalSubCategory: mapping.subCategory,
       });
       if (matches.length === 0) continue;
       const catalogItem = matches[0];
@@ -3064,6 +3087,7 @@ async function buildCatalogRecommendations(
         budgetTier: budgetLevel || undefined,
         excludeIds: usedCatalogIds,
         limit: 1,
+        detectedSeason,
       });
       if (matches.length === 0) continue;
       const catalogItem = matches[0];

@@ -683,3 +683,10 @@
 - [x] 51g.1: Diagnosed — 3 hardcoded limits: buildCatalogRecommendations (line 2968), default categories fallback (line 3058), sanitizeRecommendationsPayload (line 2765)
 - [x] 51g.2: Fixed — removed all 3 limits, now allows up to 6 improvements. Added accessories to default categories. Updated normalizeImprovementsForWearableCore to allow up to 6.
 - [x] 51g.3: Tests pass (819/824, same 5 pre-existing API failures)
+
+### 51h: Catalog Smart Filtering Rules (User-approved)
+- [x] 51h.1: Seasonality detection — detects cold/warm/transitional from garmentType + sleeveLength signals. Penalty -50 for forbidden items (shorts in cold, parka in warm). Bonus +8 for season-matching items.
+- [x] 51h.2: Length preservation — LENGTH_RANK hierarchy for all subCategories. Penalty -100 if candidate rank < original rank within same category. NEVER downgrades.
+- [x] 51h.3: Occasion dress code — OCCASION_DRESS_CODE map for work/wedding/date/formal/shabbat. Penalty -100 for violations (shorts at work, jeans at wedding, etc.)
+- [x] 51h.4: Wired into scoreCandidates (db.ts) + buildCatalogRecommendations (routers.ts). detectedSeason + originalSubCategory passed to findCatalogMatches.
+- [x] 51h.5: Tests pass (819/824, same 5 pre-existing API failures). 0 TS errors.
