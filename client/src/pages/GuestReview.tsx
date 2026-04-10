@@ -258,6 +258,7 @@ function GuestImprovementAccordionCard({
   const [localLinks, setLocalLinks] = useState(imp.shoppingLinks || []);
   const [isGenerating, setIsGenerating] = useState(false);
   const [hasTriggered, setHasTriggered] = useState(false);
+  const [failedAttempts, setFailedAttempts] = useState(0);
   const cardRef = useRef<HTMLDivElement>(null);
   const generateMutation = trpc.guest.generateProductImages.useMutation();
 
@@ -271,14 +272,36 @@ function GuestImprovementAccordionCard({
   }, [imp.shoppingLinks]);
 
   const triggerGeneration = useCallback(() => {
-    if (hasTriggered || !hasEmptyImages) return;
-    setHasTriggered(true);
+    if (isGenerating || hasTriggered || !hasEmptyImages) return;
     setIsGenerating(true);
     generateMutation.mutateAsync({ sessionId, improvementIndex: index })
-      .then((result) => { if (result?.links) setLocalLinks(result.links); })
-      .catch((err) => console.warn(`[GuestImprovementCard] Image generation failed:`, err))
+      .then((result) => {
+        if (result?.links) setLocalLinks(result.links);
+        setHasTriggered(true);
+        setFailedAttempts(0);
+      })
+      .catch((err) => {
+        setFailedAttempts((prev) => prev + 1);
+        console.warn(`[GuestImprovementCard] Image generation failed:`, err);
+      })
       .finally(() => setIsGenerating(false));
-  }, [hasTriggered, hasEmptyImages, sessionId, index]);
+  }, [isGenerating, hasTriggered, hasEmptyImages, sessionId, index]);
+
+  const handleRetryImages = useCallback(() => {
+    if (isGenerating) return;
+    setIsGenerating(true);
+    generateMutation.mutateAsync({ sessionId, improvementIndex: index })
+      .then((result) => {
+        if (result?.links) setLocalLinks(result.links);
+        setHasTriggered(true);
+        setFailedAttempts(0);
+      })
+      .catch((err) => {
+        setFailedAttempts((prev) => prev + 1);
+        console.warn(`[GuestImprovementCard] Retry image generation failed:`, err);
+      })
+      .finally(() => setIsGenerating(false));
+  }, [isGenerating, sessionId, index]);
 
   useEffect(() => {
     if (hasTriggered || !hasEmptyImages) return;
@@ -328,9 +351,17 @@ function GuestImprovementAccordionCard({
 
             {localLinks && localLinks.length > 0 && (
               <div>
-                <p className="text-xs text-muted-foreground mb-3 font-medium flex items-center gap-1.5">
-                  <ShoppingBag className="w-3.5 h-3.5" />{t("review", "recommendedProducts")}
-                </p>
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
+                    <ShoppingBag className="w-3.5 h-3.5" />{t("review", "recommendedProducts")}
+                  </p>
+                  {hasEmptyImages && !isGenerating && (hasTriggered || failedAttempts > 0) && (
+                    <button onClick={handleRetryImages} className="text-[10px] text-primary/70 hover:text-primary flex items-center gap-1 transition-colors">
+                      <RefreshCw className="w-2.5 h-2.5" />
+                      {lang === "he" ? "טען תמונות" : "Load images"}
+                    </button>
+                  )}
+                </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {localLinks.map((link: any, j: number) => (
                     <ProductCard key={j} link={link} lang={lang} isGeneratingImages={isGenerating} />

@@ -348,6 +348,7 @@ function ImprovementCard({
   const [localLinks, setLocalLinks] = useState(imp.shoppingLinks || []);
   const [isGenerating, setIsGenerating] = useState(false);
   const [hasTriggered, setHasTriggered] = useState(false);
+  const [failedAttempts, setFailedAttempts] = useState(0);
   const [closetPopupOpen, setClosetPopupOpen] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   const generateMutation = trpc.review.generateProductImages.useMutation();
@@ -396,28 +397,38 @@ function ImprovementCard({
   }, [imp.shoppingLinks]);
 
   const triggerGeneration = useCallback(() => {
-    if (hasTriggered || !hasEmptyImages) return;
-    setHasTriggered(true);
+    if (isGenerating || hasTriggered || !hasEmptyImages) return;
     setIsGenerating(true);
     generateMutation.mutateAsync({ reviewId, improvementIndex: index })
       .then((result) => {
         if (result?.links) setLocalLinks(result.links);
+        setHasTriggered(true);
+        setFailedAttempts(0);
         utils.review.get.invalidate({ id: reviewId });
       })
-      .catch((err) => console.warn(`[ImprovementCard] Image generation failed for index ${index}:`, err))
+      .catch((err) => {
+        setFailedAttempts((prev) => prev + 1);
+        console.warn(`[ImprovementCard] Image generation failed for index ${index}:`, err);
+      })
       .finally(() => setIsGenerating(false));
-  }, [hasTriggered, hasEmptyImages, reviewId, index]);
+  }, [isGenerating, hasTriggered, hasEmptyImages, reviewId, index]);
 
   const handleRetryImages = useCallback(() => {
+    if (isGenerating) return;
     setIsGenerating(true);
     generateMutation.mutateAsync({ reviewId, improvementIndex: index })
       .then((result) => {
         if (result?.links) setLocalLinks(result.links);
+        setHasTriggered(true);
+        setFailedAttempts(0);
         utils.review.get.invalidate({ id: reviewId });
       })
-      .catch((err) => console.warn(`[ImprovementCard] Retry image generation failed for index ${index}:`, err))
+      .catch((err) => {
+        setFailedAttempts((prev) => prev + 1);
+        console.warn(`[ImprovementCard] Retry image generation failed for index ${index}:`, err);
+      })
       .finally(() => setIsGenerating(false));
-  }, [reviewId, index]);
+  }, [isGenerating, reviewId, index]);
 
   useEffect(() => {
     if (hasTriggered || !hasEmptyImages) return;
@@ -491,7 +502,7 @@ function ImprovementCard({
               <ShoppingBag className="w-3 h-3" />
               {t("review", "recommendedProducts")}
             </p>
-            {hasEmptyImages && !isGenerating && hasTriggered && (
+            {hasEmptyImages && !isGenerating && (hasTriggered || failedAttempts > 0) && (
               <button onClick={handleRetryImages} className="text-[10px] text-primary/70 hover:text-primary flex items-center gap-1 transition-colors">
                 <RefreshCw className="w-2.5 h-2.5" />
                 {lang === "he" ? "טען תמונות" : "Load images"}
