@@ -2945,6 +2945,10 @@ async function buildCatalogRecommendations(
     "vacation": "vacation", "חופשה": "vacation", "going out": "party", "יציאה": "party",
     "business": "work", "פגישה עסקית": "work", "formal": "wedding",
     "אירוע פורמלי": "wedding", "casual": "daily", "קז'ואל": "daily",
+    "coffee": "daily", "קפה": "daily", "brunch": "daily", "בראנץ'": "daily",
+    "evening": "evening", "ערב": "evening", "night out": "party",
+    "sport": "sport", "ספורט": "sport", "gym": "sport", "חדר כושר": "sport",
+    "family": "shabbat", "משפחה": "shabbat", "picnic": "daily", "פיקניק": "daily",
   };
   const catalogOccasion = occasion ? (occasionMap[occasion.toLowerCase()] || occasion.toLowerCase()) : undefined;
 

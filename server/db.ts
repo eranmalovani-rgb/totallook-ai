@@ -2355,16 +2355,30 @@ function scoreCandidates(candidates: CatalogItem[], params: CatalogMatchParams):
       score += 15;
     }
 
-    // Occasion match (high)
+    // Occasion match (critical — strongest signal)
     if (occasion) {
       const occasionTags = Array.isArray(item.occasionTags) ? item.occasionTags : [];
       const occasionLower = occasion.toLowerCase();
-      if (occasionTags.some((t: any) => String(t).toLowerCase().includes(occasionLower))) {
-        score += 20;
+      const tagStrings = occasionTags.map((t: any) => String(t).toLowerCase());
+      const hasDirectMatch = tagStrings.some(t => t.includes(occasionLower));
+      const hasDailyTag = tagStrings.some(t => t === "daily" || t === "all" || t === "casual");
+      const isSportItem = tagStrings.some(t => t === "sport" || t === "gym");
+      const isNonSportOccasion = !(["sport", "gym"].includes(occasionLower));
+
+      if (hasDirectMatch) {
+        score += 30; // Strong boost for direct occasion match
+      } else if (hasDailyTag && isNonSportOccasion) {
+        score += 8; // Moderate boost for versatile "daily" items
       }
-      // Also check if "daily" or "all" is in tags (always relevant)
-      if (occasionTags.some((t: any) => String(t).toLowerCase() === "daily" || String(t).toLowerCase() === "all")) {
-        score += 5;
+
+      // PENALTY: sport/gym items should NOT appear for non-sport occasions
+      if (isSportItem && isNonSportOccasion && !hasDirectMatch) {
+        score -= 40; // Heavy penalty — sport items for coffee/date/work is wrong
+      }
+
+      // PENALTY: items with NO matching occasion tag get a small penalty
+      if (!hasDirectMatch && !hasDailyTag) {
+        score -= 10;
       }
     }
 

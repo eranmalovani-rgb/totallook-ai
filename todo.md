@@ -674,3 +674,7 @@
 - [x] 51e.1: Updated existing tests for catalog flow (timing logs, fallback messages)
 - [ ] 51e.2: Verify Stage 2 completes in <5s (needs live test)
 - [ ] 51e.3: Save checkpoint
+
+### 51f: Critical Bugs (User-reported)
+- [x] 51f.1: Occasion filtering fixed — added coffee/brunch/evening/sport/gym/family/picnic to occasionMap, added -40 penalty for sport items in non-sport occasions, -10 for items with no matching occasion
+- [x] 51f.2: Images fixed — regenerated all 196 catalog images via AI (Forge ImageService), uploaded to Manus S3 (Cloudfront), updated DB. Old R2 URLs (401) replaced with working Cloudfront URLs (200)
