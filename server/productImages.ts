@@ -671,28 +671,12 @@ export async function generateImagesForImprovement(
     }
 
     try {
-      let resolvedUrl = await resolveShoppingLinkImage({
+      const resolvedUrl = await resolveShoppingLinkImage({
         label: link.label,
         url: link.url,
         categoryQuery: improvement.productSearchQuery,
         logPrefix: `[ProductImages] Lazy [${linkIdx}]`,
       });
-
-      // Reliability hardening:
-      // If provider hiccup/timeout produced an empty result, retry once with AI-only fallback
-      // and cache/store-image bypass to force a fresh generation attempt.
-      if (!resolvedUrl) {
-        resolvedUrl = await resolveShoppingLinkImage({
-          label: link.label,
-          url: link.url,
-          categoryQuery: improvement.productSearchQuery,
-          logPrefix: `[ProductImages] Lazy [${linkIdx}] [retry]`,
-          skipCache: true,
-          skipStoreImage: true,
-          allowAIFallback: true,
-          promptSalt: `lazy-retry-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-        });
-      }
       if (resolvedUrl) {
         links[linkIdx].imageUrl = resolvedUrl;
         if (onImageReady) {
@@ -745,12 +729,7 @@ export async function generateImagesForImprovement(
 /**
  * Build a unique prompt for each specific product.
  */
-function buildProductImagePrompt(
-  linkLabel: string,
-  categoryQuery: string,
-  productUrl?: string,
-  promptSalt?: string,
-): string {
+function buildProductImagePrompt(linkLabel: string, categoryQuery: string, productUrl?: string): string {
   const [productNameRaw, storeFromLabelRaw] = linkLabel.split(/\s*[—–]\s*/);
   const productName = (productNameRaw || linkLabel).trim();
   const storeFromLabel = (storeFromLabelRaw || "").trim();
@@ -763,7 +742,7 @@ function buildProductImagePrompt(
     }
   }
   const storeHint = storeFromLabel || storeHost || "fashion store";
-  const seed = `${linkLabel}|${categoryQuery}|${storeHint}|${promptSalt || ""}`;
+  const seed = `${linkLabel}|${categoryQuery}|${storeHint}`;
   let hash = 0;
   for (let i = 0; i < seed.length; i++) hash = ((hash << 5) - hash + seed.charCodeAt(i)) | 0;
   const variants = [
