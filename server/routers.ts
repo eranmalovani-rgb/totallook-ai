@@ -3615,22 +3615,22 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
                 const improvementImagePromises = (analysis.improvements || []).map(async (imp, idx) => {
                   try {
                     const genderLabel = bgUserGender === "female" ? "woman" : "man";
-                    const beforeDesc = [
-                      imp.beforeGarmentType || imp.beforeLabel,
-                      imp.beforeColor ? `in ${imp.beforeColor}` : "",
-                      imp.beforeMaterial ? `made of ${imp.beforeMaterial}` : "",
-                      imp.beforeFit ? `${imp.beforeFit} fit` : "",
-                      imp.beforePattern && imp.beforePattern !== "solid" ? `with ${imp.beforePattern} pattern` : "",
-                    ].filter(Boolean).join(", ");
-                    const afterDesc = [
-                      imp.afterGarmentType || imp.afterLabel,
-                      imp.afterColor ? `in ${imp.afterColor}` : "",
-                      imp.afterMaterial ? `made of ${imp.afterMaterial}` : "",
-                      imp.afterFit ? `${imp.afterFit} fit` : "",
-                      imp.afterPattern && imp.afterPattern !== "solid" ? `with ${imp.afterPattern} pattern` : "",
-                      imp.afterStyle ? `${imp.afterStyle} style` : "",
-                    ].filter(Boolean).join(", ");
-                    const prompt = `Fashion upgrade comparison for a ${genderLabel}. LEFT side labeled "BEFORE": ${beforeDesc}. RIGHT side labeled "AFTER": ${afterDesc}. Clean white background, professional fashion photography style, side-by-side flat-lay comparison. The AFTER item should look clearly more stylish and elevated than the BEFORE item. No text overlay except BEFORE/AFTER labels.`;
+                    // Build a hyper-specific single-item prompt for the UPGRADED garment only
+                    const garmentType = imp.afterGarmentType || imp.beforeGarmentType || imp.afterLabel || imp.title?.replace(/[^a-zA-Z\s]/g, "").trim() || "garment";
+                    const detailParts = [
+                      imp.afterColor || imp.beforeColor ? `Color: ${imp.afterColor || imp.beforeColor}` : "",
+                      imp.afterMaterial ? `Material: ${imp.afterMaterial}` : "",
+                      imp.afterFit ? `Fit: ${imp.afterFit}` : "",
+                      imp.afterStyle ? `Style: ${imp.afterStyle}` : "",
+                      imp.afterPattern && imp.afterPattern !== "solid" ? `Pattern: ${imp.afterPattern}` : "",
+                      imp.afterNeckline ? `Neckline: ${imp.afterNeckline}` : "",
+                      imp.afterSleeveLength ? `Sleeves: ${imp.afterSleeveLength}` : "",
+                      imp.afterLength ? `Length: ${imp.afterLength}` : "",
+                      imp.afterClosure ? `Closure: ${imp.afterClosure}` : "",
+                      imp.afterTexture ? `Texture: ${imp.afterTexture}` : "",
+                      imp.afterDetails ? `Details: ${imp.afterDetails}` : "",
+                    ].filter(Boolean).join(". ");
+                    const prompt = `A single ${garmentType} for a ${genderLabel}, shown as a product photo on a clean white background. ${detailParts}. Professional e-commerce product photography, studio lighting, the item is laid flat or on an invisible mannequin. Show ONLY this ONE item — no other clothing, no accessories, no person. Sharp focus, high detail, luxury fashion product shot.`;
                     const { url } = await generateImage({ prompt });
                     if (url) imp.upgradeImageUrl = url;
                     console.log(`[Stage 45] Improvement ${idx} AI image generated`);
@@ -5658,22 +5658,22 @@ Return ONLY a JSON object with these exact fields:
             const guestGenderForImg = guestGenderBg === "female" ? "woman" : "man";
             const guestImpImagePromises = (analysis.improvements || []).map(async (imp, idx) => {
               try {
-                const beforeDesc = [
-                  imp.beforeGarmentType || imp.beforeLabel,
-                  imp.beforeColor ? `in ${imp.beforeColor}` : "",
-                  imp.beforeMaterial ? `made of ${imp.beforeMaterial}` : "",
-                  imp.beforeFit ? `${imp.beforeFit} fit` : "",
-                  imp.beforePattern && imp.beforePattern !== "solid" ? `with ${imp.beforePattern} pattern` : "",
-                ].filter(Boolean).join(", ");
-                const afterDesc = [
-                  imp.afterGarmentType || imp.afterLabel,
-                  imp.afterColor ? `in ${imp.afterColor}` : "",
-                  imp.afterMaterial ? `made of ${imp.afterMaterial}` : "",
-                  imp.afterFit ? `${imp.afterFit} fit` : "",
-                  imp.afterPattern && imp.afterPattern !== "solid" ? `with ${imp.afterPattern} pattern` : "",
-                  imp.afterStyle ? `${imp.afterStyle} style` : "",
-                ].filter(Boolean).join(", ");
-                const prompt = `Fashion upgrade comparison for a ${guestGenderForImg}. LEFT side labeled "BEFORE": ${beforeDesc}. RIGHT side labeled "AFTER": ${afterDesc}. Clean white background, professional fashion photography style, side-by-side flat-lay comparison. The AFTER item should look clearly more stylish and elevated than the BEFORE item. No text overlay except BEFORE/AFTER labels.`;
+                // Build a hyper-specific single-item prompt for the UPGRADED garment only
+                const garmentType = imp.afterGarmentType || imp.beforeGarmentType || imp.afterLabel || imp.title?.replace(/[^a-zA-Z\s]/g, "").trim() || "garment";
+                const detailParts = [
+                  imp.afterColor || imp.beforeColor ? `Color: ${imp.afterColor || imp.beforeColor}` : "",
+                  imp.afterMaterial ? `Material: ${imp.afterMaterial}` : "",
+                  imp.afterFit ? `Fit: ${imp.afterFit}` : "",
+                  imp.afterStyle ? `Style: ${imp.afterStyle}` : "",
+                  imp.afterPattern && imp.afterPattern !== "solid" ? `Pattern: ${imp.afterPattern}` : "",
+                  imp.afterNeckline ? `Neckline: ${imp.afterNeckline}` : "",
+                  imp.afterSleeveLength ? `Sleeves: ${imp.afterSleeveLength}` : "",
+                  imp.afterLength ? `Length: ${imp.afterLength}` : "",
+                  imp.afterClosure ? `Closure: ${imp.afterClosure}` : "",
+                  imp.afterTexture ? `Texture: ${imp.afterTexture}` : "",
+                  imp.afterDetails ? `Details: ${imp.afterDetails}` : "",
+                ].filter(Boolean).join(". ");
+                const prompt = `A single ${garmentType} for a ${guestGenderForImg}, shown as a product photo on a clean white background. ${detailParts}. Professional e-commerce product photography, studio lighting, the item is laid flat or on an invisible mannequin. Show ONLY this ONE item — no other clothing, no accessories, no person. Sharp focus, high detail, luxury fashion product shot.`;
                 const { url } = await generateImage({ prompt });
                 if (url) imp.upgradeImageUrl = url;
                 console.log(`[Stage 45 Guest] Improvement ${idx} AI image generated`);

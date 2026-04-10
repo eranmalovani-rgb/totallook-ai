@@ -579,3 +579,10 @@
 - [x] Root cause: normalizeImprovementShoppingLinks returns new object without upgradeImageUrl — every getById call strips it
 - [x] Fix: added upgradeImageUrl passthrough in normalizeImprovementShoppingLinks return object
 - [ ] Verify images appear in frontend after fix (requires publish)
+
+## Stage 45b: Improve AI upgrade image precision
+- [x] 45b.1: Rewrite AI image prompt to be hyper-specific about the single garment item (not generic outfit)
+- [x] 45b.2: Include all structured metadata (garmentType, color, style, fit, material, pattern, neckline, sleeves, length, closure, texture, details) in prompt
+- [x] 45b.3: Ensure title-to-image alignment when photo has 2+ items — prompt now generates ONLY the single upgraded item, not a before/after comparison
+- [ ] 45b.4: Test and verify
+- [ ] 45b.5: Save checkpoint
