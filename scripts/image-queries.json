@@ -1,0 +1,1402 @@
+[
+  {
+    "idx": 659,
+    "query": "Zara floral print blouse navy pink",
+    "name": "Floral Print Blouse",
+    "gender": "female",
+    "category": "tops"
+  },
+  {
+    "idx": 660,
+    "query": "Uniqlo women's organic cotton t-shirt white",
+    "name": "Organic Cotton T-shirt",
+    "gender": "female",
+    "category": "tops"
+  },
+  {
+    "idx": 661,
+    "query": "H&M women's ribbed knit crop top black",
+    "name": "Ribbed Knit Crop Top",
+    "gender": "female",
+    "category": "tops"
+  },
+  {
+    "idx": 662,
+    "query": "Mango women's V-neck bodysuit beige",
+    "name": "V-Neck Bodysuit",
+    "gender": "female",
+    "category": "tops"
+  },
+  {
+    "idx": 663,
+    "query": "COS women's oversized knit sweater gray",
+    "name": "Oversized Knit Sweater",
+    "gender": "female",
+    "category": "tops"
+  },
+  {
+    "idx": 664,
+    "query": "Massimo Dutti women's longline cardigan olive green",
+    "name": "Longline Cardigan",
+    "gender": "female",
+    "category": "tops"
+  },
+  {
+    "idx": 665,
+    "query": "Pull&Bear women's square neck tank top rust",
+    "name": "Square Neck Tank Top",
+    "gender": "female",
+    "category": "tops"
+  },
+  {
+    "idx": 666,
+    "query": "Levi's women's classic button-up shirt light blue",
+    "name": "Classic Button-Up Shirt",
+    "gender": "female",
+    "category": "tops"
+  },
+  {
+    "idx": 667,
+    "query": "Mango women's striped long-sleeve t-shirt ecru navy",
+    "name": "Striped Long-Sleeve T-shirt",
+    "gender": "female",
+    "category": "tops"
+  },
+  {
+    "idx": 668,
+    "query": "Zara women's embroidered blouse white blue",
+    "name": "Embroidered Blouse",
+    "gender": "female",
+    "category": "tops"
+  },
+  {
+    "idx": 669,
+    "query": "Zara linen blend puff sleeve blouse sky blue",
+    "name": "Linen Blend Puff Sleeve Blouse",
+    "gender": "female",
+    "category": "tops"
+  },
+  {
+    "idx": 670,
+    "query": "Pull&Bear ribbed knit crop top black",
+    "name": "Ribbed Knit Crop Top",
+    "gender": "female",
+    "category": "tops"
+  },
+  {
+    "idx": 671,
+    "query": "Uniqlo organic cotton crew neck t-shirt white",
+    "name": "Cotton Crew Neck T-Shirt",
+    "gender": "female",
+    "category": "tops"
+  },
+  {
+    "idx": 672,
+    "query": "COS merino wool v-neck sweater navy",
+    "name": "Merino Wool V-Neck Sweater",
+    "gender": "female",
+    "category": "tops"
+  },
+  {
+    "idx": 673,
+    "query": "Massimo Dutti longline cardigan beige",
+    "name": "Longline Cardigan",
+    "gender": "female",
+    "category": "tops"
+  },
+  {
+    "idx": 674,
+    "query": "Mango satin cami tank top emerald green",
+    "name": "Satin Cami Tank Top",
+    "gender": "female",
+    "category": "tops"
+  },
+  {
+    "idx": 675,
+    "query": "ASOS graphic print oversized t-shirt",
+    "name": "Graphic Print T-Shirt",
+    "gender": "female",
+    "category": "tops"
+  },
+  {
+    "idx": 676,
+    "query": "Tommy Hilfiger knit polo collar shirt cream",
+    "name": "Polo Collar Knit Shirt",
+    "gender": "female",
+    "category": "tops"
+  },
+  {
+    "idx": 677,
+    "query": "Nike athletic long sleeve top charcoal grey",
+    "name": "Athletic Long Sleeve Top",
+    "gender": "female",
+    "category": "tops"
+  },
+  {
+    "idx": 678,
+    "query": "H&M silk blend bodysuit blush pink",
+    "name": "Silk Blend Bodysuit",
+    "gender": "female",
+    "category": "tops"
+  },
+  {
+    "idx": 859,
+    "query": "Levi's women's high-waist skinny jeans dark blue",
+    "name": "High-Waist Skinny Jeans",
+    "gender": "female",
+    "category": "pants"
+  },
+  {
+    "idx": 860,
+    "query": "H&M women's flowy wide-leg trousers black",
+    "name": "Flowy Wide-Leg Trousers",
+    "gender": "female",
+    "category": "pants"
+  },
+  {
+    "idx": 861,
+    "query": "Adidas women's athletic high-rise leggings grey",
+    "name": "Athletic High-Rise Leggings",
+    "gender": "female",
+    "category": "pants"
+  },
+  {
+    "idx": 862,
+    "query": "Zara women's pleated culottes navy",
+    "name": "Pleated Culottes",
+    "gender": "female",
+    "category": "pants"
+  },
+  {
+    "idx": 863,
+    "query": "Massimo Dutti women's tailored slim-fit dress pants charcoal",
+    "name": "Tailored Slim-Fit Dress Pants",
+    "gender": "female",
+    "category": "pants"
+  },
+  {
+    "idx": 868,
+    "query": "Zara women's paperbag waist shorts olive green",
+    "name": "Paperbag Waist Shorts",
+    "gender": "female",
+    "category": "pants"
+  },
+  {
+    "idx": 864,
+    "query": "Pull&Bear women's distressed mom jeans light wash",
+    "name": "Distressed Mom Jeans",
+    "gender": "female",
+    "category": "pants"
+  },
+  {
+    "idx": 865,
+    "query": "Mango women's linen blend wide-leg pants beige",
+    "name": "Linen Blend Wide-Leg Pants",
+    "gender": "female",
+    "category": "pants"
+  },
+  {
+    "idx": 866,
+    "query": "Uniqlo women's high-waisted ponte leggings burgundy",
+    "name": "High-Waisted Ponte Leggings",
+    "gender": "female",
+    "category": "pants"
+  },
+  {
+    "idx": 867,
+    "query": "COS women's checked dress pants brown",
+    "name": "Checked Dress Pants",
+    "gender": "female",
+    "category": "pants"
+  },
+  {
+    "idx": 869,
+    "query": "Levi's high waist wide leg jeans light blue",
+    "name": "High-Waist Wide-Leg Jeans",
+    "gender": "female",
+    "category": "pants"
+  },
+  {
+    "idx": 870,
+    "query": "COS flowy wide leg trousers black",
+    "name": "Flowy Wide-Leg Trousers",
+    "gender": "female",
+    "category": "pants"
+  },
+  {
+    "idx": 871,
+    "query": "Nike seamless sport leggings charcoal grey",
+    "name": "Seamless Sport Leggings",
+    "gender": "female",
+    "category": "pants"
+  },
+  {
+    "idx": 872,
+    "query": "Zara pleated linen culottes beige",
+    "name": "Pleated Linen Culottes",
+    "gender": "female",
+    "category": "pants"
+  },
+  {
+    "idx": 873,
+    "query": "Massimo Dutti tailored high waist dress pants navy",
+    "name": "Tailored High-Waist Dress Pants",
+    "gender": "female",
+    "category": "pants"
+  },
+  {
+    "idx": 874,
+    "query": "H&M pinstripe wide leg trousers grey",
+    "name": "Pinstripe Wide-Leg Trousers",
+    "gender": "female",
+    "category": "pants"
+  },
+  {
+    "idx": 875,
+    "query": "Pull&Bear distressed mom jeans medium blue",
+    "name": "Distressed Mom Jeans",
+    "gender": "female",
+    "category": "pants"
+  },
+  {
+    "idx": 876,
+    "query": "Mango faux leather leggings black",
+    "name": "Faux Leather Leggings",
+    "gender": "female",
+    "category": "pants"
+  },
+  {
+    "idx": 877,
+    "query": "Uniqlo checked high waist shorts brown",
+    "name": "Checked High-Waist Shorts",
+    "gender": "female",
+    "category": "pants"
+  },
+  {
+    "idx": 878,
+    "query": "Zara jogger style culottes olive green",
+    "name": "Comfortable Jogger-Style Culottes",
+    "gender": "female",
+    "category": "pants"
+  },
+  {
+    "idx": 1009,
+    "query": "H&M white canvas low-top sneakers women",
+    "name": "Canvas Low-Top Sneakers",
+    "gender": "female",
+    "category": "shoes"
+  },
+  {
+    "idx": 1010,
+    "query": "Zara black block heel ankle boots women",
+    "name": "Block Heel Ankle Boots",
+    "gender": "female",
+    "category": "shoes"
+  },
+  {
+    "idx": 1011,
+    "query": "Mango tan open-toe flat sandals women",
+    "name": "Open-Toe Flat Sandals",
+    "gender": "female",
+    "category": "shoes"
+  },
+  {
+    "idx": 1012,
+    "query": "COS navy pointed toe ballet flats women",
+    "name": "Pointed Toe Ballet Flats",
+    "gender": "female",
+    "category": "shoes"
+  },
+  {
+    "idx": 1013,
+    "query": "ASOS brown heeled mules buckle women",
+    "name": "Heeled Mules with Buckle",
+    "gender": "female",
+    "category": "shoes"
+  },
+  {
+    "idx": 1014,
+    "query": "Ted Baker red patent stiletto heels women",
+    "name": "Classic Stiletto Heels",
+    "gender": "female",
+    "category": "shoes"
+  },
+  {
+    "idx": 1021,
+    "query": "Mango tan strappy flat sandals",
+    "name": "Strappy Flat Sandals",
+    "gender": "female",
+    "category": "shoes"
+  },
+  {
+    "idx": 1028,
+    "query": "Massimo Dutti navy espadrille wedge sandals",
+    "name": "Espadrille Wedge Sandals",
+    "gender": "female",
+    "category": "shoes"
+  },
+  {
+    "idx": 1015,
+    "query": "Pull&Bear black chunky platform sandals women",
+    "name": "Chunky Platform Sandals",
+    "gender": "female",
+    "category": "shoes"
+  },
+  {
+    "idx": 1016,
+    "query": "Massimo Dutti grey suede ankle booties women",
+    "name": "Suede Ankle Booties",
+    "gender": "female",
+    "category": "shoes"
+  },
+  {
+    "idx": 1017,
+    "query": "Nike pink mesh sporty sneakers women",
+    "name": "Sporty Mesh Sneakers",
+    "gender": "female",
+    "category": "shoes"
+  },
+  {
+    "idx": 1018,
+    "query": "Zara silver metallic strappy heels women",
+    "name": "Metallic Strappy Heels",
+    "gender": "female",
+    "category": "shoes"
+  },
+  {
+    "idx": 1019,
+    "query": "Adidas chunky platform sneakers white",
+    "name": "Chunky Platform Sneakers",
+    "gender": "female",
+    "category": "shoes"
+  },
+  {
+    "idx": 1020,
+    "query": "Zara block heel ankle boots black suede",
+    "name": "Block Heel Ankle Boots",
+    "gender": "female",
+    "category": "shoes"
+  },
+  {
+    "idx": 1022,
+    "query": "COS red patent ballet flats pointed toe",
+    "name": "Pointed Toe Ballet Flats",
+    "gender": "female",
+    "category": "shoes"
+  },
+  {
+    "idx": 1023,
+    "query": "ASOS pink satin heeled mule sandals",
+    "name": "Heeled Mule Sandals",
+    "gender": "female",
+    "category": "shoes"
+  },
+  {
+    "idx": 1024,
+    "query": "Nike classic white leather sneakers women",
+    "name": "Classic White Sneakers",
+    "gender": "female",
+    "category": "shoes"
+  },
+  {
+    "idx": 1025,
+    "query": "H&M nude stiletto heel pumps",
+    "name": "Stiletto Heel Pumps",
+    "gender": "female",
+    "category": "shoes"
+  },
+  {
+    "idx": 1026,
+    "query": "Pull&Bear burgundy lug sole chelsea boots",
+    "name": "Lug Sole Chelsea Boots",
+    "gender": "female",
+    "category": "shoes"
+  },
+  {
+    "idx": 1027,
+    "query": "Zara black velvet embellished flat mules",
+    "name": "Embellished Flat Mules",
+    "gender": "female",
+    "category": "shoes"
+  },
+  {
+    "idx": 1128,
+    "query": "Pull&Bear light blue classic denim jacket women",
+    "name": "Classic Denim Jacket",
+    "gender": "female",
+    "category": "jackets"
+  },
+  {
+    "idx": 1129,
+    "query": "Zara black faux leather biker jacket women",
+    "name": "Black Faux Leather Biker Jacket",
+    "gender": "female",
+    "category": "jackets"
+  },
+  {
+    "idx": 1130,
+    "query": "H&M beige lightweight trench coat women",
+    "name": "Beige Lightweight Trench Coat",
+    "gender": "female",
+    "category": "jackets"
+  },
+  {
+    "idx": 1131,
+    "query": "Mango navy blue oversized blazer women",
+    "name": "Navy Blue Oversized Blazer",
+    "gender": "female",
+    "category": "jackets"
+  },
+  {
+    "idx": 1132,
+    "query": "Uniqlo light pink puffer vest women",
+    "name": "Light Pink Puffer Vest",
+    "gender": "female",
+    "category": "jackets"
+  },
+  {
+    "idx": 1133,
+    "query": "ASOS black embroidered kimono jacket women",
+    "name": "Embroidered Kimono Jacket",
+    "gender": "female",
+    "category": "jackets"
+  },
+  {
+    "idx": 1134,
+    "query": "H&M forest green corduroy shacket women",
+    "name": "Green Corduroy Shacket",
+    "gender": "female",
+    "category": "jackets"
+  },
+  {
+    "idx": 1135,
+    "query": "COS white linen blend blazer women",
+    "name": "White Linen Blend Blazer",
+    "gender": "female",
+    "category": "jackets"
+  },
+  {
+    "idx": 1136,
+    "query": "Zara black cropped puffer jacket women",
+    "name": "Short Black Puffer Jacket",
+    "gender": "female",
+    "category": "jackets"
+  },
+  {
+    "idx": 1137,
+    "query": "Massimo Dutti classic tan trench coat women",
+    "name": "Classic Tan Trench Coat",
+    "gender": "female",
+    "category": "jackets"
+  },
+  {
+    "idx": 1138,
+    "query": "Levi's oversized light blue denim jacket women",
+    "name": "Oversized Denim Jacket",
+    "gender": "female",
+    "category": "jackets"
+  },
+  {
+    "idx": 1139,
+    "query": "Zara tailored black blazer women",
+    "name": "Classic Black Blazer",
+    "gender": "female",
+    "category": "jackets"
+  },
+  {
+    "idx": 1140,
+    "query": "H&M burgundy faux leather moto jacket women",
+    "name": "Faux Leather Moto Jacket",
+    "gender": "female",
+    "category": "jackets"
+  },
+  {
+    "idx": 1141,
+    "query": "Massimo Dutti beige double breasted trench coat women",
+    "name": "Beige Double-Breasted Trench Coat",
+    "gender": "female",
+    "category": "jackets"
+  },
+  {
+    "idx": 1142,
+    "query": "Uniqlo olive green quilted puffer jacket women",
+    "name": "Quilted Puffer Jacket",
+    "gender": "female",
+    "category": "jackets"
+  },
+  {
+    "idx": 1143,
+    "query": "Mango floral print kimono jacket navy women",
+    "name": "Floral Print Kimono Jacket",
+    "gender": "female",
+    "category": "jackets"
+  },
+  {
+    "idx": 1144,
+    "query": "COS striped linen blazer women",
+    "name": "Striped Linen Blazer",
+    "gender": "female",
+    "category": "jackets"
+  },
+  {
+    "idx": 1145,
+    "query": "Pull&Bear cream cropped puffer jacket women",
+    "name": "Cropped Puffer Jacket",
+    "gender": "female",
+    "category": "jackets"
+  },
+  {
+    "idx": 1146,
+    "query": "Tommy Hilfiger embroidered denim jacket women",
+    "name": "Embroidered Denim Jacket",
+    "gender": "female",
+    "category": "jackets"
+  },
+  {
+    "idx": 1147,
+    "query": "Ted Baker burgundy genuine leather jacket women",
+    "name": "Burgundy Leather Jacket",
+    "gender": "female",
+    "category": "jackets"
+  },
+  {
+    "idx": 1208,
+    "query": "mango floral a-line midi dress",
+    "name": "Floral A-line Midi Dress",
+    "gender": "female",
+    "category": "dresses"
+  },
+  {
+    "idx": 1209,
+    "query": "pull&bear black puff sleeve mini dress",
+    "name": "Puff Sleeve Mini Dress",
+    "gender": "female",
+    "category": "dresses"
+  },
+  {
+    "idx": 1210,
+    "query": "zara striped knit maxi dress",
+    "name": "Striped Knit Maxi Dress",
+    "gender": "female",
+    "category": "dresses"
+  },
+  {
+    "idx": 1211,
+    "query": "h&m polka dot wrap dress",
+    "name": "Polka Dot Wrap Dress",
+    "gender": "female",
+    "category": "dresses"
+  },
+  {
+    "idx": 1212,
+    "query": "levi's light wash denim mini skirt",
+    "name": "Denim Mini Skirt",
+    "gender": "female",
+    "category": "dresses"
+  },
+  {
+    "idx": 1213,
+    "query": "asos emerald green satin pleated midi skirt",
+    "name": "Satin Pleated Midi Skirt",
+    "gender": "female",
+    "category": "dresses"
+  },
+  {
+    "idx": 1222,
+    "query": "Massimo Dutti pleated midi skirt satin emerald green",
+    "name": "A-Line Pleated Midi Skirt",
+    "gender": "female",
+    "category": "dresses"
+  },
+  {
+    "idx": 1214,
+    "query": "uniqlo beige cotton ribbed midi dress",
+    "name": "Cotton Ribbed Midi Dress",
+    "gender": "female",
+    "category": "dresses"
+  },
+  {
+    "idx": 1215,
+    "query": "zara blue gingham mini dress",
+    "name": "Gingham Mini Dress",
+    "gender": "female",
+    "category": "dresses"
+  },
+  {
+    "idx": 1216,
+    "query": "h&m olive green sleeveless maxi dress",
+    "name": "Sleeveless Maxi Dress",
+    "gender": "female",
+    "category": "dresses"
+  },
+  {
+    "idx": 1217,
+    "query": "pull&bear black faux leather pleated skirt",
+    "name": "Faux Leather Pleated Skirt",
+    "gender": "female",
+    "category": "dresses"
+  },
+  {
+    "idx": 1218,
+    "query": "Zara floral ruffle midi dress navy",
+    "name": "Floral Ruffle Midi Dress",
+    "gender": "female",
+    "category": "dresses"
+  },
+  {
+    "idx": 1219,
+    "query": "H&M ribbed knit mini dress khaki",
+    "name": "Ribbed Knit Mini Dress",
+    "gender": "female",
+    "category": "dresses"
+  },
+  {
+    "idx": 1220,
+    "query": "COS linen blend maxi dress beige",
+    "name": "Linen Blend Maxi Dress",
+    "gender": "female",
+    "category": "dresses"
+  },
+  {
+    "idx": 1221,
+    "query": "Mango polka dot wrap dress black",
+    "name": "Polka Dot Wrap Dress",
+    "gender": "female",
+    "category": "dresses"
+  },
+  {
+    "idx": 1223,
+    "query": "Pull&Bear light wash denim mini skirt",
+    "name": "Denim Mini Skirt",
+    "gender": "female",
+    "category": "dresses"
+  },
+  {
+    "idx": 1224,
+    "query": "Zara checked a-line mini dress grey",
+    "name": "Checked A-Line Mini Dress",
+    "gender": "female",
+    "category": "dresses"
+  },
+  {
+    "idx": 1225,
+    "query": "Uniqlo sleeveless ribbed midi dress terracotta",
+    "name": "Sleeveless Ribbed Midi Dress",
+    "gender": "female",
+    "category": "dresses"
+  },
+  {
+    "idx": 1226,
+    "query": "Tommy Hilfiger striped pleated midi skirt navy white",
+    "name": "Striped Pleated Midi Skirt",
+    "gender": "female",
+    "category": "dresses"
+  },
+  {
+    "idx": 1227,
+    "query": "ASOS bohemian print maxi dress burgundy",
+    "name": "Bohemian Print Maxi Dress",
+    "gender": "female",
+    "category": "dresses"
+  },
+  {
+    "idx": 1308,
+    "query": "Zara faux leather crossbody bag black",
+    "name": "Faux Leather Crossbody Bag",
+    "gender": "female",
+    "category": "accessories"
+  },
+  {
+    "idx": 1309,
+    "query": "H&M delicate gold plated necklace",
+    "name": "Delicate Gold Plated Necklace",
+    "gender": "female",
+    "category": "accessories"
+  },
+  {
+    "idx": 1310,
+    "query": "Pull&Bear classic round sunglasses tortoiseshell",
+    "name": "Classic Round Sunglasses",
+    "gender": "female",
+    "category": "accessories"
+  },
+  {
+    "idx": 1311,
+    "query": "Mango floral printed square scarf",
+    "name": "Printed Square Scarf",
+    "gender": "female",
+    "category": "accessories"
+  },
+  {
+    "idx": 1312,
+    "query": "Massimo Dutti thin patent leather belt red",
+    "name": "Thin Patent Leather Belt",
+    "gender": "female",
+    "category": "accessories"
+  },
+  {
+    "idx": 1313,
+    "query": "ASOS hoop earrings with charm silver",
+    "name": "Hoop Earrings with Charm",
+    "gender": "female",
+    "category": "accessories"
+  },
+  {
+    "idx": 1314,
+    "query": "COS minimalist analog watch rose gold",
+    "name": "Minimalist Analog Watch",
+    "gender": "female",
+    "category": "accessories"
+  },
+  {
+    "idx": 1315,
+    "query": "H&M braided faux leather bracelet brown",
+    "name": "Braided Faux Leather Bracelet",
+    "gender": "female",
+    "category": "accessories"
+  },
+  {
+    "idx": 1316,
+    "query": "Nike sporty baseball cap navy",
+    "name": "Sporty Baseball Cap",
+    "gender": "female",
+    "category": "accessories"
+  },
+  {
+    "idx": 1317,
+    "query": "Uniqlo textured knit beanie beige",
+    "name": "Textured Knit Beanie",
+    "gender": "female",
+    "category": "accessories"
+  },
+  {
+    "idx": 1318,
+    "query": "Massimo Dutti leather crossbody bag camel",
+    "name": "Leather Crossbody Bag",
+    "gender": "female",
+    "category": "accessories"
+  },
+  {
+    "idx": 1319,
+    "query": "ASOS geometric hoop earrings gold",
+    "name": "Geometric Hoop Earrings",
+    "gender": "female",
+    "category": "accessories"
+  },
+  {
+    "idx": 1320,
+    "query": "Ray-Ban aviator sunglasses black",
+    "name": "Classic Aviator Sunglasses",
+    "gender": "female",
+    "category": "accessories"
+  },
+  {
+    "idx": 1321,
+    "query": "Zara textured faux leather belt brown",
+    "name": "Textured Faux Leather Belt",
+    "gender": "female",
+    "category": "accessories"
+  },
+  {
+    "idx": 1322,
+    "query": "Mango printed square silk scarf floral",
+    "name": "Printed Square Silk Scarf",
+    "gender": "female",
+    "category": "accessories"
+  },
+  {
+    "idx": 1323,
+    "query": "H&M layered chain necklace silver",
+    "name": "Layered Chain Necklace",
+    "gender": "female",
+    "category": "accessories"
+  },
+  {
+    "idx": 1324,
+    "query": "Pull&Bear beaded stretch bracelet set turquoise",
+    "name": "Beaded Stretch Bracelet Set",
+    "gender": "female",
+    "category": "accessories"
+  },
+  {
+    "idx": 1325,
+    "query": "Daniel Wellington minimalist watch rose gold",
+    "name": "Minimalist Dial Watch",
+    "gender": "female",
+    "category": "accessories"
+  },
+  {
+    "idx": 1326,
+    "query": "Adidas sporty baseball cap navy women",
+    "name": "Sporty Baseball Cap",
+    "gender": "female",
+    "category": "accessories"
+  },
+  {
+    "idx": 1327,
+    "query": "COS pearl drop earrings",
+    "name": "Pearl Drop Earrings",
+    "gender": "female",
+    "category": "accessories"
+  },
+  {
+    "idx": 0,
+    "query": "Uniqlo navy crew neck t-shirt",
+    "name": "Classic Cotton T-Shirt",
+    "gender": "male",
+    "category": "tops"
+  },
+  {
+    "idx": 1,
+    "query": "Mango men's striped pique polo shirt",
+    "name": "Striped Polo Shirt",
+    "gender": "male",
+    "category": "tops"
+  },
+  {
+    "idx": 2,
+    "query": "H&M men's light blue linen blend shirt",
+    "name": "Light Blue Linen Shirt",
+    "gender": "male",
+    "category": "tops"
+  },
+  {
+    "idx": 3,
+    "query": "Zara men's grey crew neck sweater",
+    "name": "Basic Crew Neck Sweater",
+    "gender": "male",
+    "category": "tops"
+  },
+  {
+    "idx": 4,
+    "query": "Pull&Bear men's black graphic hoodie",
+    "name": "Hooded Sweatshirt",
+    "gender": "male",
+    "category": "tops"
+  },
+  {
+    "idx": 5,
+    "query": "ASOS men's waffle knit henley olive",
+    "name": "Henley Shirt",
+    "gender": "male",
+    "category": "tops"
+  },
+  {
+    "idx": 6,
+    "query": "Massimo Dutti men's white slim fit dress shirt",
+    "name": "White Slim Fit Dress Shirt",
+    "gender": "male",
+    "category": "tops"
+  },
+  {
+    "idx": 8,
+    "query": "Nike men's black athletic tank top",
+    "name": "Athletic Tank Top",
+    "gender": "male",
+    "category": "tops"
+  },
+  {
+    "idx": 7,
+    "query": "H&M men's white graphic print t-shirt",
+    "name": "Graphic Print T-Shirt",
+    "gender": "male",
+    "category": "tops"
+  },
+  {
+    "idx": 9,
+    "query": "Levi's men's charcoal slub long sleeve henley",
+    "name": "Textured Long Sleeve Henley",
+    "gender": "male",
+    "category": "tops"
+  },
+  {
+    "idx": 10,
+    "query": "uniqlo men's navy crew neck t-shirt",
+    "name": "Classic Crew Neck T-Shirt",
+    "gender": "male",
+    "category": "tops"
+  },
+  {
+    "idx": 11,
+    "query": "tommy hilfiger striped piqué polo shirt",
+    "name": "Striped Piqué Polo Shirt",
+    "gender": "male",
+    "category": "tops"
+  },
+  {
+    "idx": 12,
+    "query": "massimo dutti slim fit light blue oxford shirt",
+    "name": "Slim Fit Oxford Dress Shirt",
+    "gender": "male",
+    "category": "tops"
+  },
+  {
+    "idx": 13,
+    "query": "h&m men's textured henley shirt charcoal",
+    "name": "Textured Henley Shirt",
+    "gender": "male",
+    "category": "tops"
+  },
+  {
+    "idx": 14,
+    "query": "cos men's burgundy merino crew neck sweater",
+    "name": "Fine Knit Crew Neck Sweater",
+    "gender": "male",
+    "category": "tops"
+  },
+  {
+    "idx": 15,
+    "query": "pull&bear men's oversized graphic hoodie black",
+    "name": "Oversized Graphic Hoodie",
+    "gender": "male",
+    "category": "tops"
+  },
+  {
+    "idx": 200,
+    "query": "Levi's men's slim fit dark blue jeans",
+    "name": "Men's Slim Fit Jeans",
+    "gender": "male",
+    "category": "pants"
+  },
+  {
+    "idx": 201,
+    "query": "Uniqlo men's regular fit khaki chinos",
+    "name": "Men's Regular Chinos",
+    "gender": "male",
+    "category": "pants"
+  },
+  {
+    "idx": 202,
+    "query": "Adidas men's black tapered fleece joggers",
+    "name": "Men's Tapered Joggers",
+    "gender": "male",
+    "category": "pants"
+  },
+  {
+    "idx": 203,
+    "query": "H&M men's olive green cargo shorts",
+    "name": "Men's Cargo Shorts",
+    "gender": "male",
+    "category": "pants"
+  },
+  {
+    "idx": 204,
+    "query": "Zara men's slim fit charcoal gray dress pants",
+    "name": "Men's Slim Fit Dress Pants",
+    "gender": "male",
+    "category": "pants"
+  },
+  {
+    "idx": 205,
+    "query": "Pull&Bear men's relaxed fit beige cargo pants",
+    "name": "Men's Relaxed Fit Cargo Pants",
+    "gender": "male",
+    "category": "pants"
+  },
+  {
+    "idx": 206,
+    "query": "Tommy Hilfiger men's classic fit navy chinos",
+    "name": "Men's Classic Fit Chinos",
+    "gender": "male",
+    "category": "pants"
+  },
+  {
+    "idx": 207,
+    "query": "Nike men's gray athletic shorts",
+    "name": "Men's Athletic Shorts",
+    "gender": "male",
+    "category": "pants"
+  },
+  {
+    "idx": 208,
+    "query": "COS men's wide leg off-white chinos",
+    "name": "Men's Wide Leg Chinos",
+    "gender": "male",
+    "category": "pants"
+  },
+  {
+    "idx": 209,
+    "query": "Massimo Dutti men's tailored dark brown textured dress pants",
+    "name": "Men's Textured Dress Pants",
+    "gender": "male",
+    "category": "pants"
+  },
+  {
+    "idx": 210,
+    "query": "Levi's slim fit light wash jeans",
+    "name": "Slim Fit Washed Denim Jeans",
+    "gender": "male",
+    "category": "pants"
+  },
+  {
+    "idx": 211,
+    "query": "Uniqlo relaxed fit khaki chinos",
+    "name": "Relaxed Fit Cotton Chinos",
+    "gender": "male",
+    "category": "pants"
+  },
+  {
+    "idx": 212,
+    "query": "Massimo Dutti tailored charcoal dress pants",
+    "name": "Tailored Wool Blend Dress Pants",
+    "gender": "male",
+    "category": "pants"
+  },
+  {
+    "idx": 213,
+    "query": "Nike tech fleece black joggers",
+    "name": "Tech Fleece Jogger Pants",
+    "gender": "male",
+    "category": "pants"
+  },
+  {
+    "idx": 214,
+    "query": "Zara olive green ripstop cargo pants",
+    "name": "Ripstop Cargo Pants",
+    "gender": "male",
+    "category": "pants"
+  },
+  {
+    "idx": 215,
+    "query": "H&M navy linen blend shorts",
+    "name": "Linen Blend Drawstring Shorts",
+    "gender": "male",
+    "category": "pants"
+  },
+  {
+    "idx": 349,
+    "query": "men's navy canvas low-top sneakers",
+    "name": "Canvas Low-Top Sneakers",
+    "gender": "male",
+    "category": "shoes"
+  },
+  {
+    "idx": 350,
+    "query": "men's brown faux suede loafers",
+    "name": "Faux Suede Loafers",
+    "gender": "male",
+    "category": "shoes"
+  },
+  {
+    "idx": 351,
+    "query": "men's black faux leather lace-up ankle boots",
+    "name": "Lace-Up Ankle Boots",
+    "gender": "male",
+    "category": "shoes"
+  },
+  {
+    "idx": 352,
+    "query": "men's dark brown synthetic leather oxford shoes",
+    "name": "Classic Oxford Dress Shoes",
+    "gender": "male",
+    "category": "shoes"
+  },
+  {
+    "idx": 353,
+    "query": "men's gray rubber sporty slide sandals",
+    "name": "Sporty Slide Sandals",
+    "gender": "male",
+    "category": "shoes"
+  },
+  {
+    "idx": 354,
+    "query": "men's white minimalist synthetic leather sneakers",
+    "name": "White Minimalist Sneakers",
+    "gender": "male",
+    "category": "shoes"
+  },
+  {
+    "idx": 355,
+    "query": "men's beige canvas espadrille loafers",
+    "name": "Espadrille Loafers",
+    "gender": "male",
+    "category": "shoes"
+  },
+  {
+    "idx": 356,
+    "query": "men's sand faux suede desert boots",
+    "name": "Desert Boots",
+    "gender": "male",
+    "category": "shoes"
+  },
+  {
+    "idx": 357,
+    "query": "men's burgundy synthetic leather monk strap dress shoes",
+    "name": "Monk Strap Dress Shoes",
+    "gender": "male",
+    "category": "shoes"
+  },
+  {
+    "idx": 358,
+    "query": "men's dark blue faux leather fisherman sandals",
+    "name": "Leather Fisherman Sandals",
+    "gender": "male",
+    "category": "shoes"
+  },
+  {
+    "idx": 359,
+    "query": "Adidas navy canvas low top sneakers men",
+    "name": "Canvas Low-Top Sneakers",
+    "gender": "male",
+    "category": "shoes"
+  },
+  {
+    "idx": 360,
+    "query": "Zara men's brown suede penny loafers",
+    "name": "Suede Penny Loafers",
+    "gender": "male",
+    "category": "shoes"
+  },
+  {
+    "idx": 361,
+    "query": "Massimo Dutti black leather Chelsea boots men",
+    "name": "Leather Chelsea Boots",
+    "gender": "male",
+    "category": "shoes"
+  },
+  {
+    "idx": 362,
+    "query": "Ted Baker men's dark brown derby dress shoes",
+    "name": "Derby Dress Shoes",
+    "gender": "male",
+    "category": "shoes"
+  },
+  {
+    "idx": 363,
+    "query": "H&M men's khaki sporty strap sandals",
+    "name": "Sporty Strap Sandals",
+    "gender": "male",
+    "category": "shoes"
+  },
+  {
+    "idx": 364,
+    "query": "Uniqlo men's white leather sneakers",
+    "name": "White Leather Sneakers",
+    "gender": "male",
+    "category": "shoes"
+  },
+  {
+    "idx": 469,
+    "query": "men's black polyester bomber jacket H&M",
+    "name": "Classic Black Bomber Jacket",
+    "gender": "male",
+    "category": "jackets"
+  },
+  {
+    "idx": 470,
+    "query": "men's navy blue nylon windbreaker Adidas",
+    "name": "Navy Blue Windbreaker",
+    "gender": "male",
+    "category": "jackets"
+  },
+  {
+    "idx": 471,
+    "query": "men's light wash denim jacket Pull&Bear",
+    "name": "Light Wash Denim Jacket",
+    "gender": "male",
+    "category": "jackets"
+  },
+  {
+    "idx": 472,
+    "query": "men's olive green cotton parka jacket Uniqlo",
+    "name": "Olive Green Parka Jacket",
+    "gender": "male",
+    "category": "jackets"
+  },
+  {
+    "idx": 473,
+    "query": "men's brown faux leather jacket Zara",
+    "name": "Brown Faux Leather Jacket",
+    "gender": "male",
+    "category": "jackets"
+  },
+  {
+    "idx": 474,
+    "query": "men's grey checkered blazer H&M",
+    "name": "Grey Checkered Blazer",
+    "gender": "male",
+    "category": "jackets"
+  },
+  {
+    "idx": 475,
+    "query": "men's red lightweight polyester windbreaker Nike",
+    "name": "Red Lightweight Windbreaker",
+    "gender": "male",
+    "category": "jackets"
+  },
+  {
+    "idx": 476,
+    "query": "men's oversized white denim jacket ASOS",
+    "name": "White Denim Jacket",
+    "gender": "male",
+    "category": "jackets"
+  },
+  {
+    "idx": 477,
+    "query": "men's black hooded parka jacket COS",
+    "name": "Black Parka with Hood",
+    "gender": "male",
+    "category": "jackets"
+  },
+  {
+    "idx": 478,
+    "query": "men's navy blue cotton bomber jacket Mango",
+    "name": "Navy Blue Bomber Jacket",
+    "gender": "male",
+    "category": "jackets"
+  },
+  {
+    "idx": 479,
+    "query": "Zara slim fit navy wool blend blazer men",
+    "name": "Classic Slim Fit Blazer",
+    "gender": "male",
+    "category": "jackets"
+  },
+  {
+    "idx": 480,
+    "query": "Levi's men's light wash denim trucker jacket",
+    "name": "Denim Trucker Jacket",
+    "gender": "male",
+    "category": "jackets"
+  },
+  {
+    "idx": 481,
+    "query": "H&M men's black faux leather bomber jacket",
+    "name": "Faux Leather Bomber Jacket",
+    "gender": "male",
+    "category": "jackets"
+  },
+  {
+    "idx": 482,
+    "query": "Adidas men's forest green hooded windbreaker",
+    "name": "Lightweight Hooded Windbreaker",
+    "gender": "male",
+    "category": "jackets"
+  },
+  {
+    "idx": 483,
+    "query": "Uniqlo men's charcoal gray quilted hooded parka",
+    "name": "Quilted Parka with Hood",
+    "gender": "male",
+    "category": "jackets"
+  },
+  {
+    "idx": 484,
+    "query": "Massimo Dutti men's light gray textured slim blazer",
+    "name": "Textured Slim Fit Blazer",
+    "gender": "male",
+    "category": "jackets"
+  },
+  {
+    "idx": 559,
+    "query": "Tommy Hilfiger brown leather bifold wallet",
+    "name": "Leather Bifold Wallet",
+    "gender": "male",
+    "category": "accessories"
+  },
+  {
+    "idx": 560,
+    "query": "Ray-Ban classic black aviator sunglasses",
+    "name": "Classic Aviator Sunglasses",
+    "gender": "male",
+    "category": "accessories"
+  },
+  {
+    "idx": 561,
+    "query": "Uniqlo navy canvas tote bag men's",
+    "name": "Canvas Tote Bag",
+    "gender": "male",
+    "category": "accessories"
+  },
+  {
+    "idx": 562,
+    "query": "H&M men's black braided leather bracelet",
+    "name": "Braided Leather Bracelet",
+    "gender": "male",
+    "category": "accessories"
+  },
+  {
+    "idx": 563,
+    "query": "Adidas men's grey cotton baseball cap",
+    "name": "Classic Baseball Cap",
+    "gender": "male",
+    "category": "accessories"
+  },
+  {
+    "idx": 564,
+    "query": "Zara men's burgundy navy striped knit scarf",
+    "name": "Striped Knit Scarf",
+    "gender": "male",
+    "category": "accessories"
+  },
+  {
+    "idx": 565,
+    "query": "Timex men's minimalist silver stainless steel watch",
+    "name": "Minimalist Stainless Steel Watch",
+    "gender": "male",
+    "category": "accessories"
+  },
+  {
+    "idx": 566,
+    "query": "Pull&Bear men's olive green webbing D-ring belt",
+    "name": "Webbing Belt with D-ring Buckle",
+    "gender": "male",
+    "category": "accessories"
+  },
+  {
+    "idx": 567,
+    "query": "COS men's navy suede card holder",
+    "name": "Suede Card Holder",
+    "gender": "male",
+    "category": "accessories"
+  },
+  {
+    "idx": 568,
+    "query": "Massimo Dutti men's charcoal wool felt fedora hat",
+    "name": "Classic Fedora Hat",
+    "gender": "male",
+    "category": "accessories"
+  },
+  {
+    "idx": 569,
+    "query": "Massimo Dutti brown leather bifold wallet",
+    "name": "Leather Bifold Wallet",
+    "gender": "male",
+    "category": "accessories"
+  },
+  {
+    "idx": 570,
+    "query": "ASOS black metal aviator sunglasses",
+    "name": "Aviator Sunglasses",
+    "gender": "male",
+    "category": "accessories"
+  },
+  {
+    "idx": 571,
+    "query": "Tommy Hilfiger navy woven canvas belt",
+    "name": "Woven Canvas Belt",
+    "gender": "male",
+    "category": "accessories"
+  },
+  {
+    "idx": 572,
+    "query": "COS black minimalist leather bracelet",
+    "name": "Minimalist Leather Bracelet",
+    "gender": "male",
+    "category": "accessories"
+  },
+  {
+    "idx": 573,
+    "query": "Nike khaki cotton classic baseball cap",
+    "name": "Classic Baseball Cap",
+    "gender": "male",
+    "category": "accessories"
+  },
+  {
+    "idx": 574,
+    "query": "H&M charcoal grey textured knit scarf",
+    "name": "Textured Knit Scarf",
+    "gender": "male",
+    "category": "accessories"
+  }
+]

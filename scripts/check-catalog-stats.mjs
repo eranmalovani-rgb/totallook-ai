@@ -1,0 +1,14 @@
+import fs from 'fs';
+const items = JSON.parse(fs.readFileSync('scripts/catalog-data.json', 'utf-8'));
+console.log('Total items:', items.length);
+console.log('With images:', items.filter(i => i.imageUrl).length);
+console.log('Without images:', items.filter(i => !i.imageUrl).length);
+const cats = {};
+items.forEach(i => { cats[i.category] = (cats[i.category] || 0) + 1; });
+console.log('Categories:', JSON.stringify(cats, null, 2));
+const genders = {};
+items.forEach(i => { genders[i.gender] = (genders[i.gender] || 0) + 1; });
+console.log('Genders:', JSON.stringify(genders, null, 2));
+const subCats = {};
+items.forEach(i => { subCats[i.subCategory] = (subCats[i.subCategory] || 0) + 1; });
+console.log('SubCategories:', JSON.stringify(subCats, null, 2));

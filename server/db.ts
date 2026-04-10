@@ -1,6 +1,6 @@
 import { eq, ne, desc, and, inArray, sql, count, isNotNull, isNull, gte, lte } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, reviews, userProfiles, wardrobeItems, feedPosts, likes, saves, follows, notifications, feedComments, fixMyLookResults, pageViews, guestSessions, demoViews, igConnections, storyMentions, styleDiaryEntries, privacyConsents, type InsertReview, type InsertUserProfile, type InsertWardrobeItem, type InsertFeedPost, type InsertLike, type InsertSave, type InsertFollow, type InsertNotification, type InsertFeedComment, type InsertFixMyLookResult, type InsertPageView, type InsertGuestSession, type InsertDemoView, type InsertIgConnection, type InsertStoryMention, type InsertStyleDiaryEntry } from "../drizzle/schema";
+import { InsertUser, users, reviews, userProfiles, wardrobeItems, feedPosts, likes, saves, follows, notifications, feedComments, fixMyLookResults, pageViews, guestSessions, demoViews, igConnections, storyMentions, styleDiaryEntries, privacyConsents, catalogItems, type CatalogItem, type InsertReview, type InsertUserProfile, type InsertWardrobeItem, type InsertFeedPost, type InsertLike, type InsertSave, type InsertFollow, type InsertNotification, type InsertFeedComment, type InsertFixMyLookResult, type InsertPageView, type InsertGuestSession, type InsertDemoView, type InsertIgConnection, type InsertStoryMention, type InsertStyleDiaryEntry } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import { normalizePhone } from '../shared/phone';
 
@@ -2242,4 +2242,214 @@ export async function deleteUserConsents(userId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.delete(privacyConsents).where(eq(privacyConsents.userId, userId));
+}
+
+
+// ---- Catalog Matching Engine ----
+
+export interface CatalogMatchParams {
+  /** Gender of the user: male, female */
+  gender: string;
+  /** Category of the item to upgrade (e.g. "tops", "pants", "shoes") */
+  category: string;
+  /** Sub-category for finer matching (e.g. "polo", "jeans") */
+  subCategory?: string;
+  /** The occasion the user is dressing for */
+  occasion?: string;
+  /** Style preferences (e.g. ["casual", "smart-casual"]) */
+  styles?: string[];
+  /** Color preferences or colors to complement */
+  colors?: string[];
+  /** Budget tier preference: budget, mid, premium, luxury */
+  budgetTier?: string;
+  /** Season: summer, winter, all-season */
+  season?: string;
+  /** IDs to exclude (already recommended) */
+  excludeIds?: number[];
+  /** Max items to return */
+  limit?: number;
+}
+
+/**
+ * Smart catalog matching — finds the best upgrade items from the catalog.
+ * Uses a scoring system based on multiple criteria:
+ * - Category match (required)
+ * - Gender match (required)
+ * - Occasion relevance (high weight)
+ * - Style compatibility (medium weight)
+ * - Color harmony (medium weight)
+ * - Budget tier (low weight)
+ * - Trend relevance (low weight)
+ * - Has image (bonus)
+ */
+export async function findCatalogMatches(params: CatalogMatchParams): Promise<CatalogItem[]> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const {
+    gender,
+    category,
+    subCategory,
+    occasion,
+    styles = [],
+    colors = [],
+    budgetTier,
+    season,
+    excludeIds = [],
+    limit = 5,
+  } = params;
+
+  // Map gender to DB values
+  const genderValue = gender.toLowerCase().includes("female") || gender.toLowerCase().includes("נשי") || gender.toLowerCase().includes("woman") ? "female" : "male";
+
+  // Build conditions
+  const conditions = [
+    eq(catalogItems.gender, genderValue),
+    eq(catalogItems.category, category),
+    eq(catalogItems.isActive, 1),
+  ];
+
+  if (excludeIds.length > 0) {
+    // Can't use NOT IN with empty array
+    conditions.push(sql`${catalogItems.id} NOT IN (${sql.raw(excludeIds.join(","))})`);
+  }
+
+  // Fetch candidates (broader query, then score in JS)
+  const candidates = await db
+    .select()
+    .from(catalogItems)
+    .where(and(...conditions))
+    .limit(100); // Get more candidates for scoring
+
+  if (candidates.length === 0) {
+    // Fallback: try without category filter but with gender
+    const fallback = await db
+      .select()
+      .from(catalogItems)
+      .where(and(
+        eq(catalogItems.gender, genderValue),
+        eq(catalogItems.isActive, 1),
+      ))
+      .limit(50);
+    return scoreCandidates(fallback, params).slice(0, limit);
+  }
+
+  return scoreCandidates(candidates, params).slice(0, limit);
+}
+
+function scoreCandidates(candidates: CatalogItem[], params: CatalogMatchParams): CatalogItem[] {
+  const {
+    subCategory,
+    occasion,
+    styles = [],
+    colors = [],
+    budgetTier,
+    season,
+  } = params;
+
+  const scored = candidates.map(item => {
+    let score = 0;
+
+    // Sub-category match (high)
+    if (subCategory && item.subCategory.toLowerCase() === subCategory.toLowerCase()) {
+      score += 15;
+    }
+
+    // Occasion match (high)
+    if (occasion) {
+      const occasionTags = Array.isArray(item.occasionTags) ? item.occasionTags : [];
+      const occasionLower = occasion.toLowerCase();
+      if (occasionTags.some((t: any) => String(t).toLowerCase().includes(occasionLower))) {
+        score += 20;
+      }
+      // Also check if "daily" or "all" is in tags (always relevant)
+      if (occasionTags.some((t: any) => String(t).toLowerCase() === "daily" || String(t).toLowerCase() === "all")) {
+        score += 5;
+      }
+    }
+
+    // Style match (medium)
+    if (styles.length > 0) {
+      const itemStyles = Array.isArray(item.styleTags) ? item.styleTags.map((s: any) => String(s).toLowerCase()) : [];
+      const matchCount = styles.filter(s => itemStyles.includes(s.toLowerCase())).length;
+      score += matchCount * 8;
+    }
+
+    // Color harmony (medium) — check if item color complements requested colors
+    if (colors.length > 0) {
+      const itemColor = item.color.toLowerCase();
+      const colorGroups = Array.isArray(item.colorHarmonyGroups) ? item.colorHarmonyGroups.map((c: any) => String(c).toLowerCase()) : [];
+      // Direct color match
+      if (colors.some(c => itemColor.includes(c.toLowerCase()) || c.toLowerCase().includes(itemColor))) {
+        score += 10;
+      }
+      // Harmony group match
+      if (colors.some(c => colorGroups.some(g => g.includes(c.toLowerCase())))) {
+        score += 6;
+      }
+    }
+
+    // Budget tier match (low)
+    if (budgetTier && item.budgetTier === budgetTier) {
+      score += 5;
+    }
+
+    // Season match (low)
+    if (season) {
+      if (item.season === "all-season" || item.season === season) {
+        score += 3;
+      }
+    }
+
+    // Trend relevance bonus
+    if (item.trendRelevance === "high") score += 4;
+    else if (item.trendRelevance === "medium") score += 2;
+
+    // Has image bonus (important for UX)
+    if (item.imageUrl) score += 10;
+
+    return { item, score };
+  });
+
+  // Sort by score descending, then randomize ties
+  scored.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    return Math.random() - 0.5; // Random tiebreak for variety
+  });
+
+  return scored.map(s => s.item);
+}
+
+/**
+ * Find catalog items that pair well with a given item category.
+ * Used for outfit suggestions.
+ */
+export async function findPairingItems(
+  gender: string,
+  pairCategories: string[],
+  occasion?: string,
+  styles?: string[],
+  excludeIds?: number[],
+  limit = 2
+): Promise<CatalogItem[]> {
+  const results: CatalogItem[] = [];
+  const usedIds = new Set(excludeIds || []);
+
+  for (const cat of pairCategories) {
+    const items = await findCatalogMatches({
+      gender,
+      category: cat,
+      occasion,
+      styles,
+      excludeIds: [...usedIds],
+      limit: 1,
+    });
+    if (items.length > 0) {
+      results.push(items[0]);
+      usedIds.add(items[0].id);
+    }
+    if (results.length >= limit) break;
+  }
+
+  return results;
 }

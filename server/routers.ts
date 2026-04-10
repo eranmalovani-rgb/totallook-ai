@@ -5,6 +5,7 @@ import { publicProcedure, protectedProcedure, adminProcedure, router } from "./_
 import { z } from "zod";
 import { createReview, getReviewById, getReviewsByUserId, updateReviewAnalysis, updateReviewStatus, getUserProfile, upsertUserProfile, deleteAllReviewsByUserId, deleteUserAccount, addWardrobeItems, getWardrobeByUserId, deleteWardrobeItem, clearWardrobe, updateWardrobeItemImage, publishToFeed, getFeedPosts, deleteFeedPost, likeFeedPost, unlikeFeedPost, saveFeedPost, unsaveFeedPost, getUserFeedInteractions, getSavedPosts, isReviewPublished, followUser, unfollowUser, getFollowingIds, isFollowing, getFollowingFeedPosts, getFollowerCount, getFollowingCount, createNewPostNotifications, getUserNotifications, getUnreadNotificationCount, markNotificationsRead, getAllReviews, getAllUsers, getAdminStats, adminDeleteReview, getReviewCountsByUser, getFeedPostCountsByUser, addFeedComment, getFeedComments, getFeedCommentCount, deleteFeedComment, setWardrobeShareToken, getWardrobeByShareToken, getWardrobeShareToken, createCommentNotification, createReplyNotification, createLikeNotification, saveFixMyLookResult, getFixMyLookResult, getOccasionCounts, createGuestSession, getGuestSessionById, hasGuestUsedAnalysis, updateGuestSessionAnalysis, updateGuestSessionStatus, getGuestAnalytics, getAllGuestSessions, trackDemoView, markDemoSignupClick, getAllDemoViews, trackPageView, getFunnelStats, getDailyFunnelStats, getGuestAnalysisCount, saveGuestProfile, getGuestProfile, saveGuestEmail, getGuestWardrobe, getGuestSessionIdsByFingerprint, addGuestWardrobeItems, deleteGuestWardrobeItem, migrateGuestToUser, deleteReviewById, deleteGuestSession, upsertIgConnection, getIgConnection, disconnectIg, getStoryMentionsByUserId, getStoryMentionStats, getStyleDiary, saveStyleDiaryEntry, findUserByPhoneNumber, getGuestSessionByToken, markGuestSessionViewed, isPhoneTaken, logConsent, getUserConsents, getReviewByShareToken, setReviewShareToken, adminUpdateUser, getUserById } from "./db";
 import { storagePut } from "./storage";
+import { findCatalogMatches, findPairingItems } from "./db";
 import { invokeLLM } from "./_core/llm";
 import { nanoid } from "nanoid";
 import type { FashionAnalysis } from "../shared/fashionTypes";
@@ -2858,6 +2859,306 @@ function sanitizeRecommendationsPayload(
   };
 }
 
+/**
+ * Stage 51: Build recommendations from pre-built catalog instead of LLM.
+ * Maps Stage 1 items to catalog upgrades using smart DB matching.
+ * Returns the same FashionRecommendationsPayload structure as the LLM path.
+ */
+async function buildCatalogRecommendations(
+  core: FashionAnalysisCorePayload,
+  lang: "he" | "en",
+  occasion?: string | null,
+  userGender?: string | null,
+  preferredInfluencers?: string | null,
+  preferredStores?: string | null,
+  budgetLevel?: string | null,
+): Promise<FashionRecommendationsPayload> {
+  const isHebrew = lang === "he";
+  const genderCat: GenderCategory = userGender === "female" ? "female" : userGender === "unisex" ? "unisex" : "male";
+  const dbGender = genderCat === "female" ? "female" : "male";
+  const stageOneItems = core.items || [];
+
+  // Map Stage 1 body zones to catalog categories
+  const bodyZoneToCatalog: Record<string, string> = {
+    upper: "tops", lower: "pants", feet: "shoes", outer: "jackets",
+    full: "dresses", head: "accessories", wrist: "accessories",
+    waist: "accessories", eyes: "accessories", neck: "accessories",
+  };
+  const garmentToCatalog: Record<string, { category: string; subCategory?: string }> = {
+    "t-shirt": { category: "tops", subCategory: "t-shirt" },
+    "tee": { category: "tops", subCategory: "t-shirt" },
+    "polo": { category: "tops", subCategory: "polo" },
+    "dress shirt": { category: "tops", subCategory: "dress shirt" },
+    "button-down": { category: "tops", subCategory: "dress shirt" },
+    "blouse": { category: "tops", subCategory: "blouse" },
+    "sweater": { category: "tops", subCategory: "sweater" },
+    "hoodie": { category: "tops", subCategory: "hoodie" },
+    "henley": { category: "tops", subCategory: "henley" },
+    "tank": { category: "tops", subCategory: "tank top" },
+    "tank top": { category: "tops", subCategory: "tank top" },
+    "crop top": { category: "tops", subCategory: "crop top" },
+    "bodysuit": { category: "tops", subCategory: "bodysuit" },
+    "cardigan": { category: "tops", subCategory: "cardigan" },
+    "jeans": { category: "pants", subCategory: "jeans" },
+    "chinos": { category: "pants", subCategory: "chinos" },
+    "trousers": { category: "pants", subCategory: "dress pants" },
+    "dress pants": { category: "pants", subCategory: "dress pants" },
+    "shorts": { category: "pants", subCategory: "shorts" },
+    "joggers": { category: "pants", subCategory: "joggers" },
+    "cargo pants": { category: "pants", subCategory: "cargo pants" },
+    "leggings": { category: "pants", subCategory: "leggings" },
+    "wide-leg pants": { category: "pants", subCategory: "wide-leg pants" },
+    "culottes": { category: "pants", subCategory: "culottes" },
+    "skirt": { category: "dresses", subCategory: "midi skirt" },
+    "sneakers": { category: "shoes", subCategory: "sneakers" },
+    "loafers": { category: "shoes", subCategory: "loafers" },
+    "boots": { category: "shoes", subCategory: "boots" },
+    "dress shoes": { category: "shoes", subCategory: "dress shoes" },
+    "sandals": { category: "shoes", subCategory: "sandals" },
+    "heels": { category: "shoes", subCategory: "heels" },
+    "flats": { category: "shoes", subCategory: "flats" },
+    "mules": { category: "shoes", subCategory: "mules" },
+    "jacket": { category: "jackets", subCategory: "bomber jacket" },
+    "blazer": { category: "jackets", subCategory: "blazer" },
+    "coat": { category: "jackets", subCategory: "parka" },
+    "bomber": { category: "jackets", subCategory: "bomber jacket" },
+    "denim jacket": { category: "jackets", subCategory: "denim jacket" },
+    "leather jacket": { category: "jackets", subCategory: "leather jacket" },
+    "parka": { category: "jackets", subCategory: "parka" },
+    "windbreaker": { category: "jackets", subCategory: "windbreaker" },
+    "watch": { category: "accessories", subCategory: "watch" },
+    "belt": { category: "accessories", subCategory: "belt" },
+    "sunglasses": { category: "accessories", subCategory: "sunglasses" },
+    "bag": { category: "accessories", subCategory: "bag" },
+    "hat": { category: "accessories", subCategory: "hat" },
+    "scarf": { category: "accessories", subCategory: "scarf" },
+    "necklace": { category: "accessories", subCategory: "necklace" },
+    "bracelet": { category: "accessories", subCategory: "bracelet" },
+    "dress": { category: "dresses", subCategory: "midi dress" },
+  };
+
+  // Map occasion names to catalog occasion tags
+  const occasionMap: Record<string, string> = {
+    "daily": "daily", "יומיומי": "daily", "work": "work", "עבודה": "work",
+    "date": "date", "דייט": "date", "wedding": "wedding", "חתונה": "wedding",
+    "party": "party", "מסיבה": "party", "shabbat": "shabbat", "שבת": "shabbat",
+    "vacation": "vacation", "חופשה": "vacation", "going out": "party", "יציאה": "party",
+    "business": "work", "פגישה עסקית": "work", "formal": "wedding",
+    "אירוע פורמלי": "wedding", "casual": "daily", "קז'ואל": "daily",
+  };
+  const catalogOccasion = occasion ? (occasionMap[occasion.toLowerCase()] || occasion.toLowerCase()) : undefined;
+
+  // Extract styles from Stage 1 items
+  const detectedStyles = new Set<string>();
+  stageOneItems.forEach(item => {
+    if (item.style) detectedStyles.add(item.style.toLowerCase());
+  });
+  const styleArray = detectedStyles.size > 0 ? [...detectedStyles] : undefined;
+
+  // Find upgrade items for each Stage 1 item (max 3)
+  const usedCatalogIds: number[] = [];
+  const improvements: Improvement[] = [];
+  const processedCategories = new Set<string>();
+
+  for (const item of stageOneItems.slice(0, 6)) {
+    if (improvements.length >= 3) break;
+    const garmentType = (item.garmentType || "").toLowerCase();
+    const bodyZone = (item.bodyZone || "").toLowerCase();
+    const mapping = garmentToCatalog[garmentType] || (bodyZone ? { category: bodyZoneToCatalog[bodyZone] || "tops" } : null);
+    if (!mapping) continue;
+    // Skip if we already have an improvement for this category
+    if (processedCategories.has(mapping.category)) continue;
+    processedCategories.add(mapping.category);
+
+    try {
+      const matches = await findCatalogMatches({
+        gender: dbGender,
+        category: mapping.category,
+        subCategory: mapping.subCategory,
+        occasion: catalogOccasion,
+        styles: styleArray,
+        colors: item.preciseColor ? [item.preciseColor] : undefined,
+        budgetTier: budgetLevel || undefined,
+        excludeIds: usedCatalogIds,
+        limit: 1,
+      });
+      if (matches.length === 0) continue;
+      const catalogItem = matches[0];
+      usedCatalogIds.push(catalogItem.id);
+
+      // Build Improvement from catalog item
+      const currentName = item.name || item.garmentType || "current item";
+      const currentColor = item.preciseColor || item.color || "";
+      const currentMaterial = item.material || "";
+      const currentFit = item.fit || "regular";
+
+      const afterName = isHebrew ? (catalogItem.nameHe || catalogItem.name) : catalogItem.name;
+      const afterColor = catalogItem.color || "";
+      const afterMaterial = catalogItem.material || "";
+      const afterFit = catalogItem.fit || "regular";
+      const afterStyle = (catalogItem.styleTags as string[] || [])[0] || "smart-casual";
+
+      // Build marketing-quality title
+      const taglines: Record<string, string[]> = {
+        "smart-casual": isHebrew ? ["קפיצת דרג", "נוכחות חדשה", "שידרוג מדויק"] : ["A Smart Upgrade", "New Presence", "Precise Elevation"],
+        "formal": isHebrew ? ["מראה מלוטש", "אלגנטיות נקיה"] : ["Polished Look", "Clean Elegance"],
+        "minimalist": isHebrew ? ["מינימליזם מדויק", "פשטות שמשנה"] : ["Precise Minimalism", "Simplicity That Transforms"],
+        "casual": isHebrew ? ["נוחות בלי מאמץ", "רעננות איכותית"] : ["Effortless Comfort", "Quality Freshness"],
+        "classic": isHebrew ? ["קלאסיקה נצחית", "הפרט שמשלים"] : ["Timeless Classic", "The Completing Touch"],
+        "streetwear": isHebrew ? ["סטריט חד", "אנרגיה עירונית"] : ["Sharp Street", "Urban Energy"],
+        "sporty": isHebrew ? ["ספורט אלגנטי", "דינמיות מעוצבת"] : ["Elegant Sport", "Designed Dynamism"],
+        "trendy": isHebrew ? ["על הגל", "טרנד מדויק"] : ["On Trend", "Precise Trend"],
+      };
+      const taglineOptions = taglines[afterStyle] || (isHebrew ? ["שדרוג מדויק"] : ["Precise Upgrade"]);
+      const tagline = taglineOptions[Math.floor(Math.random() * taglineOptions.length)];
+      const title = `${afterName} — ${tagline}`;
+
+      // Build description
+      const upgradeReason = isHebrew ? (catalogItem.upgradeReasonHe || catalogItem.upgradeReason || "") : (catalogItem.upgradeReason || "");
+      const description = upgradeReason || (isHebrew
+        ? `${afterName} ב${afterColor} מעניק מרקם ונוכחות חדשה לסילואט.`
+        : `The ${afterColor} ${afterName} adds structure and a fresh presence to the silhouette.`);
+
+      const query = catalogItem.productSearchQuery || `${catalogItem.brand} ${catalogItem.name}`;
+
+      improvements.push({
+        title,
+        description,
+        beforeLabel: currentName,
+        afterLabel: afterName,
+        beforeColor: currentColor,
+        afterColor,
+        beforeGarmentType: item.garmentType || undefined,
+        afterGarmentType: catalogItem.subCategory || catalogItem.category,
+        beforeFit: currentFit,
+        afterFit,
+        beforeMaterial: currentMaterial || undefined,
+        afterMaterial,
+        beforePattern: item.pattern || undefined,
+        afterPattern: catalogItem.pattern || "solid",
+        afterStyle,
+        productSearchQuery: query,
+        shoppingLinks: buildFallbackShoppingLinks(query, preferredStores, genderCat, budgetLevel),
+        upgradeImageUrl: catalogItem.imageUrl || undefined,
+      });
+    } catch (matchErr: any) {
+      console.warn(`[Stage 51] Catalog match failed for ${garmentType}: ${matchErr?.message}`);
+    }
+  }
+
+  // If we got fewer than 2 improvements, add generic ones for missing categories
+  const defaultCategories = dbGender === "female"
+    ? ["tops", "pants", "shoes", "dresses"]
+    : ["tops", "pants", "shoes", "jackets"];
+  for (const cat of defaultCategories) {
+    if (improvements.length >= 3) break;
+    if (processedCategories.has(cat)) continue;
+    try {
+      const matches = await findCatalogMatches({
+        gender: dbGender,
+        category: cat,
+        occasion: catalogOccasion,
+        styles: styleArray,
+        budgetTier: budgetLevel || undefined,
+        excludeIds: usedCatalogIds,
+        limit: 1,
+      });
+      if (matches.length === 0) continue;
+      const catalogItem = matches[0];
+      usedCatalogIds.push(catalogItem.id);
+      const afterName = isHebrew ? (catalogItem.nameHe || catalogItem.name) : catalogItem.name;
+      const afterStyle = (catalogItem.styleTags as string[] || [])[0] || "smart-casual";
+      const upgradeReason = isHebrew ? (catalogItem.upgradeReasonHe || catalogItem.upgradeReason || "") : (catalogItem.upgradeReason || "");
+      const query = catalogItem.productSearchQuery || `${catalogItem.brand} ${catalogItem.name}`;
+      improvements.push({
+        title: `${afterName} — ${isHebrew ? "השלמה מושלמת" : "Perfect Addition"}`,
+        description: upgradeReason || (isHebrew ? `${afterName} ישלים את הלוק בצורה מדויקת.` : `${afterName} will complete the look precisely.`),
+        beforeLabel: isHebrew ? "חסר בלוק" : "Missing from look",
+        afterLabel: afterName,
+        beforeColor: "",
+        afterColor: catalogItem.color || "",
+        afterGarmentType: catalogItem.subCategory || catalogItem.category,
+        afterFit: catalogItem.fit || "regular",
+        afterMaterial: catalogItem.material || "",
+        afterPattern: catalogItem.pattern || "solid",
+        afterStyle,
+        productSearchQuery: query,
+        shoppingLinks: buildFallbackShoppingLinks(query, preferredStores, genderCat, budgetLevel),
+        upgradeImageUrl: catalogItem.imageUrl || undefined,
+      });
+    } catch (e) { /* skip */ }
+  }
+
+  // Build outfit suggestions from catalog pairing items
+  const outfitSuggestions: OutfitSuggestion[] = [];
+  try {
+    // Outfit 1: based on first improvement
+    const firstImp = improvements[0];
+    if (firstImp) {
+      const pairCats = defaultCategories.filter(c => c !== (garmentToCatalog[firstImp.afterGarmentType?.toLowerCase() || ""]?.category || ""));
+      const pairItems = await findPairingItems(dbGender, pairCats.slice(0, 3), catalogOccasion, styleArray, usedCatalogIds, 3);
+      const outfitItems = [firstImp.afterLabel, ...pairItems.map(p => isHebrew ? (p.nameHe || p.name) : p.name)];
+      const outfitColors = [firstImp.afterColor, ...pairItems.map(p => p.color || "")].filter(Boolean);
+      outfitSuggestions.push({
+        name: isHebrew ? "לוק נקי ומאוזן" : "Clean balanced look",
+        occasion: occasion || (isHebrew ? "יומיומי" : "daily"),
+        items: outfitItems,
+        colors: outfitColors.slice(0, 4),
+        lookDescription: isHebrew
+          ? "מראה מלא עם שכבות נקיות, פרופורציות מאוזנות ונעליים מחברות."
+          : "A complete look with clean layering, balanced proportions, and grounding footwear.",
+        inspirationNote: isHebrew
+          ? "בסיס ורסטילי שקל לשדרג עם שכבה עליונה או אקססוריז מדויקים."
+          : "A versatile base you can elevate with a structured outer layer or precise accessories.",
+      });
+    }
+    // Outfit 2: different style direction
+    if (improvements.length >= 2) {
+      const secondImp = improvements[1];
+      const pairCats2 = defaultCategories.filter(c => c !== (garmentToCatalog[secondImp.afterGarmentType?.toLowerCase() || ""]?.category || ""));
+      const pairItems2 = await findPairingItems(dbGender, pairCats2.slice(0, 3), catalogOccasion, styleArray, usedCatalogIds, 3);
+      const outfitItems2 = [secondImp.afterLabel, ...pairItems2.map(p => isHebrew ? (p.nameHe || p.name) : p.name)];
+      const outfitColors2 = [secondImp.afterColor, ...pairItems2.map(p => p.color || "")].filter(Boolean);
+      outfitSuggestions.push({
+        name: isHebrew ? "לוק מודרני משודרג" : "Elevated modern look",
+        occasion: occasion || (isHebrew ? "יציאה" : "going out"),
+        items: outfitItems2,
+        colors: outfitColors2.slice(0, 4),
+        lookDescription: isHebrew
+          ? "שילוב מודרני המדגיש צללית נקייה ואיכות חומרים."
+          : "A modern combination emphasizing clean silhouette and elevated material quality.",
+        inspirationNote: isHebrew
+          ? "מתאים כשצריך לוק שלם ומחודד בלי עומס."
+          : "Useful when you need a complete polished look without visual overload.",
+      });
+    }
+  } catch (outfitErr: any) {
+    console.warn(`[Stage 51] Outfit suggestions from catalog failed: ${outfitErr?.message}`);
+  }
+
+  // Trend sources (static)
+  const trendSources = isHebrew
+    ? [
+        { source: "Vogue", title: "טרנדי לבוש עדכניים", url: "https://www.vogue.com/fashion/trends", relevance: "מגמות לבישות", season: "2025-2026" },
+        { source: "GQ", title: "קווים נקיים ושכבות", url: "https://www.gq.com/style", relevance: "סגנון גברי/יוניסקס", season: "2025-2026" },
+      ]
+    : [
+        { source: "Vogue", title: "Current wearable fashion trends", url: "https://www.vogue.com/fashion/trends", relevance: "wearable direction", season: "2025-2026" },
+        { source: "GQ", title: "Clean silhouettes and layering", url: "https://www.gq.com/style", relevance: "menswear/unisex styling", season: "2025-2026" },
+      ];
+
+  const influencerInsight = buildDetailedInfluencerInsightFromCore(
+    core, lang, userGender, preferredInfluencers,
+  ).insight;
+
+  return {
+    improvements: improvements.map((imp) => normalizeImprovementShoppingLinks(imp, lang, preferredStores, genderCat, budgetLevel)),
+    outfitSuggestions,
+    trendSources,
+    influencerInsight,
+  };
+}
+
 function buildFallbackRecommendationsFromCore(
   core: FashionAnalysisCorePayload,
   lang: "he" | "en",
@@ -3508,86 +3809,24 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
                 console.warn("[Stage 43 BG] Failed to build wardrobe for Stage 2:", tpErr);
               }
 
-              // Stage 50: Trimmed recommendationSeed — removed linkedMentions, personDetection to reduce input tokens
-              const recommendationSeed = {
-                overallScore: bgAnalysisCore.overallScore,
-                summary: bgAnalysisCore.summary,
-                items: (bgAnalysisCore.items || []).slice(0, 8).map((item: any) => ({
-                  title: item.title, garmentType: item.garmentType, preciseColor: item.preciseColor,
-                  material: item.material, fit: item.fit, pattern: item.pattern, style: item.style,
-                  score: item.score, bodyZone: item.bodyZone,
-                })),
-                scores: bgAnalysisCore.scores || [],
-                lookStructure: (bgAnalysisCore as any).lookStructure || null,
-                occasion: bgOccasion || null,
-                influencers: bgInfluencers || null,
-              };
-
+              // ── Stage 51: Catalog-based recommendations (replaces LLM call) ──
               let recommendations: FashionRecommendationsPayload | null = null;
               try {
-                const MAX_RECOMMENDATION_RETRIES = 2;
-                for (let attempt = 0; attempt < MAX_RECOMMENDATION_RETRIES; attempt++) {
-                  try {
-                    if (attempt > 0) {
-                      const delay = 600 * Math.pow(2, attempt - 1);
-                      await new Promise((resolve) => setTimeout(resolve, delay));
-                    }
-                    const recResult = await invokeLLM({
-                      messages: [
-                        {
-                          role: "system",
-                          content: buildRecommendationsPromptFromCore(
-                            bgLang,
-                            bgOccasion,
-                            bgProfileContext?.gender || null,
-                            bgInfluencers || bgProfileContext?.favoriteInfluencers || null,
-                            bgProfileContext?.preferredStores || null,
-                            bgProfileContext?.budgetLevel || null,
-                            bgProfileContext?.country || null,
-                            bgTasteProfileForStage1,
-                            wardrobeForStage2,
-                          ),
-                        },
-                        {
-                          role: "user",
-                          content: bgLang === "he"
-                            ? `להלן פלט שלב 1 (ניתוח+זיהוי). התבסס על הפריטים המזוהים ב-items וודא שההמלצות מתייחסות ספציפית לצבעים, לחומרים, לגזרה ולסגנון של כל פריט. החזר רק השראה+המלצות בפורמט המבוקש:\n${JSON.stringify(recommendationSeed)}`
-                            : `Here is the stage-1 analysis+identification output. Base your recommendations on the SPECIFIC items identified — their colors, materials, fit, and style. Each recommendation must directly address a specific item. Return only inspiration+recommendations in the required schema:\n${JSON.stringify(recommendationSeed)}`,
-                        },
-                      ],
-                      response_format: {
-                        type: "json_schema",
-                        json_schema: {
-                          name: "fashion_recommendations",
-                          strict: true,
-                          schema: recommendationsJsonSchema,
-                        },
-                      },
-                      maxTokens: 2800,
-                    });
-                    recommendations = parseFashionRecommendationsPayload(recResult);
-                    break;
-                  } catch (retryErr: any) {
-                    const msg = retryErr?.message || "";
-                    const statusCode = retryErr?.status || retryErr?.statusCode || 0;
-                    const isRetryable =
-                      msg.includes("exhausted") || msg.includes("412") ||
-                      msg.includes("quota") || msg.includes("rate limit") || msg.includes("rate_limit") ||
-                      msg.includes("429") || msg.includes("503") || msg.includes("500") ||
-                      msg.includes("timeout") || msg.includes("ECONNRESET") || msg.includes("ETIMEDOUT") ||
-                      msg.includes("ECONNREFUSED") || msg.includes("fetch failed") ||
-                      msg.includes("INVALID_LLM_JSON") ||
-                      statusCode === 429 || statusCode === 503 || statusCode === 500 || statusCode === 502;
-                    if (!isRetryable || attempt === MAX_RECOMMENDATION_RETRIES - 1) {
-                      throw retryErr;
-                    }
-                  }
-                }
-              } catch (recErr: any) {
-                console.warn(`[Stage 43 BG] Stage-2 recommendations fallback: ${recErr?.message || recErr}`);
+                recommendations = await buildCatalogRecommendations(
+                  bgAnalysisCore,
+                  bgLang,
+                  bgOccasion,
+                  bgProfileContext?.gender || null,
+                  bgInfluencers || bgProfileContext?.favoriteInfluencers || null,
+                  bgProfileContext?.preferredStores || null,
+                  bgProfileContext?.budgetLevel || null,
+                );
+                console.log(`[Stage 51] Catalog recommendations built: ${recommendations.improvements?.length || 0} improvements, ${recommendations.outfitSuggestions?.length || 0} outfits`);
+              } catch (catalogErr: any) {
+                console.warn(`[Stage 51] Catalog matching failed, using fallback: ${catalogErr?.message}`);
               }
-              const llmEndMs = Date.now() - stage2Start;
-              console.log(`[Stage 50 Timing] Stage 2 LLM completed in ${llmEndMs}ms`);
+              const catalogEndMs = Date.now() - stage2Start;
+              console.log(`[Stage 51 Timing] Catalog matching completed in ${catalogEndMs}ms`);
 
               if (!recommendations) {
                 recommendations = buildFallbackRecommendationsFromCore(
@@ -3756,56 +3995,18 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
                 }
               }
 
-              // ── Stage 45: Generate AI images for improvements (max 2 to save time) ──
-              const sanitizeEndMs = Date.now() - stage2Start;
-              console.log(`[Stage 50 Timing] Stage 2 sanitize+postprocess completed in ${sanitizeEndMs}ms (LLM: ${llmEndMs}ms, post: ${sanitizeEndMs - llmEndMs}ms)`);
-              const aiImageStart = Date.now();
-              try {
-                // Stage 50: Limit to max 3 AI images to save ~6-10s
-                const improvementsForImages = (analysis.improvements || []).slice(0, 2);
-                const improvementImagePromises = improvementsForImages.map(async (imp, idx) => {
-                  try {
-                    const genderLabel = bgUserGender === "female" ? "woman" : "man";
-                    // Build a hyper-specific single-item prompt for the UPGRADED garment only
-                    const garmentType = imp.afterGarmentType || imp.beforeGarmentType || imp.afterLabel || imp.title?.replace(/[^a-zA-Z\s]/g, "").trim() || "garment";
-                    const detailParts = [
-                      imp.afterColor || imp.beforeColor ? `Color: ${imp.afterColor || imp.beforeColor}` : "",
-                      imp.afterMaterial ? `Material: ${imp.afterMaterial}` : "",
-                      imp.afterFit ? `Fit: ${imp.afterFit}` : "",
-                      imp.afterStyle ? `Style: ${imp.afterStyle}` : "",
-                      imp.afterPattern && imp.afterPattern !== "solid" ? `Pattern: ${imp.afterPattern}` : "",
-                      imp.afterNeckline ? `Neckline: ${imp.afterNeckline}` : "",
-                      imp.afterSleeveLength ? `Sleeves: ${imp.afterSleeveLength}` : "",
-                      imp.afterLength ? `Length: ${imp.afterLength}` : "",
-                      imp.afterClosure ? `Closure: ${imp.afterClosure}` : "",
-                      imp.afterTexture ? `Texture: ${imp.afterTexture}` : "",
-                      imp.afterDetails ? `Details: ${imp.afterDetails}` : "",
-                    ].filter(Boolean).join(". ");
-                    const prompt = `A single ${garmentType} for a ${genderLabel}, shown as a product photo on a clean white background. ${detailParts}. Professional e-commerce product photography, studio lighting, the item is laid flat or on an invisible mannequin. Show ONLY this ONE item — no other clothing, no accessories, no person. Sharp focus, high detail, luxury fashion product shot.`;
-                    const { url } = await generateImage({ prompt });
-                    if (url) imp.upgradeImageUrl = url;
-                    console.log(`[Stage 45] Improvement ${idx} AI image generated`);
-                  } catch (imgErr: any) {
-                    console.warn(`[Stage 45] Improvement ${idx} AI image failed: ${imgErr?.message}`);
-                  }
-                });
+              // ── Stage 51: No AI image generation needed — images come from catalog ──
+              const postProcessEndMs = Date.now() - stage2Start;
+              console.log(`[Stage 51 Timing] Stage 2 postprocess completed in ${postProcessEndMs}ms (catalog: ${catalogEndMs}ms, post: ${postProcessEndMs - catalogEndMs}ms)`);
 
-                // Stage 46: Skip outfit AI images to save ~6-8s — outfits show items list instead
-                await Promise.allSettled(improvementImagePromises);
-                console.log(`[Stage 50 Timing] AI image generation (${improvementsForImages.length} images) completed in ${Date.now() - aiImageStart}ms`);
-              } catch (aiImgErr: any) {
-                console.warn(`[Stage 45] AI image generation failed globally: ${aiImgErr?.message}`);
-              }
-
-              // ── Save Stage 2 results to DB (updates the existing row) ──
               // Debug: check if upgradeImageUrl is present before save
               const impWithImages = (analysis.improvements || []).filter((i: any) => i.upgradeImageUrl);
               const outfitWithImages = (analysis.outfitSuggestions || []).filter((o: any) => o.aiImageUrl);
-              console.log(`[Stage 45 DEBUG] Before save: ${impWithImages.length}/${(analysis.improvements || []).length} improvements have upgradeImageUrl, ${outfitWithImages.length}/${(analysis.outfitSuggestions || []).length} outfits have aiImageUrl`);
-              if (impWithImages.length > 0) console.log(`[Stage 45 DEBUG] Sample upgradeImageUrl: ${impWithImages[0].upgradeImageUrl?.substring(0, 80)}...`);
+              console.log(`[Stage 51 DEBUG] Before save: ${impWithImages.length}/${(analysis.improvements || []).length} improvements have upgradeImageUrl, ${outfitWithImages.length}/${(analysis.outfitSuggestions || []).length} outfits have aiImageUrl`);
+              if (impWithImages.length > 0) console.log(`[Stage 51 DEBUG] Sample upgradeImageUrl: ${impWithImages[0].upgradeImageUrl?.substring(0, 80)}...`);
               await updateReviewAnalysis(bgReviewId, analysis.overallScore, analysis);
               const totalMs = Date.now() - stage2Start;
-              console.log(`[Stage 50 Timing] Stage 2 TOTAL: ${totalMs}ms (LLM: ${llmEndMs}ms, post: ${sanitizeEndMs - llmEndMs}ms, images: ${Date.now() - aiImageStart}ms, save: ${totalMs - sanitizeEndMs - (Date.now() - aiImageStart)}ms) reviewId=${bgReviewId}`);
+              console.log(`[Stage 51 Timing] Stage 2 TOTAL: ${totalMs}ms (catalog: ${catalogEndMs}ms, post: ${postProcessEndMs - catalogEndMs}ms, save: ${totalMs - postProcessEndMs}ms) reviewId=${bgReviewId}`);
 
             } catch (bgErr: any) {
               console.error(`[Stage 43 BG] Stage 2 background failed (reviewId=${bgReviewId}):`, bgErr?.message || bgErr);
@@ -5370,86 +5571,25 @@ Return ONLY a JSON object with these exact fields:
             console.warn("[Stage 33] Failed to build guest taste profile for Stage 2:", tpErr);
           }
 
-          // Stage 50: Trimmed recommendationSeed — removed linkedMentions, personDetection to reduce input tokens
-          const recommendationSeed = {
-            overallScore: analysisCore.overallScore,
-            summary: analysisCore.summary,
-            items: (analysisCore.items || []).slice(0, 8).map((item: any) => ({
-              title: item.title, garmentType: item.garmentType, preciseColor: item.preciseColor,
-              material: item.material, fit: item.fit, pattern: item.pattern, style: item.style,
-              score: item.score, bodyZone: item.bodyZone,
-            })),
-            scores: analysisCore.scores || [],
-            lookStructure: (analysisCore as any).lookStructure || null,
-            occasion: input.occasion || null,
-            stylePreference: guestProfile?.stylePreference || null,
-            favoriteInfluencers: guestProfile?.favoriteInfluencers || null,
-          };
+          // ── Stage 51: Catalog-based recommendations for guest (replaces LLM call) ──
           let recommendations: FashionRecommendationsPayload | null = null;
           try {
-            const MAX_RECOMMENDATION_RETRIES = 2;
-            for (let attempt = 0; attempt < MAX_RECOMMENDATION_RETRIES; attempt++) {
-              try {
-                if (attempt > 0) {
-                  const delay = 600 * Math.pow(2, attempt - 1);
-                  await new Promise((resolve) => setTimeout(resolve, delay));
-                }
-                const recResult = await invokeLLM({
-                  messages: [
-                    {
-                      role: "system",
-                      content: buildRecommendationsPromptFromCore(
-                        input.lang,
-                        input.occasion,
-                        profileForPrompt?.gender || null,
-                        guestProfile?.favoriteInfluencers || null,
-                        guestProfile?.preferredStores || null,
-                        guestProfile?.budgetLevel || null,
-                        guestProfile?.country || null,
-                        guestTasteText,
-                        guestWardrobeText,
-                      ),
-                    },
-                    {
-                      role: "user",
-                      content: input.lang === "he"
-                        ? `להלן פלט שלב 1 (ניתוח+זיהוי). התבסס על הפריטים המזוהים ב-items וודא שההמלצות מתייחסות ספציפית לצבעים, לחומרים, לגזרה ולסגנון של כל פריט. החזר רק השראה+המלצות בפורמט המבוקש:\n${JSON.stringify(recommendationSeed)}`
-                        : `Here is the stage-1 analysis+identification output. Base your recommendations on the SPECIFIC items identified — their colors, materials, fit, and style. Each recommendation must directly address a specific item. Return only inspiration+recommendations in the required schema:\n${JSON.stringify(recommendationSeed)}`,
-                    },
-                  ],
-                  response_format: {
-                    type: "json_schema",
-                    json_schema: {
-                      name: "fashion_recommendations",
-                      strict: true,
-                      schema: recommendationsJsonSchema,
-                    },
-                  },
-                             maxTokens: 2800,
-                });
-                recommendations = parseFashionRecommendationsPayload(recResult);
-                break;
-              } catch (retryErr: any) {
-                const msg = retryErr?.message || "";
-                const statusCode = retryErr?.status || retryErr?.statusCode || 0;
-                const isRetryable =
-                  msg.includes("exhausted") || msg.includes("412") ||
-                  msg.includes("quota") || msg.includes("rate limit") || msg.includes("rate_limit") ||
-                  msg.includes("429") || msg.includes("503") || msg.includes("500") ||
-                  msg.includes("timeout") || msg.includes("ECONNRESET") || msg.includes("ETIMEDOUT") ||
-                  msg.includes("ECONNREFUSED") || msg.includes("fetch failed") ||
-                  msg.includes("INVALID_LLM_JSON") ||
-                  statusCode === 429 || statusCode === 503 || statusCode === 500 || statusCode === 502;
-                if (!isRetryable || attempt === MAX_RECOMMENDATION_RETRIES - 1) {
-                  throw retryErr;
-                }
-              }
-            }
-          } catch (recErr: any) {
-            console.warn(`[Guest Stage 2] recommendations fallback: ${recErr?.message || recErr}`);
-           }
-           console.log(`[Timing] Stage 2 completed in ${Date.now() - stage2Start}ms`);
-           if (!recommendations) {
+            recommendations = await buildCatalogRecommendations(
+              analysisCore,
+              input.lang,
+              input.occasion,
+              profileForPrompt?.gender || null,
+              guestProfile?.favoriteInfluencers || null,
+              guestProfile?.preferredStores || null,
+              guestProfile?.budgetLevel || null,
+            );
+            console.log(`[Stage 51 Guest] Catalog recommendations built: ${recommendations.improvements?.length || 0} improvements, ${recommendations.outfitSuggestions?.length || 0} outfits`);
+          } catch (catalogErr: any) {
+            console.warn(`[Stage 51 Guest] Catalog matching failed, using fallback: ${catalogErr?.message}`);
+          }
+          const guestCatalogEndMs = Date.now() - stage2Start;
+          console.log(`[Stage 51 Timing Guest] Catalog matching completed in ${guestCatalogEndMs}ms`);
+          if (!recommendations) {
             recommendations = buildFallbackRecommendationsFromCore(
               analysisCore,
               input.lang,
@@ -5793,44 +5933,9 @@ Return ONLY a JSON object with these exact fields:
 
           // Closet matching already ran above
 
-          // ── Stage 45: Generate AI images for guest improvements + outfits ──
-          const guestAiImageStart = Date.now();
-          try {
-            const guestGenderForImg = guestGenderBg === "female" ? "woman" : "man";
-            // Stage 50: Limit to max 3 AI images to save ~6-10s
-            const guestImpForImages = (analysis.improvements || []).slice(0, 2);
-            const guestImpImagePromises = guestImpForImages.map(async (imp, idx) => {
-              try {
-                // Build a hyper-specific single-item prompt for the UPGRADED garment only
-                const garmentType = imp.afterGarmentType || imp.beforeGarmentType || imp.afterLabel || imp.title?.replace(/[^a-zA-Z\s]/g, "").trim() || "garment";
-                const detailParts = [
-                  imp.afterColor || imp.beforeColor ? `Color: ${imp.afterColor || imp.beforeColor}` : "",
-                  imp.afterMaterial ? `Material: ${imp.afterMaterial}` : "",
-                  imp.afterFit ? `Fit: ${imp.afterFit}` : "",
-                  imp.afterStyle ? `Style: ${imp.afterStyle}` : "",
-                  imp.afterPattern && imp.afterPattern !== "solid" ? `Pattern: ${imp.afterPattern}` : "",
-                  imp.afterNeckline ? `Neckline: ${imp.afterNeckline}` : "",
-                  imp.afterSleeveLength ? `Sleeves: ${imp.afterSleeveLength}` : "",
-                  imp.afterLength ? `Length: ${imp.afterLength}` : "",
-                  imp.afterClosure ? `Closure: ${imp.afterClosure}` : "",
-                  imp.afterTexture ? `Texture: ${imp.afterTexture}` : "",
-                  imp.afterDetails ? `Details: ${imp.afterDetails}` : "",
-                ].filter(Boolean).join(". ");
-                const prompt = `A single ${garmentType} for a ${guestGenderForImg}, shown as a product photo on a clean white background. ${detailParts}. Professional e-commerce product photography, studio lighting, the item is laid flat or on an invisible mannequin. Show ONLY this ONE item — no other clothing, no accessories, no person. Sharp focus, high detail, luxury fashion product shot.`;
-                const { url } = await generateImage({ prompt });
-                if (url) imp.upgradeImageUrl = url;
-                console.log(`[Stage 45 Guest] Improvement ${idx} AI image generated`);
-              } catch (imgErr: any) {
-                console.warn(`[Stage 45 Guest] Improvement ${idx} AI image failed: ${imgErr?.message}`);
-              }
-            });
-
-            // Stage 46: Skip outfit AI images to save ~6-8s — outfits show items list instead
-            await Promise.allSettled(guestImpImagePromises);
-            console.log(`[Stage 50 Timing Guest] AI image generation (${guestImpForImages.length} images) completed in ${Date.now() - guestAiImageStart}ms`);
-          } catch (guestAiImgErr: any) {
-            console.warn(`[Stage 45 Guest] AI image generation failed globally: ${guestAiImgErr?.message}`);
-          }
+          // ── Stage 51: No AI image generation needed for guest — images come from catalog ──
+          const guestImpWithImages = (analysis.improvements || []).filter((i: any) => i.upgradeImageUrl);
+          console.log(`[Stage 51 Guest DEBUG] Before save: ${guestImpWithImages.length}/${(analysis.improvements || []).length} improvements have upgradeImageUrl`);
 
           // Save full analysis (with recommendations) to DB
           await updateGuestSessionAnalysis(input.sessionId, analysis.overallScore, analysis);

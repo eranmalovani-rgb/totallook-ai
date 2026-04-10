@@ -124,7 +124,7 @@ describe("Stage 37: Fallback behavior when Stage 2 fails", () => {
     expect(routersSource).toContain("buildFallbackRecommendationsFromCore");
   });
 
-  it("should log Stage 2 fallback when LLM fails", () => {
-    expect(routersSource).toContain("Stage-2 recommendations fallback");
+  it("should log Stage 2 fallback when catalog matching fails", () => {
+    expect(routersSource).toContain("Catalog matching failed, using fallback");
   });
 });

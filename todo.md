@@ -642,3 +642,35 @@
 - [x] 50d.3: Reduce Stage 2 prompt size — created getDoctrineForStage2Slim (6 sections vs 13, ~10K chars vs ~21K), trimmed metadata instructions (removed 6 field pairs)
 - [ ] 50d.4: Reduce trendSources (kept at 2-3, minimal impact)
 - [ ] 50d.5: Test and verify Stage 2 completes in <35s (needs live test after deploy)
+
+## Stage 51: Pre-built Fashion Catalog (2000 items) — Replace Stage 2 LLM with instant DB matching
+
+### 51a: DB Schema & Migration
+- [x] 51a.1: Design catalog_items table schema with full metadata (28 columns)
+- [x] 51a.2: Generate migration SQL and apply to DB (0032_mighty_mockingbird.sql)
+- [x] 51a.3: Add DB helper functions for catalog queries (findCatalogMatches, findPairingItems in db.ts)
+
+### 51b: Generate 2000 Items Dataset (metadata via LLM + real images from Google → S3)
+- [ ] 51b.1: Generate metadata in small LLM batches (10 items each) — no image generation
+- [ ] 51b.2: For each item, search Google Images for product photo
+- [ ] 51b.3: Download JPEG files and upload to S3 via storagePut
+- [ ] 51b.4: Save S3 URLs in catalog items
+- [ ] 51b.5: Seed all items into DB
+
+### 51c: Catalog Matching Engine
+- [x] 51c.1: Build matchCatalogItems() function — buildCatalogRecommendations() with smart matching by category, style, color harmony, occasion, budget
+- [x] 51c.2: Replace Stage 2 LLM call with catalog matching for improvements (registered flow)
+- [x] 51c.3: Replace Stage 2 outfit suggestions with catalog-based complete looks
+- [x] 51c.4: Keep LLM only for Stage 1 analysis (scoring + feedback)
+- [x] 51c.5: Apply same changes to guest flow
+- [x] 51c.6: Remove AI image generation from Stage 2 (both registered + guest) — images come from catalog
+
+### 51d: Frontend Integration
+- [x] 51d.1: Frontend already displays upgradeImageUrl — catalog images flow through same field
+- [x] 51d.2: Shopping links use catalog productSearchQuery via buildFallbackShoppingLinks
+- [ ] 51d.3: Verify FixMyLook still works with catalog-based improvements
+
+### 51e: Testing & Verification
+- [x] 51e.1: Updated existing tests for catalog flow (timing logs, fallback messages)
+- [ ] 51e.2: Verify Stage 2 completes in <5s (needs live test)
+- [ ] 51e.3: Save checkpoint

@@ -534,3 +534,68 @@ export const privacyConsents = mysqlTable("privacy_consents", {
 });
 export type PrivacyConsent = typeof privacyConsents.$inferSelect;
 export type InsertPrivacyConsent = typeof privacyConsents.$inferInsert;
+
+/**
+ * Pre-built fashion catalog — 2000 archetypal fashion items with full metadata.
+ * Used for instant Stage 2 recommendations instead of slow LLM generation.
+ * Items are matched to user's outfit analysis using smart DB queries.
+ */
+export const catalogItems = mysqlTable("catalogItems", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Item display name (e.g. "Slim Fit Piqué Polo") */
+  name: varchar("name", { length: 256 }).notNull(),
+  /** Hebrew display name */
+  nameHe: varchar("nameHe", { length: 256 }).notNull(),
+  /** Category: tops, pants, shoes, jackets, dresses, skirts, accessories */
+  category: varchar("category", { length: 64 }).notNull(),
+  /** Sub-category for finer matching (e.g. "polo", "chinos", "sneakers", "watch") */
+  subCategory: varchar("subCategory", { length: 64 }).notNull(),
+  /** Gender: male, female, unisex */
+  gender: varchar("gender", { length: 16 }).notNull(),
+  /** Primary color (English lowercase, e.g. "navy blue") */
+  color: varchar("color", { length: 64 }).notNull(),
+  /** Secondary/accent color if applicable */
+  secondaryColor: varchar("secondaryColor", { length: 64 }),
+  /** Material/fabric (e.g. "cotton", "linen", "leather") */
+  material: varchar("material", { length: 64 }).notNull(),
+  /** Fit: slim, regular, oversized, tailored, relaxed */
+  fit: varchar("fit", { length: 32 }).notNull(),
+  /** Pattern: solid, striped, checkered, floral, graphic */
+  pattern: varchar("pattern", { length: 32 }).notNull(),
+  /** Style tags JSON array: ["casual", "smart-casual", "minimalist"] */
+  styleTags: json("styleTags").notNull(),
+  /** Occasion tags JSON array: ["daily", "work", "date", "wedding", "party", "shabbat"] */
+  occasionTags: json("occasionTags").notNull(),
+  /** Season: summer, winter, all-season, spring-fall */
+  season: varchar("season", { length: 32 }).notNull(),
+  /** Brand name */
+  brand: varchar("brand", { length: 128 }).notNull(),
+  /** Store name (ASOS, Zara, H&M, etc.) */
+  store: varchar("store", { length: 128 }).notNull(),
+  /** Price in ILS */
+  priceIls: int("priceIls").notNull(),
+  /** Budget tier: budget, mid, premium, luxury */
+  budgetTier: varchar("budgetTier", { length: 32 }).notNull(),
+  /** Trend relevance: low, medium, high */
+  trendRelevance: varchar("trendRelevance", { length: 16 }).notNull(),
+  /** Pre-built product search query for shopping links */
+  productSearchQuery: varchar("productSearchQuery", { length: 256 }).notNull(),
+  /** AI-generated product image URL (stored in S3) */
+  imageUrl: text("imageUrl"),
+  /** Short description of why this item is a good upgrade */
+  upgradeReason: text("upgradeReason").notNull(),
+  /** Hebrew upgrade reason */
+  upgradeReasonHe: text("upgradeReasonHe").notNull(),
+  /** What this item pairs well with (JSON array of sub-categories) */
+  pairsWith: json("pairsWith").notNull(),
+  /** What this item upgrades FROM (JSON array of sub-categories it replaces) */
+  upgradesFrom: json("upgradesFrom").notNull(),
+  /** Color harmony groups this item belongs to (JSON array) */
+  colorHarmonyGroups: json("colorHarmonyGroups").notNull(),
+  /** Whether this item is active in the catalog */
+  isActive: int("isActive").default(1).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type CatalogItem = typeof catalogItems.$inferSelect;
+export type InsertCatalogItem = typeof catalogItems.$inferInsert;
