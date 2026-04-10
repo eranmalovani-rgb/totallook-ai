@@ -17,7 +17,7 @@ import { generateImage } from "./_core/imageGeneration";
 import type { OutfitSuggestion, Improvement, ShoppingLink } from "../shared/fashionTypes";
 import probeImageSize from "probe-image-size";
 
-const ANALYSIS_CONCURRENCY_LIMIT = 2;
+const ANALYSIS_CONCURRENCY_LIMIT = 3;
 const ANALYSIS_QUEUE_MAX_WAITERS = 40;
 const ANALYSIS_QUEUE_WAIT_TIMEOUT_MS = 12000;
 const MAX_WARDROBE_ITEMS_FOR_ANALYSIS = 60;

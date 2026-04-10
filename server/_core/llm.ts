@@ -124,14 +124,43 @@ async function imageUrlToBase64(url: string): Promise<string> {
   // Already a data URI — pass through
   if (url.startsWith("data:")) return url;
 
-  try {
-    const response = await fetch(url);
-    if (!response.ok) {
-      console.warn(`[LLM] Failed to fetch image for base64 conversion: ${response.status} ${url.substring(0, 100)}`);
-      return url; // fallback to original URL
+  const fetchImageWithRetry = async (imageUrl: string, attempts = 3): Promise<{ buffer: Buffer; contentType: string }> => {
+    let lastErr: Error | null = null;
+    for (let attempt = 0; attempt < attempts; attempt += 1) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 12000);
+      try {
+        const response = await fetch(imageUrl, { signal: controller.signal });
+        clearTimeout(timeoutId);
+        if (!response.ok) {
+          const retryable = [408, 425, 429, 500, 502, 503, 504].includes(response.status);
+          if (!retryable || attempt === attempts - 1) {
+            throw new Error(`image fetch failed (${response.status})`);
+          }
+          await new Promise(resolve => setTimeout(resolve, 500 * Math.pow(2, attempt)));
+          continue;
+        }
+        const contentType = response.headers.get("content-type") || "image/jpeg";
+        const buffer = Buffer.from(await response.arrayBuffer());
+        if (!buffer.byteLength) {
+          throw new Error("image fetch failed (empty body)");
+        }
+        return { buffer, contentType };
+      } catch (err: any) {
+        clearTimeout(timeoutId);
+        const isAbort = err?.name === "AbortError";
+        lastErr = new Error(isAbort ? "image fetch failed (timeout)" : `image fetch failed (${err?.message || "unknown"})`);
+        if (attempt < attempts - 1) {
+          await new Promise(resolve => setTimeout(resolve, 500 * Math.pow(2, attempt)));
+          continue;
+        }
+      }
     }
-    const buffer = Buffer.from(await response.arrayBuffer());
-    const contentType = response.headers.get("content-type") || "image/jpeg";
+    throw lastErr || new Error("image fetch failed");
+  };
+
+  try {
+    const { buffer, contentType } = await fetchImageWithRetry(url, 3);
 
     // Normalize large/unsupported images to keep vision calls fast and stable.
     let normalizedBuffer = buffer;
@@ -169,8 +198,7 @@ async function imageUrlToBase64(url: string): Promise<string> {
     if (message.includes("INVALID_IMAGE_INPUT")) {
       throw err;
     }
-    console.warn(`[LLM] Error converting image to base64: ${message}`);
-    return url; // fallback to original URL
+    throw new Error(`fetch failed during image base64 conversion: ${message}`);
   }
 }
 
@@ -480,65 +508,94 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
   const modelsToTry = provider.fallbackModel
     ? [provider.model, provider.fallbackModel]
     : [provider.model];
+  const RETRYABLE_STATUS = new Set([408, 425, 429, 500, 502, 503, 504]);
+  const PER_MODEL_ATTEMPTS = 3;
   let lastError: Error | null = null;
 
   for (let i = 0; i < modelsToTry.length; i++) {
     const model = modelsToTry[i];
-    payload.model = model;
-    // Token param must match the specific model on each attempt.
-    // GPT-5 models require max_completion_tokens; older models use max_tokens.
-    delete payload.max_tokens;
-    delete payload.max_completion_tokens;
-    if (model.startsWith("gpt-5")) {
-      payload.max_completion_tokens = requestedMaxTokens;
-    } else {
-      payload.max_tokens = requestedMaxTokens;
-    }
+    for (let attempt = 0; attempt < PER_MODEL_ATTEMPTS; attempt += 1) {
+      payload.model = model;
+      // Token param must match the specific model on each attempt.
+      // GPT-5 models require max_completion_tokens; older models use max_tokens.
+      delete payload.max_tokens;
+      delete payload.max_completion_tokens;
+      if (model.startsWith("gpt-5")) {
+        payload.max_completion_tokens = requestedMaxTokens;
+      } else {
+        payload.max_tokens = requestedMaxTokens;
+      }
 
-    const timeoutMs = 40000;
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-    let response: Response;
-    try {
-      response = await fetch(provider.apiUrl, {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          authorization: `Bearer ${provider.apiKey}`,
-        },
-        body: JSON.stringify(payload),
-        signal: controller.signal,
-      });
-    } catch (fetchErr: any) {
+      const timeoutMs = 40000;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+      let response: Response;
+      try {
+        response = await fetch(provider.apiUrl, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            authorization: `Bearer ${provider.apiKey}`,
+          },
+          body: JSON.stringify(payload),
+          signal: controller.signal,
+        });
+      } catch (fetchErr: any) {
+        clearTimeout(timeoutId);
+        const isAbort = fetchErr?.name === "AbortError";
+        const canRetry = attempt < PER_MODEL_ATTEMPTS - 1;
+        if (!canRetry) {
+          lastError = new Error(isAbort
+            ? `LLM invoke timeout after ${Math.round(timeoutMs / 1000)}s`
+            : `LLM invoke failed: ${fetchErr?.message || "unknown error"}`);
+          break;
+        }
+        const delay = 700 * Math.pow(2, attempt);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        continue;
+      }
       clearTimeout(timeoutId);
-      if (fetchErr?.name === "AbortError") {
-        throw new Error(`LLM invoke timeout after ${Math.round(timeoutMs / 1000)}s`);
+
+      if (response.ok) {
+        if (i > 0) {
+          console.warn(`[LLM] Fallback model succeeded: ${model}`);
+        }
+        return (await response.json()) as InvokeResult;
       }
-      throw fetchErr;
-    }
-    clearTimeout(timeoutId);
 
-    if (response.ok) {
-      if (i > 0) {
-        console.warn(`[LLM] Fallback model succeeded: ${model}`);
+      const errorText = await response.text();
+      const shouldFallback =
+        i < modelsToTry.length - 1 && isModelAccessError(response.status, errorText);
+      if (shouldFallback) {
+        console.warn(
+          `[LLM] Model '${model}' unavailable (${response.status}). Retrying with fallback '${modelsToTry[i + 1]}'`
+        );
+        lastError = null;
+        break;
       }
-      return (await response.json()) as InvokeResult;
-    }
 
-    const errorText = await response.text();
-    const shouldFallback =
-      i < modelsToTry.length - 1 && isModelAccessError(response.status, errorText);
+      const canRetryStatus = RETRYABLE_STATUS.has(response.status);
+      const canRetry = canRetryStatus && attempt < PER_MODEL_ATTEMPTS - 1;
+      if (canRetry) {
+        const delay = 700 * Math.pow(2, attempt);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        continue;
+      }
 
-    if (shouldFallback) {
-      console.warn(
-        `[LLM] Model '${model}' unavailable (${response.status}). Retrying with fallback '${modelsToTry[i + 1]}'`
+      lastError = new Error(
+        `LLM invoke failed: ${response.status} ${response.statusText} – ${errorText}`
       );
+      break;
+    }
+
+    if (!lastError) {
+      // Switched to fallback model.
       continue;
     }
-
-    lastError = new Error(
-      `LLM invoke failed: ${response.status} ${response.statusText} – ${errorText}`
-    );
+    if (i < modelsToTry.length - 1) {
+      // Try next model when current model exhausted attempts.
+      continue;
+    }
     break;
   }
 
