@@ -1080,9 +1080,9 @@ function postProcessAnalysis(analysis: FashionAnalysis, profileContext: ProfileC
     if (!cat.explanation) cat.explanation = "";
   }
 
-  // Fix shopping URLs — pass preferredStores for personalized store links
+  // Fix shopping URLs
   const gender: GenderCategory = (profileContext?.gender as GenderCategory) || "male";
-  analysis = fixShoppingLinkUrls(analysis, gender, profileContext?.preferredStores);
+  analysis = fixShoppingLinkUrls(analysis, gender);
 
   return analysis;
 }

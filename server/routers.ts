@@ -216,87 +216,28 @@ function normalizeOutfitSuggestionsForWearableCore(
 }
 
 function detectImprovementCategory(imp: Improvement): ClothingCategory {
-  // Stage 30 GAP 2: Use structured afterGarmentType as PRIMARY source
-  const afterType = (imp.afterGarmentType || "").toLowerCase();
-  if (afterType) {
-    const typeCategory = detectClothingCategory(afterType);
-    if (typeCategory !== "other") return typeCategory;
-  }
-  // Fallback to text-based detection (legacy analyses without structured metadata)
   return detectClothingCategory(`${imp.title || ""} ${imp.beforeLabel || ""} ${imp.afterLabel || ""} ${imp.productSearchQuery || ""}`);
 }
 
-/** Return budget-tier-appropriate fallback stores */
-function getBudgetFallbackStores(encoded: string, query: string, budgetLevel?: string | null): ShoppingLink[] {
-  const tier = (budgetLevel || "").toLowerCase();
-  if (tier === "luxury" || tier === "high") {
-    return [
-      { label: `${query} - Farfetch`, url: `https://www.farfetch.com/shopping/men/search/items.aspx?q=${encoded}`, imageUrl: "" },
-      { label: `${query} - Mr Porter`, url: `https://www.mrporter.com/en-us/mens/search?query=${encoded}`, imageUrl: "" },
-      { label: `${query} - SSENSE`, url: `https://www.ssense.com/en-us/men?q=${encoded}`, imageUrl: "" },
-      { label: `${query} - Mytheresa`, url: `https://www.mytheresa.com/int/en/men/search?term=${encoded}`, imageUrl: "" },
-    ];
-  }
-  if (tier === "budget" || tier === "low") {
-    return [
-      { label: `${query} - H&M`, url: `https://www2.hm.com/en_us/search-results.html?q=${encoded}`, imageUrl: "" },
-      { label: `${query} - Uniqlo`, url: `https://www.uniqlo.com/us/en/search?q=${encoded}`, imageUrl: "" },
-      { label: `${query} - Zara`, url: `https://www.zara.com/us/en/search?searchTerm=${encoded}`, imageUrl: "" },
-      { label: `${query} - SHEIN`, url: `https://us.shein.com/pdsearch/${encoded}/`, imageUrl: "" },
-    ];
-  }
-  // Default: mid-range
-  return [
-    { label: `${query} - ASOS`, url: `https://www.asos.com/search/?q=${encoded}`, imageUrl: "" },
-    { label: `${query} - Zara`, url: `https://www.zara.com/us/en/search?searchTerm=${encoded}`, imageUrl: "" },
-    { label: `${query} - Mango`, url: `https://shop.mango.com/en/search?kw=${encoded}`, imageUrl: "" },
-    { label: `${query} - H&M`, url: `https://www2.hm.com/en_us/search-results.html?q=${encoded}`, imageUrl: "" },
-  ];
-}
-
-function buildFallbackShoppingLinks(
-  query: string,
-  preferredStores?: string | null,
-  gender: GenderCategory = "male",
-  budgetLevel?: string | null,
-): ShoppingLink[] {
+function buildFallbackShoppingLinks(query: string): ShoppingLink[] {
   const encoded = encodeURIComponent(query).replace(/%20/g, "+");
-
-  // If user has preferred stores, use those instead of hardcoded defaults
-  if (preferredStores) {
-    const storeNames = preferredStores.split(",").map(s => s.trim()).filter(Boolean);
-    if (storeNames.length > 0) {
-      const patterns = getStoreSearchPatterns(gender);
-      const links: ShoppingLink[] = [];
-      for (const storeName of storeNames) {
-        const normalized = storeName.toLowerCase();
-        const domain = normalized.includes(".") ? normalized.replace(/^www\./, "") : `${normalized}.com`;
-        const patternFn = patterns[domain]
-          || Object.entries(patterns).find(([k]) => k.includes(normalized) || normalized.includes(k.replace(".com", "")))?.[1];
-        const displayName = storeName.charAt(0).toUpperCase() + storeName.slice(1);
-        if (patternFn) {
-          links.push({ label: `${query} \u2014 ${displayName}`, url: patternFn(encoded), imageUrl: "" });
-        } else {
-          links.push({ label: `${query} \u2014 ${displayName}`, url: `https://www.${domain}/search?q=${encoded}`, imageUrl: "" });
-        }
-        if (links.length >= 4) break;
-      }
-      // If user has fewer than 3 preferred stores, pad with budget-appropriate defaults
-      if (links.length < 3) {
-        const usedDomains = new Set(links.map(l => { try { return new URL(l.url).hostname.replace(/^www\./, ""); } catch { return ""; } }));
-        const defaults = getBudgetFallbackStores(encoded, query, budgetLevel);
-        for (const d of defaults) {
-          const dom = new URL(d.url).hostname.replace(/^www\./, "");
-          if (!usedDomains.has(dom)) { links.push(d); usedDomains.add(dom); }
-          if (links.length >= 3) break;
-        }
-      }
-      return links;
-    }
-  }
-
-  // Default fallback (no preferred stores) — use budget-appropriate stores
-  return getBudgetFallbackStores(encoded, query, budgetLevel);
+  return [
+    {
+      label: `${query} - ASOS`,
+      url: `https://www.asos.com/search/?q=${encoded}`,
+      imageUrl: "",
+    },
+    {
+      label: `${query} - Zara`,
+      url: `https://www.zara.com/us/en/search?searchTerm=${encoded}`,
+      imageUrl: "",
+    },
+    {
+      label: `${query} - H&M`,
+      url: `https://www2.hm.com/en_us/search-results.html?q=${encoded}`,
+      imageUrl: "",
+    },
+  ];
 }
 
 function buildFallbackImprovement(category: Exclude<ClothingCategory, "accessory" | "other">, isHebrew: boolean): Improvement {
@@ -640,39 +581,8 @@ function getStoreSearchPatterns(gender: GenderCategory = "male"): Record<string,
  * improvement's productSearchQuery. Gender-aware patterns route to the
  * correct men/women category.
  */
-export function fixShoppingLinkUrls(analysis: FashionAnalysis, gender: GenderCategory = "male", preferredStores?: string | null): FashionAnalysis {
+export function fixShoppingLinkUrls(analysis: FashionAnalysis, gender: GenderCategory = "male"): FashionAnalysis {
   const patterns = getStoreSearchPatterns(gender);
-
-  // Parse preferred stores into normalized domain list
-  const preferredDomains: string[] = [];
-  if (preferredStores) {
-    for (const store of preferredStores.split(",").map(s => s.trim().toLowerCase()).filter(Boolean)) {
-      // Normalize store name to domain: "Zara" -> "zara.com", "zara.com" -> "zara.com"
-      const domain = store.includes(".") ? store.replace(/^www\./, "") : `${store}.com`;
-      preferredDomains.push(domain);
-    }
-  }
-
-  // Helper: find the best preferred store pattern for a search term
-  function getPreferredStoreUrl(searchTerm: string, currentHostname: string): string | null {
-    if (preferredDomains.length === 0) return null;
-    // If current store is already preferred, keep it
-    if (preferredDomains.some(d => currentHostname.includes(d) || d.includes(currentHostname))) return null;
-    // Find a preferred store that has a known search pattern
-    const encoded = encodeURIComponent(searchTerm).replace(/%20/g, "+");
-    for (const domain of preferredDomains) {
-      // Try exact match first
-      const patternFn = patterns[domain];
-      if (patternFn) return patternFn(encoded);
-      // Try partial match (e.g. "terminalx" matches "terminalx.com")
-      const partialMatch = Object.keys(patterns).find(k => k.includes(domain) || domain.includes(k.replace(".com", "")));
-      if (partialMatch) return patterns[partialMatch](encoded);
-    }
-    // Fallback: build a generic search URL for the first preferred store
-    const encoded2 = encodeURIComponent(searchTerm).replace(/%20/g, "+");
-    const firstDomain = preferredDomains[0];
-    return `https://www.${firstDomain}/search?q=${encoded2}`;
-  }
 
   for (const imp of analysis.improvements) {
     if (!imp.shoppingLinks) continue;
@@ -687,19 +597,10 @@ export function fixShoppingLinkUrls(analysis: FashionAnalysis, gender: GenderCat
         const searchTerm = labelProduct || imp.productSearchQuery || "fashion";
         const encoded = encodeURIComponent(searchTerm).replace(/%20/g, "+");
 
-        // If user has preferred stores, redirect to their preferred store
-        const preferredUrl = getPreferredStoreUrl(searchTerm, hostname);
-        if (preferredUrl) {
-          // Update the label to reflect the new store
-          const newDomain = new URL(preferredUrl).hostname.replace("www.", "");
-          const storeName = newDomain.split(".")[0].charAt(0).toUpperCase() + newDomain.split(".")[0].slice(1);
-          const cleanLabel = labelProduct || link.label;
-          return { ...link, url: preferredUrl, label: `${cleanLabel} \u2014 ${storeName}` };
-        }
-
-        // Check if we already have a valid search URL
+        // Check if we already have a valid search URL (contains a search query param with a value)
         const isAlreadySearchUrl = isValidSearchUrl(parsed, hostname);
         if (isAlreadySearchUrl) {
+          // Already a proper search URL \u2014 keep it but ensure gender is correct
           return { ...link, url: link.url };
         }
 
@@ -716,15 +617,7 @@ export function fixShoppingLinkUrls(analysis: FashionAnalysis, gender: GenderCat
         // If URL parsing fails entirely, try to build from label
         try {
           const labelProduct = link.label.split("\u2014")[0].split("\u2013")[0].split(" - ")[0].trim();
-          const searchTerm = labelProduct || "fashion";
-          // Try preferred store first
-          const preferredUrl = getPreferredStoreUrl(searchTerm, "");
-          if (preferredUrl) {
-            const newDomain = new URL(preferredUrl).hostname.replace("www.", "");
-            const storeName = newDomain.split(".")[0].charAt(0).toUpperCase() + newDomain.split(".")[0].slice(1);
-            return { ...link, url: preferredUrl, label: `${labelProduct} \u2014 ${storeName}` };
-          }
-          const encoded = encodeURIComponent(searchTerm).replace(/%20/g, "+");
+          const encoded = encodeURIComponent(labelProduct || "fashion").replace(/%20/g, "+");
           // Try to extract domain from the broken URL
           const domainMatch = link.url.match(/https?:\/\/(?:www\.)?([^/]+)/);
           if (domainMatch) {
@@ -1357,7 +1250,7 @@ function extractLLMTextContent(content: unknown): string {
     .trim();
 }
 
-type FashionAnalysisCorePayload = Pick<FashionAnalysis, "overallScore" | "summary" | "items" | "scores" | "linkedMentions" | "personDetection" | "lookStructure">;
+type FashionAnalysisCorePayload = Pick<FashionAnalysis, "overallScore" | "summary" | "items" | "scores" | "linkedMentions">;
 type FashionRecommendationsPayload = Pick<FashionAnalysis, "improvements" | "outfitSuggestions" | "trendSources" | "influencerInsight">;
 
 function parseFashionAnalysisPayload(llmResult: any): FashionAnalysis {
@@ -1681,11 +1574,6 @@ function buildRecommendationsPromptFromCore(
   occasion?: string | null,
   userGender?: string | null,
   preferredInfluencers?: string | null,
-  preferredStores?: string | null,
-  budgetLevel?: string | null,
-  country?: string | null,
-  tasteProfileText?: string | null,
-  wardrobeText?: string | null,
 ): string {
   const isHebrew = lang === "he";
   const occasionLine = occasion
@@ -1711,198 +1599,53 @@ function buildRecommendationsPromptFromCore(
       ? "אם אין משפיענים מפורשים, הצע 2-3 משפיענים רלוונטיים."
       : "If no explicit influencers are provided, suggest 2-3 relevant influencers.");
 
-  // Budget context
-  const budgetMap: Record<string, string> = {
-    budget: isHebrew ? "חסכוני (עד 200₪ לפריט)" : "Budget-friendly (under $50/item)",
-    "mid-range": isHebrew ? "ביניים (200-600₪ לפריט)" : "Mid-range ($50-150/item)",
-    premium: isHebrew ? "פרימיום (600-2000₪ לפריט)" : "Premium ($150-500/item)",
-    luxury: isHebrew ? "יוקרה (2000₪+ לפריט)" : "Luxury ($500+/item)",
-  };
-  const budgetLine = budgetLevel
-    ? (isHebrew
-      ? `רמת תקציב: ${budgetMap[budgetLevel] || budgetLevel}. כל ההמלצות, מחירים וחנויות חייבים להתאים לתקציב הזה.`
-      : `Budget level: ${budgetMap[budgetLevel] || budgetLevel}. ALL recommendations, prices, and stores must match this budget.`)
-    : "";
-
-  // Preferred stores context
-  const storesLine = preferredStores
-    ? (isHebrew
-      ? `חנויות מועדפות של המשתמש: ${preferredStores}. השתמש בחנויות האלו בלבד עבור shoppingLinks. כל URL חייב להיות כתובת חיפוש אמיתית בחנות (למשל https://www.zara.com/search?searchTerm=...).`
-      : `User's preferred stores: ${preferredStores}. Use ONLY these stores for shoppingLinks. Every URL must be a real search URL on the store (e.g. https://www.zara.com/search?searchTerm=...).`)
-    : (isHebrew
-      ? "השתמש בחנויות פופולריות ומוכרות בלבד (Zara, H&M, ASOS, Nordstrom, etc). כל URL חייב להיות כתובת חיפוש אמיתית."
-      : "Use popular well-known stores only (Zara, H&M, ASOS, Nordstrom, etc). Every URL must be a real search URL.");
-
-  // Country context for store selection
-  const countryStoreHint = country && !preferredStores
-    ? (isHebrew
-      ? `המשתמש נמצא ב-${country}. העדף חנויות שזמינות באזור הזה.`
-      : `User is located in ${country}. Prefer stores available in this region.`)
-    : "";
-  const doctrineStage2 = getDoctrineForStage2();
-
-  // Stage 33: Taste Profile + Wardrobe injection
-  const tasteProfileSection = tasteProfileText || "";
-  const wardrobeSection = wardrobeText || "";
-
-  // Gender-aware prompt language
-  const genderAddress = isHebrew
-    ? (normalizedGender === "female" ? "את סטייליסטית אופנה מקצועית" : normalizedGender === "male" ? "אתה סטייליסט אופנה מקצועי" : "את/ה סטייליסט/ית אופנה מקצועי/ת")
-    : "a professional fashion stylist";
-  const heVerb = normalizedGender === "female"
-    ? { replace: "החליפי", consider: "שקלי", try: "נסי", choose: "בחרי", add: "הוסיפי" }
-    : { replace: "החלף", consider: "שקול", try: "נסה", choose: "בחר", add: "הוסף" };
-
   return isHebrew
-    ? `${genderAddress}. אתה שלב 2 במערכת דו-שלבית: השראה והמלצות בלבד.
-קלט: JSON מובנה של שלב 1 (ניתוח הלוק).
+    ? `אתה שלב 2 במערכת דו-שלבית: השראה והמלצות בלבד.
+קלט: JSON מובנה של שלב 1 שכבר ביצע ניתוח וזיהוי פריטים.
 משימה: להחזיר רק JSON עם fields:
 - improvements
 - outfitSuggestions
 - trendSources
 - influencerInsight
 
-❗ כלל קריטי: המשתמש הוא ${normalizedGender === "female" ? "אישה" : normalizedGender === "male" ? "גבר" : "לא צוין"}. פנה ${normalizedGender === "female" ? "אליה" : "אליו"} בהתאם! השתמש בפעלים במגדר הנכון: ${heVerb.replace}, ${heVerb.consider}, ${heVerb.try}, ${heVerb.choose}, ${heVerb.add}.
-❗ אסור להשתמש ב"החלף/י" או "שדרג/י" — זה לא מקצועי!
-
-❗ סגנון כתיבה: כתוב כמו סטייליסט אופנה אמיתי, לא כמו רובוט. כל המלצה חייבת לכלול:
-  - הסבר אופנתי למה השינוי הזה משדרג את הלוק (איך הצבע משלים, איך החומר משדרג, איך הגזרה משפרת את הסילואט)
-  - התייחסות לטרנדים עכשוויים (2025-2026)
-  - המלצה על שילוב צבעים (הרמוניה, ניגודיות, קונטרסט)
-  - המלצה על פרופורציות וסילואט (איך הפריט החדש משפיע על המראה הכללי)
-❗ אסור להמליץ תמיד על אותם פריטים: sweater navy, loafers brown, chinos khaki. אלה המלצות "בטוחות" שלא מתייחסות לתמונה. תסתכל על מה שהאדם לובש בפועל ותציע שידרוג מדויק לכל פריט.
-❗ קטגוריות: כל improvement חייב להתייחס לקטגוריה אחת בלבד (חלק עליון, חלק תחתון, נעליים, אקססורי). אסור לערבב קטגוריות! אם הכותרת אומרת "ז'קט", ה-afterGarmentType חייב להיות סוג של ז'קט (לא מכנס!). אם הכותרת אומרת "נעליים", ה-afterGarmentType חייב להיות סוג של נעליים (לא חולצה!).
-❗ נעליים: אסור להמליץ על "sneakers" גנריות. תמיד המלץ על חלופה משודרגת: "minimalist leather sneakers", "suede loafers", "leather derby shoes", "clean white leather sneakers".
-
-${doctrineStage2}
-
 כללים:
 - התבסס על פריטי הלבוש, הציונים והסיכום משלב 1.
 - שמור על התאמה לאירוע ולסגנון המשתמש.
-- חשוב מאוד: כל פריט בקלט כולל מטאדאטה מובנית עשירה (garmentType, preciseColor, material, fit, pattern, texture, neckline, sleeveLength, closure, bodyZone, layerIndex). השתמש בנתונים האלה כדי לייצר שידרוגים מדויקים! לדוגמה: אם הפריט הנוכחי הוא garmentType="t-shirt", preciseColor="white", material="cotton", fit="regular", pattern="solid" — ה-before fields חייבים לשקף בדיוק את המטאדאטה הזו.
-- אם הקלט כולל personDetection (מידע על הגוף: fullBodyVisible, feetVisible, bodyPose) ו-lookStructure (מבנה הלוק: colorHarmony, proportions, silhouetteSummary, hasLayering) — השתמש בהם! לדוגמה: אם proportions="top-heavy" הצע שידרוג שמאזן את הפרופורציות. אם colorHarmony="monochromatic" הצע הכנסת צבע קונטרסטי.
-- improvements: 3 המלצות שדרוג (קטגוריות שונות: חלק עליון, חלק תחתון, נעליים/אקססוריז). כל improvement חייב לכלול בדיוק 3 shoppingLinks (כתובות חיפוש תקינות בחנויות אמיתיות). אל תחזיר פחות מ-3.
-- תיאור (description) של כל improvement — כללים מחייבים:
-  * כתוב כמו סטייליסט אופנה אמיתי שמדבר עם ${normalizedGender === "female" ? "לקוחה" : "לקוח"} שלו. אסור מלל גנרי כמו "זה ישדרג את הלוק"!
-  * חובה: הסבר למה השינוי הזה משדרג (איך הצבע החדש משלים את הפלטה, איך החומר מרגיש אחרת, איך הגזרה משפרת את הסילואט)
-  * חובה: התייחסות לטרנד עכשווי (2025-2026) או לעיקרון אופנתי
-  * חובה: המלצה על שילוב צבעים ספציפית (לא סתם "צבעים משלימים" — תגיד אילו צבעים בדיוק!)
-  * אורך: 2-4 משפטים של תוכן אמיתי. לא משפט אחד גנרי!
-  * דוגמה מושלמת: "הפולו פיקה בכחול כהה מביא מרקם מובנה יותר מהטישרט הרגיל, והצווארון הקטן מוסיף נופך של קלאסיקה. הכחול הכהה משלים את הבז' של הצ'ינוס ויוצר הרמוניה נעימה — טרנד ה-quiet luxury של 2025."
-  * דוגמה פסולה: "זה ישדרג את הלוק שלך" / "החלף את החולצה למשהו יותר טוב" / "שדרוג מומלץ"
-- כותרת (title) של כל improvement: כללים מחייבים:
-  * מקסימום 5-7 מילים! קצר, חד, שיווקי. זה PUNCH LINE, לא משפט.
-  * חייבת להיות בעברית (שפת הממשק). אסור באנגלית!
-  * אסור גנרי: "שדרוג חלק עליון", "שידרוג נעליים" = פסול!
-  * אסור פורמט "מ-X ל-Y": "מטישרט לפולו" = פסול! כתוב "פולו פיקה במקום טישרט" או "פולו פיקה — קפיצת דרג".
-  * אסור מילים גנריות בכותרת: "premium", "matching", "upgraded", "quality" = פסול!
-  * חייבת לשקף את המהות — מה ה-before ומה ה-after.
-  * דוגמאות מושלמות: "פולו פיקה במקום טישרט", "לואפרס עור במקום סניקרס", "שעון מינימליסטי — הפרט שמשלים", "ג'ינס סלים במקום ג'וגר", "בלייזר פשתן — קפיצת דרג", "צ'ינוס כותנה — בסיס חדש", "סניקרס עור — נוכחות ברגל"
-  * דוגמאות פסולות: "שדרוג חלק עליון", "שיפור הנעליים", "Upgrade your top", "From Basic Cotton Tee to Piqué Polo", "מטישרט לפולו — קפיצה בסטייל", "שדרוג premium"
-- חובה מוחלטת — מטאדטה מלאה לכל improvement: כל השדות הבאים חייבים להיות באנגלית lowercase. אסור להשאיר ריק!
-  * CRITICAL: afterColor, afterMaterial, afterGarmentType MUST be SPECIFIC REAL VALUES. FORBIDDEN placeholder values: "matching", "premium", "upgraded", "similar", "complementary", "better", "improved", "quality", "stylish", "elegant", "luxury", "appropriate", "suitable", "recommended". These are NOT colors, NOT materials, NOT garment types!
-  * beforeColor / afterColor: צבע מדויק (לדוגמה: "white", "navy blue", "charcoal gray"). afterColor חייב להיות צבע אמיתי! "matching" = פסול!
-  * beforeGarmentType / afterGarmentType: סוג הפריט (לדוגמה: "t-shirt", "dress shirt", "polo", "jeans", "chinos", "sneakers", "blazer", "hoodie"). afterGarmentType חייב להיות סוג בגד ספציפי! "premium top" = פסול! כתוב "polo" או "dress shirt" במקום.
-  * beforeFit / afterFit: גיזרה (לדוגמה: "slim", "regular", "oversized", "tailored", "boxy")
-  * beforeSleeveLength / afterSleeveLength: אורך שרוול (לדוגמה: "short", "long", "3/4", "sleeveless", "n/a")
-  * beforeNeckline / afterNeckline: צווארון/מחשוף (לדוגמה: "crew neck", "v-neck", "polo collar", "button-down collar", "turtleneck", "n/a")
-  * beforeMaterial / afterMaterial: חומר/בד (לדוגמה: "cotton", "linen", "denim", "leather", "silk", "wool", "knit"). afterMaterial חייב להיות חומר אמיתי! "premium" = פסול! כתוב "piqué cotton" או "merino wool" במקום.
-  * beforePattern / afterPattern: דוגמה/הדפס (לדוגמה: "solid", "striped", "checkered", "floral", "graphic print")
-  * beforeStyle / afterStyle: סגנון (לדוגמה: "casual", "formal", "smart-casual", "sporty", "streetwear", "minimalist")
-  * beforeLength / afterLength: אורך הפריט (לדוגמה: "cropped", "regular", "long", "midi")
-  * beforeClosure / afterClosure: סוג סגירה (לדוגמה: "pullover", "buttons", "zipper", "n/a")
-  * beforeTexture / afterTexture: מרקם (לדוגמה: "smooth", "ribbed", "knitted", "matte", "shiny", "distressed")
-  * beforeDetails / afterDetails: פרטים מיוחדים (לדוגמה: "visible logo", "chest pocket", "embroidery", "contrast stitching", "none")
-- חובה: כל 3 ה-shoppingLinks בכל improvement חייבים להיות מ-3 חנויות שונות! לדוגמה: ASOS, Zara, H&M — לא 3 לינקים לאותה חנות.
-- פורמט label חובה: "תיאור מוצר ספציפי — שם חנות". לדוגמה: "חולצת פולו כחולה slim fit — ASOS", "מכנסי צ'ינו בז' — Zara". אסור label שמכיל רק שם חנות!
-- productSearchQuery חייב להיות באנגלית וספציפי: קטגוריה + צבע + סגנון + מגדר. דוגמה: "men's navy slim fit chino pants". ה-productSearchQuery חייב להתאים לקטגוריית ה-improvement (אם ה-title הוא שדרוג חלק עליון, ה-query חייב להיות של חולצה/חלק עליון).
-- outfitSuggestions: 2 לוקים שלמים (חלק עליון+תחתון+נעליים). כל לוק עם שם מותג+צבע+מחיר.
-- trendSources: 2-3 מקורות רלוונטיים.
-- influencerInsight: 2-3 משפטים עם 2 שמות משפיענים.
-- כל הטקסטים בעברית. JSON בלבד.
-
-${tasteProfileSection}
-
-${wardrobeSection}
+- improvements חייב לכלול המלצות לביגוד לביש (לא רק אביזרים).
+- החזר בין 4 ל-5 improvements.
+- לכל improvement חייבים להיות לפחות 3 shoppingLinks.
+- shoppingLinks חייבים להיות כתובות חיפוש תקינות (לא /product/ ישיר).
+- trendSources חייב להיות רלוונטי לפריטים שזוהו.
+- influencerInsight חייב להיות מפורט (לפחות 4-6 משפטים), ספציפי ללוק של המשתמש, ולהסביר: מה בלוק הנוכחי מזכיר את המשפיענים ומה חסר כדי להתיישר לסגנון שלהם.
+- influencerInsight חייב להזכיר לפחות 2 שמות משפיענים רלוונטיים (שמות באנגלית, הסבר בעברית).
+- כל הטקסטים בתשובה חייבים להיות בעברית תקינה בלבד.
+- החזר JSON בלבד, ללא markdown.
 
 ${genderLine}
-${budgetLine}
-${storesLine}
-${countryStoreHint}
 ${preferredInfluencersLine}
 ${occasionLine}`
-    : `You are ${genderAddress}. You are Stage 2 of a split pipeline: inspiration and recommendations only.
-Input: structured Stage 1 JSON (outfit analysis).
+    : `You are Stage 2 of a split pipeline: inspiration and recommendations only.
+Input: structured Stage 1 JSON that already completed analysis and item identification.
 Task: return JSON with fields only:
 - improvements
 - outfitSuggestions
 - trendSources
 - influencerInsight
 
-❗ CRITICAL: The user is ${normalizedGender === "female" ? "a woman" : normalizedGender === "male" ? "a man" : "gender unspecified"}. Address ${normalizedGender === "female" ? "her" : "him"} accordingly in all text!
-
-❗ WRITING STYLE: Write like a REAL fashion stylist, not a robot. Every recommendation MUST include:
-  - A fashion explanation of WHY this change upgrades the look (how the color complements, how the material elevates, how the fit improves the silhouette)
-  - References to current trends (2025-2026)
-  - Color theory advice (harmony, contrast, complementary tones)
-  - Proportion and silhouette guidance (how the new piece affects the overall look)
-❗ FORBIDDEN PATTERN: Do NOT always recommend the same items (e.g., navy sweater, brown loafers, khaki chinos). These are "safe" defaults. Instead, analyze what the person is ACTUALLY wearing and suggest a precise, targeted upgrade for EACH specific item.
-❗ CATEGORIES: Each improvement MUST address ONE category only (top, bottom, shoes, accessory). Do NOT mix categories! If the title says "jacket", the afterGarmentType MUST be a type of jacket (not pants!). If the title says "shoes", the afterGarmentType MUST be a type of shoes (not a shirt!).
-❗ SHOES: NEVER recommend generic "sneakers". Always suggest an upgraded alternative: "minimalist leather sneakers", "suede loafers", "leather derby shoes", "clean white leather sneakers".
-
-${doctrineStage2}
-
 Rules:
 - Base recommendations on stage-1 items, scores, and summary.
 - Keep suggestions occasion-aware and style-consistent.
-- CRITICAL: Each item in the input includes RICH STRUCTURED METADATA (garmentType, preciseColor, material, fit, pattern, texture, neckline, sleeveLength, closure, bodyZone, layerIndex). USE these fields to generate precise improvements! For example: if the current item has garmentType="t-shirt", preciseColor="white", material="cotton", fit="regular", pattern="solid" — the before fields MUST exactly mirror this metadata.
-- If the input includes personDetection (body info: fullBodyVisible, feetVisible, bodyPose) and lookStructure (look composition: colorHarmony, proportions, silhouetteSummary, hasLayering) — USE THEM! For example: if proportions="top-heavy", suggest an upgrade that balances proportions. If colorHarmony="monochromatic", suggest introducing a contrasting accent color.
-- improvements: 3 upgrade suggestions (different categories: top, bottom, shoes/accessories). Each improvement MUST include exactly 3 shoppingLinks (valid search URLs to real stores). Never return fewer than 3.
-- DESCRIPTION WRITING RULES — MANDATORY:
-  * Write like a real fashion stylist talking to ${normalizedGender === "female" ? "her" : "his"} client. FORBIDDEN generic text like "this will upgrade your look"!
-  * MUST explain WHY this change upgrades the look (how the new color complements the palette, how the material feels different, how the fit improves the silhouette)
-  * MUST reference a current trend (2025-2026) or a fashion principle
-  * MUST give specific color pairing advice (not just "complementary colors" — name the exact colors!)
-  * Length: 2-4 sentences of real content. Not one generic sentence!
-  * PERFECT example: "The piqué polo in navy brings a more structured texture than the regular tee, and the small collar adds a classic touch. The navy pairs beautifully with the beige chinos, creating a warm-cool harmony — a hallmark of the 2025 quiet luxury trend."
-  * REJECTED examples: "This will upgrade your look" / "Replace the shirt with something better" / "Recommended upgrade"
-- TITLE WRITING RULES — MANDATORY:
-  * Maximum 5-7 words! Short, sharp, punchy. This is a PUNCH LINE, not a sentence.
-  * MUST be in English (the interface language). No other languages!
-  * FORBIDDEN generic titles: "Upgrade top", "Improve shoes", "Better pants" = REJECTED!
-  * MUST capture the before→after essence in minimal words.
-  * PERFECT examples: "Piqué Polo Over Basic Tee", "Leather Loafers, Not Sneakers", "Minimalist Watch — Finishing Touch", "Slim Chinos Over Joggers", "Linen Blazer — Level Up"
-  * REJECTED examples: "Upgrade your top", "Improve shoes", "From Basic Cotton Tee to Piqué Polo — A Smart Casual Leap" (too long!)
-- ABSOLUTE REQUIREMENT — Complete garment metadata for every improvement: ALL fields below MUST be in English lowercase. NEVER leave empty!
-  * CRITICAL: afterColor, afterMaterial, afterGarmentType MUST be SPECIFIC REAL VALUES. FORBIDDEN placeholder values: "matching", "premium", "upgraded", "similar", "complementary", "better", "improved", "quality", "stylish", "elegant", "luxury", "appropriate", "suitable", "recommended". These are NOT colors, NOT materials, NOT garment types!
-  * beforeColor / afterColor: exact color (e.g. "white", "navy blue", "charcoal gray"). afterColor MUST be a REAL color! "matching" = REJECTED! Write "navy blue" or "white" instead.
-  * beforeGarmentType / afterGarmentType: specific garment type (e.g. "t-shirt", "dress shirt", "polo", "jeans", "chinos", "sneakers", "blazer", "hoodie"). afterGarmentType MUST be a SPECIFIC garment! "premium top" = REJECTED! Write "polo" or "dress shirt" instead.
-  * beforeFit / afterFit: fit/silhouette (e.g. "slim", "regular", "oversized", "tailored", "boxy")
-  * beforeSleeveLength / afterSleeveLength: sleeve length (e.g. "short", "long", "3/4", "sleeveless", "n/a" for non-tops)
-  * beforeNeckline / afterNeckline: neckline/collar (e.g. "crew neck", "v-neck", "polo collar", "button-down collar", "turtleneck", "n/a")
-  * beforeMaterial / afterMaterial: fabric/material (e.g. "cotton", "linen", "denim", "leather", "silk", "wool", "knit"). afterMaterial MUST be a REAL material! "premium" = REJECTED! Write "piqué cotton" or "merino wool" instead.
-  * beforePattern / afterPattern: pattern (e.g. "solid", "striped", "checkered", "floral", "graphic print")
-  * beforeStyle / afterStyle: style category (e.g. "casual", "formal", "smart-casual", "sporty", "streetwear", "minimalist")
-  * beforeLength / afterLength: garment length (e.g. "cropped", "regular", "long", "midi")
-  * beforeClosure / afterClosure: closure type (e.g. "pullover", "buttons", "zipper", "n/a")
-  * beforeTexture / afterTexture: surface texture (e.g. "smooth", "ribbed", "knitted", "matte", "shiny", "distressed")
-  * beforeDetails / afterDetails: distinctive details (e.g. "visible logo", "chest pocket", "embroidery", "contrast stitching", "none")
-- MANDATORY: Each improvement's 3 shoppingLinks MUST be from 3 DIFFERENT stores! Example: ASOS, Zara, H&M — never 3 links to the same store.
-- MANDATORY label format: "specific product description — store name". Example: "Navy slim fit polo shirt — ASOS", "Beige chino pants — Zara". NEVER use just the store name as label!
-- productSearchQuery MUST be specific English: category + color + style + gender. Example: "men's navy slim fit chino pants". The productSearchQuery MUST match the improvement category (if title is about tops, query must be for a top/shirt/blouse).
-- outfitSuggestions: 2 complete looks (top+bottom+shoes). Each item with brand+color+price.
-- trendSources: 2-3 relevant sources.
-- influencerInsight: 2-3 sentences with 2 influencer names.
-- All text in English. JSON only.
-
-${tasteProfileSection}
-
-${wardrobeSection}
+- improvements must include wearable clothing upgrades (not accessories-only).
+- Return 4-5 improvements.
+- Every improvement must include at least 3 shoppingLinks.
+- shoppingLinks must be valid search URLs (never direct /product/ URLs).
+- trendSources must be relevant to identified items.
+- influencerInsight should be detailed (at least 4-6 sentences), specific to the user's actual outfit, and explain both alignment and gaps versus the influencer style.
+- influencerInsight must include at least 2 relevant influencer names.
+- All user-facing text must be in English only.
+- Return JSON only, no markdown.
 
 ${genderLine}
-${budgetLine}
-${storesLine}
-${countryStoreHint}
 ${preferredInfluencersLine}
 ${occasionLine}`;
 }
@@ -2030,9 +1773,6 @@ function sanitizeOutfitSuggestionsForProfileGender(
 function normalizeImprovementShoppingLinks(
   imp: Improvement,
   lang: "he" | "en",
-  preferredStores?: string | null,
-  gender: GenderCategory = "male",
-  budgetLevel?: string | null,
 ): Improvement {
   const isHebrew = lang === "he";
   const fallbackQuery =
@@ -2053,46 +1793,13 @@ function normalizeImprovementShoppingLinks(
     });
   }
   if (deduped.length < 3) {
-    const fallbackLinks = buildFallbackShoppingLinks(fallbackQuery, preferredStores, gender, budgetLevel);
+    const fallbackLinks = buildFallbackShoppingLinks(fallbackQuery);
     for (const fb of fallbackLinks) {
       const key = (fb.url || "").trim().toLowerCase();
       if (!key || seen.has(key)) continue;
       seen.add(key);
       deduped.push(fb);
       if (deduped.length >= 3) break;
-    }
-  }
-
-  // Enforce store diversity: ensure links come from different stores
-  const finalLinks = deduped.slice(0, 3);
-  const extractDomain = (url: string) => {
-    try { return new URL(url).hostname.replace(/^www\./, "").split(".")[0].toLowerCase(); } catch { return ""; }
-  };
-  const domains = finalLinks.map((l) => extractDomain(l.url)).filter(Boolean);
-  const uniqueDomains = new Set(domains);
-  console.log(`[StoreDiversity] imp="${(imp.title || "").substring(0, 40)}" domains=[${domains.join(",")}] unique=${uniqueDomains.size}/${finalLinks.length} labels=[${finalLinks.map(l => (l.label || "").substring(0, 30)).join(", ")}]${preferredStores ? ` userStores=[${preferredStores}]` : ""}`);
-  
-  if (uniqueDomains.size < finalLinks.length && finalLinks.length >= 2) {
-    // Some or all links go to the same store — replace duplicates with user's preferred stores or defaults
-    const diverseLinks = buildFallbackShoppingLinks(fallbackQuery, preferredStores, gender, budgetLevel);
-    const usedDomains = new Set<string>();
-    // First pass: keep one link per unique domain
-    for (let i = 0; i < finalLinks.length; i++) {
-      const domain = extractDomain(finalLinks[i].url);
-      if (domain && usedDomains.has(domain)) {
-        // Replace with a fallback from a different store
-        const replacement = diverseLinks.find(fb => {
-          const fbDomain = extractDomain(fb.url);
-          return fbDomain && !usedDomains.has(fbDomain);
-        });
-        if (replacement) {
-          console.log(`[StoreDiversity] Replacing duplicate ${domain} link[${i}] with ${extractDomain(replacement.url)}`);
-          finalLinks[i] = { ...replacement, imageUrl: "" };
-          usedDomains.add(extractDomain(replacement.url));
-        }
-      } else if (domain) {
-        usedDomains.add(domain);
-      }
     }
   }
 
@@ -2103,31 +1810,8 @@ function normalizeImprovementShoppingLinks(
     afterLabel: (imp.afterLabel || (isHebrew ? "אחרי" : "After")).trim(),
     beforeColor: (imp.beforeColor || "").trim(),
     afterColor: (imp.afterColor || "").trim(),
-    // Pass through all structured garment metadata (optional fields)
-    beforeGarmentType: imp.beforeGarmentType || undefined,
-    afterGarmentType: imp.afterGarmentType || undefined,
-    beforeStyle: imp.beforeStyle || undefined,
-    afterStyle: imp.afterStyle || undefined,
-    beforeFit: imp.beforeFit || undefined,
-    afterFit: imp.afterFit || undefined,
-    beforeLength: imp.beforeLength || undefined,
-    afterLength: imp.afterLength || undefined,
-    beforeSleeveLength: imp.beforeSleeveLength || undefined,
-    afterSleeveLength: imp.afterSleeveLength || undefined,
-    beforeNeckline: imp.beforeNeckline || undefined,
-    afterNeckline: imp.afterNeckline || undefined,
-    beforeClosure: imp.beforeClosure || undefined,
-    afterClosure: imp.afterClosure || undefined,
-    beforeMaterial: imp.beforeMaterial || undefined,
-    afterMaterial: imp.afterMaterial || undefined,
-    beforeTexture: imp.beforeTexture || undefined,
-    afterTexture: imp.afterTexture || undefined,
-    beforePattern: imp.beforePattern || undefined,
-    afterPattern: imp.afterPattern || undefined,
-    beforeDetails: imp.beforeDetails || undefined,
-    afterDetails: imp.afterDetails || undefined,
     productSearchQuery: fallbackQuery,
-    shoppingLinks: finalLinks,
+    shoppingLinks: deduped.slice(0, 3),
     closetMatch: imp.closetMatch,
   };
 }
@@ -2169,130 +1853,6 @@ function hasCoreItemReferenceInInsight(
     });
 }
 
-/**
- * Validate and fix productSearchQuery to ensure it matches the improvement's category.
- * If the LLM returned a generic or mismatched query (e.g. "pants" for a top improvement),
- * this function rebuilds a proper query from the improvement's title/afterLabel.
- */
-function validateAndFixProductSearchQuery(
-  imp: Improvement,
-  userGender?: string | null,
-): string {
-  const genderPrefix = userGender === "female" ? "women's" : "men's";
-
-  // Stage 30 GAP 4: Build query from structured metadata as PRIMARY source
-  const afterType = (imp.afterGarmentType || "").trim().toLowerCase();
-  const afterColor = (imp.afterColor || "").trim().toLowerCase();
-  const afterFit = (imp.afterFit || "").trim().toLowerCase();
-  const afterMaterial = (imp.afterMaterial || "").trim().toLowerCase();
-  const afterPattern = (imp.afterPattern || "").trim().toLowerCase();
-  const afterNeckline = (imp.afterNeckline || "").trim().toLowerCase();
-
-  // Blacklist: values the LLM returns that are NOT real colors/materials/garment types
-  const FAKE_VALUES = new Set([
-    "matching", "premium", "upgraded", "similar", "complementary", "better",
-    "improved", "enhanced", "quality", "stylish", "fashionable", "trendy",
-    "elegant", "sophisticated", "modern", "classic", "luxury", "luxurious",
-    "high-end", "high end", "designer", "branded", "n/a", "none", "same",
-    "appropriate", "suitable", "recommended", "ideal", "perfect", "optimal",
-  ]);
-  const isReal = (val: string) => val && !FAKE_VALUES.has(val) && val.length > 1;
-
-  // Known garment types — if afterGarmentType is not a real garment, try to extract from afterLabel
-  const KNOWN_GARMENTS = /^(t-shirt|tee|shirt|dress shirt|polo|blouse|top|tank top|camisole|crop top|tunic|sweater|hoodie|sweatshirt|cardigan|blazer|jacket|coat|vest|parka|trench|bomber|windbreaker|jeans|chinos|pants|trousers|shorts|skirt|leggings|joggers|cargo pants|dress pants|sneakers|shoes|boots|loafers|oxfords|sandals|heels|mules|slippers|derby|flats|dress|gown|maxi dress|midi dress|mini dress|jumpsuit|romper|overall|watch|bracelet|ring|necklace|earring|belt|bag|hat|cap|scarf|sunglasses|tie|pocket square)$/i;
-  let garmentType = afterType;
-  if (!KNOWN_GARMENTS.test(garmentType)) {
-    // Try to extract from afterLabel
-    const labelWords = (imp.afterLabel || "").toLowerCase().split(/\s+/);
-    for (let i = 0; i < labelWords.length; i++) {
-      const twoWord = labelWords.slice(i, i + 2).join(" ");
-      const oneWord = labelWords[i];
-      if (KNOWN_GARMENTS.test(twoWord)) { garmentType = twoWord; break; }
-      if (KNOWN_GARMENTS.test(oneWord)) { garmentType = oneWord; break; }
-    }
-  }
-
-  // If we have a real garment type, build a rich query directly
-  if (garmentType && garmentType !== "n/a" && KNOWN_GARMENTS.test(garmentType)) {
-    const parts = [genderPrefix];
-    if (isReal(afterColor)) parts.push(afterColor);
-    if (isReal(afterFit) && afterFit !== "regular") parts.push(afterFit);
-    if (isReal(afterMaterial) && afterMaterial !== "synthetic") parts.push(afterMaterial);
-    if (isReal(afterNeckline) && afterNeckline !== "crew") parts.push(afterNeckline);
-    parts.push(garmentType);
-    if (isReal(afterPattern) && afterPattern !== "solid") parts.push(afterPattern);
-    // Deduplicate words in the query
-    const seen = new Set<string>();
-    const deduped = parts.filter(p => {
-      const lower = p.toLowerCase();
-      if (seen.has(lower)) return false;
-      seen.add(lower);
-      return true;
-    });
-    return deduped.join(" ");
-  }
-
-  // Fallback: validate/fix the LLM-provided query (legacy path for old analyses)
-  const query = (imp.productSearchQuery || "").trim();
-  const impCategory = detectImprovementCategory(imp);
-
-  // Category-specific keywords that MUST appear in the query
-  const categoryKeywords: Record<ClothingCategory, RegExp> = {
-    top: /(shirt|blouse|top|tee|t-shirt|polo|sweater|hoodie|sweatshirt|henley|tank|camisole|crop|tunic|חולצ)/i,
-    bottom: /(pants|jeans|trouser|chino|shorts|skirt|legging|מכנס|גינס|חצאית|שורט)/i,
-    outerwear: /(jacket|coat|blazer|cardigan|parka|trench|bomber|vest|windbreaker|מעיל|זקט|בלייזר|קרדיגן)/i,
-    shoes: /(shoe|sneaker|boot|loafer|heel|sandal|oxford|derby|mule|slipper|נעל|סניקר)/i,
-    dress: /(dress|gown|maxi|midi|mini|שמלה)/i,
-    onepiece: /(jumpsuit|romper|overall|playsuit|אוברול|סרבל)/i,
-    accessory: /(watch|bracelet|ring|necklace|earring|belt|bag|hat|cap|scarf|sunglass|שעון|צמיד|טבעת|שרשר|עגיל|חגורה|תיק|כובע|צעיף|משקפ)/i,
-    other: /./i,
-  };
-
-  const categoryFallbackTerms: Record<string, string> = {
-    top: "structured button-down shirt",
-    bottom: "tailored chino pants",
-    outerwear: "structured blazer jacket",
-    shoes: "leather dress shoes",
-    dress: "flattering midi dress",
-    onepiece: "tailored jumpsuit",
-    accessory: "premium accessory",
-    other: "fashion item",
-  };
-
-  const hasHebrew = /[\u0590-\u05FF]/.test(query);
-  const isTooGeneric = !query || query.length < 8 || /^(upgrade|improve|שדרוג|שיפור)/i.test(query);
-  const matchesCategory = impCategory === "other" || categoryKeywords[impCategory]?.test(query);
-  const hasCrossCategory = impCategory !== "other" && Object.entries(categoryKeywords)
-    .filter(([cat]) => cat !== impCategory && cat !== "other" && cat !== "accessory")
-    .some(([_cat, regex]) => regex.test(query) && !categoryKeywords[impCategory].test(query));
-
-  if (!hasHebrew && !isTooGeneric && matchesCategory && !hasCrossCategory) {
-    if (!/(men|women|גבר|נש)/i.test(query)) {
-      return `${genderPrefix} ${query}`;
-    }
-    return query;
-  }
-
-  // Rebuild from text-based extraction (legacy fallback)
-  const afterLabel = (imp.afterLabel || "").replace(/[\u0590-\u05FF]+/g, "").trim();
-  const colorMatch = query.match(/(black|white|navy|blue|grey|gray|brown|beige|cream|green|red|pink|olive|khaki|tan|burgundy|maroon|camel)/i);
-  const color = afterColor || (colorMatch ? colorMatch[1].toLowerCase() : "");
-  const styleMatch = query.match(/(slim fit|regular fit|oversized|tailored|structured|casual|formal|classic|modern|minimalist|relaxed)/i);
-  const style = afterFit || (styleMatch ? styleMatch[1].toLowerCase() : "");
-
-  const baseTerm = categoryFallbackTerms[impCategory] || "fashion item";
-  const parts = [genderPrefix];
-  if (color) parts.push(color);
-  if (style && style !== "regular") parts.push(style);
-  if (afterLabel.length > 5 && /[a-zA-Z]/.test(afterLabel)) {
-    parts.push(afterLabel);
-  } else {
-    parts.push(baseTerm);
-  }
-
-  return parts.join(" ");
-}
-
 function sanitizeRecommendationsPayload(
   rec: FashionRecommendationsPayload,
   core: FashionAnalysisCorePayload,
@@ -2300,264 +1860,20 @@ function sanitizeRecommendationsPayload(
   occasion?: string | null,
   userGender?: string | null,
   preferredInfluencers?: string | null,
-  preferredStores?: string | null,
-  budgetLevel?: string | null,
 ): FashionRecommendationsPayload {
-  const genderCat: GenderCategory = userGender === "female" ? "female" : userGender === "unisex" ? "unisex" : "male";
-  const fallback = buildFallbackRecommendationsFromCore(core, lang, occasion, userGender, preferredInfluencers, preferredStores, budgetLevel);
+  const fallback = buildFallbackRecommendationsFromCore(core, lang, occasion, userGender, preferredInfluencers);
   if (shouldFallbackRecommendationsForLanguage(rec, lang)) {
     return fallback;
   }
 
   let improvements = Array.isArray(rec.improvements) ? rec.improvements : [];
-  // Validate and fix productSearchQuery for each improvement
-  improvements = improvements.map((imp) => ({
-    ...imp,
-    productSearchQuery: validateAndFixProductSearchQuery(imp, userGender),
-  }));
-
-  // Cross-category validation: ensure title matches afterGarmentType
-  const GARMENT_CATEGORIES: Record<string, string[]> = {
-    top: ["t-shirt", "tee", "polo", "shirt", "blouse", "sweater", "hoodie", "cardigan", "tank top", "crop top", "vest", "henley"],
-    outerwear: ["blazer", "jacket", "coat", "parka", "bomber", "windbreaker", "trench", "denim jacket", "leather jacket"],
-    bottom: ["jeans", "chinos", "pants", "trousers", "shorts", "skirt", "joggers", "leggings", "cargo pants"],
-    dress: ["dress", "jumpsuit", "romper", "gown"],
-    shoes: ["sneakers", "shoes", "boots", "loafers", "sandals", "oxfords", "heels", "flats", "mules", "espadrilles", "derby"],
-    accessory: ["watch", "belt", "bag", "hat", "scarf", "sunglasses", "bracelet", "necklace", "ring", "earrings", "tie", "pocket square"],
-  };
-  function getGarmentCategory(type: string): string {
-    const t = (type || "").toLowerCase();
-    for (const [cat, types] of Object.entries(GARMENT_CATEGORIES)) {
-      if (types.some(g => t.includes(g))) return cat;
-    }
-    return "unknown";
-  }
-
-  // Gender-aware Hebrew verb forms
-  const isMale = (userGender || "").toLowerCase() === "male";
-  const isFemale = (userGender || "").toLowerCase() === "female";
-
-  // Title validation: enforce short, punchy titles in the correct language
-  improvements = improvements.map((imp) => {
-    let title = (imp.title || "").trim();
-    // Remove quotes wrapping the title
-    if ((title.startsWith('"') && title.endsWith('"')) || (title.startsWith("'") && title.endsWith("'"))) {
-      title = title.slice(1, -1).trim();
-    }
-
-    // Cross-category check: if title mentions a different category than afterGarmentType, force rewrite
-    const afterCat = getGarmentCategory(imp.afterGarmentType || "");
-    const titleLower = title.toLowerCase();
-    const titleMentionsDifferentCategory = afterCat !== "unknown" && Object.entries(GARMENT_CATEGORIES).some(([cat, types]) => {
-      if (cat === afterCat) return false;
-      return types.some(t => titleLower.includes(t));
-    });
-
-    // Detect bad title patterns and rebuild from metadata
-    const isGenericPattern = /^שדרוג |שיפור |^upgrade |^improve |החלף\/י|שדרג\/י/i.test(title);
-    const isFromToPattern = /^מ-.*ל-|^from .* to /i.test(title);
-    const hasFakeWords = /(matching|premium|upgraded|complementary|similar)/i.test(title);
-    const isTooLong = title.split(/\s+/).length > 10;
-    const needsRewrite = isGenericPattern || isFromToPattern || hasFakeWords || titleMentionsDifferentCategory || !title;
-
-    if (needsRewrite) {
-      // Build a punchy title from metadata
-      const beforeType = (imp.beforeGarmentType || "").trim();
-      const afterType = (imp.afterGarmentType || "").trim();
-      const afterMat = (imp.afterMaterial || "").trim();
-      const afterColor = (imp.afterColor || "").trim();
-      const FAKE = /^(matching|premium|upgraded|similar|complementary|better|improved|quality|stylish|elegant|luxury|n\/a|none)$/i;
-      const realAfterType = afterType && !FAKE.test(afterType) ? afterType : "";
-      const realAfterMat = afterMat && !FAKE.test(afterMat) ? afterMat : "";
-      const realAfterColor = afterColor && !FAKE.test(afterColor) ? afterColor : "";
-
-      if (lang === "he") {
-        // Hebrew punchy title patterns
-        const heGarmentMap: Record<string, string> = {
-          "t-shirt": "טישרט", "tee": "טישרט", "polo": "פולו", "dress shirt": "חולצת כפתורים",
-          "shirt": "חולצה", "blouse": "בלוזה", "sweater": "סוודר", "hoodie": "הודי",
-          "blazer": "בלייזר", "jacket": "ז'קט", "coat": "מעיל", "cardigan": "קרדיגן",
-          "jeans": "ג'ינס", "chinos": "צ'ינוס", "pants": "מכנסיים", "trousers": "מכנסיים",
-          "shorts": "שורטס", "skirt": "חצאית", "dress": "שמלה",
-          "sneakers": "סניקרס", "shoes": "נעליים", "boots": "מגפיים", "loafers": "לואפרס",
-          "sandals": "סנדלים", "oxfords": "אוקספורדס",
-          "watch": "שעון", "belt": "חגורה", "bag": "תיק", "hat": "כובע", "scarf": "צעיף",
-          "sunglasses": "משקפי שמש", "bracelet": "צמיד", "necklace": "שרשרת",
-        };
-        const heMatMap: Record<string, string> = {
-          "cotton": "כותנה", "linen": "פשתן", "denim": "דנים", "leather": "עור",
-          "silk": "משי", "wool": "צמר", "suede": "זמש", "knit": "סריגה",
-          "piqué cotton": "פיקה", "merino wool": "מרינו",
-        };
-        const heBefore = heGarmentMap[beforeType.toLowerCase()] || beforeType;
-        const heAfter = heGarmentMap[realAfterType.toLowerCase()] || realAfterType;
-        const heMat = heMatMap[realAfterMat.toLowerCase()] || "";
-
-        // Gender-aware taglines for variety
-        const heTaglines = isFemale
-          ? ["קפיצת דרג בסטייל", "נוכחות שמרגישים", "הפרט שמשלים את הלוק"]
-          : ["קפיצת דרג בסטייל", "נוכחות שמרגישה", "הפרט שמשלים את הלוק"];
-        const heTag = heTaglines[Math.floor(Math.random() * heTaglines.length)];
-
-        if (heAfter && heBefore && heBefore !== heAfter) {
-          title = heMat ? `${heAfter} ${heMat} במקום ${heBefore}` : `${heAfter} במקום ${heBefore}`;
-        } else if (heAfter && heMat) {
-          title = `${heAfter} ${heMat} — ${heTag}`;
-        } else if (heAfter) {
-          title = `${heAfter} — ${heTag}`;
-        } else {
-          title = imp.afterLabel || `שדרוג — ${heTag}`;
-        }
-      } else {
-        // English punchy title
-        const matLabel = realAfterMat ? ` ${realAfterMat.charAt(0).toUpperCase() + realAfterMat.slice(1)}` : "";
-        const afterLabel = realAfterType ? realAfterType.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ") : "";
-        const beforeLabel = beforeType ? beforeType.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ") : "";
-
-        if (afterLabel && beforeLabel && afterLabel !== beforeLabel) {
-          title = `${matLabel ? matLabel.trim() + " " : ""}${afterLabel} Over ${beforeLabel}`;
-        } else if (afterLabel && matLabel) {
-          title = `${matLabel.trim()} ${afterLabel} — Level Up`;
-        } else if (afterLabel) {
-          title = `${afterLabel} — A Look-Changing Upgrade`;
-        } else {
-          title = imp.afterLabel || "Wardrobe Upgrade";
-        }
-      }
-    } else if (isTooLong) {
-      // Just truncate if too long but otherwise OK
-      const words = title.split(/\s+/);
-      const truncated = words.slice(0, 8).join(" ");
-      const breakIdx = truncated.search(/[—\-:,]/);
-      if (breakIdx > 5) {
-        title = truncated.slice(0, breakIdx).trim();
-      } else {
-        title = words.slice(0, 7).join(" ");
-      }
-    }
-
-    // Description sanitization: catch generic/bad patterns and rebuild professionally
-    let desc = (imp.description || "").trim();
-    const badDescPatterns = /החלף\/י|הוסף\/י|בחר\/י|שלב\/י|שדרג\/י|למראה משודרג יותר|זה ישדרג את הלוק|replace the .* with|for a more polished look/i;
-    if (badDescPatterns.test(desc) || desc.length < 30) {
-      const afterType = (imp.afterGarmentType || "").trim();
-      const afterColor = (imp.afterColor || "").trim();
-      const afterStyle = (imp.afterStyle || "smart-casual").trim();
-      const FAKE = /^(matching|premium|upgraded|similar|complementary|better|improved|quality|stylish|elegant|luxury|n\/a|none|undefined)$/i;
-      const heGarmentMap: Record<string, string> = {
-        "t-shirt": "טישרט", "polo": "פולו", "dress shirt": "חולצת כפתורים",
-        "shirt": "חולצה", "blouse": "בלוזה", "sweater": "סוודר", "hoodie": "הודי",
-        "blazer": "בלייזר", "jacket": "ז'קט", "coat": "מעיל", "cardigan": "קרדיגן",
-        "jeans": "ג'ינס", "chinos": "צ'ינוס", "pants": "מכנסיים", "trousers": "מכנסיים",
-        "shorts": "שורטס", "skirt": "חצאית", "dress": "שמלה",
-        "sneakers": "סניקרס", "shoes": "נעליים", "boots": "מגפיים", "loafers": "לואפרס",
-        "linen shirt": "חולצת פשתן", "knit sweater": "סוודר סרוג",
-        "leather loafers": "לואפרס עור", "minimalist leather sneakers": "סניקרס עור מינימליסטי",
-        "henley": "הנלי", "tailored chinos": "צ'ינוס מחויט", "tailored trousers": "מכנסיים מחויטים",
-      };
-      const heColorMap: Record<string, string> = {
-        "navy blue": "כחול כהה", "white": "לבן", "charcoal": "אפור פחם", "olive": "ירוק זית",
-        "light blue": "תכלת", "burgundy": "בורדו", "brown": "חום", "tan": "חום בהיר",
-        "beige": "בז'", "navy": "כחול כהה", "black": "שחור", "gray": "אפור",
-      };
-      const styleNoteHe: Record<string, string> = {
-        "smart-casual": "הלוק עולה רמה עם מראה smart-casual מאוזן",
-        "formal": "הפריט מעניק נוכחות פורמלית ומלוטשת",
-        "minimalist": "הגזרה הנקייה יוצרת סילואט מינימליסטי ומדויק",
-        "casual": "הפריט שומר על נוחות אבל מרגיש הרבה יותר מושקע",
-        "classic": "הפריט מביא נופך קלאסי ונצחי",
-      };
-      const styleNoteEn: Record<string, string> = {
-        "smart-casual": "elevating the look with a balanced smart-casual aesthetic",
-        "formal": "bringing a polished, formal presence",
-        "minimalist": "creating a clean, minimalist silhouette",
-        "casual": "keeping it comfortable but significantly more refined",
-        "classic": "adding a timeless, classic touch",
-      };
-      const realAfterType = afterType && !FAKE.test(afterType) ? afterType : "";
-      const realAfterColor = afterColor && !FAKE.test(afterColor) ? afterColor : "";
-      if (lang === "he") {
-        const heAfter = heGarmentMap[realAfterType.toLowerCase()] || realAfterType;
-        const heColor = heColorMap[realAfterColor.toLowerCase()] || realAfterColor;
-        const sNote = styleNoteHe[afterStyle] || "השדרוג מעניק מראה מושקע ומקצועי יותר";
-        if (heAfter && heColor) {
-          desc = `ה${heAfter} ב${heColor} מעניק מרקם ונוכחות לסילואט. ${sNote}. שילוב ${heColor} עם שאר הפריטים יוצר הרמוניה צבעונית נעימה.`;
-        } else if (heAfter) {
-          desc = `ה${heAfter} מעניק מבנה ונוכחות לסילואט. ${sNote}.`;
-        }
-      } else {
-        const sNote = styleNoteEn[afterStyle] || "delivering a more polished, intentional look";
-        if (realAfterType && realAfterColor) {
-          desc = `The ${realAfterColor} ${realAfterType} adds structure and presence to the silhouette, ${sNote}. The ${realAfterColor} tone pairs beautifully with the rest of the outfit — a key 2025 trend.`;
-        } else if (realAfterType) {
-          desc = `The ${realAfterType} adds structure and presence to the silhouette, ${sNote}.`;
-        }
-      }
-    }
-
-    return { ...imp, title, description: desc };
-  });
-
-  improvements = improvements.map((imp) => normalizeImprovementShoppingLinks(imp, lang, preferredStores, genderCat, budgetLevel));
-  if (improvements.length < 4 && fallback) {
+  improvements = improvements.map((imp) => normalizeImprovementShoppingLinks(imp, lang));
+  if (improvements.length < 4) {
     const needed = 4 - improvements.length;
     improvements = [...improvements, ...fallback.improvements.slice(0, needed)];
   }
   if (improvements.length > 5) improvements = improvements.slice(0, 5);
-  improvements = improvements.map((imp) => normalizeImprovementShoppingLinks(imp, lang, preferredStores, genderCat, budgetLevel));
-
-  // Global deduplication: remove duplicate shopping links across all improvements
-  const globalSeenUrls = new Set<string>();
-  const globalSeenTitles = new Set<string>();
-  const globalSeenCategories = new Set<string>();
-  improvements = improvements.map((imp) => {
-    // Deduplicate by title (case-insensitive)
-    const titleKey = (imp.title || "").trim().toLowerCase();
-    if (titleKey && globalSeenTitles.has(titleKey)) {
-      return null as any;
-    }
-    // Deduplicate by category (afterGarmentType or afterLabel) — max 1 improvement per garment category
-    const catKey = (imp.afterGarmentType || imp.afterLabel || "").trim().toLowerCase();
-    if (catKey && globalSeenCategories.has(catKey)) {
-      return null as any;
-    }
-    // Similarity check: if title is >60% similar to any seen title, skip
-    const isSimilar = Array.from(globalSeenTitles).some((seen) => {
-      const a = titleKey.replace(/[^a-zA-Z\u0590-\u05FF0-9\s]/g, "");
-      const b = seen.replace(/[^a-zA-Z\u0590-\u05FF0-9\s]/g, "");
-      const wordsA = new Set(a.split(/\s+/).filter(Boolean));
-      const wordsB = new Set(b.split(/\s+/).filter(Boolean));
-      const intersection = [...wordsA].filter((w) => wordsB.has(w)).length;
-      const union = new Set([...wordsA, ...wordsB]).size;
-      return union > 0 && intersection / union > 0.6;
-    });
-    if (isSimilar) return null as any;
-    if (titleKey) globalSeenTitles.add(titleKey);
-    if (catKey) globalSeenCategories.add(catKey);
-
-    // Deduplicate shopping links across improvements
-    const uniqueLinks = (imp.shoppingLinks || []).filter((link) => {
-      const urlKey = (link.url || "").trim().toLowerCase();
-      if (!urlKey || globalSeenUrls.has(urlKey)) return false;
-      globalSeenUrls.add(urlKey);
-      return true;
-    });
-
-    // Post-dedup refill: ensure at least 3 unique shopping links per improvement
-    let finalLinks = uniqueLinks;
-    if (finalLinks.length < 3) {
-      const query = imp.productSearchQuery || imp.afterLabel || imp.title || "fashion upgrade";
-      const freshLinks = buildFallbackShoppingLinks(query).filter((fb) => {
-        const key = (fb.url || "").trim().toLowerCase();
-        if (!key || globalSeenUrls.has(key)) return false;
-        globalSeenUrls.add(key);
-        return true;
-      });
-      finalLinks = [...finalLinks, ...freshLinks];
-    }
-
-    return { ...imp, shoppingLinks: finalLinks.slice(0, 3) };
-  }).filter(Boolean);
+  improvements = improvements.map((imp) => normalizeImprovementShoppingLinks(imp, lang));
 
   let outfitSuggestions = Array.isArray(rec.outfitSuggestions) ? rec.outfitSuggestions : [];
   if (outfitSuggestions.length < 2) {
@@ -2599,17 +1915,13 @@ function sanitizeRecommendationsPayload(
     influencerInsight,
   };
 }
-
 function buildFallbackRecommendationsFromCore(
   core: FashionAnalysisCorePayload,
   lang: "he" | "en",
   occasion?: string | null,
   userGender?: string | null,
   preferredInfluencers?: string | null,
-  preferredStores?: string | null,
-  budgetLevel?: string | null,
 ): FashionRecommendationsPayload {
-  const genderCat: GenderCategory = userGender === "female" ? "female" : userGender === "unisex" ? "unisex" : "male";
   const isHebrew = lang === "he";
   const improvements: Improvement[] = [
     buildFallbackImprovement("top", isHebrew),
@@ -2666,7 +1978,7 @@ function buildFallbackRecommendationsFromCore(
   ).insight;
 
   return {
-    improvements: improvements.map((imp) => normalizeImprovementShoppingLinks(imp, lang, preferredStores, genderCat, budgetLevel)),
+    improvements: improvements.map((imp) => normalizeImprovementShoppingLinks(imp, lang)),
     outfitSuggestions: sanitizeOutfitSuggestionsForProfileGender(outfitSuggestions, userGender, lang),
     trendSources,
     influencerInsight,
@@ -3269,11 +2581,6 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
                             bgOccasion,
                             bgProfileContext?.gender || null,
                             bgInfluencers || bgProfileContext?.favoriteInfluencers || null,
-                            bgProfileContext?.preferredStores || null,
-                            bgProfileContext?.budgetLevel || null,
-                            bgProfileContext?.country || null,
-                            bgTasteProfileForStage1,
-                            wardrobeForStage2,
                           ),
                         },
                         {
@@ -3323,7 +2630,6 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
                   bgOccasion,
                   bgProfileContext?.gender || null,
                   bgInfluencers || bgProfileContext?.favoriteInfluencers || null,
-                  bgProfileContext?.preferredStores || null,
                 );
               }
               recommendations = sanitizeRecommendationsPayload(
@@ -3333,8 +2639,6 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
                 bgOccasion,
                 bgProfileContext?.gender || null,
                 bgInfluencers || bgProfileContext?.favoriteInfluencers || null,
-                bgProfileContext?.preferredStores || null,
-                bgProfileContext?.budgetLevel || null,
               );
 
               // Merge Stage 2 into the Stage 1 analysis that was already saved
@@ -3366,7 +2670,7 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
 
               // Fix shopping link URLs
               const bgUserGender: GenderCategory = (bgProfileGender as GenderCategory) || "male";
-              analysis = fixShoppingLinkUrls(analysis, bgUserGender, bgProfileContext?.preferredStores || null);
+              analysis = fixShoppingLinkUrls(analysis, bgUserGender);
               analysis = normalizeOutfitSuggestionsForWearableCore(analysis, bgUserGender);
               analysis = normalizeImprovementsForWearableCore(analysis, bgUserGender);
 
@@ -3535,7 +2839,7 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
           const lang: "he" | "en" = /[\u0590-\u05FF]/.test(analysis.summary || "") ? "he" : "en";
           const profile = await getUserProfile(review.userId);
           const genderCat: GenderCategory = profile?.gender === "female" ? "female" : profile?.gender === "unisex" ? "unisex" : "male";
-          analysis.improvements = analysis.improvements.map((imp) => normalizeImprovementShoppingLinks(imp, lang, profile?.preferredStores || null, genderCat, profile?.budgetLevel || null));
+          analysis.improvements = analysis.improvements.map((imp) => normalizeImprovementShoppingLinks(imp, lang));
           review.analysisJson = analysis;
         }
         return review;
@@ -3554,7 +2858,7 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
           const lang: "he" | "en" = /[\u0590-\u05FF]/.test(analysis.summary || "") ? "he" : "en";
           const profile = review.userId ? await getUserProfile(review.userId) : null;
           const genderCat: GenderCategory = profile?.gender === "female" ? "female" : profile?.gender === "unisex" ? "unisex" : "male";
-          analysis.improvements = analysis.improvements.map((imp) => normalizeImprovementShoppingLinks(imp, lang, profile?.preferredStores || null, genderCat, profile?.budgetLevel || null));
+          analysis.improvements = analysis.improvements.map((imp) => normalizeImprovementShoppingLinks(imp, lang));
           analysisJson = analysis;
         }
         return {
@@ -4196,7 +3500,7 @@ Return ONLY a JSON object with these exact fields:
         const profile = await getUserProfile(ctx.user.id);
         const userGender = profile?.gender || "male";
         const genderCat: GenderCategory = userGender === "female" ? "female" : userGender === "unisex" ? "unisex" : "male";
-        const imp = normalizeImprovementShoppingLinks(analysis.improvements[input.improvementIndex], lang, profile?.preferredStores || null, genderCat, profile?.budgetLevel || null);
+        const imp = normalizeImprovementShoppingLinks(analysis.improvements[input.improvementIndex], lang);
         const impIdx = input.improvementIndex;;
 
         // Generate images for this single improvement category
@@ -4232,7 +3536,7 @@ Return ONLY a JSON object with these exact fields:
         const profile = await getUserProfile(ctx.user.id);
         const userGender = profile?.gender || "male";
         const batchGenderCat: GenderCategory = userGender === "female" ? "female" : userGender === "unisex" ? "unisex" : "male";
-        analysis.improvements = analysis.improvements.map((imp) => normalizeImprovementShoppingLinks(imp, batchLang, profile?.preferredStores || null, batchGenderCat, profile?.budgetLevel || null));
+        analysis.improvements = analysis.improvements.map((imp) => normalizeImprovementShoppingLinks(imp, batchLang));
         // Process ALL improvements in parallel
         const results = await Promise.all(
           analysis.improvements.map(async (imp, impIdx) => {
@@ -5252,11 +4556,6 @@ Return ONLY a JSON object with these exact fields:
                         input.occasion,
                         profileForPrompt?.gender || null,
                         guestProfile?.favoriteInfluencers || null,
-                        guestProfile?.preferredStores || null,
-                        guestProfile?.budgetLevel || null,
-                        guestProfile?.country || null,
-                        guestTasteText,
-                        guestWardrobeText,
                       ),
                     },
                     {
@@ -5305,7 +4604,6 @@ Return ONLY a JSON object with these exact fields:
               input.occasion,
               profileForPrompt?.gender || null,
               guestProfile?.favoriteInfluencers || null,
-              guestProfile?.preferredStores || null,
             );
           }
           recommendations = sanitizeRecommendationsPayload(
@@ -5315,8 +4613,6 @@ Return ONLY a JSON object with these exact fields:
             input.occasion,
             profileForPrompt?.gender || null,
             guestProfile?.favoriteInfluencers || null,
-            guestProfile?.preferredStores || null,
-            guestProfile?.budgetLevel || null,
           );
           let analysis: FashionAnalysis = {
             ...analysisCore,
@@ -5454,7 +4750,7 @@ Return ONLY a JSON object with these exact fields:
 
           // Fix shopping URLs with gender from profile
           const guestGender: GenderCategory = (profileForPrompt?.gender as GenderCategory) || "male";
-          analysis = fixShoppingLinkUrls(analysis, guestGender, guestProfile?.preferredStores || null);
+          analysis = fixShoppingLinkUrls(analysis, guestGender);
           analysis = normalizeOutfitSuggestionsForWearableCore(analysis, guestGender);
           analysis = normalizeImprovementsForWearableCore(analysis, guestGender);
 
@@ -5629,7 +4925,7 @@ Return ONLY a JSON object with these exact fields:
 
           // Stage 43: Stage 2 background — save full analysis with recommendations
           const guestGenderBg: GenderCategory = (profileForPrompt?.gender as GenderCategory) || "male";
-          analysis = fixShoppingLinkUrls(analysis, guestGenderBg, guestProfile?.preferredStores || null);
+          analysis = fixShoppingLinkUrls(analysis, guestGenderBg);
           analysis = normalizeOutfitSuggestionsForWearableCore(analysis, guestGenderBg);
           analysis = normalizeImprovementsForWearableCore(analysis, guestGenderBg);
 
@@ -5690,7 +4986,7 @@ Return ONLY a JSON object with these exact fields:
           const lang: "he" | "en" = /[\u0590-\u05FF]/.test(analysis.summary || "") ? "he" : "en";
           const guestProfile = session.fingerprint ? await getGuestProfile(session.fingerprint) : null;
           const guestGenderCat: GenderCategory = guestProfile?.gender === "female" ? "female" : guestProfile?.gender === "unisex" ? "unisex" : "male";
-          analysis.improvements = analysis.improvements.map((imp) => normalizeImprovementShoppingLinks(imp, lang, guestProfile?.preferredStores || null, guestGenderCat, guestProfile?.budgetLevel || null));
+          analysis.improvements = analysis.improvements.map((imp) => normalizeImprovementShoppingLinks(imp, lang));
           analysisJson = analysis;
         }
         return {
@@ -5720,7 +5016,7 @@ Return ONLY a JSON object with these exact fields:
         const guestProfile = session.fingerprint ? await getGuestProfile(session.fingerprint) : null;
         const guestGender = guestProfile?.gender || (session as any).gender || "male";
         const guestGenderCat: GenderCategory = guestGender === "female" ? "female" : guestGender === "unisex" ? "unisex" : "male";
-        const imp = normalizeImprovementShoppingLinks(analysis.improvements[input.improvementIndex], lang, guestProfile?.preferredStores || null, guestGenderCat, guestProfile?.budgetLevel || null);
+        const imp = normalizeImprovementShoppingLinks(analysis.improvements[input.improvementIndex], lang);
         const impIdx = input.improvementIndex;;
 
         const updatedLinks = await generateImagesForImprovement(imp, async (linkIdx, imageUrl) => {
@@ -6161,7 +5457,7 @@ Style: High-end ${genderLabel} fashion editorial flat lay, all items arranged ae
           const lang: "he" | "en" = /[\u0590-\u05FF]/.test(analysis.summary || "") ? "he" : "en";
           const guestProfile = session.fingerprint ? await getGuestProfile(session.fingerprint) : null;
           const guestGenderCat: GenderCategory = guestProfile?.gender === "female" ? "female" : guestProfile?.gender === "unisex" ? "unisex" : "male";
-          analysis.improvements = analysis.improvements.map((imp) => normalizeImprovementShoppingLinks(imp, lang, guestProfile?.preferredStores || null, guestGenderCat, guestProfile?.budgetLevel || null));
+          analysis.improvements = analysis.improvements.map((imp) => normalizeImprovementShoppingLinks(imp, lang));
           analysisJson = analysis;
         }
         return {

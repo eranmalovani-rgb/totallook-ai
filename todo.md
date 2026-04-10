@@ -555,3 +555,19 @@
 - [x] 44.2: Analysis — buildRecommendationsPromptFromCore, sanitizeRecommendationsPayload, normalizeImprovementShoppingLinks, buildFallbackRecommendationsFromCore are MORE ADVANCED in Manus deploy than production (include doctrine, gender verbs, metadata rules, budget/stores/country, taste profile, title rewriting, description sanitization, cross-category validation, global dedup). Kept Manus versions as-is to avoid regression.
 - [x] 44.3: Fixed all call sites passing 3 args to buildFallbackImprovement (normalizeImprovementsForWearableCore + buildFallbackRecommendationsFromCore)
 - [x] 44.4: Verified 0 TS errors, 819/824 tests pass (5 external API failures unchanged)
+
+## Stage 44b: Full 1:1 replacement of ALL Stage 2 functions from production
+- [x] 44b.1: Replace buildRecommendationsPromptFromCore with production version (4-arg, simple prompt)
+- [x] 44b.2: Replace normalizeImprovementShoppingLinks with production version (2-arg, no store diversity/metadata)
+- [x] 44b.3: Replace sanitizeRecommendationsPayload with production version (6-arg, no title rewriting/global dedup)
+- [x] 44b.4: Replace buildFallbackRecommendationsFromCore with production version (5-arg)
+- [x] 44b.5: Replace detectImprovementCategory with production version (no afterGarmentType)
+- [x] 44b.6: Replace buildFallbackShoppingLinks with production version (1-arg)
+- [x] 44b.7: Replace fixShoppingLinkUrls with production version (2-arg, no preferredStores)
+- [x] 44b.8: Replace FashionAnalysisCorePayload with production version (no personDetection/lookStructure)
+- [x] 44b.9: Removed validateAndFixProductSearchQuery + getBudgetFallbackStores (deploy-only)
+- [x] 44b.10: Fixed ALL call sites in routers.ts (~20 sites) and whatsapp.ts (1 site)
+- [x] 44b.11: 0 TypeScript errors confirmed
+- [x] 44b.12: Removed stage36-fixes.test.ts (23 tests for removed features), rewrote personalized-recommendations.test.ts (7 tests for 2-arg contract), removed 3 tests from productImageFixes.test.ts
+- [x] 44b.13: 771/776 tests pass (5 external API failures only)
+- [x] 44b.14: Save checkpoint

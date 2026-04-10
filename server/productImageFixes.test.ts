@@ -176,51 +176,8 @@ describe("Stage 10: Product Image Fixes", () => {
     });
   });
 
-  describe("LLM Prompt — productSearchQuery instruction", () => {
-    it("should contain specific instructions for productSearchQuery in prompt", async () => {
-      // Read the routers.ts file to verify the prompt contains our improved instructions
-      const fs = await import("fs");
-      const path = await import("path");
-      const routersSource = fs.readFileSync(
-        path.resolve(__dirname, "./routers.ts"),
-        "utf-8",
-      );
-
-      // Check that the Stage 2 prompt instructs for specific English queries
-      expect(routersSource).toContain("productSearchQuery MUST be specific English");
-      expect(routersSource).toContain("category + color + style + gender");
-      expect(routersSource).toContain("productSearchQuery MUST match the improvement category");
-    });
-  });
-
-  describe("validateAndFixProductSearchQuery function exists in routers", () => {
-    it("should have validateAndFixProductSearchQuery function defined", async () => {
-      const fs = await import("fs");
-      const path = await import("path");
-      const routersSource = fs.readFileSync(
-        path.resolve(__dirname, "./routers.ts"),
-        "utf-8",
-      );
-
-      expect(routersSource).toContain("function validateAndFixProductSearchQuery");
-      expect(routersSource).toContain("detectImprovementCategory");
-      expect(routersSource).toContain("categoryKeywords");
-      expect(routersSource).toContain("categoryFallbackTerms");
-      expect(routersSource).toContain("hasCrossCategory");
-    });
-
-    it("should be called in sanitizeRecommendationsPayload", async () => {
-      const fs = await import("fs");
-      const path = await import("path");
-      const routersSource = fs.readFileSync(
-        path.resolve(__dirname, "./routers.ts"),
-        "utf-8",
-      );
-
-      // Verify it's integrated into the sanitization pipeline
-      expect(routersSource).toContain("validateAndFixProductSearchQuery(imp, userGender)");
-    });
-  });
+  // Note: validateAndFixProductSearchQuery and advanced prompt instructions were removed
+  // as part of the production 1:1 rollback (Stage 44b). These tests are no longer applicable.
 
   describe("productImages.ts — domain dedup integration", () => {
     it("should use domain-level dedup in enrichAnalysisWithProductImages", async () => {
