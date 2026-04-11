@@ -319,61 +319,64 @@ function StoryCardsContainer({
 
   return (
     <div className="space-y-4">
-      {/* Instagram-style progress bar */}
-      <div className="flex gap-1 px-3">
+      {/* Studio-style progress segments — elegant gold thread */}
+      <div className="flex gap-1.5 px-4">
         {validChildren.map((_, i) => (
-          <div key={i} className="flex-1 h-[3px] rounded-full overflow-hidden bg-white/10">
+          <div key={i} className="flex-1 h-[2px] rounded-full overflow-hidden bg-white/[0.06]">
             <div
-              className="h-full rounded-full transition-all duration-300"
+              className="h-full rounded-full transition-all duration-500 ease-out"
               style={{
                 width: i < activeIndex ? "100%" : i === activeIndex ? "100%" : "0%",
-                backgroundColor: i <= activeIndex ? "var(--primary)" : "transparent",
-                opacity: i === activeIndex ? 1 : 0.6,
+                background: i <= activeIndex ? "linear-gradient(90deg, #c8a44e, #e8c86e)" : "transparent",
+                opacity: i === activeIndex ? 1 : 0.5,
               }}
             />
           </div>
         ))}
       </div>
 
-      {/* Tab bar */}
-      <div className="flex gap-1.5 px-2 pb-1 items-center justify-center flex-wrap">
+      {/* Tab bar — studio-themed elegant tabs */}
+      <div className="flex gap-2 px-3 pb-1 items-center justify-center flex-wrap">
         {visibleLabels.map((label, i) => (
           <button
             key={i}
             onClick={() => { goToIndex(i); setShowOverflow(false); }}
-            className={`flex items-center gap-1 px-2.5 py-2 rounded-full text-[11px] font-semibold transition-all duration-200 flex-shrink-0 ${
+            className={`group relative flex items-center gap-1.5 px-4 py-2.5 text-[11px] font-semibold transition-all duration-300 flex-shrink-0 border ${
               activeIndex === i
-                ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-105"
-                : "bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-foreground"
+                ? "bg-gradient-to-b from-amber-900/30 to-amber-950/20 text-amber-300 border-amber-500/40 shadow-[0_0_12px_rgba(200,164,78,0.15)] rounded-lg"
+                : "bg-white/[0.02] text-muted-foreground border-white/[0.06] hover:border-white/15 hover:text-foreground hover:bg-white/[0.04] rounded-lg"
             }`}
           >
-            <span>{cardIcons[i]}</span>
-            <span className="truncate max-w-[60px]">{label}</span>
+            {activeIndex === i && (
+              <span className="absolute -top-px inset-x-2 h-[2px] bg-gradient-to-r from-transparent via-amber-400/70 to-transparent rounded-full" />
+            )}
+            <span className={`transition-transform duration-200 ${activeIndex === i ? 'scale-110' : 'group-hover:scale-105'}`}>{cardIcons[i]}</span>
+            <span className="truncate max-w-[70px]">{label}</span>
           </button>
         ))}
         {hasOverflow && (
           <div className="relative">
             <button
               onClick={() => setShowOverflow(!showOverflow)}
-              className={`flex items-center justify-center w-9 h-9 rounded-full text-sm font-bold transition-all duration-200 ${
+              className={`flex items-center justify-center w-10 h-10 rounded-lg text-sm font-bold transition-all duration-300 border ${
                 activeIndex >= VISIBLE_TABS
-                  ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
-                  : "bg-white/5 text-muted-foreground hover:bg-white/10"
+                  ? "bg-gradient-to-b from-amber-900/30 to-amber-950/20 text-amber-300 border-amber-500/40 shadow-[0_0_12px_rgba(200,164,78,0.15)]"
+                  : "bg-white/[0.02] text-muted-foreground border-white/[0.06] hover:border-white/15 hover:bg-white/[0.04]"
               }`}
             >
               •••
             </button>
             {showOverflow && (
-              <div className={`absolute top-full mt-1 ${dir === "rtl" ? "left-0" : "right-0"} z-50 bg-card border border-white/10 rounded-xl shadow-xl py-1 min-w-[140px]`}>
+              <div className={`absolute top-full mt-2 ${dir === "rtl" ? "left-0" : "right-0"} z-50 bg-gradient-to-b from-neutral-900 to-neutral-950 border border-amber-500/10 rounded-xl shadow-2xl shadow-black/40 py-1.5 min-w-[160px] backdrop-blur-sm`}>
                 {overflowLabels.map((label, i) => {
                   const realIndex = VISIBLE_TABS + i;
                   return (
                     <button
                       key={realIndex}
                       onClick={() => { goToIndex(realIndex); setShowOverflow(false); }}
-                      className={`w-full flex items-center gap-2 px-3 py-2.5 text-xs font-medium transition-colors ${
+                      className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-medium transition-all duration-200 ${
                         activeIndex === realIndex
-                          ? "text-primary bg-primary/10"
+                          ? "text-amber-300 bg-amber-500/10"
                           : "text-muted-foreground hover:text-foreground hover:bg-white/5"
                       }`}
                     >

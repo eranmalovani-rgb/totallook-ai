@@ -121,15 +121,25 @@ function ScoreCircle({ score, size = "lg" }: { score: number; size?: "sm" | "lg"
   const progress = (safeScore / 10) * circumference;
   const color = safeScore >= 9 ? "text-amber-400" : safeScore >= 7 ? "text-primary" : safeScore >= 5 ? "text-yellow-400" : "text-orange-400";
 
+  const gradientId = `guest-score-grad-${size}-${Math.round(safeScore * 10)}`;
+  const glowColor = safeScore >= 9 ? "rgba(251,191,36,0.2)" : safeScore >= 7 ? "rgba(200,164,78,0.15)" : safeScore >= 5 ? "rgba(234,179,8,0.12)" : "rgba(249,115,22,0.12)";
+  const gradColors = safeScore >= 9 ? ["#fbbf24", "#f59e0b"] : safeScore >= 7 ? ["#c8a44e", "#e8c86e"] : safeScore >= 5 ? ["#eab308", "#ca8a04"] : ["#f97316", "#ea580c"];
+
   return (
-    <div className="relative inline-flex items-center justify-center">
+    <div className="relative inline-flex items-center justify-center" style={{ filter: size !== "sm" ? `drop-shadow(0 0 8px ${glowColor})` : undefined }}>
       <svg className={size === "lg" ? "w-32 h-32" : "w-16 h-16"} viewBox={`0 0 ${(radius + stroke) * 2} ${(radius + stroke) * 2}`}>
-        <circle cx={radius + stroke} cy={radius + stroke} r={radius} fill="none" stroke="currentColor" strokeWidth={stroke} className="text-white/5" />
-        <circle cx={radius + stroke} cy={radius + stroke} r={radius} fill="none" stroke="currentColor" strokeWidth={stroke}
+        <defs>
+          <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor={gradColors[0]} />
+            <stop offset="100%" stopColor={gradColors[1]} />
+          </linearGradient>
+        </defs>
+        <circle cx={radius + stroke} cy={radius + stroke} r={radius} fill="none" stroke="currentColor" strokeWidth={stroke} className="text-white/[0.04]" />
+        <circle cx={radius + stroke} cy={radius + stroke} r={radius} fill="none" stroke={`url(#${gradientId})`} strokeWidth={stroke}
           strokeDasharray={circumference} strokeDashoffset={circumference - progress} strokeLinecap="round"
-          className={`${color} transition-all duration-1000`} transform={`rotate(-90 ${radius + stroke} ${radius + stroke})`} />
+          className="transition-all duration-1000" transform={`rotate(-90 ${radius + stroke} ${radius + stroke})`} />
       </svg>
-      <span className={`absolute font-bold ${size === "lg" ? "text-3xl" : "text-lg"}`}>{safeScore}</span>
+      <span className={`absolute font-bold tracking-tight ${size === "lg" ? "text-3xl" : "text-base"} ${safeScore >= 9 ? "text-amber-300" : safeScore >= 7 ? "text-amber-200/90" : safeScore >= 5 ? "text-yellow-300/90" : "text-orange-300/90"}`}>{safeScore}</span>
     </div>
   );
 }
@@ -153,15 +163,16 @@ function ScoreBar({ label, score, explanation, recommendation, lang }: { label: 
       </div>
     );
   }
-  const color = score >= 9 ? "bg-amber-400" : score >= 7 ? "bg-primary" : score >= 5 ? "bg-yellow-400" : "bg-orange-400";
+  const barGradient = score >= 9 ? "from-amber-400 to-amber-500" : score >= 7 ? "from-amber-600/80 to-amber-500/80" : score >= 5 ? "from-yellow-500/70 to-yellow-400/70" : "from-orange-500/70 to-orange-400/70";
+  const scoreColor = score >= 9 ? "text-amber-300" : score >= 7 ? "text-amber-200/90" : score >= 5 ? "text-yellow-300/90" : "text-orange-300/90";
   return (
     <div>
       <div className="flex items-center gap-4">
-        <span className={`text-sm text-muted-foreground w-40 shrink-0 ${lang === "he" ? "text-right" : "text-left"}`}>{label}</span>
-        <div className="flex-1 h-2.5 rounded-full bg-white/5 overflow-hidden">
-          <div className={`h-full rounded-full ${color} transition-all duration-1000`} style={{ width: `${score * 10}%` }} />
+        <span className={`text-[11px] text-muted-foreground/80 w-40 shrink-0 ${lang === "he" ? "text-right" : "text-left"}`}>{label}</span>
+        <div className="flex-1 h-[6px] rounded-full bg-white/[0.04] overflow-hidden">
+          <div className={`h-full rounded-full bg-gradient-to-r ${barGradient} transition-all duration-1000`} style={{ width: `${score * 10}%` }} />
         </div>
-        <span className="text-sm font-bold w-10">{score}/10</span>
+        <span className={`text-xs font-bold w-10 ${scoreColor}`}>{score}/10</span>
       </div>
       {explanation && (
         <p className={`text-xs text-muted-foreground/70 mt-1.5 ${lang === "he" ? "mr-44" : "ml-44"} leading-relaxed`}>{explanation}</p>
@@ -744,61 +755,64 @@ function StoryCardsContainer({
 
   return (
     <div className="space-y-4">
-      {/* Instagram-style progress bar */}
-      <div className="flex gap-1 px-3">
+      {/* Studio-style progress segments — elegant gold thread */}
+      <div className="flex gap-1.5 px-4">
         {validChildren.map((_, i) => (
-          <div key={i} className="flex-1 h-[3px] rounded-full overflow-hidden bg-white/10">
+          <div key={i} className="flex-1 h-[2px] rounded-full overflow-hidden bg-white/[0.06]">
             <div
-              className="h-full rounded-full transition-all duration-300"
+              className="h-full rounded-full transition-all duration-500 ease-out"
               style={{
                 width: i < activeIndex ? "100%" : i === activeIndex ? "100%" : "0%",
-                backgroundColor: i <= activeIndex ? "var(--primary)" : "transparent",
-                opacity: i === activeIndex ? 1 : 0.6,
+                background: i <= activeIndex ? "linear-gradient(90deg, #c8a44e, #e8c86e)" : "transparent",
+                opacity: i === activeIndex ? 1 : 0.5,
               }}
             />
           </div>
         ))}
       </div>
 
-      {/* Tab bar — compact with overflow menu */}
-      <div className="flex gap-1.5 px-2 pb-1 items-center justify-center flex-wrap">
+      {/* Tab bar — studio-themed elegant tabs */}
+      <div className="flex gap-2 px-3 pb-1 items-center justify-center flex-wrap">
         {visibleLabels.map((label, i) => (
           <button
             key={i}
             onClick={() => { goToIndex(i); setShowOverflow(false); }}
-            className={`flex items-center gap-1 px-2.5 py-2 rounded-full text-[11px] font-semibold transition-all duration-200 flex-shrink-0 ${
+            className={`group relative flex items-center gap-1.5 px-4 py-2.5 text-[11px] font-semibold transition-all duration-300 flex-shrink-0 border ${
               activeIndex === i
-                ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-105"
-                : "bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-foreground"
+                ? "bg-gradient-to-b from-amber-900/30 to-amber-950/20 text-amber-300 border-amber-500/40 shadow-[0_0_12px_rgba(200,164,78,0.15)] rounded-lg"
+                : "bg-white/[0.02] text-muted-foreground border-white/[0.06] hover:border-white/15 hover:text-foreground hover:bg-white/[0.04] rounded-lg"
             }`}
           >
-            <span>{cardIcons[i]}</span>
-            <span className="truncate max-w-[60px]">{label}</span>
+            {activeIndex === i && (
+              <span className="absolute -top-px inset-x-2 h-[2px] bg-gradient-to-r from-transparent via-amber-400/70 to-transparent rounded-full" />
+            )}
+            <span className={`transition-transform duration-200 ${activeIndex === i ? 'scale-110' : 'group-hover:scale-105'}`}>{cardIcons[i]}</span>
+            <span className="truncate max-w-[70px]">{label}</span>
           </button>
         ))}
         {hasOverflow && (
           <div className="relative">
             <button
               onClick={() => setShowOverflow(!showOverflow)}
-              className={`flex items-center justify-center w-9 h-9 rounded-full text-sm font-bold transition-all duration-200 ${
+              className={`flex items-center justify-center w-10 h-10 rounded-lg text-sm font-bold transition-all duration-300 border ${
                 activeIndex >= VISIBLE_TABS
-                  ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
-                  : "bg-white/5 text-muted-foreground hover:bg-white/10"
+                  ? "bg-gradient-to-b from-amber-900/30 to-amber-950/20 text-amber-300 border-amber-500/40 shadow-[0_0_12px_rgba(200,164,78,0.15)]"
+                  : "bg-white/[0.02] text-muted-foreground border-white/[0.06] hover:border-white/15 hover:bg-white/[0.04]"
               }`}
             >
               •••
             </button>
             {showOverflow && (
-              <div className={`absolute top-full mt-1 ${dir === "rtl" ? "left-0" : "right-0"} z-50 bg-card border border-white/10 rounded-xl shadow-xl py-1 min-w-[140px]`}>
+              <div className={`absolute top-full mt-2 ${dir === "rtl" ? "left-0" : "right-0"} z-50 bg-gradient-to-b from-neutral-900 to-neutral-950 border border-amber-500/10 rounded-xl shadow-2xl shadow-black/40 py-1.5 min-w-[160px] backdrop-blur-sm`}>
                 {overflowLabels.map((label, i) => {
                   const realIndex = VISIBLE_TABS + i;
                   return (
                     <button
                       key={realIndex}
                       onClick={() => { goToIndex(realIndex); setShowOverflow(false); }}
-                      className={`w-full flex items-center gap-2 px-3 py-2.5 text-xs font-medium transition-colors ${
+                      className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-medium transition-all duration-200 ${
                         activeIndex === realIndex
-                          ? "text-primary bg-primary/10"
+                          ? "text-amber-300 bg-amber-500/10"
                           : "text-muted-foreground hover:text-foreground hover:bg-white/5"
                       }`}
                     >
@@ -1099,7 +1113,7 @@ export default function GuestReview() {
               "bg-orange-500/10 text-orange-400";
 
             return (
-              <AccordionItem key={i} value={`item-${i}`} className="border border-white/5 rounded-xl bg-card/50 px-4 overflow-hidden">
+              <AccordionItem key={i} value={`item-${i}`} className="border border-amber-500/8 rounded-xl bg-white/[0.02] px-4 overflow-hidden hover:bg-white/[0.03] transition-colors">
                 <AccordionTrigger className="hover:no-underline py-3">
                   <div className="flex items-center gap-3 flex-1">
                     <span className="text-2xl">{item.icon}</span>
@@ -1112,7 +1126,7 @@ export default function GuestReview() {
                         <span className="text-[10px] text-muted-foreground/60">{item.brand}</span>
                       )}
                     </div>
-                    <span className={`text-lg font-bold ${scoreColor} shrink-0`}>{item.score}</span>
+                    <span className={`text-base font-bold tracking-tight shrink-0 ${item.score >= 9 ? 'text-amber-300' : item.score >= 7 ? 'text-amber-200/90' : item.score >= 5 ? 'text-yellow-300/90' : 'text-orange-300/90'}`}>{item.score}</span>
                   </div>
                 </AccordionTrigger>
                 <AccordionContent>
@@ -1161,7 +1175,7 @@ export default function GuestReview() {
       : null;
     storyCards.push(
       <div key="influencers" className="space-y-4">
-        <div className="p-5 rounded-2xl border border-white/10 bg-background">
+        <div className="p-5 rounded-2xl border border-amber-500/10 bg-gradient-to-b from-white/[0.03] to-transparent shadow-lg shadow-black/20">
           {/* Best matching influencer — hero style with large avatar */}
           {bestMatch ? (
             <div className="text-center mb-5">
@@ -1186,7 +1200,7 @@ export default function GuestReview() {
           ) : (
             <div className="flex items-center gap-2 mb-4">
               <Users className="w-5 h-5 text-primary" />
-              <h3 className="text-lg font-bold">{lang === "he" ? "תובנות משפיענים" : "Influencer Insights"}</h3>
+              <h3 className="text-base font-bold text-amber-100/90">{lang === "he" ? "תובנות משפיענים" : "Influencer Insights"}</h3>
             </div>
           )}
 
@@ -1348,7 +1362,7 @@ export default function GuestReview() {
         <div className="grid sm:grid-cols-2 gap-4">
           {analysis.trendSources.map((src, i) => (
             <a key={i} href={src.url} target="_blank" rel="noopener noreferrer"
-              className="group p-5 rounded-2xl border border-white/10 bg-background hover:border-primary/20 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300">
+              className="group p-5 rounded-2xl border border-amber-500/10 bg-gradient-to-b from-white/[0.03] to-transparent shadow-lg shadow-black/20 hover:border-amber-500/20 hover:shadow-xl hover:shadow-amber-500/5 transition-all duration-300">
               <div className="flex items-center gap-2 mb-2">
                 <TrendingUp className="w-4 h-4 text-primary" />
                 <span className="text-sm font-bold group-hover:text-primary transition-colors">{src.source}</span>
@@ -1365,7 +1379,7 @@ export default function GuestReview() {
         </div>
 
         {mentions.length > 0 && (
-          <div className="p-5 rounded-2xl border border-white/10 bg-background">
+          <div className="p-5 rounded-2xl border border-amber-500/10 bg-gradient-to-b from-white/[0.03] to-transparent shadow-lg shadow-black/20">
             <h3 className="text-sm font-bold mb-3 text-muted-foreground">{t("review", "mentionsLegend")}</h3>
             <div className="flex flex-wrap gap-2">
               {mentions.map((m, i) => {
@@ -1450,14 +1464,14 @@ export default function GuestReview() {
             HERO CARD — Always visible
             ═══════════════════════════════════════════ */}
         <section className="container max-w-2xl mx-auto mb-8">
-          <div className="rounded-2xl border border-white/10 bg-card overflow-hidden">
+          <div className="rounded-2xl border border-amber-500/10 bg-card overflow-hidden shadow-xl shadow-black/30">
             {/* Image + Score overlay */}
             <div className="relative">
               {result.imageUrl && (
                 <img loading="lazy" src={result.imageUrl} alt="Look" className="w-full max-h-[420px] object-contain bg-black/20" />
               )}
               <div className="absolute top-4 end-4">
-                <div className="bg-black/60 backdrop-blur-sm rounded-2xl p-2">
+                <div className="bg-black/70 backdrop-blur-xl rounded-2xl p-2 border border-amber-500/10">
                   <ScoreCircle score={analysis.overallScore} size="sm" />
                 </div>
               </div>
@@ -1468,18 +1482,18 @@ export default function GuestReview() {
               <div className="flex items-center gap-4">
                 <ScoreCircle score={analysis.overallScore} size="lg" />
                 <div className="flex-1">
-                  <p className="text-xl font-black">{analysis.overallScore}/10</p>
-                  <p className="text-sm text-muted-foreground">{scoreComment}</p>
+                  <p className="text-xl font-black text-amber-100 tracking-wide">{analysis.overallScore}/10</p>
+                  <p className="text-sm text-amber-400/70 font-medium">{scoreComment}</p>
                 </div>
               </div>
 
-              <p className="text-sm text-muted-foreground leading-relaxed">
+              <p className="text-sm text-muted-foreground/90 leading-relaxed tracking-wide">
                 <LinkedText text={analysis.summary} mentions={mentions} onInfluencerClick={handleInfluencerClick} />
               </p>
 
               {/* Detailed Scores — compact accordion */}
               {analysis.scores.length > 0 && (
-                <Accordion type="single" collapsible className="border border-white/5 rounded-xl overflow-hidden">
+                <Accordion type="single" collapsible className="border border-amber-500/8 rounded-xl overflow-hidden bg-white/[0.01]">
                   <AccordionItem value="scores" className="border-0">
                     <AccordionTrigger className="px-4 py-3 hover:no-underline">
                       <span className="text-sm font-bold">{t("review", "detailedScores")}</span>
@@ -1496,7 +1510,7 @@ export default function GuestReview() {
               )}
 
               {/* Delete action */}
-              <div className="flex items-center justify-between pt-2 border-t border-white/5">
+              <div className="flex items-center justify-between pt-2 border-t border-white/[0.04]">
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <button className="inline-flex items-center gap-1.5 text-xs text-muted-foreground/50 hover:text-destructive transition-colors">
