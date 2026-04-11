@@ -1022,3 +1022,10 @@
 - [x] 89.2: Auto-match 2-3 influencers via shared/influencerMatcher.ts (gender, country, style, budget)
 - [x] 89.3: Inspiration section in GuestReview with InfluencerAvatar, social logos (IG/Pinterest/TikTok), swap button
 - [x] 89.4: Swap button opens InfluencerPicker dialog for manual selection
+
+## Stage 90: Truly personalized analysis for onboarding users
+- [x] 90.1: Pass onboarding profile data via personalizationContext to guest.analyze procedure
+- [x] 90.2: Added personalizationPreamble to buildFashionPrompt with liked/disliked styles, preferred stores, personal language instructions (HE+EN)
+- [x] 90.3: Stage 2 catalog recommendations already use preferredStores + budgetLevel for filtering + normalizeImprovementShoppingLinks
+- [x] 90.4: Looks/outfits reflect tinder preferences via stylePreference in prompt + catalog style matching
+- [x] 90.5: 845/850 tests pass (5 pre-existing API failures)

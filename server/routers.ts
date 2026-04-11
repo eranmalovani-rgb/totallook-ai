@@ -1021,6 +1021,7 @@ export function buildFashionPrompt(
   lang: "he" | "en" = "he",
   tasteProfileText?: string | null,
   pastFeedbackText?: string | null,
+  personalizationContext?: { isPersonalized: boolean; likedStyles?: string[]; dislikedStyles?: string[]; preferredStores?: string[]; } | null,
 ): string {
   const isHebrew = lang === "he";
   const langLabel = isHebrew ? "Hebrew" : "English";
@@ -1178,10 +1179,31 @@ ${genderConstraint}`;
 
   const doctrineStage1 = getDoctrineForStage1();
 
+  // Build personalization preamble for users who completed onboarding
+  let personalizationPreamble = "";
+  if (personalizationContext?.isPersonalized) {
+    const liked = personalizationContext.likedStyles || [];
+    const disliked = personalizationContext.dislikedStyles || [];
+    const stores = personalizationContext.preferredStores || [];
+    if (isHebrew) {
+      personalizationPreamble = `\n\n🎯 ניתוח מותאם אישית — המשתמש עבר תהליך הכרות מלא:\n`;
+      if (liked.length > 0) personalizationPreamble += `הסגנונות שהמשתמש אהב: ${liked.join(", ")}\n`;
+      if (disliked.length > 0) personalizationPreamble += `הסגנונות שהמשתמש לא אהב: ${disliked.join(", ")}\n`;
+      if (stores.length > 0) personalizationPreamble += `החנויות המועדפות שבחר: ${stores.join(", ")}\n`;
+      personalizationPreamble += `\nהוראות קריטיות לניתוח מותאם אישית:\n- פתח את הסיכום בהתייחסות אישית: "בהתבסס על הסגנון שבחרת..." או "אני רואה שאתה נמשך לסגנון X, ובלוק הזה..."\n- כשמנתח כל פריט, ציין איך הוא מתחבר (או לא) לסגנונות שהמשתמש אהב\n- הצעות שדרוג חייבות להתבסס על החנויות שבחר ועל הסגנון שאהב\n- אם פריט מסוים לא מתאים לסגנון שהמשתמש בחר, ציין זאת בעדינות והצע חלופה מתאימה\n- השתמש בשפה אישית ומותאמת — "כמי שאוהב סגנון X" במקום "הלוק הזה"\n- הציונים צריכים לשקף גם את ההתאמה לסגנון האישי שנבחר, לא רק כללי אופנה\n- כל הצעת שדרוג חייבת לכלול חנות ספציפית מהרשימה שבחר\n`;
+    } else {
+      personalizationPreamble = `\n\n🎯 PERSONALIZED ANALYSIS — This user completed a full style discovery process:\n`;
+      if (liked.length > 0) personalizationPreamble += `Styles the user loved: ${liked.join(", ")}\n`;
+      if (disliked.length > 0) personalizationPreamble += `Styles the user disliked: ${disliked.join(", ")}\n`;
+      if (stores.length > 0) personalizationPreamble += `Preferred stores: ${stores.join(", ")}\n`;
+      personalizationPreamble += `\nCRITICAL PERSONALIZED ANALYSIS INSTRUCTIONS:\n- Open the summary with a personal reference: "Based on your style preferences..." or "I can see you're drawn to X style, and in this look..."\n- When analyzing each item, mention how it connects (or doesn't) to the styles the user loved\n- Upgrade suggestions MUST reference the user's preferred stores and loved styles\n- If an item doesn't match the user's chosen style, gently note it and suggest an alternative that fits\n- Use personal language — "as someone who loves X style" instead of generic phrasing\n- Scores should reflect fit with the user's personal style, not just general fashion rules\n- Every upgrade suggestion MUST include a specific store from their preferred list\n`;
+    }
+  }
+
   return `You are an elite fashion consultant and stylist with encyclopedic knowledge of fashion houses, designers, and current 2025-2026 trends. Analyze the outfit in this image and provide a comprehensive, personalized fashion review in ${langLabel}.
 
 ${doctrineStage1}
-
+${personalizationPreamble}
 ${tasteProfileText ? tasteProfileText + "\n\n" : ""}${pastFeedbackText ? pastFeedbackText + "\n\n" : ""}METHODOLOGY: Scan head-to-toe systematically. For each item: identify specific material/fabric, precise color shade, fit/silhouette, construction details. Then identify brands from visual evidence. Finally evaluate styling coherence using the Fashion Doctrine principles above.
 
 BRAND IDENTIFICATION: Use confidence levels — HIGH (logo visible), MEDIUM (strong visual cues, use hedging: "כפי הנראה"/"appears to be"), LOW (educated guess). Item "name" field stays generic (no brand). A wrong confident ID is worse than no ID.
@@ -5682,6 +5704,14 @@ Return ONLY a JSON object with these exact fields:
           } : null;
 
 
+          // Build personalization context if user completed onboarding
+          const personalizationCtx = guestProfile?.onboardingCompleted ? {
+            isPersonalized: true,
+            likedStyles: guestProfile.stylePreference ? guestProfile.stylePreference.split(", ").filter(Boolean) : [],
+            dislikedStyles: [] as string[], // Disliked styles not stored separately, but style preference already reflects likes
+            preferredStores: guestProfile.preferredStores ? guestProfile.preferredStores.split(", ").filter(Boolean) : [],
+          } : null;
+
           const prompt = buildFashionPrompt(
             guestProfile?.favoriteInfluencers || undefined,
             guestProfile?.stylePreference || undefined,
@@ -5689,6 +5719,9 @@ Return ONLY a JSON object with these exact fields:
             profileForPrompt,
             wardrobeForPrompt,
             input.lang,
+            undefined, // tasteProfileText
+            undefined, // pastFeedbackText
+            personalizationCtx,
           );
 
           // Stage 1: core analysis + identification (image-based)
