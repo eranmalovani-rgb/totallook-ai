@@ -918,3 +918,12 @@
 - [x] 78.7: Save profile via existing tRPC profile.save mutation (quick finish + full finish paths)
 - [ ] 78.8: Apply to guest flow (future — currently regular Onboarding.tsx only)
 - [x] 78.9: Dark theme + amber/gold + studio aesthetic + RTL + mobile-first + dot progress indicators
+
+## Stage 79: Revamp Onboarding — Remove Gender/Age, Add Tinder Swipe
+- [x] 79.1: Remove gender selection screen (Screen 1) — will detect from photo later
+- [x] 79.2: Remove age selection screen (Screen 4) — will detect from photo later
+- [x] 79.3: Generate 6 gender-neutral outfit character images for Tinder screen
+- [x] 79.4: Add Tinder-style swipe screen with 6 outfits (swipe right = like, left = pass)
+- [x] 79.5: New flow: Style → Venue → Tinder (6 outfits) → Quick Finish
+- [x] 79.6: Map Tinder likes to style preferences in profile
+- [x] 79.7: Test all screens and verify profile save works (6/6 vitest pass)

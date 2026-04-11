@@ -81,24 +81,36 @@ describe("Onboarding profile.save procedure", () => {
     ).rejects.toThrow();
   });
 
-  it("accepts Phase A quick-finish fields (gender, age, style, onboardingCompleted)", async () => {
+  it("accepts Phase A quick-finish fields (no gender/age, tinder-derived style)", async () => {
     const { ctx } = createAuthContext();
     const caller = appRouter.createCaller(ctx);
 
-    // This simulates the "Quick Finish" path from Phase A
+    // New flow: Quick Finish after Tinder — no gender or age, just style + occupation from visual choices
     const result = await caller.profile.save({
-      gender: "female",
-      ageRange: "25-34",
       occupation: "creative",
-      stylePreference: "streetwear, smart-casual",
+      stylePreference: "classic, minimalist, streetwear",
       saveToWardrobe: true,
       onboardingCompleted: true,
       country: "IL",
     });
 
     expect(result).toBeDefined();
-    // The mutation should return an object (the upserted profile)
     expect(typeof result).toBe("object");
+  });
+
+  it("accepts Phase A quick-finish with zero likes (empty style)", async () => {
+    const { ctx } = createAuthContext();
+    const caller = appRouter.createCaller(ctx);
+
+    // User swiped left on everything — still valid, style derived from silhouette choice
+    const result = await caller.profile.save({
+      occupation: "freelance",
+      stylePreference: "streetwear, smart-casual",
+      saveToWardrobe: true,
+      onboardingCompleted: true,
+    });
+
+    expect(result).toBeDefined();
   });
 
   it("accepts full Phase B fields (all profile data)", async () => {
@@ -122,12 +134,13 @@ describe("Onboarding profile.save procedure", () => {
     expect(typeof result).toBe("object");
   });
 
-  it("accepts minimal fields (only gender)", async () => {
+  it("accepts minimal fields (empty save)", async () => {
     const { ctx } = createAuthContext();
     const caller = appRouter.createCaller(ctx);
 
+    // Minimal save — no fields at all, just marking onboarding
     const result = await caller.profile.save({
-      gender: "female",
+      onboardingCompleted: true,
     });
 
     expect(result).toBeDefined();

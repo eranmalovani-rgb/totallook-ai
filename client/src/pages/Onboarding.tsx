@@ -1,10 +1,10 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import WhatsAppOnboardingModal from "@/components/WhatsAppOnboardingModal";
 import { useLocation } from "wouter";
-import { Sparkles, ChevronLeft, ChevronRight, Store, MapPin, Globe, MessageCircle, Check } from "lucide-react";
+import { Sparkles, ChevronLeft, ChevronRight, Store, MapPin, Globe, MessageCircle, Check, Heart, X, ThumbsUp, ThumbsDown } from "lucide-react";
 import FashionSpinner, { FashionButtonSpinner } from "@/components/FashionSpinner";
 import StoreLogo from "@/components/StoreLogo";
 import { toast } from "sonner";
@@ -44,27 +44,72 @@ const ATMOSPHERE_IMAGES = {
 } as const;
 
 /* ═══════════════════════════════════════════════════════
-   Phase A = visual intro (4 screens)
+   Tinder outfit cards data — gender-neutral
+   ═══════════════════════════════════════════════════════ */
+const TINDER_OUTFITS = [
+  {
+    id: "streetwear",
+    image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/tinder-outfit-1-streetwear-Q3kCijXmT6HPiBdFJSCiPZ.webp",
+    label: { he: "סטריטוור", en: "Streetwear" },
+    styleTags: ["streetwear", "smart-casual"],
+  },
+  {
+    id: "smart-casual",
+    image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/tinder-outfit-2-smartcasual-bDfRm8HYjtbdg8vsdRyp3Y.webp",
+    label: { he: "סמארט קז'ואל", en: "Smart Casual" },
+    styleTags: ["smart-casual", "classic"],
+  },
+  {
+    id: "classic",
+    image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/tinder-outfit-3-classic-PyACqETcKvWTww3AWVcCwu.webp",
+    label: { he: "קלאסי", en: "Classic" },
+    styleTags: ["classic", "minimalist"],
+  },
+  {
+    id: "boho",
+    image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/tinder-outfit-4-boho-CjMBTzNDhhetykDxjTKgQf.webp",
+    label: { he: "בוהו", en: "Boho" },
+    styleTags: ["boho", "vintage"],
+  },
+  {
+    id: "minimalist",
+    image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/tinder-outfit-5-minimalist-U6WZ4ZpJyJ7P2RmCABRMzQ.webp",
+    label: { he: "מינימליסטי", en: "Minimalist" },
+    styleTags: ["minimalist", "classic"],
+  },
+  {
+    id: "athleisure",
+    image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/tinder-outfit-6-athleisure-kMkx3BjdFratffLMVocVnd.webp",
+    label: { he: "אתלי'זר", en: "Athleisure" },
+    styleTags: ["sporty", "streetwear"],
+  },
+] as const;
+
+/* ═══════════════════════════════════════════════════════
+   Phase A = visual intro (3 screens: style → venue → tinder)
    Phase B = existing detailed steps (occupation, budget, style, stores, influencers)
    ═══════════════════════════════════════════════════════ */
-const PHASE_A_STEPS = 4;
+const PHASE_A_STEPS = 3;
 const PHASE_B_STEPS = 5;
-const TOTAL_STEPS = PHASE_A_STEPS + PHASE_B_STEPS;
 
 export default function Onboarding() {
   const { user, isAuthenticated, loading: authLoading } = useAuth({ redirectOnUnauthenticated: true });
   const [, navigate] = useLocation();
-  const [step, setStep] = useState(1); // 1-4 = Phase A, 5-9 = Phase B
+  const [step, setStep] = useState(1); // 1-3 = Phase A, 4-8 = Phase B
   const [saving, setSaving] = useState(false);
   const { t, dir, lang } = useLanguage();
 
   /* ── Phase A state ── */
-  const [gender, setGender] = useState("");
   const [selectedStyle, setSelectedStyle] = useState(""); // casual | elegant | sporty
   const [selectedVenue, setSelectedVenue] = useState(""); // office | bar | beach | event
-  const [ageRange, setAgeRange] = useState("");
+  const [tinderLikes, setTinderLikes] = useState<string[]>([]);
+  const [tinderIndex, setTinderIndex] = useState(0);
+  const [swipeDirection, setSwipeDirection] = useState<"left" | "right" | null>(null);
+  const [tinderDone, setTinderDone] = useState(false);
 
   /* ── Phase B state ── */
+  const [gender, setGender] = useState(""); // kept for Phase B but not asked in Phase A
+  const [ageRange, setAgeRange] = useState("");
   const [occupation, setOccupation] = useState("");
   const [budgetLevel, setBudgetLevel] = useState("");
   const [stylePreferences, setStylePreferences] = useState<string[]>([]);
@@ -167,13 +212,69 @@ export default function Onboarding() {
     }
   }, []);
 
+  /* ── Tinder: derive style tags from likes ── */
+  const derivedStyleFromTinder = useMemo(() => {
+    const tagCounts: Record<string, number> = {};
+    tinderLikes.forEach(likedId => {
+      const outfit = TINDER_OUTFITS.find(o => o.id === likedId);
+      outfit?.styleTags.forEach(tag => {
+        tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+      });
+    });
+    // Return top tags sorted by count
+    return Object.entries(tagCounts)
+      .sort((a, b) => b[1] - a[1])
+      .map(([tag]) => tag);
+  }, [tinderLikes]);
+
+  /* ── Tinder swipe handler ── */
+  const handleSwipe = useCallback((direction: "left" | "right") => {
+    const currentOutfit = TINDER_OUTFITS[tinderIndex];
+    if (!currentOutfit) return;
+
+    setSwipeDirection(direction);
+
+    if (direction === "right") {
+      setTinderLikes(prev => [...prev, currentOutfit.id]);
+    }
+
+    setTimeout(() => {
+      setSwipeDirection(null);
+      if (tinderIndex < TINDER_OUTFITS.length - 1) {
+        setTinderIndex(prev => prev + 1);
+      } else {
+        setTinderDone(true);
+      }
+    }, 350);
+  }, [tinderIndex]);
+
+  /* ── Touch swipe support for mobile ── */
+  const touchStartX = useRef(0);
+  const touchStartY = useRef(0);
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    const deltaX = e.changedTouches[0].clientX - touchStartX.current;
+    const deltaY = e.changedTouches[0].clientY - touchStartY.current;
+    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 60) {
+      handleSwipe(deltaX > 0 ? "right" : "left");
+    }
+  }, [handleSwipe]);
+
   const handleFinish = async () => {
     setSaving(true);
     setSaveError(null);
     try {
-      // Merge Phase A visual choices into profile fields
+      // Merge Phase A visual choices + Tinder likes into profile fields
       const mergedStylePrefs = stylePreferences.length > 0
         ? stylePreferences
+        : derivedStyleFromTinder.length > 0
+        ? derivedStyleFromTinder
         : mapStyleToPreferences(selectedStyle);
       const mergedOccupation = occupation || mapVenueToOccupation(selectedVenue);
 
@@ -209,12 +310,12 @@ export default function Onboarding() {
     setSaving(true);
     setSaveError(null);
     try {
-      const mergedStylePrefs = mapStyleToPreferences(selectedStyle);
+      const mergedStylePrefs = derivedStyleFromTinder.length > 0
+        ? derivedStyleFromTinder
+        : mapStyleToPreferences(selectedStyle);
       const mergedOccupation = mapVenueToOccupation(selectedVenue);
 
       await saveProfileMutation.mutateAsync({
-        ageRange: ageRange || undefined,
-        gender: gender || undefined,
         occupation: mergedOccupation || undefined,
         stylePreference: mergedStylePrefs.length > 0 ? mergedStylePrefs.join(", ") : undefined,
         saveToWardrobe: true,
@@ -230,15 +331,14 @@ export default function Onboarding() {
 
   const canGoNext = () => {
     switch (step) {
-      case 1: return !!gender;                       // Phase A: gender
-      case 2: return !!selectedStyle;                 // Phase A: style silhouette
-      case 3: return !!selectedVenue;                 // Phase A: venue
-      case 4: return !!ageRange;                      // Phase A: age
-      case 5: return !!occupation && !!budgetLevel;   // Phase B: occupation + budget
-      case 6: return stylePreferences.length > 0;     // Phase B: style
-      case 7: return true;                            // Phase B: stores (optional)
-      case 8: return true;                            // Phase B: social (optional)
-      case 9: return true;                            // Phase B: influencers (optional)
+      case 1: return !!selectedStyle;                 // Phase A: style silhouette
+      case 2: return !!selectedVenue;                 // Phase A: venue
+      case 3: return tinderDone;                      // Phase A: tinder done
+      case 4: return !!occupation && !!budgetLevel;   // Phase B: occupation + budget
+      case 5: return stylePreferences.length > 0;     // Phase B: style
+      case 6: return true;                            // Phase B: stores (optional)
+      case 7: return true;                            // Phase B: social (optional)
+      case 8: return true;                            // Phase B: influencers (optional)
       default: return false;
     }
   };
@@ -292,30 +392,30 @@ export default function Onboarding() {
      Stylist reaction messages
      ═══════════════════════════════════════════════════════ */
   const getStylistReaction = () => {
-    if (step === 2 && gender) {
-      const genderLabel = gender === "female"
-        ? (lang === "he" ? "מעולה!" : "Great!")
-        : (lang === "he" ? "יופי!" : "Nice!");
-      return genderLabel;
-    }
-    if (step === 3 && selectedStyle) {
+    if (step === 2 && selectedStyle) {
       const styleReactions: Record<string, { he: string; en: string }> = {
-        casual: { he: "אוהבת נוחות? אני כבר רואה את הכיוון", en: "Love comfort? I see the direction" },
-        elegant: { he: "קלאסית. יש לי רעיונות בשבילך", en: "Classic. I have ideas for you" },
-        sporty: { he: "אנרגטית! בואי נמצא את הלוק המושלם", en: "Energetic! Let's find the perfect look" },
+        casual: { he: "אוהב/ת נוחות? אני כבר רואה את הכיוון", en: "Love comfort? I see the direction" },
+        elegant: { he: "קלאסי. יש לי רעיונות בשבילך", en: "Classic. I have ideas for you" },
+        sporty: { he: "אנרגטי! בואו נמצא את הלוק המושלם", en: "Energetic! Let's find the perfect look" },
       };
       const r = styleReactions[selectedStyle];
       return r ? r[lang] || r.en : "";
     }
-    if (step === 4 && selectedVenue) {
-      const venueReactions: Record<string, { he: string; en: string }> = {
-        office: { he: "אופיס שיק — אני יודעת בדיוק מה צריך", en: "Office chic — I know exactly what you need" },
-        bar: { he: "ערב בחוץ? בואי נדאג שתבלטי", en: "Night out? Let's make sure you stand out" },
-        beach: { he: "וייב חופשי — יש לי כמה רעיונות", en: "Free vibes — I have some ideas" },
-        event: { he: "אירוע? הולכים על WOW", en: "Event? Going for WOW" },
-      };
-      const r = venueReactions[selectedVenue];
-      return r ? r[lang] || r.en : "";
+    if (step === 3) {
+      if (!tinderDone) {
+        const venueReactions: Record<string, { he: string; en: string }> = {
+          office: { he: "אופיס שיק — עכשיו בואו נראה מה מדבר אליך", en: "Office chic — now let's see what speaks to you" },
+          bar: { he: "ערב בחוץ? בואו נראה מה הסגנון שלך", en: "Night out? Let's see your style" },
+          beach: { he: "וייב חופשי — עכשיו סוויפ!", en: "Free vibes — now swipe!" },
+          event: { he: "אירוע? הולכים על WOW — סוויפ!", en: "Event? Going for WOW — swipe!" },
+        };
+        const r = venueReactions[selectedVenue];
+        return r ? r[lang] || r.en : "";
+      }
+      const likeCount = tinderLikes.length;
+      if (likeCount === 0) return lang === "he" ? "מעניין... סגנון ייחודי!" : "Interesting... unique style!";
+      if (likeCount <= 2) return lang === "he" ? "סלקטיבי! אני אוהבת את זה" : "Selective! I love it";
+      return lang === "he" ? "יש לך טעם מעולה!" : "You have great taste!";
     }
     return "";
   };
@@ -336,7 +436,7 @@ export default function Onboarding() {
       <div className="fixed top-0 left-0 right-0 z-50">
         {isPhaseA ? (
           <div className="flex items-center justify-center gap-2 pt-6 pb-2">
-            {[1, 2, 3, 4].map(i => (
+            {[1, 2, 3].map(i => (
               <div
                 key={i}
                 className={`rounded-full transition-all duration-500 ${
@@ -363,10 +463,10 @@ export default function Onboarding() {
         <div className={`w-full ${isPhaseA ? "max-w-md" : "max-w-lg"}`}>
 
           {/* ═══════════════════════════════════════════
-              PHASE A — Visual Intro (4 screens)
+              PHASE A — Visual Intro (3 screens)
               ═══════════════════════════════════════════ */}
 
-          {/* ── Screen 1: Gender ── */}
+          {/* ── Screen 1: Style Silhouette (was Screen 2, now first) ── */}
           {step === 1 && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 text-center">
               <div className="mb-2">
@@ -381,70 +481,18 @@ export default function Onboarding() {
                 {lang === "he" ? "הסטייליסטית שלך רוצה להכיר אותך" : "Your stylist wants to get to know you"}
               </p>
               <p className="text-muted-foreground text-sm mb-8">
-                {lang === "he" ? "4 שאלות קצרות — בלי טקסט, רק טאפ" : "4 quick questions — no typing, just tap"}
+                {lang === "he" ? "3 שאלות קצרות — בלי טקסט, רק טאפ" : "3 quick questions — no typing, just tap"}
               </p>
 
-              <p className="text-sm text-muted-foreground mb-4">
-                {lang === "he" ? "מי את/ה?" : "Who are you?"}
-              </p>
-              <div className="grid grid-cols-3 gap-4">
-                {GENDER_OPTIONS.map(opt => {
-                  const isSelected = gender === opt.id;
-                  return (
-                    <button
-                      key={opt.id}
-                      onClick={() => {
-                        setGender(opt.id);
-                        // Auto-advance after 400ms
-                        setTimeout(() => setStep(2), 400);
-                      }}
-                      className={`relative p-5 rounded-2xl border-2 text-center transition-all duration-300 ${
-                        isSelected
-                          ? "border-primary bg-primary/10 scale-105 shadow-lg shadow-primary/20"
-                          : "border-white/10 bg-card hover:border-primary/30 hover:scale-102"
-                      }`}
-                    >
-                      {isSelected && (
-                        <div className="absolute -top-2 -right-2 w-6 h-6 bg-primary rounded-full flex items-center justify-center">
-                          <Check className="w-3.5 h-3.5 text-primary-foreground" />
-                        </div>
-                      )}
-                      <span className="text-3xl block mb-2">
-                        {opt.id === "male" ? "👨" : opt.id === "female" ? "👩" : "🧑"}
-                      </span>
-                      <span className="text-sm font-medium">{getGenderLabel(opt.id)}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* ── Screen 2: Style Silhouette ── */}
-          {step === 2 && (
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 text-center">
-              {/* Stylist reaction */}
-              {getStylistReaction() && (
-                <div className="mb-4 animate-in fade-in duration-300">
-                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20">
-                    <Sparkles className="w-3.5 h-3.5 text-primary" />
-                    <span className="text-sm text-primary">{getStylistReaction()}</span>
-                  </div>
-                </div>
-              )}
-
-              <h2 className="text-2xl md:text-3xl font-bold mb-2">
+              <h2 className="text-lg font-semibold mb-4">
                 {lang === "he" ? "מה הסגנון שלך?" : "What's your style?"}
               </h2>
-              <p className="text-muted-foreground text-sm mb-6">
-                {lang === "he" ? "בחר/י את מה שהכי מתאר אותך" : "Pick what describes you best"}
-              </p>
 
               <div className="grid grid-cols-3 gap-3">
                 {(["casual", "elegant", "sporty"] as const).map(style => {
                   const isSelected = selectedStyle === style;
-                  const genderKey = gender === "male" ? "male" : "female";
-                  const imgUrl = SILHOUETTES[genderKey][style];
+                  // Use female silhouettes as default (gender-neutral look)
+                  const imgUrl = SILHOUETTES.female[style];
                   const labels: Record<string, { he: string; en: string }> = {
                     casual: { he: "קז'ואל", en: "Casual" },
                     elegant: { he: "אלגנטי", en: "Elegant" },
@@ -455,7 +503,7 @@ export default function Onboarding() {
                       key={style}
                       onClick={() => {
                         setSelectedStyle(style);
-                        setTimeout(() => setStep(3), 500);
+                        setTimeout(() => setStep(2), 500);
                       }}
                       className={`relative rounded-2xl border-2 overflow-hidden transition-all duration-300 ${
                         isSelected
@@ -475,7 +523,6 @@ export default function Onboarding() {
                           className="w-full h-full object-cover"
                           loading="eager"
                         />
-                        {/* Gradient overlay at bottom */}
                         <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/80 to-transparent" />
                         <span className="absolute bottom-2 inset-x-0 text-center text-sm font-bold text-white">
                           {labels[style]?.[lang] || labels[style]?.en}
@@ -488,8 +535,8 @@ export default function Onboarding() {
             </div>
           )}
 
-          {/* ── Screen 3: Venue / Atmosphere ── */}
-          {step === 3 && (
+          {/* ── Screen 2: Venue / Atmosphere ── */}
+          {step === 2 && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 text-center">
               {/* Stylist reaction */}
               {getStylistReaction() && (
@@ -529,7 +576,7 @@ export default function Onboarding() {
                       key={venue}
                       onClick={() => {
                         setSelectedVenue(venue);
-                        setTimeout(() => setStep(4), 500);
+                        setTimeout(() => setStep(3), 500);
                       }}
                       className={`relative rounded-2xl border-2 overflow-hidden transition-all duration-300 ${
                         isSelected
@@ -564,8 +611,8 @@ export default function Onboarding() {
             </div>
           )}
 
-          {/* ── Screen 4: Age + Quick Finish ── */}
-          {step === 4 && (
+          {/* ── Screen 3: Tinder Swipe ── */}
+          {step === 3 && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 text-center">
               {/* Stylist reaction */}
               {getStylistReaction() && (
@@ -577,35 +624,127 @@ export default function Onboarding() {
                 </div>
               )}
 
-              <h2 className="text-2xl md:text-3xl font-bold mb-2">
-                {lang === "he" ? "ושאלה אחרונה..." : "One last thing..."}
-              </h2>
-              <p className="text-muted-foreground text-sm mb-6">
-                {lang === "he" ? "כדי שהניתוח יתאים בדיוק לגיל שלך" : "So the analysis fits your age perfectly"}
-              </p>
+              {!tinderDone ? (
+                <>
+                  <h2 className="text-2xl md:text-3xl font-bold mb-1">
+                    {lang === "he" ? "מה מדבר אליך?" : "What speaks to you?"}
+                  </h2>
+                  <p className="text-muted-foreground text-sm mb-4">
+                    {lang === "he"
+                      ? `סוויפ ימינה = אוהב/ת ❤️ | שמאלה = לא בשבילי ✕  (${tinderIndex + 1}/${TINDER_OUTFITS.length})`
+                      : `Swipe right = love ❤️ | left = nope ✕  (${tinderIndex + 1}/${TINDER_OUTFITS.length})`}
+                  </p>
 
-              <div className="grid grid-cols-3 gap-3 mb-8">
-                {AGE_RANGES.map(opt => {
-                  const isSelected = ageRange === opt.id;
-                  return (
-                    <button
-                      key={opt.id}
-                      onClick={() => setAgeRange(opt.id)}
-                      className={`p-4 rounded-2xl border-2 text-center transition-all duration-200 ${
-                        isSelected
-                          ? "border-primary bg-primary/10 shadow-lg shadow-primary/20"
-                          : "border-white/10 bg-card hover:border-primary/30"
+                  {/* Tinder Card */}
+                  <div className="relative mx-auto" style={{ maxWidth: 320 }}>
+                    <div
+                      ref={cardRef}
+                      onTouchStart={handleTouchStart}
+                      onTouchEnd={handleTouchEnd}
+                      className={`relative rounded-3xl overflow-hidden border-2 border-white/10 shadow-2xl transition-all duration-300 ${
+                        swipeDirection === "right"
+                          ? "translate-x-[120%] rotate-12 opacity-0"
+                          : swipeDirection === "left"
+                          ? "-translate-x-[120%] -rotate-12 opacity-0"
+                          : ""
                       }`}
                     >
-                      <span className="text-lg font-bold">{opt.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
+                      {/* Like/Nope overlays */}
+                      {swipeDirection === "right" && (
+                        <div className="absolute inset-0 z-20 flex items-center justify-center bg-green-500/20">
+                          <div className="border-4 border-green-400 text-green-400 px-6 py-2 rounded-xl text-3xl font-black rotate-[-20deg]">
+                            LIKE
+                          </div>
+                        </div>
+                      )}
+                      {swipeDirection === "left" && (
+                        <div className="absolute inset-0 z-20 flex items-center justify-center bg-red-500/20">
+                          <div className="border-4 border-red-400 text-red-400 px-6 py-2 rounded-xl text-3xl font-black rotate-[20deg]">
+                            NOPE
+                          </div>
+                        </div>
+                      )}
 
-              {/* Terms consent */}
-              {ageRange && (
-                <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                      <div className="aspect-[3/4] relative">
+                        <img
+                          src={TINDER_OUTFITS[tinderIndex].image}
+                          alt={TINDER_OUTFITS[tinderIndex].label.en}
+                          className="w-full h-full object-cover"
+                          loading="eager"
+                        />
+                        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/90 via-black/50 to-transparent" />
+                        <div className="absolute bottom-4 inset-x-0 text-center">
+                          <span className="text-xl font-bold text-white drop-shadow-lg">
+                            {TINDER_OUTFITS[tinderIndex].label[lang] || TINDER_OUTFITS[tinderIndex].label.en}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Swipe buttons */}
+                    <div className="flex items-center justify-center gap-8 mt-5">
+                      <button
+                        onClick={() => handleSwipe("left")}
+                        className="w-14 h-14 rounded-full border-2 border-red-400/50 bg-red-500/10 flex items-center justify-center hover:bg-red-500/20 hover:border-red-400 transition-all active:scale-90"
+                      >
+                        <X className="w-7 h-7 text-red-400" />
+                      </button>
+                      <button
+                        onClick={() => handleSwipe("right")}
+                        className="w-16 h-16 rounded-full border-2 border-green-400/50 bg-green-500/10 flex items-center justify-center hover:bg-green-500/20 hover:border-green-400 transition-all active:scale-90"
+                      >
+                        <Heart className="w-8 h-8 text-green-400" />
+                      </button>
+                    </div>
+
+                    {/* Progress dots */}
+                    <div className="flex items-center justify-center gap-1.5 mt-4">
+                      {TINDER_OUTFITS.map((_, i) => (
+                        <div
+                          key={i}
+                          className={`h-1 rounded-full transition-all duration-300 ${
+                            i < tinderIndex
+                              ? "w-4 bg-primary/60"
+                              : i === tinderIndex
+                              ? "w-6 bg-primary"
+                              : "w-3 bg-white/20"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                /* ── Tinder Done → Quick Finish CTA ── */
+                <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                  <div className="mb-6">
+                    <div className="text-5xl mb-3">✨</div>
+                    <h2 className="text-2xl md:text-3xl font-bold mb-2">
+                      {lang === "he" ? "מושלם!" : "Perfect!"}
+                    </h2>
+                    <p className="text-muted-foreground text-sm">
+                      {lang === "he"
+                        ? `אהבת ${tinderLikes.length} לוקים — הסטייליסטית שלך מוכנה`
+                        : `You liked ${tinderLikes.length} looks — your stylist is ready`}
+                    </p>
+                  </div>
+
+                  {/* Liked outfits mini preview */}
+                  {tinderLikes.length > 0 && (
+                    <div className="flex items-center justify-center gap-2 mb-6">
+                      {tinderLikes.map(likedId => {
+                        const outfit = TINDER_OUTFITS.find(o => o.id === likedId);
+                        if (!outfit) return null;
+                        return (
+                          <div key={likedId} className="w-12 h-16 rounded-lg overflow-hidden border border-primary/30">
+                            <img src={outfit.image} alt={outfit.label.en} className="w-full h-full object-cover" />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Terms consent */}
                   <label className="flex items-start gap-3 mb-6 cursor-pointer group justify-center text-center">
                     <input
                       type="checkbox"
@@ -633,11 +772,11 @@ export default function Onboarding() {
                       {saving ? (
                         <><FashionButtonSpinner /> {lang === "he" ? "שנייה..." : "One sec..."}</>
                       ) : (
-                        <><Sparkles className="w-5 h-5" /> {lang === "he" ? "יאללה, תראי לי ציון!" : "Show me my score!"}</>
+                        <><Sparkles className="w-5 h-5" /> {lang === "he" ? "יאללה, תראו לי ציון!" : "Show me my score!"}</>
                       )}
                     </Button>
                     <button
-                      onClick={() => setStep(5)}
+                      onClick={() => setStep(4)}
                       className="text-sm text-muted-foreground hover:text-primary transition-colors"
                     >
                       {lang === "he" ? "רוצה לדייק עוד? →" : "Want to fine-tune? →"}
@@ -666,8 +805,8 @@ export default function Onboarding() {
             </div>
           )}
 
-          {/* ── Step 5 (Phase B-1): Occupation + Budget ── */}
-          {step === 5 && (
+          {/* ── Step 4 (Phase B-1): Occupation + Budget ── */}
+          {step === 4 && (
             <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
               <h2 className="text-2xl md:text-3xl font-bold text-center">{t("onboarding", "occupationTitle")}</h2>
               <div className="grid grid-cols-2 gap-2.5">
@@ -714,8 +853,8 @@ export default function Onboarding() {
             </div>
           )}
 
-          {/* ── Step 6 (Phase B-2): Style Preferences ── */}
-          {step === 6 && (
+          {/* ── Step 5 (Phase B-2): Style Preferences ── */}
+          {step === 5 && (
             <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
               <h2 className="text-2xl md:text-3xl font-bold text-center">{t("onboarding", "budgetStyleTitle")}</h2>
               <p className="text-muted-foreground text-center text-sm">
@@ -751,8 +890,8 @@ export default function Onboarding() {
             </div>
           )}
 
-          {/* ── Step 7 (Phase B-3): Stores ── */}
-          {step === 7 && (
+          {/* ── Step 6 (Phase B-3): Stores ── */}
+          {step === 6 && (
             <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
               <h2 className="text-2xl md:text-3xl font-bold text-center">{t("onboarding", "storesTitle")}</h2>
               <p className="text-muted-foreground text-center text-sm">{t("onboarding", "storesSubtitle")}</p>
@@ -848,15 +987,15 @@ export default function Onboarding() {
             </div>
           )}
 
-          {/* ── Step 8 (Phase B-4): Social Connections ── */}
-          {step === 8 && (
+          {/* ── Step 7 (Phase B-4): Social Connections ── */}
+          {step === 7 && (
             <SocialConnectionsStep
-              onInstagramClick={() => setStep(9)}
+              onInstagramClick={() => setStep(8)}
             />
           )}
 
-          {/* ── Step 9 (Phase B-5): Influencers ── */}
-          {step === 9 && (
+          {/* ── Step 8 (Phase B-5): Influencers ── */}
+          {step === 8 && (
             <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
               <h2 className="text-2xl md:text-3xl font-bold text-center">{t("onboarding", "influencerTitle")}</h2>
               <p className="text-muted-foreground text-center text-sm">
@@ -966,11 +1105,21 @@ export default function Onboarding() {
             </div>
           )}
 
-          {/* Phase A back button (screens 2-4) */}
-          {isPhaseA && step > 1 && (
+          {/* Phase A back button (screens 2-3, but not during tinder swipe) */}
+          {isPhaseA && step > 1 && !(!tinderDone && step === 3) && (
             <div className="mt-6 text-center">
               <button
-                onClick={() => setStep(s => s - 1)}
+                onClick={() => {
+                  if (step === 3 && tinderDone) {
+                    // Reset tinder state and go back to venue
+                    setTinderDone(false);
+                    setTinderIndex(0);
+                    setTinderLikes([]);
+                    setStep(2);
+                  } else {
+                    setStep(s => s - 1);
+                  }
+                }}
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 {isRtl ? "→" : "←"} {t("common", "back")}
