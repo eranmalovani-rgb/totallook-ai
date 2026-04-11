@@ -29,6 +29,7 @@ import StylingStudioAnimation from "@/components/StylingStudioAnimation";
 import StoreLogo, { extractStoreFromUrl, extractStoreFromLabel } from "@/components/StoreLogo";
 import type { FashionAnalysis, ShoppingLink, LinkedMention, OutfitSuggestion, ImprovementAlternative } from "../../../shared/fashionTypes";
 import { BRAND_URLS, POPULAR_INFLUENCERS } from "../../../shared/fashionTypes";
+import { autoMatchInfluencers } from "../../../shared/influencerMatcher";
 import { useLanguage } from "@/i18n";
 import { getLoginUrl } from "@/const";
 import { useCountry } from "@/hooks/useCountry";
@@ -39,10 +40,38 @@ import WhatsAppPhoneReminder, { HIDE_WHATSAPP_PHONE_MODAL_KEY } from "@/componen
 import GuestFixMyLookModal from "@/components/GuestFixMyLookModal";
 import InfluencerPostModal from "@/components/InfluencerPostModal";
 import InfluencerAvatar from "@/components/InfluencerAvatar";
+import InfluencerPicker from "@/components/InfluencerPicker";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { trpc } from "@/lib/trpc";
 
 /* ═══════════════════════════════════════════════════════════════
-   SHARED SUB-COMPONENTS
+   SOCIAL PLATFORM ICONS (inline SVGs)
+   ═══════════════════════════════════════════════════════════════ */
+function InspirationInstagramIcon({ size = 22 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 48 48" fill="none">
+      <defs><radialGradient id="ig-gr" cx="30%" cy="107%" r="150%"><stop offset="0%" stopColor="#fdf497"/><stop offset="5%" stopColor="#fdf497"/><stop offset="45%" stopColor="#fd5949"/><stop offset="60%" stopColor="#d6249f"/><stop offset="90%" stopColor="#285AEB"/></radialGradient></defs>
+      <rect width="48" height="48" rx="12" fill="url(#ig-gr)"/><rect x="10" y="10" width="28" height="28" rx="8" stroke="white" strokeWidth="2.5" fill="none"/><circle cx="24" cy="24" r="7" stroke="white" strokeWidth="2.5" fill="none"/><circle cx="33" cy="15" r="2" fill="white"/>
+    </svg>
+  );
+}
+function InspirationTikTokIcon({ size = 22 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 48 48" fill="none">
+      <rect width="48" height="48" rx="12" fill="#000"/><path d="M33.5 16.5C32.1 15.3 31.2 13.5 31 11.5H27V29.5C27 31.7 25.2 33.5 23 33.5C20.8 33.5 19 31.7 19 29.5C19 27.3 20.8 25.5 23 25.5C23.5 25.5 24 25.6 24.4 25.8V22C24 21.9 23.5 21.9 23 21.9C18.6 21.9 15 25.3 15 29.5C15 33.7 18.6 37 23 37C27.4 37 31 33.7 31 29.5V20.5C32.6 21.7 34.5 22.4 36.5 22.5V18.5C35.3 18.4 34.2 17.6 33.5 16.5Z" fill="white"/>
+    </svg>
+  );
+}
+function InspirationPinterestIcon({ size = 22 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 48 48" fill="none">
+      <rect width="48" height="48" rx="12" fill="#E60023"/><path d="M24 12C17.4 12 12 17.4 12 24C12 29 15 33.3 19.2 35.1C19.1 34.1 19 32.5 19.2 31.4C19.4 30.4 20.5 25.5 20.5 25.5C20.5 25.5 20.2 24.7 20.2 23.6C20.2 21.8 21.2 20.5 22.5 20.5C23.6 20.5 24.1 21.3 24.1 22.3C24.1 23.4 23.4 25 23 26.5C22.7 27.8 23.7 28.8 25 28.8C27.3 28.8 29 26.5 29 23.2C29 20.3 27 18.1 24 18.1C20.5 18.1 18.4 20.7 18.4 23.5C18.4 24.5 18.8 25.6 19.3 26.2C19.4 26.3 19.4 26.5 19.3 26.6C19.2 27 19 27.8 19 28C18.9 28.2 18.8 28.3 18.6 28.2C17 27.5 16 25.3 16 23.4C16 19.5 18.9 15.9 24.3 15.9C28.6 15.9 32 19 32 23.1C32 27.3 29.4 30.7 25.8 30.7C24.5 30.7 23.2 30 22.8 29.2C22.8 29.2 22.2 31.5 22 32.3C21.7 33.4 20.9 34.8 20.4 35.6C21.5 35.9 22.7 36 24 36C30.6 36 36 30.6 36 24C36 17.4 30.6 12 24 12Z" fill="white"/>
+    </svg>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SHARED SUB-COMPONENTSS
    ═══════════════════════════════════════════════════════════════ */
 
 function LinkedText({
@@ -1025,6 +1054,7 @@ export default function GuestReview() {
 
   // WhatsApp phone reminder for guests
   const [showPhoneReminder, setShowPhoneReminder] = useState(false);
+  const [showInfluencerSwap, setShowInfluencerSwap] = useState(false);
   const phoneReminderShownRef = useRef(false);
 
   useEffect(() => {
@@ -1175,50 +1205,93 @@ export default function GuestReview() {
     );
   }
 
-  // Card 2: Influencer Insights (right after items)
+  // Card 2: Style Inspiration — auto-matched influencers with social logos
   const hasInfluencerInsight = !!analysis.influencerInsight;
-  if (hasInfluencerInsight) {
+  {
+    // Auto-match influencers from analysis mentions + style matching
     const influencerMentions = mentions.filter(m => m.type === "influencer");
-    const bestMatch = influencerMentions.length > 0
-      ? POPULAR_INFLUENCERS.find(inf => inf.name === influencerMentions[0].text)
-      : null;
+    const mentionedNames = influencerMentions.map(m => m.text);
+
+    // Build match profile from analysis data
+    const matchProfile: import("../../../shared/influencerMatcher").MatchProfile = {
+      mentionedInfluencers: mentionedNames,
+    };
+
+    // Try to extract style/gender info from the analysis summary
+    const summaryLower = (analysis.summary || "").toLowerCase();
+    if (summaryLower.includes("male") || summaryLower.includes("גבר")) matchProfile.gender = "male";
+    else if (summaryLower.includes("female") || summaryLower.includes("אישה") || summaryLower.includes("נשית")) matchProfile.gender = "female";
+
+    // Extract style from items
+    const styleHints = analysis.items.map(item => item.analysis || "").join(" ").toLowerCase();
+    const styleKeywords = ["streetwear", "smart-casual", "classic", "boho", "minimalist", "athleisure"];
+    const detectedStyles = styleKeywords.filter(s => styleHints.includes(s));
+    if (detectedStyles.length > 0) matchProfile.stylePreference = detectedStyles.join(", ");
+
+    const autoInfluencers = autoMatchInfluencers(matchProfile, 3, detectedCountry);
+
     storyCards.push(
-      <div key="influencers" className="space-y-4">
+      <div key="inspiration" className="space-y-4">
         <div className="p-5 rounded-2xl border border-amber-500/10 bg-gradient-to-b from-white/[0.03] to-transparent shadow-lg shadow-black/20">
-          {/* Best matching influencer — hero style with large avatar */}
-          {bestMatch ? (
-            <div className="text-center mb-5">
-              <div className="flex justify-center mb-3">
-                <div className="relative">
-                  <InfluencerAvatar name={bestMatch.name} imageUrl={bestMatch.imageUrl} size="lg" className="!w-20 !h-20 !text-2xl ring-2 ring-primary/30" />
-                  <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 text-[9px] px-2 py-0.5 rounded-full bg-gradient-to-r from-rose-500 to-amber-500 text-white font-bold whitespace-nowrap shadow-lg">
-                    {lang === "he" ? "✨ הכי מתאים" : "✨ Best Match"}
-                  </span>
-                </div>
-              </div>
-              <p className="text-base font-bold">{bestMatch.name}</p>
-              <p className="text-xs text-muted-foreground mb-2">{bestMatch.style}</p>
-              <button
-                onClick={() => handleInfluencerClick(bestMatch.name, bestMatch.handle, bestMatch.igUrl)}
-                className="inline-flex items-center gap-1.5 text-xs text-rose-400 hover:text-rose-300 transition-colors"
-              >
-                <Instagram className="w-3.5 h-3.5" />
-                {lang === "he" ? "ראה דוגמת סטיילינג" : "See styling example"}
-              </button>
+          {/* Section header */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-amber-400" />
+              <h3 className="text-base font-bold text-amber-100/90">
+                {lang === "he" ? "ההשראה שלך" : "Your Inspiration"}
+              </h3>
             </div>
-          ) : (
-            <div className="flex items-center gap-2 mb-4">
-              <Users className="w-5 h-5 text-primary" />
-              <h3 className="text-base font-bold text-amber-100/90">{lang === "he" ? "תובנות משפיענים" : "Influencer Insights"}</h3>
+            {/* Social platform badges */}
+            <div className="flex items-center gap-1.5">
+              <InspirationInstagramIcon size={22} />
+              <InspirationTikTokIcon size={22} />
+              <InspirationPinterestIcon size={22} />
             </div>
+          </div>
+
+          {/* Influencer insight text (if available) */}
+          {hasInfluencerInsight && (
+            <p className="text-sm text-muted-foreground leading-relaxed mb-4">
+              <LinkedText text={analysis.influencerInsight!} mentions={mentions} onInfluencerClick={handleInfluencerClick} />
+            </p>
           )}
 
-          {/* Insight text */}
-          <p className="text-sm text-muted-foreground leading-relaxed mb-4">
-            <LinkedText text={analysis.influencerInsight!} mentions={mentions} onInfluencerClick={handleInfluencerClick} />
-          </p>
+          {/* Auto-matched influencer cards */}
+          <div className="space-y-3">
+            {autoInfluencers.map((inf, i) => (
+              <button
+                key={inf.name}
+                onClick={() => handleInfluencerClick(inf.name, inf.handle, inf.igUrl)}
+                className="w-full flex items-center gap-3 p-3 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.06] hover:border-primary/20 transition-all duration-200 group text-start"
+              >
+                <div className="relative flex-shrink-0">
+                  <InfluencerAvatar name={inf.name} imageUrl={inf.imageUrl} size="md" className="ring-1 ring-white/10 group-hover:ring-primary/30 transition-all" />
+                  {i === 0 && (
+                    <span className="absolute -top-1 -end-1 text-[8px] px-1.5 py-0.5 rounded-full bg-gradient-to-r from-rose-500 to-amber-500 text-white font-bold shadow-lg">
+                      #1
+                    </span>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold truncate group-hover:text-primary transition-colors">{inf.name}</p>
+                  <p className="text-[11px] text-muted-foreground truncate">{inf.style}</p>
+                </div>
+                <div className="flex items-center gap-1.5 flex-shrink-0">
+                  <Instagram className="w-3.5 h-3.5 text-rose-400/60 group-hover:text-rose-400 transition-colors" />
+                  <ArrowRight className="w-3.5 h-3.5 text-muted-foreground/40 group-hover:text-primary transition-colors" />
+                </div>
+              </button>
+            ))}
+          </div>
 
-
+          {/* Swap button — opens full influencer picker */}
+          <button
+            onClick={() => setShowInfluencerSwap(true)}
+            className="mt-3 w-full flex items-center justify-center gap-2 py-2 text-xs text-muted-foreground hover:text-primary transition-colors border border-dashed border-white/10 hover:border-primary/30 rounded-xl"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            {lang === "he" ? "לא מתחבר? החלף משפיענים" : "Not feeling it? Swap influencers"}
+          </button>
         </div>
       </div>
     );
@@ -1432,11 +1505,11 @@ export default function GuestReview() {
   // (influencer card already pushed at position 2 above)
 
   // Build dynamic labels/icons
-  // Tab order: Items, [Influencers], Upgrades, Looks, Trends
+  // Tab order: Items, Inspiration, Upgrades, Looks, Trends
   const guestCardLabels = lang === "he"
-    ? ["פריטים", ...(hasInfluencerInsight ? ["משפיענים"] : []), "שדרוגים", "לוקים", "טרנדים"]
-    : ["Items", ...(hasInfluencerInsight ? ["Influencers"] : []), "Upgrades", "Looks", "Trends"];
-  const guestCardIcons = ["🎯", ...(hasInfluencerInsight ? ["👥"] : []), "✨", "👗", "📚"];
+    ? ["פריטים", "השראה", "שדרוגים", "לוקים", "טרנדים"]
+    : ["Items", "Inspiration", "Upgrades", "Looks", "Trends"];
+  const guestCardIcons = ["🎯", "✨", "✨", "👗", "📚"];
 
   return (
     <div className="min-h-screen bg-background text-foreground" dir={dir}>
@@ -1449,6 +1522,26 @@ export default function GuestReview() {
         guestSessionId={String(sessionId)}
         defaultCountry={detectedCountry || "IL"}
       />
+
+      {/* Influencer Swap Dialog */}
+      <Dialog open={showInfluencerSwap} onOpenChange={setShowInfluencerSwap}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto" dir={dir}>
+          <DialogHeader>
+            <DialogTitle>{lang === "he" ? "בחר/י משפיעני סטייל" : "Choose Style Influencers"}</DialogTitle>
+          </DialogHeader>
+          <InfluencerPicker
+            gender={undefined}
+            selectedInfluencers={[]}
+            onToggle={(name) => {
+              const inf = POPULAR_INFLUENCERS.find(i => i.name === name);
+              if (inf) {
+                handleInfluencerClick(inf.name, inf.handle, inf.igUrl);
+                setShowInfluencerSwap(false);
+              }
+            }}
+          />
+        </DialogContent>
+      </Dialog>
 
       <InfluencerPostModal
         open={influencerModal.open}

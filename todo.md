@@ -1016,3 +1016,9 @@
 
 ## Stage 88b: Fix quick check button
 - [x] 88b.1: Restore original single CTA button, clicking opens native file picker
+
+## Stage 89: Move influencers from onboarding to results page
+- [x] 89.1: Remove influencer step from onboarding — now 4 steps (photo, tinder, mall, finish)
+- [x] 89.2: Auto-match 2-3 influencers via shared/influencerMatcher.ts (gender, country, style, budget)
+- [x] 89.3: Inspiration section in GuestReview with InfluencerAvatar, social logos (IG/Pinterest/TikTok), swap button
+- [x] 89.4: Swap button opens InfluencerPicker dialog for manual selection

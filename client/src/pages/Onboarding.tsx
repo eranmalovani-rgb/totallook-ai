@@ -232,11 +232,10 @@ function PinterestIcon({ size = 32 }: { size?: number }) {
    STEPS:
    1 = Photo upload + AI analysis
    2 = Tinder R1 (6 cards, gender-aware) + R2 (4 adaptive)
-   3 = Influencers (personalized) + social placeholders
-   4 = Mall / Store picker (budget + country aware)
-   5 = Taste profile + finish
+   3 = Mall / Store picker (budget + country aware)
+   4 = Taste profile + finish (auto-analyze + navigate to GuestReview)
    ═══════════════════════════════════════════════════════ */
-const TOTAL_STEPS = 6; // 6th step is conversion (only for non-auth users)
+const TOTAL_STEPS = 4; // photo, tinder, mall, finish
 
 export default function Onboarding() {
   const { user, isAuthenticated, loading: authLoading } = useAuth({ redirectOnUnauthenticated: false });
@@ -581,9 +580,8 @@ export default function Onboarding() {
         return lang === "he" ? "יש לך טעם! עכשיו נחזק" : "Great taste! Let's reinforce";
       }
     }
-    if (step === 3) return lang === "he" ? "עוד נלמד המון עליך בהמשך — כל תמונה שתעלה מלמדת אותי עוד" : "We'll learn much more about you — every photo teaches me more";
-    if (step === 4) return lang === "he" ? "כמעט שם! החנויות עוזרות לי להתאים המלצות מדויקות" : "Almost there! Stores help me give precise recommendations";
-    if (step === 5) {
+    if (step === 3) return lang === "he" ? "כמעט שם! החנויות עוזרות לי להתאים המלצות מדויקות" : "Almost there! Stores help me give precise recommendations";
+    if (step === 4) {
       const top = topStyles[0];
       const styleNames: Record<string, { he: string; en: string }> = {
         streetwear: { he: "סטריטוור", en: "Streetwear" }, "smart-casual": { he: "סמארט קז'ואל", en: "Smart Casual" },
@@ -692,10 +690,10 @@ export default function Onboarding() {
     <div className="min-h-screen bg-background text-foreground flex flex-col" dir={dir}>
       <WhatsAppOnboardingModal open={showWhatsAppModal} onClose={() => { window.location.href = "/upload"; }} phoneNumber="" />
 
-      {/* Progress dots — 5 steps total */}
+      {/* Progress dots — 4 steps total */}
       <div className="fixed top-0 left-0 right-0 z-50">
         <div className="flex items-center justify-center gap-2 pt-6 pb-2">
-          {Array.from({ length: 5 }).map((_, i) => (
+          {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className={`rounded-full transition-all duration-500 ${
               i + 1 === step ? "w-8 h-2 bg-primary" : i + 1 < step ? "w-2 h-2 bg-primary/60" : "w-2 h-2 bg-white/20"
             }`} />
@@ -875,9 +873,10 @@ export default function Onboarding() {
           )}
 
           {/* ═══════════════════════════════════════════
-              STEP 3: Influencers + Social Placeholders
+              STEP 3 (OLD INFLUENCER PICKER — REMOVED)
+              Influencers now auto-matched on results page
               ═══════════════════════════════════════════ */}
-          {step === 3 && (
+          {false && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-5">
               <div className="text-center">
                 <PersonalizationBubble message={getStylistMessage()} />
@@ -955,9 +954,9 @@ export default function Onboarding() {
           )}
 
           {/* ═══════════════════════════════════════════
-              STEP 4: Mall / Store Picker
+              STEP 3: Mall / Store Picker
               ═══════════════════════════════════════════ */}
-          {step === 4 && (
+          {step === 3 && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-5">
               <div className="text-center">
                 <PersonalizationBubble message={getStylistMessage()} />
@@ -1048,10 +1047,10 @@ export default function Onboarding() {
 
               {/* Navigation */}
               <div className="flex justify-between items-center pt-2">
-                <button onClick={() => setStep(3)} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                <button onClick={() => setStep(2)} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                   {isRtl ? "→" : "←"} {lang === "he" ? "חזרה" : "Back"}
                 </button>
-                <Button onClick={() => setStep(5)} className="gap-2 rounded-xl">
+                <Button onClick={() => setStep(4)} className="gap-2 rounded-xl">
                   {lang === "he" ? "המשך" : "Continue"} {isRtl ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                 </Button>
               </div>
@@ -1059,9 +1058,9 @@ export default function Onboarding() {
           )}
 
           {/* ═══════════════════════════════════════════
-              STEP 5: Taste Profile + Finish
+              STEP 4: Taste Profile + Finish
               ═══════════════════════════════════════════ */}
-          {step === 5 && (
+          {step === 4 && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 text-center space-y-5">
               {showAnalysisAnimation ? (
                 /* ── Visual analysis animation (shown after clicking finish) ── */
@@ -1144,7 +1143,7 @@ export default function Onboarding() {
                   </Button>
 
                   {/* Back */}
-                  <button onClick={() => setStep(4)} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  <button onClick={() => setStep(3)} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                     {isRtl ? "→" : "←"} {lang === "he" ? "חזרה" : "Back"}
                   </button>
                 </>
