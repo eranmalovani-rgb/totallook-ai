@@ -895,3 +895,10 @@
 - [x] 75.2: Added small green WhatsApp CTA next to Upload CTA with "or" separator
 - [x] 75.3: Applied identical changes to LandingEN.tsx
 - [x] 75.4: Verified — 0 TS errors, 819/824 tests pass
+
+### 76: Revert to Slider + Swap Image Sides
+- [x] 76.1: Restored slider in Hero of Home.tsx — swapped: afterImg as beforeImg (left), beforeImg as afterImg (right)
+- [x] 76.2: Restored slider in MORE_SHOWCASES of Home.tsx — same swap
+- [x] 76.3: Restored slider in Hero of LandingEN.tsx — same swap
+- [x] 76.4: Restored slider in MORE_SHOWCASES of LandingEN.tsx — same swap
+- [x] 76.5: Verified — 0 TS errors

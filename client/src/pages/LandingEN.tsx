@@ -173,35 +173,15 @@ export default function LandingEN() {
             </div>
 
             <div className="relative">
-              <div className="grid grid-cols-2 gap-3">
-                {/* BEFORE */}
-                <div className="relative rounded-2xl overflow-hidden border border-red-500/15 shadow-xl">
-                  <img src={HERO_SHOWCASE.beforeImg} alt="Before" className="w-full aspect-[3/4] object-cover" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
-                  <div className="absolute top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-red-500/20 border border-red-500/30 backdrop-blur-sm">
-                    <span className="text-xs font-bold text-red-400">BEFORE</span>
-                  </div>
-                  <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex flex-col items-center">
-                    <span className="text-3xl font-bold text-red-400">{HERO_SHOWCASE.scoreBefore}</span>
-                    <span className="text-[10px] text-red-300/60 font-medium">score</span>
-                  </div>
-                </div>
-                {/* AFTER */}
-                <div className="relative rounded-2xl overflow-hidden border border-emerald-500/15 shadow-xl">
-                  <img src={HERO_SHOWCASE.afterImg} alt="After" className="w-full aspect-[3/4] object-cover" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
-                  <div className="absolute top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/30 backdrop-blur-sm">
-                    <span className="text-xs font-bold text-emerald-400">AFTER</span>
-                  </div>
-                  <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex flex-col items-center">
-                    <span className="text-3xl font-bold text-emerald-400">{HERO_SHOWCASE.scoreAfter}</span>
-                    <span className="text-[10px] text-emerald-300/60 font-medium">score</span>
-                  </div>
-                </div>
-              </div>
-              {/* Arrow between */}
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-background/90 backdrop-blur-sm border border-amber-500/20 shadow-lg flex items-center justify-center">
-                <ArrowRight className="w-5 h-5 text-amber-400" />
+              <div className="rounded-2xl overflow-hidden border border-amber-500/10 shadow-2xl shadow-amber-500/5">
+                <LandingBeforeAfterSlider
+                  beforeImg={HERO_SHOWCASE.afterImg}
+                  afterImg={HERO_SHOWCASE.beforeImg}
+                  beforeLabel="AFTER"
+                  afterLabel="BEFORE"
+                  scoreBefore={HERO_SHOWCASE.scoreAfter}
+                  scoreAfter={HERO_SHOWCASE.scoreBefore}
+                />
               </div>
               <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full bg-background/90 backdrop-blur-sm border border-amber-500/20 shadow-lg">
                 <span className="text-sm font-bold text-amber-400 flex items-center gap-1.5">
@@ -295,37 +275,15 @@ export default function LandingEN() {
 
             <div className="grid md:grid-cols-2 gap-6 mt-12">
               {MORE_SHOWCASES.map((item, i) => (
-                <div key={i} className="relative">
-                  <div className="grid grid-cols-2 gap-2 rounded-2xl overflow-hidden">
-                    <div className="relative">
-                      <img src={item.beforeImg} alt="Before" className="w-full aspect-[3/4] object-cover rounded-xl" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent rounded-xl" />
-                      <div className="absolute top-2 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-red-500/20 border border-red-500/30 backdrop-blur-sm">
-                        <span className="text-[10px] font-bold text-red-400">BEFORE</span>
-                      </div>
-                      <div className="absolute bottom-2 left-1/2 -translate-x-1/2">
-                        <span className="text-2xl font-bold text-red-400">{item.scoreBefore}</span>
-                      </div>
-                    </div>
-                    <div className="relative">
-                      <img src={item.afterImg} alt="After" className="w-full aspect-[3/4] object-cover rounded-xl" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent rounded-xl" />
-                      <div className="absolute top-2 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/30 backdrop-blur-sm">
-                        <span className="text-[10px] font-bold text-emerald-400">AFTER</span>
-                      </div>
-                      <div className="absolute bottom-2 left-1/2 -translate-x-1/2">
-                        <span className="text-2xl font-bold text-emerald-400">{item.scoreAfter}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-background/90 backdrop-blur-sm border border-amber-500/20 shadow-lg flex items-center justify-center">
-                    <ArrowRight className="w-4 h-4 text-amber-400" />
-                  </div>
-                  <div className="text-center mt-3">
-                    <span className="text-xs font-bold text-amber-400">
-                      +{(item.scoreAfter - item.scoreBefore).toFixed(1)} points
-                    </span>
-                  </div>
+                <div key={i} className="rounded-2xl overflow-hidden border border-amber-500/10">
+                  <LandingBeforeAfterSlider
+                    beforeImg={item.afterImg}
+                    afterImg={item.beforeImg}
+                    beforeLabel="AFTER"
+                    afterLabel="BEFORE"
+                    scoreBefore={item.scoreAfter}
+                    scoreAfter={item.scoreBefore}
+                  />
                 </div>
               ))}
             </div>
