@@ -1160,13 +1160,21 @@ export default function GuestUpload() {
                 {!uploading && !analyzing && (
                   <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     {/* Occasion */}
-                    <div ref={occasionRef} className="p-6 rounded-2xl border border-white/5 bg-card/50 scroll-mt-24">
-                      <div className="flex items-center gap-2 mb-4">
-                        <MapPin className="w-5 h-5 text-primary" />
-                        <h3 className="font-bold text-lg">{t("upload", "occasionTitle")}</h3>
+                    <div ref={occasionRef} className="relative p-6 rounded-2xl border border-amber-500/15 bg-gradient-to-b from-amber-950/10 to-transparent scroll-mt-24 overflow-hidden">
+                      {/* Decorative corner accents */}
+                      <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-amber-500/20 rounded-tl-2xl" />
+                      <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-amber-500/20 rounded-tr-2xl" />
+                      <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-amber-500/20 rounded-bl-2xl" />
+                      <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-amber-500/20 rounded-br-2xl" />
+
+                      <div className="flex items-center gap-2.5 mb-2">
+                        <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
+                          <MapPin className="w-4 h-4 text-amber-400" />
+                        </div>
+                        <h3 className="font-bold text-lg text-amber-100 tracking-wide">{t("upload", "occasionTitle")}</h3>
                       </div>
-                      <p className="text-sm text-muted-foreground mb-4">{t("upload", "occasionDesc")}</p>
-                      <div className="grid grid-cols-3 gap-2">
+                      <p className="text-xs text-amber-200/40 mb-5 leading-relaxed">{t("upload", "occasionDesc")}</p>
+                      <div className="grid grid-cols-3 gap-2.5">
                         {OCCASIONS.map((occ) => {
                           const isSelected = selectedOccasion === occ.id;
                           return (
@@ -1180,14 +1188,17 @@ export default function GuestUpload() {
                                   }, 200);
                                 }
                               }}
-                              className={`p-3 rounded-xl text-center transition-all duration-200 border ${
+                              className={`group relative p-3.5 rounded-xl text-center transition-all duration-300 border ${
                                 isSelected
-                                  ? "bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20"
-                                  : "bg-card border-white/10 hover:border-primary/30 text-foreground"
+                                  ? "bg-gradient-to-b from-amber-900/40 to-amber-950/30 text-amber-200 border-amber-500/50 shadow-[0_0_16px_rgba(200,164,78,0.15)] scale-[1.02]"
+                                  : "bg-white/[0.02] border-white/[0.06] hover:border-amber-500/25 hover:bg-amber-950/15 text-foreground"
                               }`}
                             >
-                              <span className="text-xl block mb-1">{occ.icon}</span>
-                              <span className="block text-xs font-medium">{getOccasionLabel(occ.id)}</span>
+                              {isSelected && (
+                                <span className="absolute -top-px inset-x-2 h-[2px] bg-gradient-to-r from-transparent via-amber-400/60 to-transparent rounded-full" />
+                              )}
+                              <span className={`text-2xl block mb-1.5 transition-transform duration-200 ${isSelected ? 'scale-110' : 'group-hover:scale-105'}`}>{occ.icon}</span>
+                              <span className={`block text-[11px] font-semibold tracking-wide ${isSelected ? 'text-amber-300' : 'text-muted-foreground group-hover:text-amber-200/70'}`}>{getOccasionLabel(occ.id)}</span>
                             </button>
                           );
                         })}
@@ -1196,14 +1207,16 @@ export default function GuestUpload() {
 
                     {/* Influencer info */}
                     {selectedInfluencers.length > 0 && (
-                      <div className="p-4 rounded-2xl border border-white/5 bg-card/50">
+                      <div className="relative p-4 rounded-2xl border border-amber-500/10 bg-gradient-to-b from-amber-950/5 to-transparent overflow-hidden">
                         <div className="flex items-center gap-2 mb-2">
-                          <UserCheck className="w-4 h-4 text-primary" />
-                          <span className="text-sm font-medium">{lang === "he" ? "משפיענים שנבחרו" : "Selected influencers"}</span>
+                          <div className="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/15 flex items-center justify-center">
+                            <UserCheck className="w-3.5 h-3.5 text-amber-400" />
+                          </div>
+                          <span className="text-sm font-medium text-amber-100">{lang === "he" ? "משפיענים שנבחרו" : "Selected influencers"}</span>
                         </div>
                         <div className="flex flex-wrap gap-1.5">
                           {selectedInfluencers.map(name => (
-                            <span key={name} className="px-2.5 py-1 rounded-lg text-xs bg-primary/10 text-primary border border-primary/20">
+                            <span key={name} className="px-2.5 py-1 rounded-lg text-xs bg-amber-500/10 text-amber-300 border border-amber-500/20">
                               {name}
                             </span>
                           ))}

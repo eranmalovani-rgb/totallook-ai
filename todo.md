@@ -837,3 +837,9 @@
 - [x] 69.2: Enlarged tabs — text-xs font-bold, py-3, gap-2, rounded-xl, text-base icons, max-w-[80px] labels, w-11 h-11 overflow button
 - [x] 69.3: Applied enlarged tabs to GuestReview and WhatsAppReview
 - [x] 69.4: Verified — 0 TS errors, 819/824 tests pass (same 5 pre-existing API failures)
+
+### 70: Occasion Picker Redesign — Studio Theme
+- [x] 70.1: Redesigned occasion picker — amber gradient borders, corner accents, gold stitch on selected, scale animation, amber text
+- [x] 70.2: Improved header with amber-400 icon in rounded box, amber-100 title, amber-200/40 description, influencer bar with matching styling
+- [x] 70.3: Applied identical studio styling to GuestUpload occasion picker and influencer info
+- [x] 70.4: Verified — 0 TS errors, 819/824 tests pass (same 5 pre-existing API failures)
