@@ -37,16 +37,13 @@ describe("Privacy & Consent features", () => {
     expect(onboardingContent).toContain("מדיניות הפרטיות");
   });
 
-  it("GuestUpload page has terms consent checkbox", () => {
+  it("GuestUpload page has privacy terms auto-accepted comment (handled by cookie banner)", () => {
     const guestContent = fs.readFileSync(
       path.join(clientSrcDir, "pages/GuestUpload.tsx"),
       "utf-8"
     );
-    expect(guestContent).toContain("agreedToTerms");
-    expect(guestContent).toContain('href="/terms"');
-    expect(guestContent).toContain('href="/privacy"');
-    expect(guestContent).toContain("Terms of Service");
-    expect(guestContent).toContain("Privacy Policy");
+    // Privacy checkbox removed — consent handled by cookie banner + footer links
+    expect(guestContent).toContain("Privacy terms auto-accepted");
   });
 
   it("Profile page has privacy & data section with export and delete", () => {

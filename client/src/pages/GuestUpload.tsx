@@ -32,7 +32,7 @@ export default function GuestUpload() {
   const [error, setError] = useState<string | null>(null);
   const [retryReviewId, setRetryReviewId] = useState<number | null>(null);
   const [analysisAttempt, setAnalysisAttempt] = useState(0);
-  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  // Privacy terms auto-accepted (shown in cookie banner + footer links)
 
   /* ─── Refs ─── */
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -265,24 +265,7 @@ export default function GuestUpload() {
               </div>
             )}
 
-            {/* Terms */}
-            {!uploading && !analyzing && (
-              <label className="flex items-start gap-3 cursor-pointer group">
-                <input
-                  type="checkbox"
-                  checked={agreedToTerms}
-                  onChange={(e) => setAgreedToTerms(e.target.checked)}
-                  className="mt-1 w-4 h-4 rounded border-white/20 accent-primary"
-                />
-                <span className="text-xs text-muted-foreground group-hover:text-foreground/70 transition-colors">
-                  {lang === "he" ? (
-                    <>אני מאשר/ת את{" "}<a href="/terms" target="_blank" className="text-primary hover:underline">תנאי השימוש</a>{" "}ואת{" "}<a href="/privacy" target="_blank" className="text-primary hover:underline">מדיניות הפרטיות</a>, כולל עיבוד תמונות באמצעות AI.</>
-                  ) : (
-                    <>I agree to the{" "}<a href="/terms" target="_blank" className="text-primary hover:underline">Terms of Service</a>{" "}and{" "}<a href="/privacy" target="_blank" className="text-primary hover:underline">Privacy Policy</a>, including AI image processing.</>
-                  )}
-                </span>
-              </label>
-            )}
+
 
             {/* Analyze Button */}
             {!uploading && !analyzing && (
@@ -290,8 +273,7 @@ export default function GuestUpload() {
                 <div className="absolute -inset-1 bg-gradient-to-r from-primary via-amber-500 to-primary rounded-2xl blur-lg opacity-40 animate-pulse" />
                 <Button
                   size="lg"
-                  disabled={!agreedToTerms}
-                  className={`relative w-full gap-3 text-xl font-bold py-8 rounded-2xl bg-gradient-to-r from-primary to-amber-500 hover:from-primary/90 hover:to-amber-500/90 shadow-2xl shadow-primary/30 hover:shadow-primary/50 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] ${!agreedToTerms ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  className="relative w-full gap-3 text-xl font-bold py-8 rounded-2xl bg-gradient-to-r from-primary to-amber-500 hover:from-primary/90 hover:to-amber-500/90 shadow-2xl shadow-primary/30 hover:shadow-primary/50 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
                   onClick={() => {
                     handleAnalyze();
                     setTimeout(() => {

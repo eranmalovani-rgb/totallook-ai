@@ -1,17 +1,33 @@
-import { Link } from "wouter";
-import { Zap, Target, ArrowRight, Sparkles } from "lucide-react";
+import { Link, useLocation } from "wouter";
+import { Zap, Target, ArrowRight, Sparkles, Camera, ImagePlus } from "lucide-react";
 import { useLanguage } from "@/i18n";
 import { useFingerprint } from "@/hooks/useFingerprint";
 import { trpc } from "@/lib/trpc";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
+import { compressImageToBase64 } from "@/lib/imageCompress";
+import StylingStudioAnimation from "@/components/StylingStudioAnimation";
+import { toast } from "sonner";
 
 export default function PathChooser() {
   const { dir, lang } = useLanguage();
+  const [, navigate] = useLocation();
   const isHe = lang === "he";
   const fingerprint = useFingerprint();
   const trackPageView = trpc.tracking.trackPageView.useMutation();
   const trackingRef = useRef(false);
 
+  /* ─── Quick-check inline upload state ─── */
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const [quickFile, setQuickFile] = useState<File | null>(null);
+  const [quickPreview, setQuickPreview] = useState<string | null>(null);
+  const [quickLoading, setQuickLoading] = useState(false);
+
+  /* ─── tRPC mutations for inline quick check ─── */
+  const uploadMutation = trpc.guest.upload.useMutation();
+  const analyzeMutation = trpc.guest.analyze.useMutation();
+
+  /* ─── Tracking ─── */
   useEffect(() => {
     if (!fingerprint || trackingRef.current) return;
     trackingRef.current = true;
@@ -33,8 +49,106 @@ export default function PathChooser() {
     }).catch(() => {});
   };
 
+  /* ─── Handle file selection → auto upload + analyze ─── */
+  const handleQuickFile = useCallback(async (f: File) => {
+    if (!f.type.startsWith("image/")) {
+      toast.error(isHe ? "קובץ לא תקין — העלה תמונה" : "Invalid file — please upload an image");
+      return;
+    }
+    if (f.size > 10 * 1024 * 1024) {
+      toast.error(isHe ? "הקובץ גדול מדי (מקסימום 10MB)" : "File too large (max 10MB)");
+      return;
+    }
+
+    // Show preview immediately
+    setQuickFile(f);
+    const reader = new FileReader();
+    reader.onload = (e) => setQuickPreview(e.target?.result as string);
+    reader.readAsDataURL(f);
+
+    // Start upload + analyze flow
+    setQuickLoading(true);
+    trackClick("quick");
+
+    try {
+      if (!fingerprint) {
+        toast.error(isHe ? "שגיאה — נסה שוב" : "Error — please try again");
+        setQuickLoading(false);
+        return;
+      }
+
+      // 1. Compress and upload
+      const { base64, mimeType } = await compressImageToBase64(f);
+      const { sessionId } = await uploadMutation.mutateAsync({
+        imageBase64: base64,
+        mimeType,
+        fingerprint,
+      });
+
+      // 2. Analyze (with one auto-retry)
+      try {
+        await analyzeMutation.mutateAsync({ sessionId, lang });
+      } catch (retryErr: any) {
+        const msg = retryErr?.message || "";
+        const isRetryable = msg.includes("timeout") || msg.includes("ECONNRESET") ||
+          msg.includes("fetch failed") || msg.includes("500") || msg.includes("502") || msg.includes("503");
+        if (isRetryable) {
+          await new Promise(r => setTimeout(r, 3000));
+          await analyzeMutation.mutateAsync({ sessionId, lang });
+        } else {
+          throw retryErr;
+        }
+      }
+
+      // 3. Navigate to results
+      navigate(`/guest/review/${sessionId}`);
+    } catch (err: any) {
+      setQuickLoading(false);
+      setQuickFile(null);
+      setQuickPreview(null);
+      const msg = err?.message || "";
+      if (msg.includes("quota") || msg.includes("rate") || msg.includes("429")) {
+        toast.error(isHe ? "השירות עמוס. נסה שוב בעוד חצי דקה." : "Service busy. Try again in 30 seconds.");
+      } else {
+        toast.error(isHe ? "אירעה שגיאה. נסה שוב." : "An error occurred. Please try again.");
+      }
+    }
+  }, [fingerprint, lang, isHe, uploadMutation, analyzeMutation, navigate]);
+
+  /* ─── Quick check: show full-screen loading animation ─── */
+  if (quickLoading) {
+    return (
+      <div className="min-h-[100dvh] bg-background text-foreground flex flex-col items-center justify-center px-4" dir={dir}>
+        <StylingStudioAnimation
+          uploading={!quickPreview}
+          analyzing={!!quickPreview}
+          selectedOccasion=""
+          selectedInfluencers={[]}
+          imagePreview={quickPreview}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-[100dvh] bg-background text-foreground flex flex-col" dir={dir}>
+      {/* Hidden file inputs for quick check */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) handleQuickFile(f); e.target.value = ""; }}
+      />
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) handleQuickFile(f); e.target.value = ""; }}
+      />
+
       {/* Top bar */}
       <div className="flex items-center justify-between px-6 pt-6 pb-2">
         <span className="text-xl font-bold tracking-tight">
@@ -72,10 +186,8 @@ export default function PathChooser() {
 
         {/* Two cards */}
         <div className="grid sm:grid-cols-2 gap-4 sm:gap-6 w-full max-w-2xl relative z-10">
-          {/* Option 1 — Quick (Primary) */}
-          <Link
-            href="/try/quick"
-            onClick={() => trackClick("quick")}
+          {/* Option 1 — Quick (Primary) — opens file picker directly */}
+          <div
             className="group relative rounded-2xl border-2 border-amber-500/30 bg-gradient-to-b from-amber-500/[0.08] to-amber-500/[0.02] hover:border-amber-500/50 hover:from-amber-500/[0.12] transition-all duration-300 p-6 sm:p-8 text-center cursor-pointer overflow-hidden"
           >
             {/* Recommended badge */}
@@ -96,16 +208,30 @@ export default function PathChooser() {
             </h2>
 
             {/* Subtitle */}
-            <p className="text-sm text-muted-foreground mb-6">
+            <p className="text-sm text-muted-foreground mb-5">
               {isHe ? "ציון תוך 10 שניות" : "Score in 10 seconds"}
             </p>
 
-            {/* CTA */}
-            <div className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-black font-bold text-sm group-hover:from-amber-400 group-hover:to-amber-500 transition-all duration-300 shadow-[0_0_20px_rgba(245,158,11,0.2)] group-hover:shadow-[0_0_30px_rgba(245,158,11,0.4)]">
-              {isHe ? "יאללה!" : "Let's go!"}
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            {/* Two action buttons — camera + gallery */}
+            <div className="flex gap-3 justify-center">
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); cameraInputRef.current?.click(); }}
+                className="flex items-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-black font-bold text-sm hover:from-amber-400 hover:to-amber-500 transition-all duration-300 shadow-[0_0_20px_rgba(245,158,11,0.2)] hover:shadow-[0_0_30px_rgba(245,158,11,0.4)]"
+              >
+                <Camera className="w-4 h-4" />
+                {isHe ? "צלם" : "Camera"}
+              </button>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
+                className="flex items-center gap-2 px-5 py-3 rounded-xl border border-amber-500/30 text-amber-400 font-bold text-sm hover:bg-amber-500/10 transition-all duration-300"
+              >
+                <ImagePlus className="w-4 h-4" />
+                {isHe ? "גלריה" : "Gallery"}
+              </button>
             </div>
-          </Link>
+          </div>
 
           {/* Option 2 — Precise */}
           <Link

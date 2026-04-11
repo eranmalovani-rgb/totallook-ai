@@ -1008,3 +1008,8 @@
 - [x] 87.1: Skip onboarding for users who registered after personalized analysis — getLoginUrl("/upload") + migrateGuestToUser already copies onboardingCompleted:1
 - [x] 87.2: Fix analysis animation — replaced FashionSpinner with StylingStudioAnimation in GuestReview analyzing/pending state, shows user photo with scanning effect
 - [x] 87.3: Fix store logos — added white background to all StoreLogo containers (text logos, image logos, and fallback)
+
+## Stage 88: Quick check — instant file picker, no separate upload page
+- [x] 88.1: "בדיקה מהירה" button replaced with 2 buttons (צלם/גלריה) that open file picker directly from PathChooser
+- [x] 88.2: Privacy checkbox removed from GuestUpload — consent handled by cookie banner + footer links
+- [x] 88.3: After photo selected → auto-compress → upload → analyze → navigate to /guest/review/:id (with StylingStudioAnimation loading)
