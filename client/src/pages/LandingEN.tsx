@@ -20,22 +20,22 @@ import { trpc } from "@/lib/trpc";
 
 /* ── Before/After showcase data ── */
 const HERO_SHOWCASE = {
-  beforeImg: "https://d2xsxph8kpxj0f.cloudfront.net/310519663364230752/SGdPHKr3xPrRPbHA9C9esB/showcase_before_casual-4c23nyv3Jk3w7AA6Yy2cd4.webp",
-  afterImg: "https://d2xsxph8kpxj0f.cloudfront.net/310519663364230752/SGdPHKr3xPrRPbHA9C9esB/showcase_after_casual-ck2BM8fQrAsF4fmfLLQERp.webp",
+  beforeImg: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/landing-before-casual-Dd22cGqT4oLpLDBsvBPXEF.webp",
+  afterImg: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/landing-after-casual-dwXNkJDRs4Cf63hVniD2zC.webp",
   scoreBefore: 6.2,
   scoreAfter: 9.2,
 };
 
 const MORE_SHOWCASES = [
   {
-    beforeImg: "https://d2xsxph8kpxj0f.cloudfront.net/310519663364230752/SGdPHKr3xPrRPbHA9C9esB/showcase_before_smart-UmcQ6yp6Fqw6nTfdNyKWCK.webp",
-    afterImg: "https://d2xsxph8kpxj0f.cloudfront.net/310519663364230752/SGdPHKr3xPrRPbHA9C9esB/showcase_after_smart-faqtWN7goEYvS7QXbVLrio.webp",
+    beforeImg: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/landing-before-smart-Jk58pvD5re72XkY6Xx5Bbt.webp",
+    afterImg: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/landing-after-smart-c6jhFBAQnG5THWTM9Sczsm.webp",
     scoreBefore: 6.8,
     scoreAfter: 9.1,
   },
   {
-    beforeImg: "https://d2xsxph8kpxj0f.cloudfront.net/310519663364230752/SGdPHKr3xPrRPbHA9C9esB/showcase_before_elegant-AwCzvydkVRMvJNA85j8gHz.webp",
-    afterImg: "https://d2xsxph8kpxj0f.cloudfront.net/310519663364230752/SGdPHKr3xPrRPbHA9C9esB/showcase_after_elegant-ncCCyuqrtVQQAM5EMy59Hp.webp",
+    beforeImg: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/landing-before-evening-Qiek7Mvh5Vj9ZxT7Dpd4qL.webp",
+    afterImg: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/landing-after-evening-iknj26ZVXw9MWgyquk6T74.webp",
     scoreBefore: 7.0,
     scoreAfter: 9.4,
   },

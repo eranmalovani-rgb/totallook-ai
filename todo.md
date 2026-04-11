@@ -875,3 +875,11 @@
 - [x] 72.9: Dark theme with amber/gold accents, mobile-first, fast loading
 - [x] 72.10: LandingEN.tsx also rewritten with same design in English
 - [x] 72.11: Verified — 0 TS errors, 819/824 tests pass
+
+### 73: Landing Page Images — Israeli Women Fashion
+- [x] 73.1: Generated 6 images (3 before + 3 after) of Israeli women — casual, smart-casual, evening
+- [x] 73.2: Updated Home.tsx with new CDN image URLs
+- [x] 73.3: Updated LandingEN.tsx with new CDN image URLs
+- [x] 73.4: All images uploaded to CDN via webdev static assets
+- [x] 73.5: Copy already in feminine Hebrew (העלי, קבלי, שדרגי, בואי)
+- [x] 73.6: Verified — 0 TS errors, 819/824 tests pass
