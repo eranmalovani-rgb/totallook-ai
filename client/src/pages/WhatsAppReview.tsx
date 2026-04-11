@@ -645,7 +645,7 @@ export default function WhatsAppReview() {
     ? (isHe ? "בסיס מעולה עם פוטנציאל" : "Great base with potential")
     : (isHe ? "יש בסיס טוב — ניתן לשדרג" : "Good base — can be upgraded");
   cards.push(
-    <div key="hero" className="rounded-2xl border border-white/5 bg-card overflow-hidden">
+    <div key="hero" className="rounded-2xl border border-amber-500/10 bg-gradient-to-b from-white/[0.03] to-transparent overflow-hidden shadow-lg shadow-black/20">
       {data.imageUrl && (
         <div className="relative">
           <img loading="lazy" src={data.imageUrl} alt="Look" className="w-full max-h-[350px] object-contain bg-black/20" />
@@ -684,7 +684,7 @@ export default function WhatsAppReview() {
     cardLabels.push(isHe ? "פריטים" : "Items");
     cardIcons.push("👔");
     cards.push(
-      <div key="items" className="rounded-2xl border border-white/5 bg-card p-5 space-y-4">
+      <div key="items" className="rounded-2xl border border-amber-500/10 bg-gradient-to-b from-white/[0.03] to-transparent p-5 space-y-4 shadow-lg shadow-black/20">
         <h3 className="text-lg font-bold text-center mb-2">
           {isHe ? "פריטים שזוהו" : "Items Detected"}
         </h3>
@@ -720,7 +720,7 @@ export default function WhatsAppReview() {
     cardLabels.push(isHe ? "ציונים" : "Scores");
     cardIcons.push("📊");
     cards.push(
-      <div key="scores" className="rounded-2xl border border-white/5 bg-card p-5">
+      <div key="scores" className="rounded-2xl border border-amber-500/10 bg-gradient-to-b from-white/[0.03] to-transparent p-5 shadow-lg shadow-black/20">
         <h3 className="text-lg font-bold text-center mb-5">
           {isHe ? "ציונים מפורטים" : "Detailed Scores"}
         </h3>
@@ -738,29 +738,29 @@ export default function WhatsAppReview() {
     cardLabels.push(isHe ? "שדרוגים" : "Upgrades");
     cardIcons.push("💡");
     cards.push(
-      <div key="improvements" className="rounded-2xl border border-white/5 bg-card p-5 space-y-4">
+      <div key="improvements" className="rounded-2xl border border-amber-500/10 bg-gradient-to-b from-white/[0.03] to-transparent p-5 space-y-4 shadow-lg shadow-black/20">
         <h3 className="text-lg font-bold text-center mb-2">
           <Sparkles className={`w-5 h-5 text-primary inline-block ${dir === "rtl" ? "ml-1.5" : "mr-1.5"}`} />
           {isHe ? "טיפים לשדרוג" : "Upgrade Tips"}
         </h3>
         {analysis.improvements.slice(0, 2).map((imp, i) => (
-          <div key={i} className="p-4 rounded-xl bg-white/[0.02] border border-white/5">
+          <div key={i} className="p-4 rounded-xl bg-white/[0.02] border border-amber-500/8">
             <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
-                <TrendingUp className="w-4 h-4 text-primary" />
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-500/20 to-amber-600/10 flex items-center justify-center shrink-0 mt-0.5 border border-amber-500/20">
+                <TrendingUp className="w-4 h-4 text-amber-400" />
               </div>
               <div>
-                <h4 className="font-semibold text-sm mb-1">{imp.title}</h4>
-                <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3">{imp.description}</p>
+                <h4 className="font-semibold text-sm mb-1 text-amber-100/90">{imp.title}</h4>
+                <p className="text-xs text-muted-foreground/80 leading-relaxed line-clamp-3">{imp.description}</p>
               </div>
             </div>
             {/* Show first shopping link if available */}
             {imp.shoppingLinks?.slice(0, 1).map((link, j) => (
               <a key={j} href={link.url} target="_blank" rel="noopener noreferrer"
-                className="mt-3 flex items-center gap-2 text-xs text-primary hover:text-amber-300 transition-colors">
-                <ShoppingBag className="w-3.5 h-3.5" />
-<span>{link.label || getStoreName(link.url)}</span>
-                <ExternalLink className="w-3 h-3 opacity-50" />
+                className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-amber-500/15 bg-amber-500/[0.04] hover:bg-amber-500/10 hover:border-amber-500/30 transition-all duration-300 text-xs">
+                <ShoppingBag className="w-3 h-3 text-amber-400/60" />
+                <span className="text-amber-200/70 font-medium">{link.label || getStoreName(link.url)}</span>
+                <ExternalLink className="w-2.5 h-2.5 text-amber-400/50" />
               </a>
             ))}
           </div>
@@ -796,7 +796,7 @@ export default function WhatsAppReview() {
     cardLabels.push(isHe ? "משפיען" : "Influencer");
     cardIcons.push("📷");
     cards.push(
-      <div key="influencer" className="rounded-2xl border border-white/5 bg-card p-5">
+      <div key="influencer" className="rounded-2xl border border-amber-500/10 bg-gradient-to-b from-white/[0.03] to-transparent p-5 shadow-lg shadow-black/20">
         <h3 className="text-lg font-bold text-center mb-4">
           <Users className={`w-5 h-5 text-rose-400 inline-block ${dir === "rtl" ? "ml-1.5" : "mr-1.5"}`} />
           {isHe ? "השראה מסלבריטי" : "Celebrity Inspiration"}

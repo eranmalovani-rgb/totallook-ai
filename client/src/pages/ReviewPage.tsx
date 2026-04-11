@@ -416,7 +416,7 @@ function ImprovementCard({
   }, [imp]);
 
   return (
-    <div className="rounded-2xl border border-white/5 bg-card overflow-hidden">
+    <div className="rounded-2xl border border-amber-500/10 bg-gradient-to-b from-white/[0.03] to-transparent overflow-hidden shadow-lg shadow-black/20">
       {/* Stage 62: All options displayed as horizontal gallery with images */}
       {hasAlternatives ? (
         <div className="p-3 space-y-2">
@@ -429,7 +429,7 @@ function ImprovementCard({
                   onClick={() => { setSelectedOption(idx); setImgLoaded(false); setImgError(false); }}
                   className={`relative rounded-xl overflow-hidden border-2 transition-all duration-200 ${
                     isActive
-                      ? 'border-primary ring-1 ring-primary/30 scale-[1.02]'
+                      ? 'border-amber-500/60 ring-1 ring-amber-400/20 scale-[1.02]'
                       : 'border-white/5 hover:border-white/20 opacity-75 hover:opacity-100'
                   }`}
                 >
@@ -448,7 +448,7 @@ function ImprovementCard({
                   )}
                   {/* Label overlay */}
                   <div className={`absolute bottom-0 inset-x-0 px-1.5 py-1 text-[9px] font-medium text-center truncate ${
-                    isActive ? 'bg-primary/90 text-primary-foreground' : 'bg-black/60 text-white/80'
+                    isActive ? 'bg-gradient-to-r from-amber-600/90 to-amber-500/90 text-white' : 'bg-black/60 text-white/80'
                   }`}>
                     {idx === 0
                       ? (lang === "he" ? "⭐ מומלץ" : "⭐ Top Pick")
@@ -456,8 +456,8 @@ function ImprovementCard({
                   </div>
                   {/* Selected checkmark */}
                   {isActive && (
-                    <div className="absolute top-1 right-1 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
-                      <Check className="w-3 h-3 text-primary-foreground" />
+                    <div className="absolute top-1 right-1 w-5 h-5 rounded-full bg-amber-500 flex items-center justify-center shadow-lg shadow-amber-500/30">
+                      <Check className="w-3 h-3 text-white" />
                     </div>
                   )}
                 </button>
@@ -516,14 +516,14 @@ function ImprovementCard({
       {/* Content */}
       <div className="p-4 space-y-3">
         <div className="flex items-start gap-3">
-          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 text-primary font-bold text-sm">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-500/20 to-amber-600/10 flex items-center justify-center shrink-0 text-amber-300 font-bold text-sm border border-amber-500/20">
             {index + 1}
           </div>
           <div className="flex-1 min-w-0">
-            <h4 className="font-bold text-sm mb-1">
+            <h4 className="font-bold text-sm mb-1 text-amber-100/90">
               <LinkedText text={activeOption.title} mentions={mentions} onInfluencerClick={onInfluencerClick} />
             </h4>
-            <p className="text-xs text-muted-foreground leading-relaxed">
+            <p className="text-xs text-muted-foreground/80 leading-relaxed">
               <LinkedText text={activeOption.description} mentions={mentions} onInfluencerClick={onInfluencerClick} />
             </p>
           </div>
@@ -569,14 +569,16 @@ function ImprovementCard({
           </>
         )}
 
-        {/* Store Buttons — static search URLs, no product images */}
+        {/* Store Buttons — compact conversion-focused row */}
         {links.length > 0 && (
-          <div className="pt-1">
-            <p className="text-[10px] text-muted-foreground font-medium flex items-center gap-1 mb-2">
-              <ShoppingBag className="w-3 h-3" />
-              {t("review", "recommendedProducts")}
-            </p>
-            <div className="flex flex-wrap gap-2">
+          <div className="pt-2 border-t border-white/[0.04]">
+            <div className="flex items-center gap-1.5 mb-2">
+              <ShoppingBag className="w-3 h-3 text-amber-400/60" />
+              <span className="text-[10px] text-amber-400/60 font-medium">
+                {t("review", "recommendedProducts")}
+              </span>
+            </div>
+            <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
               {links.map((link: any, j: number) => {
                 const storeName = extractStoreFromUrl(link.url) || extractStoreFromLabel(link.label);
                 return (
@@ -585,23 +587,22 @@ function ImprovementCard({
                     href={link.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.08] hover:border-primary/30 transition-all duration-200 group"
+                    className="group inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-amber-500/15 bg-amber-500/[0.04] hover:bg-amber-500/10 hover:border-amber-500/30 hover:shadow-[0_0_10px_rgba(200,164,78,0.1)] transition-all duration-300 flex-shrink-0"
                   >
                     {storeName ? (
-                      <div className="flex items-center gap-2">
-                        <div className="bg-white/90 rounded-lg px-1.5 py-0.5">
+                      <>
+                        <div className="bg-white/90 rounded px-1 py-px">
                           <StoreLogo name={storeName} size="sm" />
                         </div>
-                        <span className="text-xs text-muted-foreground group-hover:text-primary transition-colors flex items-center gap-1">
-                          {lang === "he" ? "חפש" : "Search"}
-                          <ExternalLink className="w-2.5 h-2.5" />
-                        </span>
-                      </div>
+                        <ExternalLink className="w-2.5 h-2.5 text-amber-400/50 group-hover:text-amber-300 transition-colors" />
+                      </>
                     ) : (
-                      <span className="text-xs font-medium group-hover:text-primary transition-colors flex items-center gap-1">
-                        {link.label}
-                        <ExternalLink className="w-2.5 h-2.5" />
-                      </span>
+                      <>
+                        <span className="text-[10px] font-semibold text-amber-200/70 group-hover:text-amber-200 transition-colors">
+                          {link.label}
+                        </span>
+                        <ExternalLink className="w-2.5 h-2.5 text-amber-400/50 group-hover:text-amber-300 transition-colors" />
+                      </>
                     )}
                   </a>
                 );

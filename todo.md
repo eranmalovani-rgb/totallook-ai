@@ -825,3 +825,9 @@
 - [x] 67.4: Redesigned quick actions with subtle border separator, hero card with amber-tinted score badge
 - [x] 67.5: Applied identical studio styling to GuestReview.tsx and WhatsAppReview.tsx
 - [x] 67.6: Verified — 0 TS errors, 819/824 tests pass (same 5 pre-existing API failures)
+
+### 68: Upgrade Cards Redesign — Compact Store Links & Better Conversion UX
+- [x] 68.1: Redesigned store links as compact rounded-full pills with amber gold styling, horizontal scrollable row, StoreLogo + external link icon
+- [x] 68.2: Improved ImprovementCard — amber-500/10 borders, gradient backgrounds, amber number badges, amber-tinted titles, gold-themed option gallery
+- [x] 68.3: Applied to GuestImprovementAccordionCard, GuestOutfitCard, and all WhatsAppReview card wrappers
+- [x] 68.4: Verified — 0 TS errors, 819/824 tests pass (same 5 pre-existing API failures)
