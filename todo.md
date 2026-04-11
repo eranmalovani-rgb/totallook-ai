@@ -811,3 +811,9 @@
 - [x] 65.3: Apply to Upload.tsx — full styling studio scene with racks, stylist, swatches, "הסטייליסטית שלך מחכה לך" text
 - [x] 65.4: Apply to GuestUpload.tsx — identical styling studio scene
 - [x] 65.5: Verified — 0 TS errors, 819/824 tests pass (same 5 pre-existing API failures)
+
+### 66: Review Page Tabs Area — Clean Studio Redesign
+- [x] 66.1: Removed ugly couple silhouette BackgroundWatermark image
+- [x] 66.2: Replaced with repeating SVG studio pattern (hangers, measuring tape, scissors, buttons, geometric diamond, needle & thread) in very faint gold
+- [x] 66.3: BackgroundWatermark is global (in App.tsx) — fix applies to all pages including GuestReview
+- [x] 66.4: Verified — 0 TS errors, 819/824 tests pass (same 5 pre-existing API failures)
