@@ -1370,6 +1370,28 @@ function detectColorHint(text: string): string | null {
   return null;
 }
 
+// Stage 58: In-memory cache for normalized improvements (avoid re-running on every getById poll)
+// Key: reviewId or sessionId, Value: { timestamp, improvements }
+const normalizedImprovementsCache = new Map<string, { ts: number; improvements: Improvement[] }>();
+const NORMALIZATION_CACHE_TTL = 60_000; // 60 seconds
+
+function getCachedNormalizedImprovements(key: string): Improvement[] | null {
+  const entry = normalizedImprovementsCache.get(key);
+  if (entry && Date.now() - entry.ts < NORMALIZATION_CACHE_TTL) return entry.improvements;
+  return null;
+}
+
+function setCachedNormalizedImprovements(key: string, improvements: Improvement[]): void {
+  normalizedImprovementsCache.set(key, { ts: Date.now(), improvements });
+  // Evict old entries periodically
+  if (normalizedImprovementsCache.size > 200) {
+    const now = Date.now();
+    for (const [k, v] of normalizedImprovementsCache) {
+      if (now - v.ts > NORMALIZATION_CACHE_TTL * 2) normalizedImprovementsCache.delete(k);
+    }
+  }
+}
+
 // Color name → hex code map for absolute precision in Fix My Look prompts
 const COLOR_HEX_MAP: Record<string, string> = {
   BLACK: "#000000", WHITE: "#FFFFFF", NAVY: "#001F3F", "NAVY BLUE": "#001F3F",
@@ -4298,13 +4320,20 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
           const published = await isReviewPublished(input.id, review.userId);
           if (!published) throw new Error("Unauthorized");
         }
-        // Re-apply store diversity normalization on read (fixes old analyses with all-same-store links)
+        // Re-apply store diversity normalization on read (with cache to avoid re-running on every poll)
         if (review.analysisJson && (review.analysisJson as FashionAnalysis).improvements) {
           const analysis = review.analysisJson as FashionAnalysis;
-          const lang: "he" | "en" = /[\u0590-\u05FF]/.test(analysis.summary || "") ? "he" : "en";
-          const profile = await getUserProfile(review.userId);
-          const genderCat: GenderCategory = profile?.gender === "female" ? "female" : profile?.gender === "unisex" ? "unisex" : "male";
-          analysis.improvements = analysis.improvements.map((imp) => normalizeImprovementShoppingLinks(imp, lang, profile?.preferredStores || null, genderCat, profile?.budgetLevel || null));
+          const cacheKey = `review-${input.id}`;
+          const cached = getCachedNormalizedImprovements(cacheKey);
+          if (cached && cached.length === analysis.improvements.length) {
+            analysis.improvements = cached;
+          } else {
+            const lang: "he" | "en" = /[\u0590-\u05FF]/.test(analysis.summary || "") ? "he" : "en";
+            const profile = await getUserProfile(review.userId);
+            const genderCat: GenderCategory = profile?.gender === "female" ? "female" : profile?.gender === "unisex" ? "unisex" : "male";
+            analysis.improvements = analysis.improvements.map((imp) => normalizeImprovementShoppingLinks(imp, lang, profile?.preferredStores || null, genderCat, profile?.budgetLevel || null));
+            setCachedNormalizedImprovements(cacheKey, analysis.improvements);
+          }
           review.analysisJson = analysis;
         }
         return review;
@@ -4316,14 +4345,21 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
       .query(async ({ input }) => {
         const review = await getReviewByShareToken(input.token);
         if (!review) return null;
-        // Re-apply store diversity normalization on read
+        // Re-apply store diversity normalization on read (with cache)
         let analysisJson = review.analysisJson;
         if (analysisJson && (analysisJson as FashionAnalysis).improvements) {
           const analysis = analysisJson as FashionAnalysis;
-          const lang: "he" | "en" = /[\u0590-\u05FF]/.test(analysis.summary || "") ? "he" : "en";
-          const profile = review.userId ? await getUserProfile(review.userId) : null;
-          const genderCat: GenderCategory = profile?.gender === "female" ? "female" : profile?.gender === "unisex" ? "unisex" : "male";
-          analysis.improvements = analysis.improvements.map((imp) => normalizeImprovementShoppingLinks(imp, lang, profile?.preferredStores || null, genderCat, profile?.budgetLevel || null));
+          const cacheKey = `share-${input.token}`;
+          const cached = getCachedNormalizedImprovements(cacheKey);
+          if (cached && cached.length === analysis.improvements.length) {
+            analysis.improvements = cached;
+          } else {
+            const lang: "he" | "en" = /[\u0590-\u05FF]/.test(analysis.summary || "") ? "he" : "en";
+            const profile = review.userId ? await getUserProfile(review.userId) : null;
+            const genderCat: GenderCategory = profile?.gender === "female" ? "female" : profile?.gender === "unisex" ? "unisex" : "male";
+            analysis.improvements = analysis.improvements.map((imp) => normalizeImprovementShoppingLinks(imp, lang, profile?.preferredStores || null, genderCat, profile?.budgetLevel || null));
+            setCachedNormalizedImprovements(cacheKey, analysis.improvements);
+          }
           analysisJson = analysis;
         }
         return {
@@ -6259,14 +6295,21 @@ Return ONLY a JSON object with these exact fields:
       .query(async ({ input }) => {
         const session = await getGuestSessionById(input.sessionId);
         if (!session) return null;
-        // Re-apply store diversity normalization on read
+        // Re-apply store diversity normalization on read (with cache)
         let analysisJson = session.analysisJson;
         if (analysisJson && (analysisJson as FashionAnalysis).improvements) {
           const analysis = analysisJson as FashionAnalysis;
-          const lang: "he" | "en" = /[\u0590-\u05FF]/.test(analysis.summary || "") ? "he" : "en";
-          const guestProfile = session.fingerprint ? await getGuestProfile(session.fingerprint) : null;
-          const guestGenderCat: GenderCategory = guestProfile?.gender === "female" ? "female" : guestProfile?.gender === "unisex" ? "unisex" : "male";
-          analysis.improvements = analysis.improvements.map((imp) => normalizeImprovementShoppingLinks(imp, lang, guestProfile?.preferredStores || null, guestGenderCat, guestProfile?.budgetLevel || null));
+          const cacheKey = `guest-${input.sessionId}`;
+          const cached = getCachedNormalizedImprovements(cacheKey);
+          if (cached && cached.length === analysis.improvements.length) {
+            analysis.improvements = cached;
+          } else {
+            const lang: "he" | "en" = /[\u0590-\u05FF]/.test(analysis.summary || "") ? "he" : "en";
+            const guestProfile = session.fingerprint ? await getGuestProfile(session.fingerprint) : null;
+            const guestGenderCat: GenderCategory = guestProfile?.gender === "female" ? "female" : guestProfile?.gender === "unisex" ? "unisex" : "male";
+            analysis.improvements = analysis.improvements.map((imp) => normalizeImprovementShoppingLinks(imp, lang, guestProfile?.preferredStores || null, guestGenderCat, guestProfile?.budgetLevel || null));
+            setCachedNormalizedImprovements(cacheKey, analysis.improvements);
+          }
           analysisJson = analysis;
         }
         return {
@@ -6606,14 +6649,21 @@ Return ONLY a JSON object with these exact fields:
         if (!session) return null;
         // Mark deep-link as viewed for WhatsApp follow-up suppression.
         markGuestSessionViewed(session.id).catch(() => {});
-        // Re-apply store diversity normalization on read
+        // Re-apply store diversity normalization on read (with cache)
         let analysisJson = session.analysisJson;
         if (analysisJson && (analysisJson as FashionAnalysis).improvements) {
           const analysis = analysisJson as FashionAnalysis;
-          const lang: "he" | "en" = /[\u0590-\u05FF]/.test(analysis.summary || "") ? "he" : "en";
-          const guestProfile = session.fingerprint ? await getGuestProfile(session.fingerprint) : null;
-          const guestGenderCat: GenderCategory = guestProfile?.gender === "female" ? "female" : guestProfile?.gender === "unisex" ? "unisex" : "male";
-          analysis.improvements = analysis.improvements.map((imp) => normalizeImprovementShoppingLinks(imp, lang, guestProfile?.preferredStores || null, guestGenderCat, guestProfile?.budgetLevel || null));
+          const cacheKey = `guest-token-${input.token}`;
+          const cached = getCachedNormalizedImprovements(cacheKey);
+          if (cached && cached.length === analysis.improvements.length) {
+            analysis.improvements = cached;
+          } else {
+            const lang: "he" | "en" = /[\u0590-\u05FF]/.test(analysis.summary || "") ? "he" : "en";
+            const guestProfile = session.fingerprint ? await getGuestProfile(session.fingerprint) : null;
+            const guestGenderCat: GenderCategory = guestProfile?.gender === "female" ? "female" : guestProfile?.gender === "unisex" ? "unisex" : "male";
+            analysis.improvements = analysis.improvements.map((imp) => normalizeImprovementShoppingLinks(imp, lang, guestProfile?.preferredStores || null, guestGenderCat, guestProfile?.budgetLevel || null));
+            setCachedNormalizedImprovements(cacheKey, analysis.improvements);
+          }
           analysisJson = analysis;
         }
         return {

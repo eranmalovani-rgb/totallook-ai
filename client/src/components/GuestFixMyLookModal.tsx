@@ -229,9 +229,17 @@ export default function GuestFixMyLookModal({ sessionId, analysis, trigger, clos
         });
       } else {
         const imp = allImprovements[impIdx];
+        // Stage 57: Enrich productLabel with full catalog metadata for precise prompt
+        const metaParts: string[] = [];
+        if (imp?.afterColor) metaParts.push(imp.afterColor);
+        if (imp?.afterMaterial) metaParts.push(imp.afterMaterial);
+        if (imp?.afterPattern && imp.afterPattern !== 'solid') metaParts.push(`${imp.afterPattern} pattern`);
+        if (imp?.afterFit && imp.afterFit !== 'regular') metaParts.push(`${imp.afterFit} fit`);
+        const baseName = imp?.afterLabel || imp?.title || "";
+        const enrichedLabel = metaParts.length > 0 ? `${baseName} (${metaParts.join(', ')})` : baseName;
         selectedProductDetails.push({
           improvementIndex: impIdx,
-          productLabel: imp?.afterLabel || imp?.title || "",
+          productLabel: enrichedLabel,
           productImageUrl: imp?.upgradeImageUrl || "",
         });
       }

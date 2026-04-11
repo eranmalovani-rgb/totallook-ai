@@ -736,3 +736,13 @@
 - [x] 56.1: Analyze speed bottlenecks — Stage 1: 27-51s (LLM), Stage 2: 2.5-2.8s (catalog), Fix My Look: 74-77s (image gen ~70s)
 - [x] 56.2: Implemented: (a) Cache image dimensions in Stage 1 analysis → skip probeImageSize in Fix My Look (~1s saved), (b) Added imageWidth/imageHeight to FashionAnalysis type
 - [x] 56.3: Verified — 0 TS errors, 819/824 tests pass (same 5 pre-existing API failures)
+
+### 57: Fix My Look — Upgrade Image Mismatch
+- [x] 57.1: Investigated — productLabel sent to backend was missing color/material/pattern metadata
+- [x] 57.2: Fixed — enriched productLabel with full catalog metadata (color, material, pattern, fit) in both FixMyLookModal and GuestFixMyLookModal
+- [x] 57.3: Verified — 0 TS errors, 819/824 tests pass
+
+### 58: Fix My Look — Further Speed Optimization
+- [x] 58.1: Found: normalizeImprovementShoppingLinks runs 80x during Fix My Look (16 polls × 5 improvements)
+- [x] 58.2: Added in-memory normalization cache (60s TTL) to review.get, getByShareToken, guest.getResult, guest.getByToken
+- [x] 58.3: Verified — 0 TS errors, 819/824 tests pass, no quality regression
