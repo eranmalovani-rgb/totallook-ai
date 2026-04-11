@@ -4,7 +4,7 @@ import { useParams, useLocation } from "wouter";
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import {
   ArrowRight, ArrowLeft, Sparkles, TrendingUp, ShoppingBag,
-  ExternalLink, Upload, Users, BookOpen, Eye, RefreshCw, Recycle, Wand2, Trash2, Instagram, Pencil, Send, Loader2, Check
+  ExternalLink, Upload, Users, BookOpen, Eye, RefreshCw, Recycle, Wand2, Trash2, Instagram, Pencil, Send, Loader2, Check, UserPlus
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -940,6 +940,12 @@ export default function GuestReview() {
   const guestCountryFlag = getCountryFlag(detectedCountry ?? "");
   const fingerprint = useFingerprint();
 
+  // Detect if user came from personalized onboarding path
+  const [fromOnboarding] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("from") === "onboarding";
+  });
+
   const [influencerModal, setInfluencerModal] = useState<{
     open: boolean; name: string; handle?: string; igUrl?: string;
   }>({ open: false, name: "" });
@@ -981,17 +987,14 @@ export default function GuestReview() {
     }
   );
 
-  const { data: limitData } = trpc.guest.checkLimit.useQuery(
-    { fingerprint: fingerprint || "" },
-    { enabled: !!fingerprint }
-  );
+  // Limit check removed — no more 5-tries limit
 
   const { data: wardrobeData } = trpc.guest.getWardrobe.useQuery(
     { fingerprint: fingerprint || "" },
     { enabled: !!fingerprint }
   );
 
-  const analysisCount = limitData?.count ?? 0;
+
   const closetItems = wardrobeData ?? [];
 
   const analysis = useMemo(() => {
@@ -1453,14 +1456,7 @@ export default function GuestReview() {
       />
 
       <div className="pt-16 pb-12">
-        {/* Analysis count badge */}
-        <div className="container max-w-2xl mx-auto mb-6">
-          <div className="flex items-center justify-between px-4 py-2.5 rounded-xl bg-primary/5 border border-primary/20">
-            <span className="text-xs text-primary font-medium">
-              {t("guest", "analysisCount").replace("{current}", String(analysisCount)).replace("{max}", "5")}
-            </span>
-          </div>
-        </div>
+
 
         {/* ═══════════════════════════════════════════
             HERO CARD — Always visible
@@ -1557,49 +1553,59 @@ export default function GuestReview() {
             BOTTOM CTA — Conversion Upsells (Path A)
             ═══════════════════════════════════════════ */}
         <section className="container max-w-2xl mx-auto py-8 border-t border-border space-y-4">
-          {/* Upsell 1: Try personalized analysis with same photo */}
-          <div className="p-6 rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-500/[0.06] via-amber-600/[0.03] to-transparent">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-xl bg-amber-500/15 flex items-center justify-center flex-shrink-0">
-                <Sparkles className="w-5 h-5 text-amber-400" />
+          {/* Upsell 1: Try personalized analysis — only show if NOT from onboarding (Path A quick) */}
+          {!fromOnboarding && (
+            <div className="p-6 rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-500/[0.06] via-amber-600/[0.03] to-transparent">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/15 flex items-center justify-center flex-shrink-0">
+                  <Sparkles className="w-5 h-5 text-amber-400" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-base">
+                    {lang === "he" ? "רוצה תוצאה מדויקת יותר?" : "Want more accurate results?"}
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    {lang === "he" ? "עוד כמה בחירות קצרות → ניתוח מותאם אישית" : "A few quick choices → personalized analysis"}
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-bold text-base">
-                  {lang === "he" ? "רוצה תוצאה מדויקת יותר?" : "Want more accurate results?"}
-                </h3>
-                <p className="text-xs text-muted-foreground">
-                  {lang === "he" ? "עוד כמה בחירות קצרות → ניתוח מותאם אישית" : "A few quick choices → personalized analysis"}
-                </p>
-              </div>
+              <Button
+                variant="default"
+                size="lg"
+                className="w-full gap-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-bold"
+                onClick={() => {
+                  const imageUrl = result?.imageUrl || "";
+                  const params = imageUrl ? `?photo=${encodeURIComponent(imageUrl)}` : "";
+                  navigate(`/try/precise${params}`);
+                }}
+              >
+                🎯 {lang === "he" ? "בואי נכיר — ניתוח מותאם אישית" : "Let's get personal — precise analysis"}
+                <ArrowRight className="w-4 h-4" />
+              </Button>
             </div>
-            <Button
-              variant="default"
-              size="lg"
-              className="w-full gap-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-bold"
-              onClick={() => {
-                const imageUrl = result?.imageUrl || "";
-                const params = imageUrl ? `?photo=${encodeURIComponent(imageUrl)}` : "";
-                navigate(`/try/precise${params}`);
-              }}
-            >
-              🎯 {lang === "he" ? "בואי נכיר — ניתוח מותאם אישית" : "Let's get personal — precise analysis"}
-              <ArrowRight className="w-4 h-4" />
-            </Button>
-          </div>
+          )}
 
-          {/* Upsell 2: Save + Signup */}
+          {/* Upsell: Signup + Another Analysis */}
           <div className="p-6 rounded-2xl border border-primary/15 bg-gradient-to-br from-primary/5 via-rose-500/5 to-transparent">
             <Sparkles className="w-7 h-7 text-primary mx-auto mb-2" />
-            <h3 className="text-lg font-bold text-center mb-1">{t("guest", "signupCta")}</h3>
-            <p className="text-muted-foreground text-sm text-center max-w-md mx-auto mb-4">{t("guest", "signupCtaDesc")}</p>
+            <h3 className="text-lg font-bold text-center mb-1">
+              {fromOnboarding
+                ? (lang === "he" ? "אהבת? שמור את הפרופיל שלך" : "Loved it? Save your profile")
+                : t("guest", "signupCta")}
+            </h3>
+            <p className="text-muted-foreground text-sm text-center max-w-md mx-auto mb-4">
+              {fromOnboarding
+                ? (lang === "he" ? "הירשם חינם כדי לשמור את כל מה שלמדנו עליך — הניתוחים הבאים יהיו עוד יותר מדויקים" : "Sign up free to save everything we learned — future analyses will be even more precise")
+                : t("guest", "signupCtaDesc")}
+            </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Button variant="default" size="lg" className="gap-2" onClick={() => navigate("/try")}>
-                <Upload className="w-5 h-5" />{lang === "he" ? "ניתוח נוסף" : "Another Analysis"}
-              </Button>
-              <Button variant="outline" size="lg" className="gap-2" asChild>
+              <Button variant="default" size="lg" className="gap-2" asChild>
                 <a href={getLoginUrl()}>
-                  <ArrowIcon className="w-4 h-4" />{t("guest", "signupButton")}
+                  <UserPlus className="w-4 h-4" />{fromOnboarding ? (lang === "he" ? "שמור את הפרופיל שלי" : "Save my profile") : t("guest", "signupButton")}
                 </a>
+              </Button>
+              <Button variant="outline" size="lg" className="gap-2" onClick={() => navigate("/try")}>
+                <Upload className="w-5 h-5" />{lang === "he" ? "ניתוח נוסף" : "Another Analysis"}
               </Button>
             </div>
           </div>

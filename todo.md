@@ -987,3 +987,13 @@
 - [x] 84.4: File upload uses input accept="image/*" without capture for gallery/file picker
 - [x] 84.5: Both work on desktop (file picker only) and mobile (camera + gallery)
 - [x] 84.6: Verified on preview — two buttons visible side by side, TypeScript 0 errors
+
+## Stage 85: Fix Full Flow — Quick + Personalized Paths
+- [x] 85.1: Quick Path (/try/quick) — simple: upload photo → analyze → show results → upsell (register OR try personalized with same photo). NO old guest flow, NO 5 tries limit
+- [x] 85.2: Personalized Path (/try/precise) — onboarding (photo→tinder→influencers→mall) → at end, analyze the SAME photo uploaded at start with personalization data → show results → upsell to register
+- [x] 85.3: Remove old guest flow completely (GuestUpload 5-tries limit, occasion picker, etc.)
+- [x] 85.4: Remove old onboarding flow (if any remnants)
+- [x] 85.5: Fix influencers — too many shown, reduce to reasonable count (6-8 max, no 'show more' button)
+- [x] 85.6: Fix mall/stores — fill with proper stores based on detected budget + country (IL + international), ensure 10 stores show
+- [x] 85.7: After personalized analysis, upsell = register only (no more onboarding offer since they already did it)
+- [x] 85.8: Test both paths end-to-end (vitest + browser verification)

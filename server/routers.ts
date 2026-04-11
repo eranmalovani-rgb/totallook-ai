@@ -5587,13 +5587,8 @@ Return ONLY a JSON object with these exact fields:
             if (payload.purpose === "guest_test") isAdmin = true;
           } catch { /* invalid token */ }
         }
-        if (!isAdmin) {
-          const { count: cnt, hasEmail } = await getGuestAnalysisCount(input.fingerprint);
-          const limit = hasEmail ? 999 : 5;
-          if (cnt >= limit) {
-            throw new Error(hasEmail ? "שגיאה לא צפויה. נסה שוב." : "הגעת למגבלת 5 ניתוחים. הכנס מייל לניתוחים ללא הגבלה!");
-          }
-        }
+        // Rate limit removed — guests can analyze freely
+        // (kept admin bypass logic for future use if needed)
 
         const fileExt = input.mimeType.split("/")[1] || "jpg";
         const fileKey = `guest/${nanoid()}.${fileExt}`;
@@ -5614,6 +5609,29 @@ Return ONLY a JSON object with these exact fields:
         });
 
         return { sessionId, imageUrl: url };
+      }),
+
+    /** Create guest session from an already-uploaded image URL (used by onboarding → analysis flow) */
+    uploadFromUrl: publicProcedure
+      .input(z.object({
+        imageUrl: z.string().url(),
+        imageKey: z.string().optional(),
+        fingerprint: z.string().min(8).max(128),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const ipAddress = ctx.req?.headers?.["x-forwarded-for"]?.toString()?.split(",")[0]?.trim()
+          || ctx.req?.socket?.remoteAddress || null;
+
+        const sessionId = await createGuestSession({
+          fingerprint: input.fingerprint,
+          ipAddress,
+          imageUrl: input.imageUrl,
+          imageKey: input.imageKey || null,
+          status: "pending",
+          userAgent: ctx.req?.headers?.["user-agent"] || null,
+        });
+
+        return { sessionId, imageUrl: input.imageUrl };
       }),
 
     /** Run analysis for guest session */

@@ -56,6 +56,8 @@ function calcRelevanceScore(inf: Influencer, profile: UserProfileData | null | u
 export default function InfluencerPicker({ gender, selectedInfluencers, onToggle, userProfile }: InfluencerPickerProps) {
   const [countryTab, setCountryTab] = useState<CountryTab>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [showAll, setShowAll] = useState(false);
+  const MAX_VISIBLE = 6;
   const { lang } = useLanguage();
   const { country: userCountry } = useCountry();
 
@@ -256,7 +258,7 @@ export default function InfluencerPicker({ gender, selectedInfluencers, onToggle
             {isHe ? "לא נמצאו תוצאות" : "No results found"}
           </p>
         ) : (
-          filteredInfluencers.map(inf => {
+          (showAll || searchQuery.trim() ? filteredInfluencers : filteredInfluencers.slice(0, MAX_VISIBLE)).map(inf => {
             const isSelected = selectedInfluencers.includes(inf.name);
             const relevance = relevanceScores.get(inf.name) ?? 0;
             const isHighMatch = hasProfile && relevance >= 6;
@@ -302,6 +304,7 @@ export default function InfluencerPicker({ gender, selectedInfluencers, onToggle
           })
         )}
       </div>
+      {/* Show more removed — keep it focused with 6 visible influencers */}
     </div>
   );
 }

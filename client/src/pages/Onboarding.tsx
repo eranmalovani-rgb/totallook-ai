@@ -16,6 +16,7 @@ import InfluencerPicker from "@/components/InfluencerPicker";
 import { useLanguage } from "@/i18n";
 import { useCountry } from "@/hooks/useCountry";
 import { getCountryFlag } from "../../../shared/countries";
+import { useFingerprint } from "@/hooks/useFingerprint";
 
 /* ═══════════════════════════════════════════════════════
    CDN image assets — gender-specific Tinder R1
@@ -287,6 +288,10 @@ export default function Onboarding() {
   const { country: detectedCountry } = useCountry();
   const saveProfileMutation = trpc.profile.save.useMutation();
   const analyzePhotoMutation = trpc.onboarding.analyzePhoto.useMutation();
+  const guestUploadFromUrlMutation = trpc.guest.uploadFromUrl.useMutation();
+  const guestAnalyzeMutation = trpc.guest.analyze.useMutation();
+  const guestSaveProfileMutation = trpc.guest.saveProfile.useMutation();
+  const fingerprint = useFingerprint();
 
   /* ── Derived: which R1 deck to use ── */
   const r1Cards = useMemo(() => {
@@ -299,36 +304,47 @@ export default function Onboarding() {
   const detectedGender = photoAnalysis?.gender || "";
 
   const mallStores = useMemo(() => {
+    const TARGET = 10;
+    const allBudgets = ["budget", "mid-range", "premium", "luxury"];
     const adjacent: Record<string, string[]> = {
       "budget": ["budget", "mid-range"],
       "mid-range": ["budget", "mid-range", "premium"],
       "premium": ["mid-range", "premium", "luxury"],
       "luxury": ["premium", "luxury"],
     };
-    const allowedBudgets = adjacent[detectedBudget] || [detectedBudget];
+    let allowedBudgets = adjacent[detectedBudget] || [detectedBudget];
 
-    // Local stores
+    // Collect local stores (country-specific)
     const localData = detectedCountry ? COUNTRY_STORE_MAP[detectedCountry] : null;
-    const localStores = localData
+    const allLocal = localData
       ? localData.stores.filter(s => {
           const genderOk = !detectedGender || s.gender === "unisex" || s.gender === detectedGender;
-          const budgetOk = s.budget.some(b => allowedBudgets.includes(b));
-          return genderOk && budgetOk;
-        }).map(s => ({ name: s.name, isLocal: true }))
+          return genderOk;
+        })
       : [];
 
-    // Global stores
-    const localNames = new Set(localStores.map(s => s.name));
-    const globalStores = STORE_OPTIONS
+    // Sort local stores: budget-matching first, then others
+    const localBudgetMatch = allLocal.filter(s => s.budget.some(b => allowedBudgets.includes(b)));
+    const localOther = allLocal.filter(s => !s.budget.some(b => allowedBudgets.includes(b)));
+    const sortedLocal = [...localBudgetMatch, ...localOther].map(s => ({ name: s.name, isLocal: true }));
+
+    // Collect global stores
+    const localNames = new Set(sortedLocal.map(s => s.name));
+    const globalBudgetMatch = STORE_OPTIONS
       .filter(s => allowedBudgets.includes(s.budget) && !localNames.has(s.label))
       .map(s => ({ name: s.label, isLocal: false }));
+    const globalOther = STORE_OPTIONS
+      .filter(s => !allowedBudgets.includes(s.budget) && !localNames.has(s.label))
+      .map(s => ({ name: s.label, isLocal: false }));
 
-    // Mix: up to 5 local + up to 5 global = max 10
-    const mixed = [
-      ...localStores.slice(0, 5),
-      ...globalStores.slice(0, 10 - Math.min(localStores.length, 5)),
-    ];
-    return mixed.slice(0, 10);
+    // Build final list: up to 5 local + fill with global (budget-match first, then any)
+    const localSlice = sortedLocal.slice(0, 5);
+    const usedNames = new Set(localSlice.map(s => s.name));
+    const globalPool = [...globalBudgetMatch, ...globalOther].filter(s => !usedNames.has(s.name));
+    const globalSlice = globalPool.slice(0, TARGET - localSlice.length);
+    const result = [...localSlice, ...globalSlice].slice(0, TARGET);
+
+    return result;
   }, [detectedBudget, detectedGender, detectedCountry]);
 
   /* ── Taste scores ── */
@@ -501,9 +517,37 @@ export default function Onboarding() {
         });
         window.location.href = "/upload";
       } else {
-        // Non-authenticated: show conversion step
-        setStep(6);
-        setSaving(false);
+        // Non-authenticated: save guest profile, create session from existing photo, run analysis, navigate to review
+        if (!fingerprint || !photoAnalysis?.imageUrl) {
+          toast.error(lang === "he" ? "שגיאה — נסה שוב" : "Error — please try again");
+          setSaving(false);
+          return;
+        }
+
+        // 1. Save guest profile with all onboarding data
+        await guestSaveProfileMutation.mutateAsync({
+          fingerprint,
+          gender: photoAnalysis.gender || undefined,
+          ageRange: photoAnalysis.ageRange || undefined,
+          budgetLevel: photoAnalysis.budgetLevel || undefined,
+          stylePreference: topStyles.length > 0 ? topStyles.join(", ") : (photoAnalysis.detectedStyles?.join(", ") || undefined),
+          favoriteInfluencers: selectedInfluencers.length > 0 ? selectedInfluencers.join(", ") : undefined,
+          preferredStores: selectedStores.length > 0 ? selectedStores.join(", ") : undefined,
+          country: detectedCountry || undefined,
+        });
+
+        // 2. Create guest session from the already-uploaded onboarding photo
+        const { sessionId } = await guestUploadFromUrlMutation.mutateAsync({
+          imageUrl: photoAnalysis.imageUrl,
+          imageKey: photoAnalysis.imageKey || undefined,
+          fingerprint,
+        });
+
+        // 3. Trigger full analysis (will use saved guest profile for personalization)
+        guestAnalyzeMutation.mutate({ sessionId, lang });
+
+        // 4. Navigate to review page (it polls for results) — mark as from onboarding
+        navigate(`/guest/review/${sessionId}?from=onboarding`);
       }
     } catch (err: any) {
       toast.error(lang === "he" ? "שגיאה בשמירה" : "Save error");
@@ -641,12 +685,12 @@ export default function Onboarding() {
     <div className="min-h-screen bg-background text-foreground flex flex-col" dir={dir}>
       <WhatsAppOnboardingModal open={showWhatsAppModal} onClose={() => { window.location.href = "/upload"; }} phoneNumber="" />
 
-      {/* Progress dots — show 5 for all, step 6 (conversion) doesn't get a dot */}
+      {/* Progress dots — 5 steps total */}
       <div className="fixed top-0 left-0 right-0 z-50">
         <div className="flex items-center justify-center gap-2 pt-6 pb-2">
           {Array.from({ length: 5 }).map((_, i) => (
             <div key={i} className={`rounded-full transition-all duration-500 ${
-              i + 1 === step ? "w-8 h-2 bg-primary" : i + 1 < step || step === 6 ? "w-2 h-2 bg-primary/60" : "w-2 h-2 bg-white/20"
+              i + 1 === step ? "w-8 h-2 bg-primary" : i + 1 < step ? "w-2 h-2 bg-primary/60" : "w-2 h-2 bg-white/20"
             }`} />
           ))}
         </div>
@@ -1080,73 +1124,7 @@ export default function Onboarding() {
             </div>
           )}
 
-          {/* ═══════════════════════════════════════════
-              STEP 6: Conversion — Save & Sign Up (guests only)
-              ═══════════════════════════════════════════ */}
-          {step === 6 && (
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 text-center space-y-6">
-              <div>
-                <div className="text-5xl mb-3">🎉</div>
-                <h2 className="text-2xl md:text-3xl font-bold mb-2">
-                  {lang === "he" ? "הפרופיל שלך מוכן!" : "Your profile is ready!"}
-                </h2>
-                <p className="text-muted-foreground text-sm">
-                  {lang === "he"
-                    ? "שמור את הפרופיל שלך כדי לקבל ניתוחים מותאמים אישית"
-                    : "Save your profile to get personalized analyses"}
-                </p>
-              </div>
-
-              {/* Taste summary mini */}
-              {topStyles.length > 0 && (
-                <div className="bg-card/50 border border-white/5 rounded-2xl p-4">
-                  <p className="text-xs text-muted-foreground mb-2">{lang === "he" ? "הסגנונות שלך:" : "Your styles:"}</p>
-                  <div className="flex items-center justify-center gap-2 flex-wrap">
-                    {topStyles.map(style => {
-                      const styleNames: Record<string, { he: string; en: string }> = {
-                        streetwear: { he: "סטריטוור", en: "Streetwear" }, "smart-casual": { he: "סמארט קז'ואל", en: "Smart Casual" },
-                        classic: { he: "קלאסי", en: "Classic" }, boho: { he: "בוהו", en: "Boho" },
-                        minimalist: { he: "מינימליסט", en: "Minimalist" }, athleisure: { he: "אתלי'זר", en: "Athleisure" },
-                      };
-                      return <span key={style} className="px-3 py-1 rounded-full bg-primary/20 text-primary text-sm font-medium border border-primary/30">{styleNames[style]?.[lang] || style}</span>;
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Personalization promise */}
-              <div className="bg-card/50 border border-white/5 rounded-2xl p-4">
-                <p className="text-sm text-foreground/80">
-                  {lang === "he"
-                    ? "🧠 כל מה שלמדנו עליך ישמר — כל תמונה שתעלה בהמשך תדייק את הניתוח עוד יותר"
-                    : "🧠 Everything we learned about you will be saved — every photo you upload will refine your analysis further"}
-                </p>
-              </div>
-
-              {/* Primary CTA: Sign up / Login */}
-              <div className="space-y-3">
-                <Button
-                  onClick={() => { window.location.href = getLoginUrl("/upload"); }}
-                  className="w-full gap-2 rounded-xl h-12 text-base font-bold" size="lg"
-                >
-                  <UserPlus className="w-5 h-5" />
-                  {lang === "he" ? "שמור את הפרופיל שלי" : "Save my profile"}
-                </Button>
-
-                <p className="text-xs text-muted-foreground">
-                  {lang === "he" ? "הרשמה חינמית — שומר את כל הפרסונליזציה שלך" : "Free signup — saves all your personalization"}
-                </p>
-              </div>
-
-              {/* Secondary: Continue without saving */}
-              <button
-                onClick={() => navigate("/try/quick")}
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors underline"
-              >
-                {lang === "he" ? "אולי אחר כך, קח אותי לניתוח" : "Maybe later, take me to analysis"}
-              </button>
-            </div>
-          )}
+          {/* Step 6 removed — guests now go directly to GuestReview from step 5 */}
 
         </div>
       </div>

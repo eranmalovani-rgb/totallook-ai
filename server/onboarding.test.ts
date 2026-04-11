@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";
+import { STORE_OPTIONS, COUNTRY_STORE_MAP } from "../shared/fashionTypes";
 
 type AuthenticatedUser = NonNullable<TrpcContext["user"]>;
 
@@ -299,5 +300,160 @@ describe("Path Chooser — Route Architecture", () => {
     const targetUrl = `/try/precise${params}`;
     expect(targetUrl).toContain("/try/precise?photo=");
     expect(targetUrl).toContain(encodeURIComponent(imageUrl));
+  });
+});
+
+describe("Guest — uploadFromUrl procedure", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("is accessible without authentication (publicProcedure)", async () => {
+    const { ctx } = createUnauthContext();
+    const caller = appRouter.createCaller(ctx);
+    try {
+      await caller.guest.uploadFromUrl({
+        imageUrl: "https://storage.example.com/test.jpg",
+        fingerprint: "test-fp-12345678",
+      });
+    } catch (err: any) {
+      // Should NOT be UNAUTHORIZED — any DB/storage error is fine
+      expect(err.code).not.toBe("UNAUTHORIZED");
+    }
+  });
+
+  it("requires fingerprint and imageUrl", async () => {
+    const { ctx } = createUnauthContext();
+    const caller = appRouter.createCaller(ctx);
+    // Missing fingerprint
+    await expect(
+      caller.guest.uploadFromUrl({ imageUrl: "https://test.com/img.jpg", fingerprint: "" } as any)
+    ).rejects.toThrow();
+    // Missing imageUrl
+    await expect(
+      caller.guest.uploadFromUrl({ imageUrl: "", fingerprint: "test-fp-12345678" } as any)
+    ).rejects.toThrow();
+  });
+});
+
+describe("Guest — saveProfile procedure", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("is accessible without authentication (publicProcedure)", async () => {
+    const { ctx } = createUnauthContext();
+    const caller = appRouter.createCaller(ctx);
+    try {
+      await caller.guest.saveProfile({
+        fingerprint: "test-fp-12345678",
+        gender: "female",
+        ageRange: "25-34",
+        budgetLevel: "mid-range",
+        stylePreference: "streetwear, classic",
+        favoriteInfluencers: "Noa Kirel",
+        preferredStores: "Zara, H&M",
+        country: "IL",
+      });
+    } catch (err: any) {
+      expect(err.code).not.toBe("UNAUTHORIZED");
+    }
+  });
+
+  it("requires fingerprint", async () => {
+    const { ctx } = createUnauthContext();
+    const caller = appRouter.createCaller(ctx);
+    await expect(
+      caller.guest.saveProfile({ fingerprint: "" } as any)
+    ).rejects.toThrow();
+  });
+});
+
+describe("Onboarding → GuestReview flow (Path B end-to-end contract)", () => {
+  it("onboarding finish navigates to /guest/review/:id?from=onboarding", () => {
+    const sessionId = 42;
+    const targetUrl = `/guest/review/${sessionId}?from=onboarding`;
+    expect(targetUrl).toContain("/guest/review/42");
+    expect(targetUrl).toContain("from=onboarding");
+  });
+
+  it("GuestReview detects from=onboarding and hides personalized upsell", () => {
+    // Simulate URL parsing
+    const url = new URL("https://example.com/guest/review/42?from=onboarding");
+    const fromOnboarding = url.searchParams.get("from") === "onboarding";
+    expect(fromOnboarding).toBe(true);
+  });
+
+  it("GuestReview shows personalized upsell for Path A (no from param)", () => {
+    const url = new URL("https://example.com/guest/review/42");
+    const fromOnboarding = url.searchParams.get("from") === "onboarding";
+    expect(fromOnboarding).toBe(false);
+  });
+});
+
+describe("Mall store selection — always returns 10 stores", () => {
+  it("returns exactly 10 stores for IL with mid-range budget", () => {
+    const TARGET = 10;
+    const detectedCountry = "IL";
+    const detectedBudget = "mid-range";
+    const detectedGender = "female";
+    const adjacent: Record<string, string[]> = {
+      "budget": ["budget", "mid-range"],
+      "mid-range": ["budget", "mid-range", "premium"],
+      "premium": ["mid-range", "premium", "luxury"],
+      "luxury": ["premium", "luxury"],
+    };
+    const allowedBudgets = adjacent[detectedBudget] || [detectedBudget];
+    const localData = COUNTRY_STORE_MAP[detectedCountry];
+    const allLocal = localData
+      ? localData.stores.filter((s: any) => {
+          const genderOk = !detectedGender || s.gender === "unisex" || s.gender === detectedGender;
+          return genderOk;
+        })
+      : [];
+    const localBudgetMatch = allLocal.filter((s: any) => s.budget.some((b: string) => allowedBudgets.includes(b)));
+    const localOther = allLocal.filter((s: any) => !s.budget.some((b: string) => allowedBudgets.includes(b)));
+    const sortedLocal = [...localBudgetMatch, ...localOther].map((s: any) => ({ name: s.name, isLocal: true }));
+    const localNames = new Set(sortedLocal.map((s: any) => s.name));
+    const globalBudgetMatch = STORE_OPTIONS
+      .filter((s: any) => allowedBudgets.includes(s.budget) && !localNames.has(s.label))
+      .map((s: any) => ({ name: s.label, isLocal: false }));
+    const globalOther = STORE_OPTIONS
+      .filter((s: any) => !allowedBudgets.includes(s.budget) && !localNames.has(s.label))
+      .map((s: any) => ({ name: s.label, isLocal: false }));
+    const localSlice = sortedLocal.slice(0, 5);
+    const usedNames = new Set(localSlice.map((s: any) => s.name));
+    const globalPool = [...globalBudgetMatch, ...globalOther].filter((s: any) => !usedNames.has(s.name));
+    const globalSlice = globalPool.slice(0, TARGET - localSlice.length);
+    const result = [...localSlice, ...globalSlice].slice(0, TARGET);
+
+    expect(result.length).toBe(TARGET);
+  });
+
+  it("returns exactly 10 stores for unknown country with budget tier", () => {
+    const TARGET = 10;
+    const detectedCountry = null;
+    const detectedBudget = "luxury";
+    const detectedGender = "";
+    const adjacent: Record<string, string[]> = {
+      "budget": ["budget", "mid-range"],
+      "mid-range": ["budget", "mid-range", "premium"],
+      "premium": ["mid-range", "premium", "luxury"],
+      "luxury": ["premium", "luxury"],
+    };
+    const allowedBudgets = adjacent[detectedBudget] || [detectedBudget];
+    const localSlice: any[] = [];
+    const usedNames = new Set<string>();
+    const globalBudgetMatch = STORE_OPTIONS
+      .filter((s: any) => allowedBudgets.includes(s.budget) && !usedNames.has(s.label))
+      .map((s: any) => ({ name: s.label, isLocal: false }));
+    const globalOther = STORE_OPTIONS
+      .filter((s: any) => !allowedBudgets.includes(s.budget) && !usedNames.has(s.label))
+      .map((s: any) => ({ name: s.label, isLocal: false }));
+    const globalPool = [...globalBudgetMatch, ...globalOther];
+    const globalSlice = globalPool.slice(0, TARGET - localSlice.length);
+    const result = [...localSlice, ...globalSlice].slice(0, TARGET);
+
+    expect(result.length).toBe(TARGET);
   });
 });

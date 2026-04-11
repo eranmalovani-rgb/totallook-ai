@@ -42,7 +42,7 @@ describe("Privacy & Consent features", () => {
       path.join(clientSrcDir, "pages/GuestUpload.tsx"),
       "utf-8"
     );
-    expect(guestContent).toContain("guestAgreedToTerms");
+    expect(guestContent).toContain("agreedToTerms");
     expect(guestContent).toContain('href="/terms"');
     expect(guestContent).toContain('href="/privacy"');
     expect(guestContent).toContain("Terms of Service");
