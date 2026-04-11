@@ -9,7 +9,7 @@ import {
   ImagePlus, Store, Globe, Image as ImageIcon, Play,
 } from "lucide-react";
 import FashionSpinner, { FashionButtonSpinner } from "@/components/FashionSpinner";
-import FashionLoadingAnimation from "@/components/FashionLoadingAnimation";
+import StylingStudioAnimation from "@/components/StylingStudioAnimation";
 import { useLanguage } from "@/i18n";
 import { translations } from "@/i18n/translations";
 import { useFingerprint } from "@/hooks/useFingerprint";
@@ -1176,7 +1176,7 @@ export default function GuestUpload() {
                 {/* Loading */}
                 {(uploading || analyzing) && (
                   <div ref={loadingAreaRef}>
-                    <FashionLoadingAnimation
+                    <StylingStudioAnimation
                       uploading={uploading}
                       analyzing={analyzing}
                       selectedOccasion={selectedOccasion}

@@ -792,3 +792,15 @@
 - [x] 63.1: Changed titles to category-based: שדרוג חלק עליון/מכנסיים/נעלה/שכבה עליונה/אקססורי + style tagline
 - [x] 63.2: Applied to both main catalog matching and default category matching
 - [x] 63.3: Verified — 0 TS errors, 819/824 tests pass (same 5 pre-existing API failures)
+
+### 64: Upload Page — Live Styling Studio Loading Animation
+- [x] 64.1: Created StylingStudioAnimation with 4 animated stages
+- [x] 64.2: Stage 1 — scan lines + grid overlay + detection labels appearing one by one over user's photo
+- [x] 64.3: Stage 2 — 3D perspective fitting room with mirror (user's photo), clothing rack, SVG stylist with measuring tape, floating swatches
+- [x] 64.4: Stage 3 — cork mood board with color swatches dropping in with pins, user's photo as polaroid, connecting lines
+- [x] 64.5: Stage 4 — red curtains opening with spotlight cone, sparkle particles, user's photo revealed behind curtains
+- [x] 64.6: User's actual photo integrated in all 4 stages (scan, mirror, polaroid, reveal)
+- [x] 64.7: Bilingual fashion tips (10 HE + 10 EN) rotating every 6 seconds
+- [x] 64.8: Replaced FashionLoadingAnimation in Upload.tsx
+- [x] 64.9: Replaced FashionLoadingAnimation in GuestUpload.tsx
+- [x] 64.10: Verified — 0 TS errors, 819/824 tests pass (same 5 pre-existing API failures)

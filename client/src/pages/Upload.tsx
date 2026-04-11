@@ -6,7 +6,7 @@ import { useCallback, useState, useRef, useEffect, useMemo } from "react";
 import { useLocation, Link } from "wouter";
 import { Camera, ScanLine, ImagePlus, X, Sparkles, UserCheck, MapPin, Settings, RefreshCw, RotateCcw, Image as ImageIcon, Play } from "lucide-react";
 import FashionSpinner from "@/components/FashionSpinner";
-import FashionLoadingAnimation from "@/components/FashionLoadingAnimation";
+import StylingStudioAnimation from "@/components/StylingStudioAnimation";
 import { OCCASIONS } from "../../../shared/fashionTypes";
 import FeedPromoSection from "@/components/FeedPromoSection";
 import { useLanguage } from "@/i18n";
@@ -662,7 +662,7 @@ export default function Upload() {
             {/* Status — Cool Fashion Analysis Animation */}
             {(uploading || analyzing) && (
               <div ref={loadingAreaRef}>
-                <FashionLoadingAnimation
+                <StylingStudioAnimation
                   uploading={uploading}
                   analyzing={analyzing}
                   selectedOccasion={selectedOccasion}
