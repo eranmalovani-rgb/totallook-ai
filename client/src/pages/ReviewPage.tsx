@@ -1433,14 +1433,13 @@ export default function ReviewPage() {
   const hasInfluencerInsight = !!analysis.influencerInsight;
 
   const storyLabels = lang === "he"
-    ? ["🎯 פריטים", ...(hasInfluencerInsight ? ["👥 משפיענים"] : []), "✨ שדרוגים", "👗 לוקים", "📚 טרנדים"]
-    : ["🎯 Items", ...(hasInfluencerInsight ? ["👥 Influencers"] : []), "✨ Upgrades", "👗 Outfits", "📚 Trends"];
+    ? ["🎯 פריטים", ...(hasInfluencerInsight ? ["👥 משפיענים"] : []), "✨ שדרוגים", "📚 טרנדים"]
+    : ["🎯 Items", ...(hasInfluencerInsight ? ["👥 Influencers"] : []), "✨ Upgrades", "📚 Trends"];
 
   const storyIcons = [
     <Eye className="w-4 h-4" key="items" />,
     ...(hasInfluencerInsight ? [<Users className="w-4 h-4" key="influencers" />] : []),
     <Sparkles className="w-4 h-4" key="upgrades" />,
-    <ShoppingBag className="w-4 h-4" key="outfits" />,
     <BookOpen className="w-4 h-4" key="trends" />,
   ];
 
@@ -1771,53 +1770,9 @@ export default function ReviewPage() {
               )}
             </div>
 
-            {/* ── CARD 4: Outfit Suggestions ── */}
-            <div className="rounded-2xl border border-amber-500/10 bg-gradient-to-b from-white/[0.03] to-transparent p-5 shadow-lg shadow-black/20">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-base font-bold flex items-center gap-2.5 text-amber-100/90">
-                  <ShoppingBag className="w-4.5 h-4.5 text-amber-400/70" />
-                  {t("review", "outfitSuggestions")}
-                </h3>
-                {detectedCountry && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-[10px] text-primary font-medium">
-                    {countryFlag} {currencyLabel}
-                  </span>
-                )}
-              </div>
-              <div className="space-y-4">
-                {(analysis.outfitSuggestions ?? []).length === 0 ? (
-                  /* Stage 43: Show loading skeleton while Stage 2 runs in background */
-                  <div className="space-y-3 py-4">
-                    <div className="flex items-center gap-3">
-                      <Loader2 className="w-5 h-5 text-primary animate-spin" />
-                      <p className="text-sm text-muted-foreground">
-                        {lang === "he" ? "מרכיב השראות ללוקים..." : "Composing outfit ideas..."}
-                      </p>
-                    </div>
-                    {[1, 2].map((n) => (
-                      <div key={n} className="rounded-xl border border-white/5 bg-white/[0.02] p-4 animate-pulse">
-                        <div className="h-4 bg-white/10 rounded w-1/2 mb-3" />
-                        <div className="h-3 bg-white/5 rounded w-full mb-2" />
-                        <div className="h-3 bg-white/5 rounded w-3/4" />
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  (analysis.outfitSuggestions ?? []).map((outfit, i) => (
-                    <OutfitCard
-                      key={i}
-                      outfit={outfit}
-                      index={i}
-                      mentions={mentions}
-                      onInfluencerClick={handleInfluencerClick}
-                      lang={lang}
-                    />
-                  ))
-                )}
-              </div>
-            </div>
+            {/* ── CARD 4: Outfit Suggestions ── REMOVED (Stage 98: mood looks disabled) */}
 
-            {/* ── CARD 5: Trends & Sources ── */}
+            {/* ── CARD 4 (was 5): Trends & Sources ── */}
             <div className="rounded-2xl border border-amber-500/10 bg-gradient-to-b from-white/[0.03] to-transparent p-5 shadow-lg shadow-black/20">
               <h3 className="text-base font-bold mb-4 flex items-center gap-2.5 text-amber-100/90">
                 <BookOpen className="w-4.5 h-4.5 text-amber-400/70" />

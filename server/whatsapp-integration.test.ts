@@ -619,7 +619,7 @@ describe("WhatsApp Integration v3 (Meta Cloud API)", () => {
       const sentBody = JSON.parse(sendCalls[0][1].body);
       expect(sentBody.to).toBe("972501111111");
       expect(sentBody.text.body).toContain("TotalLook");
-      expect(sentBody.text.body).toContain("זה ניתוח כללי וחינמי");
+      expect(sentBody.text.body).toContain("3 ניתוחים חינמיים");
       expect(sentBody.text.body).toContain("תמונה");
     });
 

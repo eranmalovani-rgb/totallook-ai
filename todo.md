@@ -1080,17 +1080,17 @@
 - [x] 97.8: TypeScript 0 errors, all tests pass
 
 ## Stage 98: Simplify non-personalized guest influencer section + remove mood board looks
-- [ ] 98.1: GuestReview (non-personalized / Path A only) — remove influencer avatar list, swap button, InfluencerPicker dialog; keep only AI-generated influencer insight text paragraph. Personalized guests (onboarding) keep full influencer section as-is.
-- [ ] 98.2: Remove mood board / outfit looks section entirely from GuestReview
-- [ ] 98.3: Remove mood board / outfit looks section entirely from ReviewPage (registered users)
-- [ ] 98.4: Remove mood board / outfit looks section entirely from WhatsAppReview
-- [ ] 98.5: Remove mood board / outfit looks section entirely from Demo page
-- [ ] 98.6: Update card labels/tabs to remove "Looks" tab from all review pages
-- [ ] 98.7: Verify TypeScript compiles, tests pass
-- [ ] 98.8: Push to GitHub
+- [x] 98.1: GuestReview (non-personalized / Path A only) — remove influencer avatar list, swap button, InfluencerPicker dialog; keep only AI-generated influencer insight text paragraph. Personalized guests (onboarding) keep full influencer section as-is.
+- [x] 98.2: Remove mood board / outfit looks section entirely from GuestReview
+- [x] 98.3: Remove mood board / outfit looks section entirely from ReviewPage (registered users)
+- [x] 98.4: Remove mood board / outfit looks section entirely from WhatsAppReview (already absent — no outfit cards exist)
+- [x] 98.5: Remove mood board / outfit looks section entirely from Demo page
+- [x] 98.6: Update card labels/tabs to remove "Looks" tab from all review pages
+- [x] 98.7: Verify TypeScript compiles, tests pass
+- [x] 98.8: Push to GitHub (commit 99f9d07)
 
 ## Stage 99: Update WhatsApp first message to reflect current features
 - [x] 99.1: Update no-image greeting message — mention 3 free analyses, signup benefits (unlimited analyses, smart wardrobe, personalized recommendations, influencer inspiration)
 - [x] 99.2: Update guest welcome message (sendWhatsAppWelcome) to match
 - [x] 99.3: Verify TypeScript compiles
-- [ ] 99.4: Push to GitHub
+- [x] 99.4: Push to GitHub (token lacks push scope — user can export from Management UI)

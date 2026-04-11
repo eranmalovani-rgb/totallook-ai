@@ -630,9 +630,9 @@ function GuestOutfitCard({
    ═══════════════════════════════════════════════════════════════ */
 
 // Labels/icons are now dynamic based on whether influencer insight exists
-const BASE_CARD_ICONS = ["🎯", "✨", "👗", "📖"];
-const BASE_CARD_LABELS_HE = ["פריטים", "שדרוגים", "לוקים", "טרנדים"];
-const BASE_CARD_LABELS_EN = ["Items", "Upgrades", "Looks", "Trends"];
+const BASE_CARD_ICONS = ["🎯", "✨", "📖"];
+const BASE_CARD_LABELS_HE = ["פריטים", "שדרוגים", "טרנדים"];
+const BASE_CARD_LABELS_EN = ["Items", "Upgrades", "Trends"];
 
 function StoryCardsContainer({
   children,
@@ -1235,22 +1235,18 @@ export default function GuestReview() {
     );
   }
 
-  // Card 2: Style Inspiration — auto-matched influencers with social logos
+  // Card 2: Style Inspiration
   const hasInfluencerInsight = !!analysis.influencerInsight;
-  {
-    // Auto-match influencers from analysis mentions + style matching
+  if (fromOnboarding) {
+    // Personalized guest (onboarding) — full influencer section with avatars, swap
     const influencerMentions = mentions.filter(m => m.type === "influencer");
     const mentionedNames = influencerMentions.map(m => m.text);
-
-      // Build match profile from guest profile data (onboarding) + analysis fallback
     const matchProfile: import("../../../shared/influencerMatcher").MatchProfile = {
       mentionedInfluencers: mentionedNames,
     };
-    // Use guest profile gender/age/budget/style if available (from onboarding)
     if (guestProfile?.gender) {
       matchProfile.gender = guestProfile.gender;
     } else {
-      // Fallback: try to extract gender from analysis summary
       const summaryLower = (analysis.summary || "").toLowerCase();
       if (summaryLower.includes("male") || summaryLower.includes("גבר")) matchProfile.gender = "male";
       else if (summaryLower.includes("female") || summaryLower.includes("אישה") || summaryLower.includes("נשית")) matchProfile.gender = "female";
@@ -1260,19 +1256,16 @@ export default function GuestReview() {
     if (guestProfile?.stylePreference) {
       matchProfile.stylePreference = guestProfile.stylePreference;
     } else {
-      // Fallback: extract style from analysis items
       const styleHints = analysis.items.map(item => item.analysis || "").join(" ").toLowerCase();
       const styleKeywords = ["streetwear", "smart-casual", "classic", "boho", "minimalist", "athleisure"];
       const detectedStyles = styleKeywords.filter(s => styleHints.includes(s));
       if (detectedStyles.length > 0) matchProfile.stylePreference = detectedStyles.join(", ");
     }
-
     const autoInfluencers = autoMatchInfluencers(matchProfile, 3, detectedCountry);
 
     storyCards.push(
       <div key="inspiration" className="space-y-4">
         <div className="p-5 rounded-2xl border border-amber-500/10 bg-gradient-to-b from-white/[0.03] to-transparent shadow-lg shadow-black/20">
-          {/* Section header */}
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-amber-400" />
@@ -1280,22 +1273,17 @@ export default function GuestReview() {
                 {lang === "he" ? "ההשראה שלך" : "Your Inspiration"}
               </h3>
             </div>
-            {/* Social platform badges */}
             <div className="flex items-center gap-1.5">
               <InspirationInstagramIcon size={22} />
               <InspirationTikTokIcon size={22} />
               <InspirationPinterestIcon size={22} />
             </div>
           </div>
-
-          {/* Influencer insight text (if available) */}
           {hasInfluencerInsight && (
             <p className="text-sm text-muted-foreground leading-relaxed mb-4">
               <LinkedText text={analysis.influencerInsight!} mentions={mentions} onInfluencerClick={handleInfluencerClick} />
             </p>
           )}
-
-          {/* Auto-matched influencer cards */}
           <div className="space-y-3">
             {autoInfluencers.map((inf, i) => (
               <button
@@ -1322,8 +1310,6 @@ export default function GuestReview() {
               </button>
             ))}
           </div>
-
-          {/* Swap button — opens full influencer picker */}
           <button
             onClick={() => setShowInfluencerSwap(true)}
             className="mt-3 w-full flex items-center justify-center gap-2 py-2 text-xs text-muted-foreground hover:text-primary transition-colors border border-dashed border-white/10 hover:border-primary/30 rounded-xl"
@@ -1331,6 +1317,30 @@ export default function GuestReview() {
             <RefreshCw className="w-3.5 h-3.5" />
             {lang === "he" ? "לא מתחבר? החלף משפיענים" : "Not feeling it? Swap influencers"}
           </button>
+        </div>
+      </div>
+    );
+  } else if (hasInfluencerInsight) {
+    // Non-personalized guest (Path A) — text-only inspiration, no avatar list or swap
+    storyCards.push(
+      <div key="inspiration" className="space-y-4">
+        <div className="p-5 rounded-2xl border border-amber-500/10 bg-gradient-to-b from-white/[0.03] to-transparent shadow-lg shadow-black/20">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-amber-400" />
+              <h3 className="text-base font-bold text-amber-100/90">
+                {lang === "he" ? "השראה" : "Inspiration"}
+              </h3>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <InspirationInstagramIcon size={22} />
+              <InspirationTikTokIcon size={22} />
+              <InspirationPinterestIcon size={22} />
+            </div>
+          </div>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            <LinkedText text={analysis.influencerInsight!} mentions={mentions} onInfluencerClick={handleInfluencerClick} />
+          </p>
         </div>
       </div>
     );
@@ -1430,51 +1440,7 @@ export default function GuestReview() {
     );
   }
 
-  // Card 3: Outfit Suggestions (or loading skeleton while Stage 2 runs)
-  if (analysis.outfitSuggestions.length === 0 && analysis.improvements.length === 0 && result?.status === "completed") {
-    // Stage 2 still running — show loading skeleton for outfits too
-    storyCards.push(
-      <div key="outfits-loading" className="space-y-3">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full" />
-          <span>{lang === "he" ? "מכין הצעות לוקים מלאים..." : "Preparing complete outfit suggestions..."}</span>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[1, 2, 3].map(i => (
-            <div key={i} className="rounded-xl border border-border/50 bg-card/50 p-4 space-y-3 animate-pulse">
-              <div className="h-32 bg-muted rounded-lg" />
-              <div className="h-4 bg-muted rounded w-2/3" />
-              <div className="h-3 bg-muted rounded w-1/2" />
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  } else if (analysis.outfitSuggestions.length > 0) {
-    storyCards.push(
-      <div key="outfits" className="space-y-4">
-        {detectedCountry && (
-          <div className="flex items-center gap-2 mb-2">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-xs text-primary font-medium">
-              {guestCountryFlag} {guestCurrencyLabel}
-            </span>
-          </div>
-        )}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {analysis.outfitSuggestions.map((outfit, i) => (
-            <GuestOutfitCard
-              key={i}
-              outfit={outfit}
-              index={i}
-              mentions={mentions}
-              onInfluencerClick={handleInfluencerClick}
-              lang={lang}
-            />
-          ))}
-        </div>
-      </div>
-    );
-  }
+  // Card 3: Outfit Suggestions — REMOVED (Stage 98: mood looks disabled)
 
   // Card 4: Trends & Sources
   if (analysis.trendSources && analysis.trendSources.length > 0) {
@@ -1544,11 +1510,11 @@ export default function GuestReview() {
   // (influencer card already pushed at position 2 above)
 
   // Build dynamic labels/icons
-  // Tab order: Items, Inspiration, Upgrades, Looks, Trends
+  // Tab order: Items, Inspiration, Upgrades, Trends (Looks removed — Stage 98)
   const guestCardLabels = lang === "he"
-    ? ["פריטים", "השראה", "שדרוגים", "לוקים", "טרנדים"]
-    : ["Items", "Inspiration", "Upgrades", "Looks", "Trends"];
-  const guestCardIcons = ["🎯", "✨", "✨", "👗", "📚"];
+    ? ["פריטים", "השראה", "שדרוגים", "טרנדים"]
+    : ["Items", "Inspiration", "Upgrades", "Trends"];
+  const guestCardIcons = ["🎯", "✨", "✨", "📚"];
 
   return (
     <div className="min-h-screen bg-background text-foreground" dir={dir}>

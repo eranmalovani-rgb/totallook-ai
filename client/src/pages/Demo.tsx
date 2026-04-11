@@ -628,22 +628,7 @@ export default function Demo() {
           </section>
         </AnimatedSection>
 
-        {/* ═══════ OUTFIT SUGGESTIONS ═══════ */}
-        <AnimatedSection>
-          <section className="container max-w-5xl mx-auto mb-20">
-            <div className="text-center mb-12">
-              <p className="editorial-section-num mb-3">IV</p>
-              <p className="editorial-label text-amber-400 mb-4">{lang === "he" ? "הצעות לוקים" : "Outfit Ideas"}</p>
-              <h2 className="text-3xl md:text-4xl font-display">{lang === "he" ? "לוקים מלאים" : "Complete Outfits"}</h2>
-            </div>
-
-            <AnimatedSection stagger staggerDelay={200} className="grid md:grid-cols-3 gap-6">
-              {demo.outfitSuggestions.map((outfit, i) => (
-                <DemoOutfitCard key={i} outfit={outfit} index={i} mentions={mentions} lang={lang} />
-              ))}
-            </AnimatedSection>
-          </section>
-        </AnimatedSection>
+        {/* ═══════ OUTFIT SUGGESTIONS ═══════ REMOVED (Stage 98: mood looks disabled) */}
 
         {/* ═══════ TREND SOURCES ═══════ */}
         <AnimatedSection>
