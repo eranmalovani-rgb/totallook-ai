@@ -9,6 +9,7 @@ import { registerWhatsAppWebhook } from "../whatsapp";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
+import { runAutoMigrations } from "../auto-migrate";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -130,6 +131,9 @@ async function startServer() {
   if (port !== preferredPort) {
     console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
   }
+
+  // Run auto-migrations before starting to listen (fire-and-forget, non-blocking)
+  runAutoMigrations().catch(err => console.error("[AutoMigrate] Failed:", err?.message));
 
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
