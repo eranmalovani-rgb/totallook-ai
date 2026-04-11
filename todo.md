@@ -889,3 +889,9 @@
 - [x] 74.2: Added WhatsApp section to LandingEN.tsx — identical English version
 - [x] 74.3: WhatsApp link opens wa.me/972526211811 with pre-filled message, phone number displayed
 - [x] 74.4: Verified — 0 TS errors, 819/824 tests pass (same 5 pre-existing API failures)
+
+### 75: Landing Page — Side-by-Side Before/After + WhatsApp in Hero
+- [x] 75.1: Replaced Hero + MORE_SHOWCASES sliders with side-by-side grid — red BEFORE, emerald AFTER, amber arrow between, score badges
+- [x] 75.2: Added small green WhatsApp CTA next to Upload CTA with "or" separator
+- [x] 75.3: Applied identical changes to LandingEN.tsx
+- [x] 75.4: Verified — 0 TS errors, 819/824 tests pass
