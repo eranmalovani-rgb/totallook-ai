@@ -1048,3 +1048,33 @@
 - [x] 93.3: Documented 3 new optional env vars: BRAVE_SEARCH_API_KEY, GOOGLE_CSE_API_KEY, GOOGLE_CSE_CX
 - [x] 93.4: Pushed to GitHub eranmalovani-rgb/totallook-ai (commit c5a8614) with auto-migration + catalog seed data
 - [x] 93.5: Created deployment guide → railway-deployment-guide.md
+
+## Stage 94: Gender blocking, outfit mood boards, bubbles, signup prompts
+- [x] 94.1: Hardened influencer gender blocking — stripWrongGenderInfluencers function replaces wrong-gender names with same-gender alternatives in all text fields
+- [x] 94.2: Applied gender text stripping in both registered user and guest Stage 2 post-processing + sanitizeRecommendationsPayload
+- [x] 94.3: Reverted outfit look display to color palette mood board style (ReviewPage + GuestReview)
+- [ ] 94.4: Pre-generate outfit combinations per style/occasion with color harmonies (DEFERRED)
+- [x] 94.5: Bubbles UI — SKIPPED by user request
+- [x] 94.6: Add signup prompts throughout guest flow with feature promises (SignupFeaturePromise component created, integrated into all CTAs)
+- [ ] 94.7: Test all changes
+- [x] 94.8: BUG FIXED — Guest→registered redirect: fixed cookie parsing in OAuth callback + added fingerprint in OAuth state as fallback
+- [x] 94.9: Guest 3-trial limit — block guest after 3 analyses with full signup wall showing all registered-user features (Stage 97)
+
+## Stage 95: SignupFeaturePromise integration
+- [x] 95.1: Created SignupFeaturePromise component (compact + full variants)
+- [x] 95.2: Integrated in GuestReview, GuestWardrobe (x2), WhatsAppReview, StyleDiary, About
+
+## Stage 96: Guest registration bug fix
+- [x] 96.1: Fixed cookie parsing in OAuth callback (getCookieValue helper)
+- [x] 96.2: Fingerprint passed in both cookie and OAuth state (fallback)
+- [x] 96.3: guestProfile migrated to userProfile with onboardingCompleted: true
+
+## Stage 97: Guest trial wall — block after 3 analyses
+- [x] 97.1: Changed guest analysis limit from 5 to 3 in hasGuestUsedAnalysis (server/db.ts)
+- [x] 97.2: Re-enabled rate limit check in guest.upload procedure (throws GUEST_LIMIT_REACHED)
+- [x] 97.3: Created GuestTrialWall component — full-screen signup wall with lock icon, usage counter, SignupFeaturePromise, and CTA button
+- [x] 97.4: Integrated checkLimit query + GuestTrialWall in PathChooser.tsx (shows wall when limit reached, shows remaining trials badge)
+- [x] 97.5: Integrated checkLimit query + GuestTrialWall in GuestUpload.tsx (shows wall when limit reached, handles GUEST_LIMIT_REACHED error)
+- [x] 97.6: Integrated checkLimit query + GuestTrialWall in Onboarding.tsx (blocks precise path when limit reached)
+- [x] 97.7: 14 new vitest tests for 3-trial limit (hasGuestUsedAnalysis, checkLimit shape, upload enforcement, boundary tests)
+- [x] 97.8: TypeScript 0 errors, all tests pass

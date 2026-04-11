@@ -13,6 +13,7 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/i18n";
 import { getLoginUrl } from "@/const";
+import { SignupFeaturePromise } from "@/components/SignupFeaturePromise";
 import {
   BookOpen,
   Instagram,
@@ -76,12 +77,13 @@ export default function StyleDiary() {
           <h1 className="text-3xl font-bold mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>
             {isHe ? "יומן הסגנון שלך" : "Your Style Diary"}
           </h1>
-          <p className="text-muted-foreground text-lg mb-8">
+          <p className="text-muted-foreground text-lg mb-6">
             {isHe
               ? "התחברי כדי לראות את יומן הסגנון שלך ולחבר את האינסטגרם"
               : "Sign in to view your style diary and connect Instagram"}
           </p>
-          <a href={getLoginUrl()}>
+          <SignupFeaturePromise variant="compact" />
+          <a href={getLoginUrl()} className="mt-4 inline-block">
             <Button size="lg" className="bg-primary text-primary-foreground">
               {isHe ? "התחברות" : "Sign In"}
             </Button>

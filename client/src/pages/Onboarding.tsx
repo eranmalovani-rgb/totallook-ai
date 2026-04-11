@@ -18,6 +18,7 @@ import { useLanguage } from "@/i18n";
 import { useCountry } from "@/hooks/useCountry";
 import { getCountryFlag } from "../../../shared/countries";
 import { useFingerprint } from "@/hooks/useFingerprint";
+import { GuestTrialWall } from "@/components/GuestTrialWall";
 
 /* ═══════════════════════════════════════════════════════
    CDN image assets — gender-specific Tinder R1
@@ -280,6 +281,13 @@ export default function Onboarding() {
   const [saving, setSaving] = useState(false);
   const [showAnalysisAnimation, setShowAnalysisAnimation] = useState(false);
   const { t, dir, lang } = useLanguage();
+  const _fp = useFingerprint();
+
+  /* ─── Check guest limit ─── */
+  const { data: limitData, isLoading: limitLoading } = trpc.guest.checkLimit.useQuery(
+    { fingerprint: _fp || "" },
+    { enabled: !!_fp && !isAuthenticated }
+  );
 
   /* ── Check if photo was passed from Path A (quick analysis → upsell) ── */
   const [incomingPhoto] = useState(() => {
@@ -711,8 +719,13 @@ export default function Onboarding() {
   /* ═══════════════════════════════════════════════════════
      LOADING
      ═══════════════════════════════════════════════════════ */
-  if (authLoading) {
+  if (authLoading || (!isAuthenticated && limitLoading)) {
     return <div className="min-h-screen bg-background flex items-center justify-center"><FashionSpinner size="lg" /></div>;
+  }
+
+  /* ─── Guest limit reached → show trial wall ─── */
+  if (!isAuthenticated && limitData?.used) {
+    return <GuestTrialWall count={limitData.count} />;
   }
 
   const firstName = user?.name?.split(" ")[0] || "";

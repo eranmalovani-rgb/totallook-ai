@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import FashionSpinner from "@/components/FashionSpinner";
 import StylingStudioAnimation from "@/components/StylingStudioAnimation";
+import { GuestTrialWall } from "@/components/GuestTrialWall";
 import { useLanguage } from "@/i18n";
 import { useFingerprint } from "@/hooks/useFingerprint";
 import { compressImageToBase64 } from "@/lib/imageCompress";
@@ -22,6 +23,12 @@ export default function GuestUpload() {
   const [, navigate] = useLocation();
   const { t, dir, lang } = useLanguage();
   const fingerprint = useFingerprint();
+
+  /* ─── Check guest limit ─── */
+  const { data: limitData, isLoading: limitLoading } = trpc.guest.checkLimit.useQuery(
+    { fingerprint: fingerprint || "" },
+    { enabled: !!fingerprint }
+  );
 
   /* ─── State ─── */
   const [preview, setPreview] = useState<string | null>(null);
@@ -110,13 +117,19 @@ export default function GuestUpload() {
             retryMsg.includes("fetch failed") || retryMsg.includes("500") ||
             retryMsg.includes("502") || retryMsg.includes("503");
           const isNonRetryable = retryMsg.includes("limit") || retryMsg.includes("already") ||
-            retryMsg.includes("in progress") || retryMsg.includes("completed");
+            retryMsg.includes("in progress") || retryMsg.includes("completed") ||
+            retryMsg.includes("GUEST_LIMIT_REACHED");
           if (isNonRetryable || !isRetryable || attempt === MAX_AUTO_RETRIES - 1) throw retryErr;
         }
       }
       if (lastError) throw lastError;
     } catch (err: any) {
       const msg = err.message || "";
+      if (msg.includes("GUEST_LIMIT_REACHED")) {
+        // Limit reached — navigate back to /try which will show the wall
+        navigate("/try");
+        return;
+      }
       if (msg.includes("quota") || msg.includes("rate") || msg.includes("429")) {
         setError(lang === "he"
           ? "שירות הניתוח עמוס כרגע. לחצי \"נסה שוב\" בעוד חצי דקה."
@@ -141,12 +154,17 @@ export default function GuestUpload() {
   };
 
   /* ─── Loading ─── */
-  if (!fingerprint) {
+  if (!fingerprint || limitLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <FashionSpinner size="lg" />
       </div>
     );
+  }
+
+  /* ─── Guest limit reached → show trial wall ─── */
+  if (limitData?.used) {
+    return <GuestTrialWall count={limitData.count} />;
   }
 
   /* ═══════════════════════════════════════════════════════════════════

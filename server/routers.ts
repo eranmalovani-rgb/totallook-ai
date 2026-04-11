@@ -2245,6 +2245,47 @@ function isHebrewText(text: string): boolean {
   return /[\u0590-\u05FF]/.test(text || "");
 }
 
+/**
+ * Stage 94: Strip wrong-gender influencer names from text.
+ * Replaces mentions of wrong-gender influencers with same-gender alternatives.
+ */
+export function stripWrongGenderInfluencers(
+  text: string,
+  userGender: string | null | undefined,
+): string {
+  if (!text || !userGender) return text;
+  const normalizedGender = userGender.toLowerCase();
+  if (normalizedGender !== "male" && normalizedGender !== "female") return text;
+  
+  const wrongGenderInfluencers = POPULAR_INFLUENCERS.filter(inf => {
+    if (inf.gender === "unisex") return false;
+    return inf.gender !== normalizedGender;
+  });
+  const sameGenderInfluencers = POPULAR_INFLUENCERS.filter(inf => 
+    inf.gender === normalizedGender || inf.gender === "unisex"
+  );
+  
+  let result = text;
+  let replacementIdx = 0;
+  for (const wrongInf of wrongGenderInfluencers) {
+    if (result.includes(wrongInf.name)) {
+      // Find a same-gender replacement that isn't already in the text
+      let replacement = sameGenderInfluencers.find(inf => 
+        !result.includes(inf.name) && inf.gender === normalizedGender
+      );
+      if (!replacement) {
+        replacement = sameGenderInfluencers[replacementIdx % sameGenderInfluencers.length];
+        replacementIdx++;
+      }
+      if (replacement) {
+        result = result.split(wrongInf.name).join(replacement.name);
+        console.log(`[GenderFilter] Replaced wrong-gender influencer "${wrongInf.name}" (${wrongInf.gender}) with "${replacement.name}" (${replacement.gender}) for ${normalizedGender} user`);
+      }
+    }
+  }
+  return result;
+}
+
 function isLikelyImageUrl(url: string | undefined | null): boolean {
   if (!url || typeof url !== "string") return false;
   const u = url.trim();
@@ -2928,6 +2969,13 @@ function sanitizeRecommendationsPayload(
   if (mentionedCount < 2 || sentenceCount < 4 || influencerInsight.length < 260 || !hasGapLanguage || !hasCoreReference) {
     influencerInsight = detailedInsight.insight;
   }
+
+  // Stage 94: Strip wrong-gender influencer names from ALL text fields
+  influencerInsight = stripWrongGenderInfluencers(influencerInsight, userGender);
+  outfitSuggestions = outfitSuggestions.map(o => ({
+    ...o,
+    inspirationNote: stripWrongGenderInfluencers(o.inspirationNote || "", userGender),
+  }));
 
   return {
     improvements,
@@ -4221,6 +4269,19 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
                   if (!knownInf) return true;
                   return knownInf.gender === "unisex" || knownInf.gender === bgProfileGender;
                 });
+                // Stage 94: Strip wrong-gender influencer names from text fields
+                if (analysis.influencerInsight) {
+                  analysis.influencerInsight = stripWrongGenderInfluencers(analysis.influencerInsight, bgProfileGender);
+                }
+                if (analysis.summary) {
+                  analysis.summary = stripWrongGenderInfluencers(analysis.summary, bgProfileGender);
+                }
+                if (analysis.outfitSuggestions) {
+                  analysis.outfitSuggestions = analysis.outfitSuggestions.map(o => ({
+                    ...o,
+                    inspirationNote: stripWrongGenderInfluencers(o.inspirationNote || "", bgProfileGender),
+                  }));
+                }
               }
 
               // Fix shopping link URLs
@@ -5588,7 +5649,7 @@ Return ONLY a JSON object with these exact fields:
           } catch { /* invalid token, continue normal flow */ }
         }
         const { count: cnt, hasEmail, onboardingCompleted } = await getGuestAnalysisCount(input.fingerprint);
-        const limit = hasEmail ? 999 : 5;
+        const limit = hasEmail ? 999 : 3;
         const used = cnt >= limit;
         return { used, count: cnt, limit, hasEmail, onboardingCompleted };
       }),
@@ -5613,8 +5674,14 @@ Return ONLY a JSON object with these exact fields:
             if (payload.purpose === "guest_test") isAdmin = true;
           } catch { /* invalid token */ }
         }
-        // Rate limit removed — guests can analyze freely
-        // (kept admin bypass logic for future use if needed)
+        // Rate limit: 3 analyses for unregistered guests
+        if (!isAdmin) {
+          const { count: cnt, hasEmail } = await getGuestAnalysisCount(input.fingerprint);
+          const limit = hasEmail ? 999 : 3;
+          if (cnt >= limit) {
+            throw new Error("GUEST_LIMIT_REACHED");
+          }
+        }
 
         const fileExt = input.mimeType.split("/")[1] || "jpg";
         const fileKey = `guest/${nanoid()}.${fileExt}`;
@@ -6189,9 +6256,21 @@ Return ONLY a JSON object with these exact fields:
               if (!knownInf) return true;
               return knownInf.gender === "unisex" || knownInf.gender === guestProfileGender;
             });
+            // Stage 94: Strip wrong-gender influencer names from text fields
+            if (analysis.influencerInsight) {
+              analysis.influencerInsight = stripWrongGenderInfluencers(analysis.influencerInsight, guestProfileGender);
+            }
+            if (analysis.summary) {
+              analysis.summary = stripWrongGenderInfluencers(analysis.summary, guestProfileGender);
+            }
+            if (analysis.outfitSuggestions) {
+              analysis.outfitSuggestions = analysis.outfitSuggestions.map(o => ({
+                ...o,
+                inspirationNote: stripWrongGenderInfluencers(o.inspirationNote || "", guestProfileGender),
+              }));
+            }
           }
-
-          // --- Closet matching: enrich improvements with matching wardrobe items ---
+          // --- Closet matchingg: enrich improvements with matching wardrobe items ---
           const wardrobeItemsForMatching = Array.isArray(wardrobeItemsList)
             ? wardrobeItemsList.slice(0, MAX_WARDROBE_ITEMS_FOR_MATCHING)
             : [];

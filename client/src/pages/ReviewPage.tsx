@@ -697,7 +697,7 @@ function RetryAnalyzeButton({ reviewId }: { reviewId: number }) {
   );
 }
 
-/** Visual-first outfit card — Stage 45: uses aiImageUrl from background, no lazy generation */
+/** Visual-first outfit card — Stage 94: Color palette mood board with item breakdown */
 function OutfitCard({
   outfit,
   index,
@@ -713,58 +713,58 @@ function OutfitCard({
 }) {
   const { t } = useLanguage();
   const [expanded, setExpanded] = useState(false);
-  // Use itemImages grid from catalog, fallback to aiImageUrl
+  const colors = (outfit.colors ?? []).filter(Boolean);
+  const items = (outfit.items ?? []).filter(Boolean);
   const itemImages = (outfit.itemImages || []).filter(Boolean);
-  const lookImage = (outfit as any).aiImageUrl || (outfit as any)?._lookImage || null;
-  const hasItemImages = itemImages.length > 0;
+
+  // Build gradient from outfit colors for the mood board background
+  const bgGradient = colors.length >= 3
+    ? `linear-gradient(135deg, ${colors[0]}22 0%, ${colors[1]}18 50%, ${colors[2]}15 100%)`
+    : colors.length >= 2
+    ? `linear-gradient(135deg, ${colors[0]}22 0%, ${colors[1]}18 100%)`
+    : colors.length === 1
+    ? `linear-gradient(135deg, ${colors[0]}22 0%, transparent 100%)`
+    : undefined;
 
   return (
     <div className="rounded-2xl border border-white/5 bg-card overflow-hidden flex flex-col">
       <div className="relative">
-        {hasItemImages ? (
-          /* Catalog item images grid — instant, no AI generation needed */
-          <div className="w-full aspect-[3/4] bg-gradient-to-br from-white/[0.02] to-transparent p-3 grid gap-1.5" style={{ gridTemplateColumns: itemImages.length <= 2 ? '1fr 1fr' : 'repeat(2, 1fr)', gridTemplateRows: itemImages.length <= 2 ? '1fr' : 'repeat(2, 1fr)' }}>
-            {itemImages.slice(0, 4).map((imgUrl, j) => (
-              <div key={j} className="relative rounded-xl overflow-hidden bg-white/5 border border-white/5">
-                <img
-                  loading="lazy"
-                  src={imgUrl}
-                  alt={outfit.items?.[j] || `Item ${j + 1}`}
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent p-1.5">
-                  <p className="text-[10px] text-white/90 font-medium truncate">{outfit.items?.[j] || ''}</p>
-                </div>
+        {/* Color palette mood board */}
+        <div className="w-full aspect-[3/4] flex flex-col" style={{ background: bgGradient || 'linear-gradient(135deg, rgba(255,255,255,0.02), transparent)' }}>
+          {/* Top: Large color swatches */}
+          <div className="flex-1 flex items-center justify-center px-6 pt-6 pb-3">
+            <div className="flex gap-3 items-end">
+              {colors.slice(0, 5).map((color, j) => {
+                const heights = [64, 80, 72, 56, 48];
+                const h = heights[j % heights.length];
+                return (
+                  <div key={j} className="flex flex-col items-center gap-1.5">
+                    <div
+                      className="rounded-xl border border-white/10 shadow-lg transition-transform hover:scale-105"
+                      style={{ backgroundColor: color, width: 40, height: h }}
+                    />
+                    <span className="text-[9px] text-muted-foreground/50 font-mono uppercase">{color}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          {/* Bottom: Item list with color dots */}
+          <div className="px-5 pb-4 space-y-1.5">
+            {items.slice(0, 4).map((item, j) => (
+              <div key={j} className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full shrink-0 border border-white/10" style={{ backgroundColor: colors[j % colors.length] || '#888' }} />
+                <p className="text-xs text-foreground/70 truncate">{item}</p>
               </div>
             ))}
           </div>
-        ) : lookImage ? (
-          <img
-            loading="lazy"
-            src={lookImage}
-            alt={outfit.name}
-            className="w-full aspect-[3/4] object-cover"
-          />
-        ) : (
-          /* Fallback: color palette visualization */
-          <div className="w-full aspect-[3/4] bg-gradient-to-br from-primary/5 via-rose-500/5 to-transparent flex flex-col items-center justify-center gap-4 p-6">
-            <div className="flex gap-3 mb-2">
-              {(outfit.colors ?? []).slice(0, 4).map((color, j) => (
-                <div key={j} className="w-10 h-10 rounded-xl border-2 border-white/10 shadow-lg" style={{ backgroundColor: color }} />
-              ))}
-            </div>
-            <div className="text-center space-y-2">
-              {(outfit.items ?? []).slice(0, 3).map((item, j) => (
-                <p key={j} className="text-xs text-muted-foreground/80">{item}</p>
-              ))}
-            </div>
-          </div>
-        )}
+        </div>
+        {/* Overlay with name and occasion */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-5 pointer-events-none">
           <h3 className="text-white text-lg font-bold drop-shadow-lg">{outfit.name}</h3>
           <p className="text-white/70 text-sm">{outfit.occasion}</p>
           <div className="flex gap-1.5 mt-2">
-            {(outfit.colors ?? []).map((color, j) => (
+            {colors.map((color, j) => (
               <div key={j} className="w-5 h-5 rounded-full border-2 border-white/30 shadow-lg" style={{ backgroundColor: color }} />
             ))}
           </div>
@@ -782,7 +782,7 @@ function OutfitCard({
       <div className={`transition-all duration-500 ease-in-out overflow-hidden ${expanded ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'}`}>
         <div className="p-5 space-y-4">
           <div className="space-y-3">
-            {(outfit.items ?? []).map((item, j) => {
+            {items.map((item, j) => {
               const safeItem = item ?? "";
               const itemMention = mentions.find(m => safeItem.includes(m.text) && (m.type === 'brand' || m.type === 'store'));
               const thumbUrl = itemImages[j];
@@ -793,7 +793,9 @@ function OutfitCard({
                       <img src={thumbUrl} alt="" className="w-full h-full object-cover" />
                     </div>
                   ) : (
-                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 text-primary text-xs font-bold">{j + 1}</div>
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border border-white/10" style={{ backgroundColor: (colors[j % colors.length] || '#888') + '33' }}>
+                      <div className="w-4 h-4 rounded-full" style={{ backgroundColor: colors[j % colors.length] || '#888' }} />
+                    </div>
                   )}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium leading-snug">

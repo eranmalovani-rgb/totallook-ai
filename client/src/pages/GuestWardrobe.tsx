@@ -11,6 +11,7 @@ import {
 import FashionSpinner from "@/components/FashionSpinner";
 import { toast } from "sonner";
 import { getLoginUrl } from "@/const";
+import { SignupFeaturePromise } from "@/components/SignupFeaturePromise";
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import { useLanguage } from "@/i18n";
@@ -346,13 +347,14 @@ export default function GuestWardrobe() {
             </Button>
 
             {/* Email CTA */}
-            <div className="mt-8 p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/20">
-              <p className="text-sm text-muted-foreground mb-2">
+            <div className="mt-8 p-5 rounded-xl bg-emerald-500/5 border border-emerald-500/20">
+              <p className="text-sm font-medium mb-1">
                 {isHe
                   ? "הירשם כדי לשמור את הארון שלך לצמיתות"
                   : "Sign up to save your closet permanently"}
               </p>
-              <Button variant="outline" size="sm" className="gap-2" asChild>
+              <SignupFeaturePromise variant="compact" />
+              <Button variant="outline" size="sm" className="gap-2 mt-3" asChild>
                 <a href={getLoginUrl()}>
                   <Mail className="w-4 h-4" />
                   {isHe ? "הירשם" : "Sign Up"}
@@ -488,13 +490,14 @@ export default function GuestWardrobe() {
             </div>
 
             {/* Sign up CTA */}
-            <div className="mt-6 p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/20 text-center">
-              <p className="text-sm text-muted-foreground mb-2">
+            <div className="mt-6 p-5 rounded-xl bg-emerald-500/5 border border-emerald-500/20 text-center">
+              <p className="text-sm font-medium mb-1">
                 {isHe
                   ? "הירשם כדי לשמור את הארון לצמיתות ולשתף לוקים"
                   : "Sign up to save your closet permanently and share looks"}
               </p>
-              <Button variant="outline" size="sm" className="gap-2" asChild>
+              <SignupFeaturePromise variant="compact" />
+              <Button variant="outline" size="sm" className="gap-2 mt-3" asChild>
                 <a href={getLoginUrl()}>
                   <Mail className="w-4 h-4" />
                   {isHe ? "הירשם" : "Sign Up"}

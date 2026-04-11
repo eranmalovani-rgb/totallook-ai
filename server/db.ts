@@ -1341,9 +1341,9 @@ export async function getGuestAnalysisCount(fingerprint: string): Promise<{ coun
  */
 export async function hasGuestUsedAnalysis(fingerprint: string): Promise<boolean> {
   const { count: cnt, hasEmail } = await getGuestAnalysisCount(fingerprint);
-  // If they have email, unlimited. Otherwise, limit to 5.
+  // If they have email, unlimited. Otherwise, limit to 3.
   if (hasEmail) return false;
-  return cnt >= 5;
+  return cnt >= 3;
 }
 
 /**

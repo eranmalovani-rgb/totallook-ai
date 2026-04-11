@@ -18,6 +18,7 @@ import {
   Star, ShoppingBag, BookOpen,
 } from "lucide-react";
 import { getLoginUrl } from "@/const";
+import { SignupFeaturePromise } from "@/components/SignupFeaturePromise";
 import type { FashionAnalysis, LinkedMention, ShoppingLink, Improvement, OutfitSuggestion } from "../../../shared/fashionTypes";
 import { BRAND_URLS, POPULAR_INFLUENCERS } from "../../../shared/fashionTypes";
 import InfluencerAvatar from "@/components/InfluencerAvatar";
@@ -847,11 +848,7 @@ export default function WhatsAppReview() {
           {isHe ? "הירשם/י עכשיו — חינם!" : "Sign up now — free!"}
         </a>
       </Button>
-      <p className="text-[10px] text-muted-foreground">
-        {isHe
-          ? "✨ ניתוחים ללא הגבלה • 👗 ארון בגדים וירטואלי • 🎯 התאמה אישית • 🛍️ המלצות קניות"
-          : "✨ Unlimited • 👗 Virtual wardrobe • 🎯 Personalization • 🛍️ Shopping"}
-      </p>
+      <SignupFeaturePromise variant="compact" />
     </div>
   );
 

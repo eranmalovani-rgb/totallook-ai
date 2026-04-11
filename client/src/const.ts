@@ -41,11 +41,14 @@ export const getLoginUrl = (returnPath?: string) => {
     return getSafeFallbackUrl();
   }
 
+  // Include guest fingerprint in state so server can migrate guest data even if cookie is lost
+  const guestFp = typeof localStorage !== 'undefined' ? localStorage.getItem('tl_guest_fp') : null;
   // Encode both the redirect URI and the caller's origin + optional path
   const statePayload = JSON.stringify({
     redirectUri,
     returnOrigin: canonicalOrigin,
     returnPath: returnPath || "/",
+    ...(guestFp ? { guestFingerprint: guestFp } : {}),
   });
   const state = btoa(statePayload);
 

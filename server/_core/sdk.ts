@@ -141,7 +141,7 @@ class SDKServer {
   /**
    * Decode the OAuth state parameter to extract redirect URI and return origin.
    */
-  decodeOAuthState(state: string): { redirectUri: string; returnOrigin?: string; returnPath?: string } {
+  decodeOAuthState(state: string): { redirectUri: string; returnOrigin?: string; returnPath?: string; guestFingerprint?: string } {
     return this.oauthService.decodeState(state);
   }
 

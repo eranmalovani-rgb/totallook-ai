@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getLoginUrl } from "@/const";
+import { SignupFeaturePromise } from "@/components/SignupFeaturePromise";
 import AnimatedSection from "@/components/AnimatedSection";
 import { useEffect } from "react";
 
@@ -263,11 +264,12 @@ export default function About() {
             <h2 className="text-3xl md:text-4xl mb-4">
               {t("about", "ctaTitle")}
             </h2>
-            <p className="text-muted-foreground mb-10 text-lg font-light">
+            <p className="text-muted-foreground mb-6 text-lg font-light">
               {t("about", "ctaDesc")}
             </p>
+            <SignupFeaturePromise variant="compact" />
 
-            <div className="flex flex-col sm:flex-row gap-5 items-center justify-center">
+            <div className="flex flex-col sm:flex-row gap-5 items-center justify-center mt-6">
               <a
                 href={getLoginUrl()}
                 className="btn-editorial-filled inline-flex items-center gap-3"

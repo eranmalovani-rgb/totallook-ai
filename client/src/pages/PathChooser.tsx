@@ -6,6 +6,8 @@ import { trpc } from "@/lib/trpc";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { compressImageToBase64 } from "@/lib/imageCompress";
 import StylingStudioAnimation from "@/components/StylingStudioAnimation";
+import { GuestTrialWall } from "@/components/GuestTrialWall";
+import FashionSpinner from "@/components/FashionSpinner";
 import { toast } from "sonner";
 
 export default function PathChooser() {
@@ -15,6 +17,12 @@ export default function PathChooser() {
   const fingerprint = useFingerprint();
   const trackPageView = trpc.tracking.trackPageView.useMutation();
   const trackingRef = useRef(false);
+
+  /* ─── Check guest limit ─── */
+  const { data: limitData, isLoading: limitLoading } = trpc.guest.checkLimit.useQuery(
+    { fingerprint: fingerprint || "" },
+    { enabled: !!fingerprint }
+  );
 
   /* ─── Quick-check inline upload state ─── */
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -107,6 +115,11 @@ export default function PathChooser() {
       setQuickFile(null);
       setQuickPreview(null);
       const msg = err?.message || "";
+      if (msg.includes("GUEST_LIMIT_REACHED")) {
+        // Limit reached during upload — show wall
+        toast.error(isHe ? "ניצלת את 3 הניסיונות החינמיים. הירשמי לגישה מלאה!" : "You've used all 3 free trials. Sign up for full access!");
+        return;
+      }
       if (msg.includes("quota") || msg.includes("rate") || msg.includes("429")) {
         toast.error(isHe ? "השירות עמוס. נסה שוב בעוד חצי דקה." : "Service busy. Try again in 30 seconds.");
       } else {
@@ -114,6 +127,20 @@ export default function PathChooser() {
       }
     }
   }, [fingerprint, lang, isHe, uploadMutation, analyzeMutation, navigate]);
+
+  /* ─── Loading state ─── */
+  if (!fingerprint || limitLoading) {
+    return (
+      <div className="min-h-[100dvh] bg-background flex items-center justify-center">
+        <FashionSpinner size="lg" />
+      </div>
+    );
+  }
+
+  /* ─── Guest limit reached → show trial wall ─── */
+  if (limitData?.used) {
+    return <GuestTrialWall count={limitData.count} />;
+  }
 
   /* ─── Quick check: show full-screen loading animation ─── */
   if (quickLoading) {
@@ -168,6 +195,17 @@ export default function PathChooser() {
             {isHe ? "הסטייליסטית שלך מחכה" : "Your stylist is waiting"}
           </span>
         </div>
+
+        {/* Remaining trials badge */}
+        {limitData && limitData.count > 0 && !limitData.used && (
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-foreground/5 border border-foreground/10 mb-4 relative z-10">
+            <span className="text-xs text-muted-foreground">
+              {isHe
+                ? `${limitData.limit - limitData.count} ניסיונות חינמיים נותרו`
+                : `${limitData.limit - limitData.count} free trials remaining`}
+            </span>
+          </div>
+        )}
 
         {/* Headline */}
         <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-center mb-3 relative z-10">

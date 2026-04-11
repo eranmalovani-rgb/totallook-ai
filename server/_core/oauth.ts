@@ -1,9 +1,18 @@
 import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 import type { Express, Request, Response } from "express";
+import { parse as parseCookieHeader } from "cookie";
 import * as db from "../db";
 import { getSessionCookieOptions } from "./cookies";
 import { sdk } from "./sdk";
 import { notifyOwner } from "./notification";
+
+/** Parse a raw cookie header into a key-value map (Express doesn't do this without cookie-parser) */
+function getCookieValue(req: Request, name: string): string | null {
+  const raw = req.headers.cookie;
+  if (!raw) return null;
+  const parsed = parseCookieHeader(raw);
+  return parsed[name] ? decodeURIComponent(parsed[name]) : null;
+}
 
 function getQueryParam(req: Request, key: string): string | undefined {
   const value = req.query[key];
@@ -102,10 +111,11 @@ export function registerOAuthRoutes(app: Express) {
       const dbUser = await db.getUserByOpenId(userInfo.openId);
 
       // Fire-and-forget: migrate guest data to the new registered user
-      // The fingerprint is passed via a cookie set by the guest flow
+      // Try cookie first, then fall back to fingerprint embedded in OAuth state
       if (dbUser?.id) {
-        const guestFingerprint = req.cookies?.["guest_fingerprint"] || null;
+        const guestFingerprint = getCookieValue(req, "guest_fingerprint") || stateData.guestFingerprint || null;
         if (guestFingerprint) {
+          console.log(`[OAuth] Migrating guest data for fingerprint ${guestFingerprint.slice(0, 8)}... to user ${dbUser.id}`);
           db.migrateGuestToUser(guestFingerprint, dbUser.id).catch((err: any) => {
             console.warn("[OAuth] Guest migration failed:", err?.message);
           });
