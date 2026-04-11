@@ -997,3 +997,9 @@
 - [x] 85.6: Fix mall/stores — fill with proper stores based on detected budget + country (IL + international), ensure 10 stores show
 - [x] 85.7: After personalized analysis, upsell = register only (no more onboarding offer since they already did it)
 - [x] 85.8: Test both paths end-to-end (vitest + browser verification)
+
+## Stage 86: Fix Mall Stores, Logo Size, and Analysis Animation
+- [x] 86.1: Fix mall stores display — 7 local + 3 global, grid 3-4 cols, store name labels
+- [x] 86.2: Enlarge store logos in the mall/onboarding step — size sm→md, padding increased
+- [x] 86.3: Replace loading animation with StylingStudioAnimation (photo scanning, fitting room, mood board)
+- [x] 86.4: Test and verify — 26 onboarding tests pass, 845/850 total (5 pre-existing API failures)

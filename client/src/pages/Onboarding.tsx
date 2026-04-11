@@ -7,6 +7,7 @@ import { useLocation } from "wouter";
 import { Sparkles, ChevronLeft, ChevronRight, Heart, X, Camera, Upload, MapPin, Globe, Store as StoreIcon, Check, LogIn, UserPlus } from "lucide-react";
 import { getLoginUrl } from "@/const";
 import FashionSpinner, { FashionButtonSpinner } from "@/components/FashionSpinner";
+import StylingStudioAnimation from "@/components/StylingStudioAnimation";
 import StoreLogo from "@/components/StoreLogo";
 import { toast } from "sonner";
 import {
@@ -242,6 +243,7 @@ export default function Onboarding() {
   const [, navigate] = useLocation();
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
+  const [showAnalysisAnimation, setShowAnalysisAnimation] = useState(false);
   const { t, dir, lang } = useLanguage();
 
   /* ── Check if photo was passed from Path A (quick analysis → upsell) ── */
@@ -337,8 +339,8 @@ export default function Onboarding() {
       .filter(s => !allowedBudgets.includes(s.budget) && !localNames.has(s.label))
       .map(s => ({ name: s.label, isLocal: false }));
 
-    // Build final list: up to 5 local + fill with global (budget-match first, then any)
-    const localSlice = sortedLocal.slice(0, 5);
+    // Build final list: up to 7 local + fill with global (budget-match first, then any)
+    const localSlice = sortedLocal.slice(0, 7);
     const usedNames = new Set(localSlice.map(s => s.name));
     const globalPool = [...globalBudgetMatch, ...globalOther].filter(s => !usedNames.has(s.name));
     const globalSlice = globalPool.slice(0, TARGET - localSlice.length);
@@ -543,11 +545,16 @@ export default function Onboarding() {
           fingerprint,
         });
 
-        // 3. Trigger full analysis (will use saved guest profile for personalization)
+        // 3. Show visual analysis animation
+        setShowAnalysisAnimation(true);
+
+        // 4. Trigger full analysis (will use saved guest profile for personalization)
         guestAnalyzeMutation.mutate({ sessionId, lang });
 
-        // 4. Navigate to review page (it polls for results) — mark as from onboarding
-        navigate(`/guest/review/${sessionId}?from=onboarding`);
+        // 5. Wait a few seconds for the animation to play, then navigate to review
+        setTimeout(() => {
+          navigate(`/guest/review/${sessionId}?from=onboarding`);
+        }, 4000);
       }
     } catch (err: any) {
       toast.error(lang === "he" ? "שגיאה בשמירה" : "Save error");
@@ -984,16 +991,17 @@ export default function Onboarding() {
                           {detectedCountry && getCountryFlag(detectedCountry)} {lang === "he" ? "חנויות מקומיות" : "Local stores"}
                         </span>
                       </div>
-                      <div className="grid grid-cols-5 gap-2">
+                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
                         {mallStores.filter(s => s.isLocal).map(store => {
                           const isSelected = selectedStores.includes(store.name);
                           return (
                             <button key={store.name} onClick={() => toggleStore(store.name)}
-                              className={`p-2 rounded-xl border transition-all duration-200 flex flex-col items-center gap-1 ${
-                                isSelected ? "border-primary bg-primary/10 scale-105" : "border-white/10 hover:border-primary/30"
+                              className={`p-3 rounded-xl border transition-all duration-200 flex flex-col items-center gap-1.5 ${
+                                isSelected ? "border-primary bg-primary/10 scale-105 shadow-lg shadow-primary/10" : "border-white/10 hover:border-primary/30"
                               }`}>
-                              <StoreLogo name={store.name} size="sm" selected={isSelected} />
-                              {isSelected && <Check className="w-3 h-3 text-primary" />}
+                              <StoreLogo name={store.name} size="md" selected={isSelected} />
+                              <span className="text-[10px] text-muted-foreground leading-tight truncate w-full text-center">{store.name}</span>
+                              {isSelected && <Check className="w-3.5 h-3.5 text-primary" />}
                             </button>
                           );
                         })}
@@ -1010,16 +1018,17 @@ export default function Onboarding() {
                           {lang === "he" ? "מותגים בינלאומיים" : "International brands"}
                         </span>
                       </div>
-                      <div className="grid grid-cols-5 gap-2">
+                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
                         {mallStores.filter(s => !s.isLocal).map(store => {
                           const isSelected = selectedStores.includes(store.name);
                           return (
                             <button key={store.name} onClick={() => toggleStore(store.name)}
-                              className={`p-2 rounded-xl border transition-all duration-200 flex flex-col items-center gap-1 ${
-                                isSelected ? "border-primary bg-primary/10 scale-105" : "border-white/10 hover:border-primary/30"
+                              className={`p-3 rounded-xl border transition-all duration-200 flex flex-col items-center gap-1.5 ${
+                                isSelected ? "border-primary bg-primary/10 scale-105 shadow-lg shadow-primary/10" : "border-white/10 hover:border-primary/30"
                               }`}>
-                              <StoreLogo name={store.name} size="sm" selected={isSelected} />
-                              {isSelected && <Check className="w-3 h-3 text-primary" />}
+                              <StoreLogo name={store.name} size="md" selected={isSelected} />
+                              <span className="text-[10px] text-muted-foreground leading-tight truncate w-full text-center">{store.name}</span>
+                              {isSelected && <Check className="w-3.5 h-3.5 text-primary" />}
                             </button>
                           );
                         })}
@@ -1054,73 +1063,92 @@ export default function Onboarding() {
               ═══════════════════════════════════════════ */}
           {step === 5 && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 text-center space-y-5">
-              <PersonalizationBubble message={getStylistMessage()} />
-
-              <div>
-                <div className="text-5xl mb-3">🎯</div>
-                <h2 className="text-2xl md:text-3xl font-bold mb-2">
-                  {lang === "he" ? "פרופיל הטעם שלך" : "Your Taste Profile"}
-                </h2>
-                <p className="text-muted-foreground text-sm">
-                  {lang === "he"
-                    ? `מבוסס על ${r1Likes.length + r2Likes.length} לייקים מתוך 10 לוקים`
-                    : `Based on ${r1Likes.length + r2Likes.length} likes out of 10 looks`}
-                </p>
-              </div>
-
-              {tasteScores && <TasteScoreBar scores={tasteScores} />}
-
-              {topStyles.length > 0 && (
-                <div>
-                  <p className="text-sm text-muted-foreground mb-2">{lang === "he" ? "הסגנונות המובילים שלך:" : "Your top styles:"}</p>
-                  <div className="flex items-center justify-center gap-2 flex-wrap">
-                    {topStyles.map(style => {
-                      const styleNames: Record<string, { he: string; en: string }> = {
-                        streetwear: { he: "סטריטוור", en: "Streetwear" }, "smart-casual": { he: "סמארט קז'ואל", en: "Smart Casual" },
-                        classic: { he: "קלאסי", en: "Classic" }, boho: { he: "בוהו", en: "Boho" },
-                        minimalist: { he: "מינימליסט", en: "Minimalist" }, athleisure: { he: "אתלי'זר", en: "Athleisure" },
-                      };
-                      return <span key={style} className="px-3 py-1.5 rounded-full bg-primary/20 text-primary text-sm font-medium border border-primary/30">{styleNames[style]?.[lang] || style}</span>;
-                    })}
-                  </div>
+              {showAnalysisAnimation ? (
+                /* ── Visual analysis animation (shown after clicking finish) ── */
+                <div className="animate-in fade-in duration-700">
+                  <h2 className="text-xl md:text-2xl font-bold mb-4">
+                    {lang === "he" ? "מנתחים את הלוק שלך..." : "Analyzing your look..."}
+                  </h2>
+                  <StylingStudioAnimation
+                    uploading={false}
+                    analyzing={true}
+                    selectedOccasion=""
+                    selectedInfluencers={selectedInfluencers}
+                    imagePreview={photoPreview || photoAnalysis?.imageUrl || null}
+                  />
                 </div>
-              )}
+              ) : (
+                /* ── Normal taste profile + finish UI ── */
+                <>
+                  <PersonalizationBubble message={getStylistMessage()} />
 
-              {/* Personalization promise */}
-              <div className="bg-card/50 border border-white/5 rounded-2xl p-4 text-center">
-                <p className="text-sm text-foreground/80">
-                  {lang === "he"
-                    ? "🧠 זה רק ההתחלה — כל תמונה שתעלה תלמד אותי עוד עליך. הניתוחים שלך יהיו יותר ויותר מדויקים."
-                    : "🧠 This is just the beginning — every photo you upload teaches me more. Your analyses will get more and more precise."}
-                </p>
-              </div>
+                  <div>
+                    <div className="text-5xl mb-3">🎯</div>
+                    <h2 className="text-2xl md:text-3xl font-bold mb-2">
+                      {lang === "he" ? "פרופיל הטעם שלך" : "Your Taste Profile"}
+                    </h2>
+                    <p className="text-muted-foreground text-sm">
+                      {lang === "he"
+                        ? `מבוסס על ${r1Likes.length + r2Likes.length} לייקים מתוך 10 לוקים`
+                        : `Based on ${r1Likes.length + r2Likes.length} likes out of 10 looks`}
+                    </p>
+                  </div>
 
-              {/* Terms */}
-              <label className="flex items-start gap-3 cursor-pointer group justify-center text-center">
-                <input type="checkbox" checked={agreedToTerms} onChange={(e) => setAgreedToTerms(e.target.checked)}
-                  className="mt-1 w-4 h-4 rounded border-white/20 accent-primary flex-shrink-0" />
-                <span className="text-xs text-muted-foreground group-hover:text-foreground/70 transition-colors">
-                  {lang === "he" ? (
-                    <>אני מאשר/ת את{" "}<a href="/terms" target="_blank" className="text-primary hover:underline">תנאי השימוש</a>{" "}ואת{" "}<a href="/privacy" target="_blank" className="text-primary hover:underline">מדיניות הפרטיות</a></>
-                  ) : (
-                    <>I agree to the{" "}<a href="/terms" target="_blank" className="text-primary hover:underline">Terms</a>{" "}and{" "}<a href="/privacy" target="_blank" className="text-primary hover:underline">Privacy Policy</a></>
+                  {tasteScores && <TasteScoreBar scores={tasteScores} />}
+
+                  {topStyles.length > 0 && (
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-2">{lang === "he" ? "הסגנונות המובילים שלך:" : "Your top styles:"}</p>
+                      <div className="flex items-center justify-center gap-2 flex-wrap">
+                        {topStyles.map(style => {
+                          const styleNames: Record<string, { he: string; en: string }> = {
+                            streetwear: { he: "סטריטוור", en: "Streetwear" }, "smart-casual": { he: "סמארט קז'ואל", en: "Smart Casual" },
+                            classic: { he: "קלאסי", en: "Classic" }, boho: { he: "בוהו", en: "Boho" },
+                            minimalist: { he: "מינימליסט", en: "Minimalist" }, athleisure: { he: "אתלי'זר", en: "Athleisure" },
+                          };
+                          return <span key={style} className="px-3 py-1.5 rounded-full bg-primary/20 text-primary text-sm font-medium border border-primary/30">{styleNames[style]?.[lang] || style}</span>;
+                        })}
+                      </div>
+                    </div>
                   )}
-                </span>
-              </label>
 
-              {/* CTA */}
-              <Button onClick={handleFinish} disabled={saving || !agreedToTerms} className="w-full gap-2 rounded-xl h-12 text-base font-bold" size="lg">
-                {saving ? (
-                  <><FashionButtonSpinner /> {lang === "he" ? "שנייה..." : "One sec..."}</>
-                ) : (
-                  <><Sparkles className="w-5 h-5" /> {lang === "he" ? "יאללה, תראו לי ציון!" : "Show me my score!"}</>
-                )}
-              </Button>
+                  {/* Personalization promise */}
+                  <div className="bg-card/50 border border-white/5 rounded-2xl p-4 text-center">
+                    <p className="text-sm text-foreground/80">
+                      {lang === "he"
+                        ? "🧠 זה רק ההתחלה — כל תמונה שתעלה תלמד אותי עוד עליך. הניתוחים שלך יהיו יותר ויותר מדויקים."
+                        : "🧠 This is just the beginning — every photo you upload teaches me more. Your analyses will get more and more precise."}
+                    </p>
+                  </div>
 
-              {/* Back */}
-              <button onClick={() => setStep(4)} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                {isRtl ? "→" : "←"} {lang === "he" ? "חזרה" : "Back"}
-              </button>
+                  {/* Terms */}
+                  <label className="flex items-start gap-3 cursor-pointer group justify-center text-center">
+                    <input type="checkbox" checked={agreedToTerms} onChange={(e) => setAgreedToTerms(e.target.checked)}
+                      className="mt-1 w-4 h-4 rounded border-white/20 accent-primary flex-shrink-0" />
+                    <span className="text-xs text-muted-foreground group-hover:text-foreground/70 transition-colors">
+                      {lang === "he" ? (
+                        <>אני מאשר/ת את{" "}<a href="/terms" target="_blank" className="text-primary hover:underline">תנאי השימוש</a>{" "}ואת{" "}<a href="/privacy" target="_blank" className="text-primary hover:underline">מדיניות הפרטיות</a></>
+                      ) : (
+                        <>I agree to the{" "}<a href="/terms" target="_blank" className="text-primary hover:underline">Terms</a>{" "}and{" "}<a href="/privacy" target="_blank" className="text-primary hover:underline">Privacy Policy</a></>
+                      )}
+                    </span>
+                  </label>
+
+                  {/* CTA */}
+                  <Button onClick={handleFinish} disabled={saving || !agreedToTerms} className="w-full gap-2 rounded-xl h-12 text-base font-bold" size="lg">
+                    {saving ? (
+                      <><FashionButtonSpinner /> {lang === "he" ? "שנייה..." : "One sec..."}</>
+                    ) : (
+                      <><Sparkles className="w-5 h-5" /> {lang === "he" ? "יאללה, תראו לי ציון!" : "Show me my score!"}</>
+                    )}
+                  </Button>
+
+                  {/* Back */}
+                  <button onClick={() => setStep(4)} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                    {isRtl ? "→" : "←"} {lang === "he" ? "חזרה" : "Back"}
+                  </button>
+                </>
+              )}
             </div>
           )}
 
