@@ -773,30 +773,30 @@ function StoryCardsContainer({
         ))}
       </div>
 
-      {/* Tab bar — studio-themed elegant tabs */}
-      <div className="flex gap-2 px-3 pb-1 items-center justify-center flex-wrap">
+      {/* Tab bar — studio-themed prominent tabs */}
+      <div className="flex gap-2 px-2 pb-1 items-center justify-center flex-wrap">
         {visibleLabels.map((label, i) => (
           <button
             key={i}
             onClick={() => { goToIndex(i); setShowOverflow(false); }}
-            className={`group relative flex items-center gap-1.5 px-4 py-2.5 text-[11px] font-semibold transition-all duration-300 flex-shrink-0 border ${
+            className={`group relative flex items-center gap-2 px-4 py-3 text-xs font-bold transition-all duration-300 flex-shrink-0 border rounded-xl ${
               activeIndex === i
-                ? "bg-gradient-to-b from-amber-900/30 to-amber-950/20 text-amber-300 border-amber-500/40 shadow-[0_0_12px_rgba(200,164,78,0.15)] rounded-lg"
-                : "bg-white/[0.02] text-muted-foreground border-white/[0.06] hover:border-white/15 hover:text-foreground hover:bg-white/[0.04] rounded-lg"
+                ? "bg-gradient-to-b from-amber-900/30 to-amber-950/20 text-amber-300 border-amber-500/40 shadow-[0_0_14px_rgba(200,164,78,0.2)]"
+                : "bg-white/[0.02] text-muted-foreground border-white/[0.06] hover:border-white/15 hover:text-foreground hover:bg-white/[0.04]"
             }`}
           >
             {activeIndex === i && (
               <span className="absolute -top-px inset-x-2 h-[2px] bg-gradient-to-r from-transparent via-amber-400/70 to-transparent rounded-full" />
             )}
-            <span className={`transition-transform duration-200 ${activeIndex === i ? 'scale-110' : 'group-hover:scale-105'}`}>{cardIcons[i]}</span>
-            <span className="truncate max-w-[70px]">{label}</span>
+            <span className={`transition-transform duration-200 text-base ${activeIndex === i ? 'scale-110' : 'group-hover:scale-105'}`}>{cardIcons[i]}</span>
+            <span className="truncate max-w-[80px]">{label}</span>
           </button>
         ))}
         {hasOverflow && (
           <div className="relative">
             <button
               onClick={() => setShowOverflow(!showOverflow)}
-              className={`flex items-center justify-center w-10 h-10 rounded-lg text-sm font-bold transition-all duration-300 border ${
+              className={`flex items-center justify-center w-11 h-11 rounded-xl text-sm font-bold transition-all duration-300 border ${
                 activeIndex >= VISIBLE_TABS
                   ? "bg-gradient-to-b from-amber-900/30 to-amber-950/20 text-amber-300 border-amber-500/40 shadow-[0_0_12px_rgba(200,164,78,0.15)]"
                   : "bg-white/[0.02] text-muted-foreground border-white/[0.06] hover:border-white/15 hover:bg-white/[0.04]"

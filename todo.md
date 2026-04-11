@@ -831,3 +831,9 @@
 - [x] 68.2: Improved ImprovementCard — amber-500/10 borders, gradient backgrounds, amber number badges, amber-tinted titles, gold-themed option gallery
 - [x] 68.3: Applied to GuestImprovementAccordionCard, GuestOutfitCard, and all WhatsAppReview card wrappers
 - [x] 68.4: Verified — 0 TS errors, 819/824 tests pass (same 5 pre-existing API failures)
+
+### 69: Move Share Buttons Below Tabs & Enlarge Tabs Row
+- [x] 69.1: Moved share buttons below StoryCards section in ReviewPage — centered row with border-t/b separator
+- [x] 69.2: Enlarged tabs — text-xs font-bold, py-3, gap-2, rounded-xl, text-base icons, max-w-[80px] labels, w-11 h-11 overflow button
+- [x] 69.3: Applied enlarged tabs to GuestReview and WhatsAppReview
+- [x] 69.4: Verified — 0 TS errors, 819/824 tests pass (same 5 pre-existing API failures)

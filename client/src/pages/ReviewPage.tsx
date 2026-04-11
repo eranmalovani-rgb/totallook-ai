@@ -1014,31 +1014,31 @@ function StoryCards({
         ))}
       </div>
 
-      {/* Tab bar — studio-themed elegant tabs */}
-      <div className="flex gap-2 mb-5 px-3 pb-1 items-center justify-center flex-wrap">
+      {/* Tab bar — studio-themed prominent tabs */}
+      <div className="flex gap-2 mb-5 px-2 pb-1 items-center justify-center flex-wrap">
         {visibleLabels.map((label, i) => (
           <button
             key={i}
             onClick={() => { goToIndex(i); setShowOverflow(false); }}
-            className={`group relative flex items-center gap-1.5 px-4 py-2.5 text-[11px] font-semibold transition-all duration-300 flex-shrink-0 border ${
+            className={`group relative flex items-center gap-2 px-4 py-3 text-xs font-bold transition-all duration-300 flex-shrink-0 border rounded-xl ${
               activeIndex === i
-                ? "bg-gradient-to-b from-amber-900/30 to-amber-950/20 text-amber-300 border-amber-500/40 shadow-[0_0_12px_rgba(200,164,78,0.15)] rounded-lg"
-                : "bg-white/[0.02] text-muted-foreground border-white/[0.06] hover:border-white/15 hover:text-foreground hover:bg-white/[0.04] rounded-lg"
+                ? "bg-gradient-to-b from-amber-900/30 to-amber-950/20 text-amber-300 border-amber-500/40 shadow-[0_0_14px_rgba(200,164,78,0.2)]"
+                : "bg-white/[0.02] text-muted-foreground border-white/[0.06] hover:border-white/15 hover:text-foreground hover:bg-white/[0.04]"
             }`}
           >
             {/* Active indicator — gold stitch line at top */}
             {activeIndex === i && (
               <span className="absolute -top-px inset-x-2 h-[2px] bg-gradient-to-r from-transparent via-amber-400/70 to-transparent rounded-full" />
             )}
-            <span className={`transition-transform duration-200 ${activeIndex === i ? 'scale-110' : 'group-hover:scale-105'}`}>{icons[i]}</span>
-            <span className="truncate max-w-[70px]">{label}</span>
+            <span className={`transition-transform duration-200 text-base ${activeIndex === i ? 'scale-110' : 'group-hover:scale-105'}`}>{icons[i]}</span>
+            <span className="truncate max-w-[80px]">{label}</span>
           </button>
         ))}
         {hasOverflow && (
           <div className="relative">
             <button
               onClick={() => setShowOverflow(!showOverflow)}
-              className={`flex items-center justify-center w-10 h-10 rounded-lg text-sm font-bold transition-all duration-300 border ${
+              className={`flex items-center justify-center w-11 h-11 rounded-xl text-sm font-bold transition-all duration-300 border ${
                 activeIndex >= VISIBLE_TABS
                   ? "bg-gradient-to-b from-amber-900/30 to-amber-950/20 text-amber-300 border-amber-500/40 shadow-[0_0_12px_rgba(200,164,78,0.15)]"
                   : "bg-white/[0.02] text-muted-foreground border-white/[0.06] hover:border-white/15 hover:bg-white/[0.04]"
@@ -1415,11 +1415,11 @@ export default function ReviewPage() {
     : ["🎯 Items", ...(hasInfluencerInsight ? ["👥 Influencers"] : []), "✨ Upgrades", "👗 Outfits", "📚 Trends"];
 
   const storyIcons = [
-    <Eye className="w-3.5 h-3.5" key="items" />,
-    ...(hasInfluencerInsight ? [<Users className="w-3.5 h-3.5" key="influencers" />] : []),
-    <Sparkles className="w-3.5 h-3.5" key="upgrades" />,
-    <ShoppingBag className="w-3.5 h-3.5" key="outfits" />,
-    <BookOpen className="w-3.5 h-3.5" key="trends" />,
+    <Eye className="w-4 h-4" key="items" />,
+    ...(hasInfluencerInsight ? [<Users className="w-4 h-4" key="influencers" />] : []),
+    <Sparkles className="w-4 h-4" key="upgrades" />,
+    <ShoppingBag className="w-4 h-4" key="outfits" />,
+    <BookOpen className="w-4 h-4" key="trends" />,
   ];
 
   return (
@@ -1481,48 +1481,7 @@ export default function ReviewPage() {
 
 
 
-            {/* Quick actions row — studio styled */}
-            <div className="flex items-center gap-2.5 pt-2 border-t border-white/[0.04]">
-              {isOwner && (
-                <>
-                  <ShareToFeedButton reviewId={reviewId} />
-                  <ShareButtons
-                    reviewId={reviewId}
-                    score={analysis.overallScore}
-                    summary={analysis.summary}
-                    imageUrl={review.imageUrl}
-                  />
-                </>
-              )}
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <button className="inline-flex items-center gap-1 text-[10px] text-muted-foreground/40 hover:text-destructive transition-colors px-2 py-1">
-                    <Trash2 className="w-3 h-3" />
-                    {lang === "he" ? "מחק" : "Delete"}
-                  </button>
-                </AlertDialogTrigger>
-                <AlertDialogContent dir={dir}>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>{lang === "he" ? "מחיקת ניתוח" : "Delete Analysis"}</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      {lang === "he"
-                        ? "האם למחוק את הניתוח הזה? התמונה והתוצאות יימחקו לצמיתות."
-                        : "Delete this analysis? The image and results will be permanently removed."}
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter className={dir === "rtl" ? "flex-row-reverse gap-2" : "gap-2"}>
-                    <AlertDialogCancel>{lang === "he" ? "ביטול" : "Cancel"}</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={() => deleteReviewMutation.mutate({ reviewId })}
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    >
-                      <Trash2 className={`w-4 h-4 ${dir === "rtl" ? "ml-2" : "mr-2"}`} />
-                      {lang === "he" ? "מחק" : "Delete"}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </div>
+
           </div>
         </section>
 
@@ -1942,6 +1901,53 @@ export default function ReviewPage() {
 
 
           </StoryCards>
+        </section>
+
+        {/* ═══════════════════════════════════════════════
+            SHARE & ACTIONS — Moved below tabs for cleaner flow
+            ═══════════════════════════════════════════════ */}
+        <section className="container max-w-lg mx-auto px-4 mt-4">
+          <div className="flex items-center justify-center gap-2.5 py-3 border-t border-b border-white/[0.04]">
+            {isOwner && (
+              <>
+                <ShareToFeedButton reviewId={reviewId} />
+                <ShareButtons
+                  reviewId={reviewId}
+                  score={analysis.overallScore}
+                  summary={analysis.summary}
+                  imageUrl={review.imageUrl}
+                />
+              </>
+            )}
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <button className="inline-flex items-center gap-1 text-[10px] text-muted-foreground/40 hover:text-destructive transition-colors px-2 py-1">
+                  <Trash2 className="w-3 h-3" />
+                  {lang === "he" ? "מחק" : "Delete"}
+                </button>
+              </AlertDialogTrigger>
+              <AlertDialogContent dir={dir}>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>{lang === "he" ? "מחיקת ניתוח" : "Delete Analysis"}</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {lang === "he"
+                      ? "האם למחוק את הניתוח הזה? התמונה והתוצאות יימחקו לצמיתות."
+                      : "Delete this analysis? The image and results will be permanently removed."}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter className={dir === "rtl" ? "flex-row-reverse gap-2" : "gap-2"}>
+                  <AlertDialogCancel>{lang === "he" ? "ביטול" : "Cancel"}</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => deleteReviewMutation.mutate({ reviewId })}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    <Trash2 className={`w-4 h-4 ${dir === "rtl" ? "ml-2" : "mr-2"}`} />
+                    {lang === "he" ? "מחק" : "Delete"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
         </section>
 
         {/* ═══════════════════════════════════════════════
