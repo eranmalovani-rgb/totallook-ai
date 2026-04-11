@@ -756,3 +756,12 @@
 - [x] 59.6: Defined 30+ COMPLEMENTARY_PAIRS (navy↔tan, black↔white, grey↔burgundy, etc.) → +15 bonus
 - [x] 59.7: Verified — 0 TS errors, 819/824 tests pass (same 5 pre-existing API failures)
 - [ ] 59.8: Test that green items no longer dominate when user wears neutrals/darks (needs live test)
+
+### 60: Catalog Scoring — Material & Pattern Awareness
+- [x] 60.1: Defined 8 material groups (natural-light, natural-warm, structured, luxury, leather-family, knit, synthetic, blend) + 8 clash pairs + 19 good pairs
+- [x] 60.2: Defined pattern clash rules (13 clash pairs), universal patterns (solid/plain), 13 statement patterns
+- [x] 60.3: Added userPaletteMaterials/userPalettePatterns to CatalogMatchParams
+- [x] 60.4: Collect materials/patterns from Stage 1 items, deduplicate, pass to both findCatalogMatches calls
+- [x] 60.5: Material scoring: -12 clash, +10 good pair, +6 same group
+- [x] 60.6: Pattern scoring: +8 solid when user has statement, -15 pattern clash, -5 two statements, +4 statement for all-solid outfit
+- [x] 60.7: Verified — 0 TS errors, 819/824 tests pass (same 5 pre-existing API failures)

@@ -2274,6 +2274,10 @@ export interface CatalogMatchParams {
   originalSubCategory?: string;
   /** Stage 59: ALL colors detected in the user's outfit (for color distance scoring) */
   userPaletteColors?: string[];
+  /** Stage 60: ALL materials detected in the user's outfit */
+  userPaletteMaterials?: string[];
+  /** Stage 60: ALL patterns detected in the user's outfit */
+  userPalettePatterns?: string[];
 }
 
 /**
@@ -2450,6 +2454,96 @@ function isComplementaryPair(color1: string, color2: string): boolean {
   );
 }
 
+// ── Stage 60: Material Compatibility Groups ──
+// Materials grouped by "texture family" — items within the same group pair well together.
+// Cross-group pairings get a smaller bonus; clashing combos get a penalty.
+const MATERIAL_GROUPS: Record<string, string[]> = {
+  "natural-light": ["cotton", "linen", "chambray", "poplin", "jersey", "pique"],
+  "natural-warm": ["wool", "cashmere", "merino", "flannel", "tweed", "mohair", "alpaca"],
+  "structured": ["denim", "canvas", "twill", "gabardine", "chino"],
+  "luxury": ["silk", "satin", "velvet", "charmeuse", "organza", "crepe"],
+  "leather-family": ["leather", "suede", "nubuck", "faux leather", "vegan leather"],
+  "knit": ["knit", "ribbed knit", "cable knit", "french terry", "waffle knit"],
+  "synthetic": ["polyester", "nylon", "synthetic", "technical", "tech", "performance", "spandex", "elastane"],
+  "blend": ["cotton blend", "poly blend", "wool blend"],
+};
+
+/** Material combos that look intentionally wrong — penalty */
+const MATERIAL_CLASHES: [string, string][] = [
+  ["silk", "denim"], ["satin", "denim"], ["velvet", "canvas"],
+  ["silk", "canvas"], ["satin", "canvas"], ["velvet", "denim"],
+  ["organza", "denim"], ["organza", "canvas"],
+];
+
+/** Good cross-group pairings — bonus */
+const MATERIAL_GOOD_PAIRS: [string, string][] = [
+  ["cotton", "denim"], ["cotton", "leather"], ["cotton", "suede"],
+  ["linen", "leather"], ["linen", "suede"], ["wool", "leather"],
+  ["wool", "suede"], ["cashmere", "silk"], ["cashmere", "leather"],
+  ["denim", "leather"], ["denim", "suede"], ["denim", "cotton"],
+  ["knit", "denim"], ["knit", "leather"], ["knit", "wool"],
+  ["silk", "wool"], ["silk", "cashmere"], ["flannel", "denim"],
+  ["jersey", "denim"], ["jersey", "leather"],
+];
+
+function getMaterialGroup(material: string): string | null {
+  const m = material.toLowerCase().trim();
+  for (const [group, members] of Object.entries(MATERIAL_GROUPS)) {
+    if (members.some(mem => m.includes(mem) || mem.includes(m))) return group;
+  }
+  return null;
+}
+
+function isMaterialClash(m1: string, m2: string): boolean {
+  const a = m1.toLowerCase().trim();
+  const b = m2.toLowerCase().trim();
+  return MATERIAL_CLASHES.some(([x, y]) =>
+    (a.includes(x) && b.includes(y)) || (a.includes(y) && b.includes(x))
+  );
+}
+
+function isMaterialGoodPair(m1: string, m2: string): boolean {
+  const a = m1.toLowerCase().trim();
+  const b = m2.toLowerCase().trim();
+  return MATERIAL_GOOD_PAIRS.some(([x, y]) =>
+    (a.includes(x) && b.includes(y)) || (a.includes(y) && b.includes(x))
+  );
+}
+
+// ── Stage 60: Pattern Compatibility ──
+// Patterns that clash when worn together
+const PATTERN_CLASHES: Set<string> = new Set([
+  "stripes+plaid", "plaid+stripes",
+  "stripes+checks", "checks+stripes",
+  "plaid+checks", "checks+plaid",
+  "floral+plaid", "plaid+floral",
+  "animal print+floral", "floral+animal print",
+  "animal print+plaid", "plaid+animal print",
+  "geometric+floral", "floral+geometric",
+  "paisley+floral", "floral+paisley",
+  "paisley+plaid", "plaid+paisley",
+  "camo+floral", "floral+camo",
+  "camo+plaid", "plaid+camo",
+  "camo+stripes", "stripes+camo",
+]);
+
+/** Patterns that pair well with everything */
+const UNIVERSAL_PATTERNS = new Set(["solid", "plain", ""]);
+
+/** Patterns that pair well with solids but not with other patterns */
+const STATEMENT_PATTERNS = new Set([
+  "stripes", "plaid", "checks", "floral", "geometric",
+  "animal print", "paisley", "camo", "abstract", "graphic",
+  "houndstooth", "polka dots", "tropical",
+]);
+
+function isPatternClash(p1: string, p2: string): boolean {
+  const a = p1.toLowerCase().trim();
+  const b = p2.toLowerCase().trim();
+  if (UNIVERSAL_PATTERNS.has(a) || UNIVERSAL_PATTERNS.has(b)) return false;
+  return PATTERN_CLASHES.has(`${a}+${b}`);
+}
+
 function scoreCandidates(candidates: CatalogItem[], params: CatalogMatchParams): CatalogItem[] {
   const {
     subCategory,
@@ -2461,6 +2555,8 @@ function scoreCandidates(candidates: CatalogItem[], params: CatalogMatchParams):
     detectedSeason,
     originalSubCategory,
     userPaletteColors = [],
+    userPaletteMaterials = [],
+    userPalettePatterns = [],
   } = params;
 
   // Pre-compute user palette RGB values for distance scoring
@@ -2469,6 +2565,17 @@ function scoreCandidates(candidates: CatalogItem[], params: CatalogMatchParams):
     const rgb = colorNameToRgb(c);
     if (rgb) userPaletteRgb.push({ name: c.toLowerCase().trim(), rgb });
   }
+
+  // Stage 60: Pre-compute user material groups
+  const userMaterialGroups = new Set<string>();
+  for (const m of userPaletteMaterials) {
+    const g = getMaterialGroup(m);
+    if (g) userMaterialGroups.add(g);
+  }
+
+  // Stage 60: Count statement patterns in user's outfit
+  const userStatementPatterns = userPalettePatterns.filter(p => STATEMENT_PATTERNS.has(p.toLowerCase().trim()));
+  const userHasStatementPattern = userStatementPatterns.length > 0;
 
   const scored = candidates.map(item => {
     let score = 0;
@@ -2615,6 +2722,63 @@ function scoreCandidates(candidates: CatalogItem[], params: CatalogMatchParams):
             score += 8; // Same family, different shade — good variation
             break;
           }
+        }
+      }
+    }
+
+    // ── Stage 60: Material Compatibility Scoring ──
+    if (userPaletteMaterials.length > 0) {
+      const itemMaterial = (item.material || "").toLowerCase().trim();
+      if (itemMaterial) {
+        const itemGroup = getMaterialGroup(itemMaterial);
+
+        // 1. Check for material clashes with any user material
+        let hasClash = false;
+        let hasGoodPair = false;
+        let hasSameGroup = false;
+        for (const um of userPaletteMaterials) {
+          if (isMaterialClash(itemMaterial, um)) { hasClash = true; break; }
+          if (isMaterialGoodPair(itemMaterial, um)) hasGoodPair = true;
+          if (itemGroup && getMaterialGroup(um) === itemGroup) hasSameGroup = true;
+        }
+
+        if (hasClash) {
+          score -= 12; // Fabric clash — silk+denim etc.
+        } else if (hasGoodPair) {
+          score += 10; // Known good cross-group pairing (cotton+leather, wool+suede, etc.)
+        } else if (hasSameGroup) {
+          score += 6; // Same texture family — cohesive feel
+        }
+        // If no match at all, neutral (0) — unknown combo is not penalized
+      }
+    }
+
+    // ── Stage 60: Pattern Compatibility Scoring ──
+    if (userPalettePatterns.length > 0) {
+      const itemPattern = (item.pattern || "solid").toLowerCase().trim();
+      const isItemSolid = UNIVERSAL_PATTERNS.has(itemPattern);
+      const isItemStatement = STATEMENT_PATTERNS.has(itemPattern);
+
+      // 1. If user already wears a statement pattern, prefer solid upgrades
+      if (userHasStatementPattern) {
+        if (isItemSolid) {
+          score += 8; // Solid pairs safely with any existing pattern
+        } else if (isItemStatement) {
+          // Check for specific pattern clashes
+          let clashes = false;
+          for (const up of userStatementPatterns) {
+            if (isPatternClash(itemPattern, up)) { clashes = true; break; }
+          }
+          if (clashes) {
+            score -= 15; // Hard pattern clash (stripes+plaid, floral+camo, etc.)
+          } else {
+            score -= 5; // Two statement patterns = risky even without explicit clash
+          }
+        }
+      } else {
+        // User wears all solids — a single statement pattern can add interest
+        if (isItemStatement) {
+          score += 4; // Mild bonus for adding visual interest to an all-solid outfit
         }
       }
     }

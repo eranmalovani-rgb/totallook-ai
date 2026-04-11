@@ -3106,6 +3106,17 @@ async function buildCatalogRecommendations(
   const uniquePalette = [...new Set(userPaletteColors)];
   console.log(`[Stage 59] User palette colors: [${uniquePalette.join(", ")}]`);
 
+  // Stage 60: Collect ALL materials and patterns from user's outfit
+  const userPaletteMaterials: string[] = [];
+  const userPalettePatterns: string[] = [];
+  for (const item of stageOneItems) {
+    if (item.material) userPaletteMaterials.push(item.material.toLowerCase());
+    if (item.pattern) userPalettePatterns.push(item.pattern.toLowerCase());
+  }
+  const uniqueMaterials = [...new Set(userPaletteMaterials)];
+  const uniquePatterns = [...new Set(userPalettePatterns)];
+  console.log(`[Stage 60] User materials: [${uniqueMaterials.join(", ")}], patterns: [${uniquePatterns.join(", ")}]`);
+
   // Find upgrade items for each Stage 1 item
   const usedCatalogIds: number[] = [];
   const improvements: Improvement[] = [];
@@ -3146,7 +3157,9 @@ async function buildCatalogRecommendations(
         limit: 3, // Stage 52: fetch 3 options per category
         detectedSeason,
         originalSubCategory: mapping.subCategory,
-        userPaletteColors: uniquePalette, // Stage 59: pass full palette for color distance scoring
+        userPaletteColors: uniquePalette, // Stage 59
+        userPaletteMaterials: uniqueMaterials, // Stage 60
+        userPalettePatterns: uniquePatterns, // Stage 60
       });
       if (matches.length === 0) continue;
       const catalogItem = matches[0];
@@ -3230,6 +3243,8 @@ async function buildCatalogRecommendations(
         limit: 3, // Stage 52: fetch 3 options
         detectedSeason,
         userPaletteColors: uniquePalette, // Stage 59
+        userPaletteMaterials: uniqueMaterials, // Stage 60
+        userPalettePatterns: uniquePatterns, // Stage 60
       });
       if (matches.length === 0) continue;
       const catalogItem = matches[0];
