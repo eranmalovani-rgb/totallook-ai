@@ -1013,3 +1013,6 @@
 - [x] 88.1: "בדיקה מהירה" button replaced with 2 buttons (צלם/גלריה) that open file picker directly from PathChooser
 - [x] 88.2: Privacy checkbox removed from GuestUpload — consent handled by cookie banner + footer links
 - [x] 88.3: After photo selected → auto-compress → upload → analyze → navigate to /guest/review/:id (with StylingStudioAnimation loading)
+
+## Stage 88b: Fix quick check button
+- [x] 88b.1: Restore original single CTA button, clicking opens native file picker

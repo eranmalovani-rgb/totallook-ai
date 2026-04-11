@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Zap, Target, ArrowRight, Sparkles, Camera, ImagePlus } from "lucide-react";
+import { Zap, Target, ArrowRight, Sparkles } from "lucide-react";
 import { useLanguage } from "@/i18n";
 import { useFingerprint } from "@/hooks/useFingerprint";
 import { trpc } from "@/lib/trpc";
@@ -18,7 +18,7 @@ export default function PathChooser() {
 
   /* ─── Quick-check inline upload state ─── */
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const cameraInputRef = useRef<HTMLInputElement>(null);
+
   const [quickFile, setQuickFile] = useState<File | null>(null);
   const [quickPreview, setQuickPreview] = useState<string | null>(null);
   const [quickLoading, setQuickLoading] = useState(false);
@@ -140,14 +140,7 @@ export default function PathChooser() {
         className="hidden"
         onChange={(e) => { const f = e.target.files?.[0]; if (f) handleQuickFile(f); e.target.value = ""; }}
       />
-      <input
-        ref={cameraInputRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        className="hidden"
-        onChange={(e) => { const f = e.target.files?.[0]; if (f) handleQuickFile(f); e.target.value = ""; }}
-      />
+
 
       {/* Top bar */}
       <div className="flex items-center justify-between px-6 pt-6 pb-2">
@@ -212,25 +205,15 @@ export default function PathChooser() {
               {isHe ? "ציון תוך 10 שניות" : "Score in 10 seconds"}
             </p>
 
-            {/* Two action buttons — camera + gallery */}
-            <div className="flex gap-3 justify-center">
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); cameraInputRef.current?.click(); }}
-                className="flex items-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-black font-bold text-sm hover:from-amber-400 hover:to-amber-500 transition-all duration-300 shadow-[0_0_20px_rgba(245,158,11,0.2)] hover:shadow-[0_0_30px_rgba(245,158,11,0.4)]"
-              >
-                <Camera className="w-4 h-4" />
-                {isHe ? "צלם" : "Camera"}
-              </button>
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
-                className="flex items-center gap-2 px-5 py-3 rounded-xl border border-amber-500/30 text-amber-400 font-bold text-sm hover:bg-amber-500/10 transition-all duration-300"
-              >
-                <ImagePlus className="w-4 h-4" />
-                {isHe ? "גלריה" : "Gallery"}
-              </button>
-            </div>
+            {/* CTA — opens native file picker (camera + gallery combined) */}
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-black font-bold text-sm group-hover:from-amber-400 group-hover:to-amber-500 transition-all duration-300 shadow-[0_0_20px_rgba(245,158,11,0.2)] group-hover:shadow-[0_0_30px_rgba(245,158,11,0.4)]"
+            >
+              {isHe ? "יאללה!" : "Let's go!"}
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </button>
           </div>
 
           {/* Option 2 — Precise */}
