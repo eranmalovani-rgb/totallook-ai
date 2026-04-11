@@ -883,3 +883,9 @@
 - [x] 73.4: All images uploaded to CDN via webdev static assets
 - [x] 73.5: Copy already in feminine Hebrew (העלי, קבלי, שדרגי, בואי)
 - [x] 73.6: Verified — 0 TS errors, 819/824 tests pass
+
+### 74: WhatsApp Section on Landing Page
+- [x] 74.1: Added WhatsApp section to Home.tsx — emerald green theme, card with 3 steps, CTA button, phone number
+- [x] 74.2: Added WhatsApp section to LandingEN.tsx — identical English version
+- [x] 74.3: WhatsApp link opens wa.me/972526211811 with pre-filled message, phone number displayed
+- [x] 74.4: Verified — 0 TS errors, 819/824 tests pass (same 5 pre-existing API failures)

@@ -13,6 +13,9 @@ import {
   Eye,
   Lock,
   TrendingUp,
+  MessageCircle,
+  Smartphone,
+  Send,
 } from "lucide-react";
 import FashionSpinner from "@/components/FashionSpinner";
 import LandingBeforeAfterSlider from "@/components/LandingBeforeAfterSlider";
@@ -465,6 +468,84 @@ export default function Home() {
           </Link>
         </div>
       </section>
+
+      {/* ═══════════════════════════════════════════════════════════════
+          WHATSAPP — Alternative Analysis Method
+      ═══════════════════════════════════════════════════════════════ */}
+      <AnimatedSection>
+        <section className="py-16 md:py-24 px-4 relative">
+          <div className="absolute inset-0 bg-gradient-to-b from-emerald-500/[0.02] via-transparent to-transparent pointer-events-none" />
+          <div className="container max-w-4xl mx-auto relative z-10">
+            <div className="text-center mb-10">
+              <p className="text-xs text-emerald-400/60 tracking-[0.2em] uppercase font-medium mb-4">
+                {isHe ? "דרך נוספת" : "Another way"}
+              </p>
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
+                {isHe
+                  ? <>מעדיפה <span className="text-emerald-400">WhatsApp</span>?</>
+                  : <>Prefer <span className="text-emerald-400">WhatsApp</span>?</>}
+              </h2>
+              <p className="text-base text-muted-foreground max-w-lg mx-auto">
+                {isHe
+                  ? "שלחי תמונה של הלוק שלך ישירות בוואטסאפ וקבלי ניתוח מלא תוך דקות"
+                  : "Send a photo of your outfit on WhatsApp and get a full analysis in minutes"}
+              </p>
+            </div>
+
+            <div className="max-w-md mx-auto">
+              {/* WhatsApp Card */}
+              <a
+                href="https://wa.me/972526211811?text=%D7%94%D7%99%D7%99!%20%F0%9F%91%8B"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => trackCtaClick("whatsapp")}
+                className="group block rounded-2xl border border-emerald-500/20 bg-gradient-to-b from-emerald-500/[0.06] to-emerald-500/[0.02] hover:border-emerald-500/30 hover:from-emerald-500/[0.1] transition-all duration-300 overflow-hidden"
+              >
+                {/* Top visual */}
+                <div className="p-6 pb-4 text-center">
+                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-emerald-500/15 mb-4 group-hover:scale-110 transition-transform duration-300">
+                    <MessageCircle className="w-8 h-8 text-emerald-400" />
+                  </div>
+                  <h3 className="text-xl font-bold text-foreground mb-2">
+                    {isHe ? "ניתוח אופנתי בוואטסאפ" : "Fashion Analysis via WhatsApp"}
+                  </h3>
+                </div>
+
+                {/* Steps */}
+                <div className="px-6 pb-2 space-y-3">
+                  {[
+                    { icon: Send, text: isHe ? "שלחי הודעה עם היי 👋" : "Send a message with Hi 👋" },
+                    { icon: Camera, text: isHe ? "צרפי תמונה של הלוק" : "Attach a photo of your outfit" },
+                    { icon: Sparkles, text: isHe ? "קבלי ניתוח מלא + המלצות" : "Get full analysis + recommendations" },
+                  ].map((step, i) => (
+                    <div key={i} className="flex items-center gap-3 text-sm">
+                      <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                        <step.icon className="w-4 h-4 text-emerald-400" />
+                      </div>
+                      <span className="text-foreground/80">{step.text}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* CTA Button */}
+                <div className="p-6 pt-5">
+                  <div className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl bg-emerald-500 group-hover:bg-emerald-400 text-white font-bold text-sm transition-colors">
+                    <MessageCircle className="w-4 h-4" />
+                    {isHe ? "פתחי צ׳אט בוואטסאפ" : "Open WhatsApp Chat"}
+                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  </div>
+                </div>
+              </a>
+
+              {/* Phone number hint */}
+              <p className="text-center text-xs text-muted-foreground/40 mt-4 flex items-center justify-center gap-1.5">
+                <Smartphone className="w-3 h-3" />
+                {isHe ? "מספר: 052-621-1811" : "Number: 052-621-1811"}
+              </p>
+            </div>
+          </div>
+        </section>
+      </AnimatedSection>
 
       {/* ═══════════════════════════════════════════════════════════════
           FINAL CTA
