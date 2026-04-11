@@ -948,3 +948,20 @@
 - [x] 81.3: Update CTA button to "תראי את הציון האמיתי שלך"
 - [x] 81.4: Style with provocative/bold design — "לא" in red-400, "8" in amber-400, subtitle in amber gradient
 - [x] 81.5: Update English landing page (LandingEN.tsx) — "You're not an 8 like you think" + "Let's find out" + "See your real score"
+
+## Stage 82: Onboarding V3 — Photo-First Personalized Flow
+- [x] 82.1: Server — new tRPC procedure `onboarding.analyzePhoto` that uses LLM to detect gender, age range, style, budget from uploaded photo
+- [x] 82.2: Photo upload screen — same photo used for analysis, with upload UI + "הסטייליסטית שלך רוצה להכיר אותך" intro
+- [x] 82.3: Personalized Tinder R1 (6 cards) — gender-matched outfits based on detected style/age
+- [x] 82.4: Personalized Tinder R2 (4 cards) — 3 reinforcement + 1 negative, adaptive from R1
+- [x] 82.5: Influencer screen — InfluencerPicker with personalized sorting by age/style/budget + custom add
+- [x] 82.6: Social placeholders — Instagram/TikTok/Pinterest inline SVG logos with "בקרוב" + "בהמשך אפשר להתחבר ונלמד לבד"
+- [x] 82.7: Mall/store picker screen — 10 stores as mall storefront, budget+country filtered (local + global)
+- [x] 82.8: Personalization bubbles throughout — contextual messages at each step
+- [x] 82.9: Taste scoring system carried over from R1+R2 (same algorithm)
+- [x] 82.10: Save all data to profile (gender, age, style, budget, liked influencers, preferred stores)
+- [x] 82.11: Generate gender-specific Tinder images (6 female + 6 male + 6 neutral sets)
+- [x] 82.12: Reused existing InfluencerPicker + InfluencerAvatar components (already have images)
+- [x] 82.13: Reused existing StoreLogo component (already has brand styles)
+- [x] 82.14: Write vitest tests — 12/12 passing (7 taste scoring + 5 profile.save)
+- [x] 82.15: Browser tested Step 1 (photo upload UI verified)

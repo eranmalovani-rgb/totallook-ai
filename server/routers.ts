@@ -8153,5 +8153,102 @@ Style: High-end fashion editorial flat lay for a ${genderWord}. Items arranged a
       return getUserConsents(ctx.user.id);
     }),
   }),
+
+  // ─── Onboarding Photo Pre-Analysis ───
+  onboarding: router({
+    analyzePhoto: protectedProcedure
+      .input(z.object({
+        imageBase64: z.string(),
+        mimeType: z.string().default("image/jpeg"),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        // Upload to S3 first
+        const fileExt = input.mimeType.split("/")[1] || "jpg";
+        const fileKey = `onboarding/${ctx.user.id}/${nanoid()}.${fileExt}`;
+        const buffer = Buffer.from(input.imageBase64, "base64");
+        const { url: imageUrl } = await storagePut(fileKey, buffer, input.mimeType);
+
+        // Use LLM vision to detect gender, age, style, budget from the photo
+        const result = await invokeLLM({
+          messages: [
+            {
+              role: "system",
+              content: `You are a fashion analysis AI. Analyze this photo of a person and detect:
+1. gender: "male" or "female"
+2. ageRange: one of "18-24", "25-34", "35-44", "45-54", "55+"
+3. detectedStyles: array of 1-3 style tags from: ["streetwear", "smart-casual", "classic", "boho", "minimalist", "athleisure"]. Order by confidence (most likely first).
+4. budgetLevel: one of "budget", "mid-range", "premium", "luxury" — estimate from visible clothing quality, brands, accessories.
+5. confidence: 0-100 how confident you are in the overall assessment.
+
+Be accurate but generous. If you can't determine something clearly, make your best educated guess based on visual cues.
+Return ONLY valid JSON matching the schema.`,
+            },
+            {
+              role: "user",
+              content: [
+                { type: "text" as const, text: "Analyze this person's fashion profile from the photo." },
+                { type: "image_url" as const, image_url: { url: imageUrl, detail: "auto" as const } },
+              ],
+            },
+          ],
+          response_format: {
+            type: "json_schema",
+            json_schema: {
+              name: "fashion_profile_detection",
+              strict: true,
+              schema: {
+                type: "object",
+                properties: {
+                  gender: { type: "string", enum: ["male", "female"], description: "Detected gender" },
+                  ageRange: { type: "string", enum: ["18-24", "25-34", "35-44", "45-54", "55+"], description: "Estimated age range" },
+                  detectedStyles: {
+                    type: "array",
+                    items: { type: "string", enum: ["streetwear", "smart-casual", "classic", "boho", "minimalist", "athleisure"] },
+                    description: "1-3 detected style tags ordered by confidence",
+                  },
+                  budgetLevel: { type: "string", enum: ["budget", "mid-range", "premium", "luxury"], description: "Estimated budget level" },
+                  confidence: { type: "number", description: "Confidence score 0-100" },
+                },
+                required: ["gender", "ageRange", "detectedStyles", "budgetLevel", "confidence"],
+                additionalProperties: false,
+              },
+            },
+          },
+        });
+
+        const content = result.choices?.[0]?.message?.content;
+        let parsed: {
+          gender: string;
+          ageRange: string;
+          detectedStyles: string[];
+          budgetLevel: string;
+          confidence: number;
+        };
+
+        try {
+          parsed = JSON.parse(typeof content === "string" ? content : "{}");
+        } catch {
+          // Fallback defaults
+          parsed = {
+            gender: "female",
+            ageRange: "25-34",
+            detectedStyles: ["smart-casual"],
+            budgetLevel: "mid-range",
+            confidence: 30,
+          };
+        }
+
+        // Save the photo URL for later use in the main review
+        return {
+          imageUrl,
+          imageKey: fileKey,
+          gender: parsed.gender,
+          ageRange: parsed.ageRange,
+          detectedStyles: parsed.detectedStyles || ["smart-casual"],
+          budgetLevel: parsed.budgetLevel,
+          confidence: parsed.confidence || 50,
+        };
+      }),
+  }),
 });
 export type AppRouter = typeof appRouter;

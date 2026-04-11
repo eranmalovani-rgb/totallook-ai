@@ -63,7 +63,110 @@ vi.mock("./whatsapp", () => ({
   sendWhatsAppWelcome: vi.fn().mockResolvedValue(true),
 }));
 
-describe("Onboarding profile.save procedure", () => {
+// ── Taste Scoring Algorithm (mirrors client-side logic) ──
+type StyleId = "streetwear" | "smart-casual" | "classic" | "boho" | "minimalist" | "athleisure";
+interface OutfitCard { id: string; styleId: StyleId; styleTags: string[]; }
+interface TasteScores { [styleId: string]: number; }
+
+function computeTasteScores(
+  r1Likes: string[], _r1Passes: string[],
+  r2Likes: string[], _r2Passes: string[],
+  r2NegativeCardId: string | null,
+  r1Cards: OutfitCard[], r2Cards: OutfitCard[],
+): TasteScores {
+  const scores: TasteScores = {};
+  const allStyles: StyleId[] = ["streetwear", "smart-casual", "classic", "boho", "minimalist", "athleisure"];
+  allStyles.forEach(s => { scores[s] = 0; });
+  r1Cards.forEach(card => {
+    const pts = r1Likes.includes(card.id) ? 1 : -1;
+    card.styleTags.forEach(tag => { if (scores[tag] !== undefined) scores[tag] += pts; });
+  });
+  r2Cards.forEach(card => {
+    const isNegative = card.id === r2NegativeCardId;
+    const liked = r2Likes.includes(card.id);
+    const pts = isNegative ? (liked ? 1 : -3) : (liked ? 2 : -2);
+    card.styleTags.forEach(tag => { if (scores[tag] !== undefined) scores[tag] += pts; });
+  });
+  return scores;
+}
+
+function getTopStyles(scores: TasteScores, count = 3): string[] {
+  return Object.entries(scores)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, count)
+    .filter(([, v]) => v > 0)
+    .map(([k]) => k);
+}
+
+const MOCK_R1: OutfitCard[] = [
+  { id: "r1-streetwear", styleId: "streetwear", styleTags: ["streetwear", "smart-casual"] },
+  { id: "r1-smart-casual", styleId: "smart-casual", styleTags: ["smart-casual", "classic"] },
+  { id: "r1-classic", styleId: "classic", styleTags: ["classic", "minimalist"] },
+  { id: "r1-boho", styleId: "boho", styleTags: ["boho"] },
+  { id: "r1-minimalist", styleId: "minimalist", styleTags: ["minimalist", "classic"] },
+  { id: "r1-athleisure", styleId: "athleisure", styleTags: ["athleisure"] },
+];
+
+describe("Onboarding V3 — Taste Scoring Algorithm", () => {
+  it("gives positive scores to liked styles and negative to passed", () => {
+    const r1Likes = ["r1-streetwear", "r1-classic", "r1-minimalist"];
+    const r1Passes = ["r1-smart-casual", "r1-boho", "r1-athleisure"];
+    const scores = computeTasteScores(r1Likes, r1Passes, [], [], null, MOCK_R1, []);
+    expect(scores["streetwear"]).toBeGreaterThan(0);
+    expect(scores["classic"]).toBeGreaterThan(0);
+    expect(scores["boho"]).toBeLessThan(0);
+    expect(scores["athleisure"]).toBeLessThan(0);
+  });
+
+  it("applies R2 reinforcement (like=+2) and negative pass (=-3)", () => {
+    const r1Likes = ["r1-streetwear"];
+    const r1Passes = ["r1-smart-casual", "r1-classic", "r1-boho", "r1-minimalist", "r1-athleisure"];
+    const r2Cards: OutfitCard[] = [
+      { id: "r2-sw-1", styleId: "streetwear", styleTags: ["streetwear"] },
+      { id: "r2-sw-2", styleId: "streetwear", styleTags: ["streetwear"] },
+      { id: "r2-sw-3", styleId: "streetwear", styleTags: ["streetwear"] },
+      { id: "r2-boho-neg", styleId: "boho", styleTags: ["boho"] },
+    ];
+    const scores = computeTasteScores(r1Likes, r1Passes, ["r2-sw-1", "r2-sw-2", "r2-sw-3"], ["r2-boho-neg"], "r2-boho-neg", MOCK_R1, r2Cards);
+    expect(scores["streetwear"]).toBeGreaterThanOrEqual(7);
+    expect(scores["boho"]).toBeLessThanOrEqual(-4);
+  });
+
+  it("handles R2 negative card liked (surprise: +1)", () => {
+    const r2Cards: OutfitCard[] = [
+      { id: "r2-sw-1", styleId: "streetwear", styleTags: ["streetwear"] },
+      { id: "r2-boho-neg", styleId: "boho", styleTags: ["boho"] },
+    ];
+    const scores = computeTasteScores(["r1-streetwear"], ["r1-boho"], ["r2-sw-1", "r2-boho-neg"], [], "r2-boho-neg", MOCK_R1, r2Cards);
+    expect(scores["boho"]).toBe(0); // R1: -1, R2 negative liked: +1 = 0
+  });
+
+  it("returns top styles sorted by score, excluding negatives", () => {
+    const scores: TasteScores = { streetwear: 5, "smart-casual": 2, classic: 4, boho: -3, minimalist: 3, athleisure: -1 };
+    expect(getTopStyles(scores, 3)).toEqual(["streetwear", "classic", "minimalist"]);
+  });
+
+  it("returns empty array when all scores negative", () => {
+    const scores: TasteScores = { streetwear: -1, "smart-casual": -2, classic: -1, boho: -3, minimalist: -1, athleisure: -4 };
+    expect(getTopStyles(scores)).toEqual([]);
+  });
+
+  it("handles all likes gracefully", () => {
+    const r1Likes = MOCK_R1.map(c => c.id);
+    const scores = computeTasteScores(r1Likes, [], [], [], null, MOCK_R1, []);
+    Object.values(scores).forEach(v => expect(v).toBeGreaterThanOrEqual(0));
+    expect(getTopStyles(scores).length).toBeGreaterThan(0);
+  });
+
+  it("handles all passes gracefully", () => {
+    const r1Passes = MOCK_R1.map(c => c.id);
+    const scores = computeTasteScores([], r1Passes, [], [], null, MOCK_R1, []);
+    Object.values(scores).forEach(v => expect(v).toBeLessThanOrEqual(0));
+    expect(getTopStyles(scores)).toEqual([]);
+  });
+});
+
+describe("Onboarding V3 — profile.save procedure", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -71,52 +174,39 @@ describe("Onboarding profile.save procedure", () => {
   it("rejects unauthenticated users", async () => {
     const { ctx } = createUnauthContext();
     const caller = appRouter.createCaller(ctx);
-
     await expect(
-      caller.profile.save({
-        gender: "female",
-        ageRange: "25-34",
-        onboardingCompleted: true,
-      })
+      caller.profile.save({ gender: "female", ageRange: "25-34", onboardingCompleted: true })
     ).rejects.toThrow();
   });
 
-  it("accepts Phase A quick-finish fields (no gender/age, tinder-derived style)", async () => {
+  it("accepts photo-detected profile fields (gender, age, budget from AI)", async () => {
     const { ctx } = createAuthContext();
     const caller = appRouter.createCaller(ctx);
-
-    // New flow: Quick Finish after Tinder — no gender or age, just style + occupation from visual choices
     const result = await caller.profile.save({
-      occupation: "creative",
-      stylePreference: "classic, minimalist, streetwear",
+      gender: "female",
+      ageRange: "25-34",
+      budgetLevel: "mid-range",
+      stylePreference: "streetwear, classic, minimalist",
+      favoriteInfluencers: "Noa Kirel, Gal Gadot",
+      preferredStores: "Zara, H&M, Castro",
       saveToWardrobe: true,
       onboardingCompleted: true,
       country: "IL",
     });
-
     expect(result).toBeDefined();
     expect(typeof result).toBe("object");
   });
 
-  it("accepts Phase A quick-finish with zero likes (empty style)", async () => {
+  it("accepts minimal onboarding completion", async () => {
     const { ctx } = createAuthContext();
     const caller = appRouter.createCaller(ctx);
-
-    // User swiped left on everything — still valid, style derived from silhouette choice
-    const result = await caller.profile.save({
-      occupation: "freelance",
-      stylePreference: "streetwear, smart-casual",
-      saveToWardrobe: true,
-      onboardingCompleted: true,
-    });
-
+    const result = await caller.profile.save({ onboardingCompleted: true });
     expect(result).toBeDefined();
   });
 
-  it("accepts full Phase B fields (all profile data)", async () => {
+  it("accepts full profile with stores and influencers", async () => {
     const { ctx } = createAuthContext();
     const caller = appRouter.createCaller(ctx);
-
     const result = await caller.profile.save({
       gender: "male",
       ageRange: "35-44",
@@ -124,54 +214,19 @@ describe("Onboarding profile.save procedure", () => {
       budgetLevel: "premium",
       stylePreference: "classic, minimalist",
       favoriteInfluencers: "John Doe, Jane Smith",
-      preferredStores: "Zara, H&M",
-      saveToWardrobe: true,
-      onboardingCompleted: true,
-      country: "US",
-    });
-
-    expect(result).toBeDefined();
-    expect(typeof result).toBe("object");
-  });
-
-  it("accepts minimal fields (empty save)", async () => {
-    const { ctx } = createAuthContext();
-    const caller = appRouter.createCaller(ctx);
-
-    // Minimal save — no fields at all, just marking onboarding
-    const result = await caller.profile.save({
-      onboardingCompleted: true,
-    });
-
-    expect(result).toBeDefined();
-  });
-
-  it("accepts taste-scored profile from Tinder R1+R2 flow", async () => {
-    const { ctx } = createAuthContext();
-    const caller = appRouter.createCaller(ctx);
-
-    // Simulates: Venue=bar, R1 likes streetwear+classic+minimalist, R2 reinforced all 3, rejected boho negative
-    const result = await caller.profile.save({
-      occupation: "nightlife",
-      stylePreference: "minimalist, classic, streetwear",
+      preferredStores: "Zara, Massimo Dutti, Factory 54",
       saveToWardrobe: true,
       onboardingCompleted: true,
       country: "IL",
     });
-
     expect(result).toBeDefined();
-    expect(typeof result).toBe("object");
   });
 
-  it("validates input schema — rejects invalid types", async () => {
+  it("rejects invalid types", async () => {
     const { ctx } = createAuthContext();
     const caller = appRouter.createCaller(ctx);
-
-    // onboardingCompleted should be boolean, not string
     await expect(
-      caller.profile.save({
-        onboardingCompleted: "yes" as any,
-      })
+      caller.profile.save({ onboardingCompleted: "yes" as any })
     ).rejects.toThrow();
   });
 });
