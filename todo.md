@@ -965,3 +965,17 @@
 - [x] 82.13: Reused existing StoreLogo component (already has brand styles)
 - [x] 82.14: Write vitest tests — 12/12 passing (7 taste scoring + 5 profile.save)
 - [x] 82.15: Browser tested Step 1 (photo upload UI verified)
+
+## Stage 83: Landing Page → 2 Paths + Post-Analysis Upsells (SUPERSEDED by revised below)
+- [x] Superseded
+
+## Stage 83 (revised): Path Chooser + Conversion Upsells
+- [x] 83.1: New path chooser screen at /try — "איך בא לך להתחיל?" with 2 cards: "בדיקה מהירה ⚡" (primary) + "בדיקה מדויקת יותר 🎯"
+- [x] 83.2: Path A (quick) — /try/quick → GuestUpload → GuestReview → upsell ("שמור + התחבר" + "ניתוח מותאם" → /try/precise?photo=...)
+- [x] 83.3: Path B (precise) — /try/precise → Onboarding V3 → Step 6 conversion ("שמור את הפרופיל שלי" + signup CTA)
+- [x] 83.4: Onboarding accepts ?photo= query param from Path A upsell (reuses same photo, auto-analyzes)
+- [x] 83.5: Onboarding works for non-auth users (analyzePhoto changed to publicProcedure)
+- [x] 83.6: File upload supported in both paths (already in GuestUpload + Onboarding)
+- [x] 83.7: Route wiring in App.tsx — /try shows chooser, /try/quick shows GuestUpload, /try/precise shows Onboarding V3
+- [x] 83.8: Landing page CTAs already point to /try (no change needed)
+- [x] 83.9: Write vitest tests for new flows (17/17 passing)

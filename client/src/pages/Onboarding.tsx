@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import WhatsAppOnboardingModal from "@/components/WhatsAppOnboardingModal";
 import { useLocation } from "wouter";
-import { Sparkles, ChevronLeft, ChevronRight, Heart, X, Camera, Upload, MapPin, Globe, Store as StoreIcon, Check } from "lucide-react";
+import { Sparkles, ChevronLeft, ChevronRight, Heart, X, Camera, Upload, MapPin, Globe, Store as StoreIcon, Check, LogIn, UserPlus } from "lucide-react";
+import { getLoginUrl } from "@/const";
 import FashionSpinner, { FashionButtonSpinner } from "@/components/FashionSpinner";
 import StoreLogo from "@/components/StoreLogo";
 import { toast } from "sonner";
@@ -233,18 +234,24 @@ function PinterestIcon({ size = 32 }: { size?: number }) {
    4 = Mall / Store picker (budget + country aware)
    5 = Taste profile + finish
    ═══════════════════════════════════════════════════════ */
-const TOTAL_STEPS = 5;
+const TOTAL_STEPS = 6; // 6th step is conversion (only for non-auth users)
 
 export default function Onboarding() {
-  const { user, isAuthenticated, loading: authLoading } = useAuth({ redirectOnUnauthenticated: true });
+  const { user, isAuthenticated, loading: authLoading } = useAuth({ redirectOnUnauthenticated: false });
   const [, navigate] = useLocation();
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
   const { t, dir, lang } = useLanguage();
 
+  /* ── Check if photo was passed from Path A (quick analysis → upsell) ── */
+  const [incomingPhoto] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("photo") || null;
+  });
+
   /* ── Step 1: Photo upload ── */
   const [photoFile, setPhotoFile] = useState<File | null>(null);
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(incomingPhoto);
   const [analyzing, setAnalyzing] = useState(false);
   const [photoAnalysis, setPhotoAnalysis] = useState<{
     imageUrl: string; imageKey: string;
@@ -348,21 +355,42 @@ export default function Onboarding() {
   }, []);
 
   const handlePhotoAnalyze = useCallback(async () => {
-    if (!photoFile) return;
+    if (!photoFile && !incomingPhoto) return;
     setAnalyzing(true);
     try {
-      const reader = new FileReader();
-      const base64 = await new Promise<string>((resolve) => {
-        reader.onload = () => {
-          const result = reader.result as string;
-          resolve(result.split(",")[1]); // strip data:...;base64,
-        };
-        reader.readAsDataURL(photoFile);
-      });
+      let base64: string;
+      let mimeType: string;
+
+      if (incomingPhoto && !photoFile) {
+        // Fetch the image from the URL and convert to base64
+        const resp = await fetch(incomingPhoto);
+        const blob = await resp.blob();
+        mimeType = blob.type || "image/jpeg";
+        base64 = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const result = reader.result as string;
+            resolve(result.split(",")[1]);
+          };
+          reader.readAsDataURL(blob);
+        });
+      } else if (photoFile) {
+        mimeType = photoFile.type || "image/jpeg";
+        base64 = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const result = reader.result as string;
+            resolve(result.split(",")[1]);
+          };
+          reader.readAsDataURL(photoFile);
+        });
+      } else {
+        return;
+      }
 
       const result = await analyzePhotoMutation.mutateAsync({
         imageBase64: base64,
-        mimeType: photoFile.type || "image/jpeg",
+        mimeType,
       });
 
       setPhotoAnalysis(result);
@@ -375,7 +403,16 @@ export default function Onboarding() {
       toast.error(lang === "he" ? "שגיאה בניתוח התמונה — ננסה שוב" : "Photo analysis error — try again");
       setAnalyzing(false);
     }
-  }, [photoFile, analyzePhotoMutation, lang]);
+  }, [photoFile, incomingPhoto, analyzePhotoMutation, lang]);
+
+  /* ── Auto-trigger analysis if incoming photo from Path A ── */
+  const autoAnalyzeRef = useRef(false);
+  useEffect(() => {
+    if (incomingPhoto && !autoAnalyzeRef.current && !photoAnalysis && !analyzing) {
+      autoAnalyzeRef.current = true;
+      handlePhotoAnalyze();
+    }
+  }, [incomingPhoto, photoAnalysis, analyzing, handlePhotoAnalyze]);
 
   /* ═══════════════════════════════════════════════════════
      Tinder Swipe Handlers
@@ -450,18 +487,24 @@ export default function Onboarding() {
   const handleFinish = async () => {
     setSaving(true);
     try {
-      await saveProfileMutation.mutateAsync({
-        gender: photoAnalysis?.gender || undefined,
-        ageRange: photoAnalysis?.ageRange || undefined,
-        budgetLevel: photoAnalysis?.budgetLevel || undefined,
-        stylePreference: topStyles.length > 0 ? topStyles.join(", ") : (photoAnalysis?.detectedStyles?.join(", ") || undefined),
-        favoriteInfluencers: selectedInfluencers.length > 0 ? selectedInfluencers.join(", ") : undefined,
-        preferredStores: selectedStores.length > 0 ? selectedStores.join(", ") : undefined,
-        saveToWardrobe: true,
-        onboardingCompleted: true,
-        country: detectedCountry || undefined,
-      });
-      window.location.href = "/upload";
+      if (isAuthenticated) {
+        await saveProfileMutation.mutateAsync({
+          gender: photoAnalysis?.gender || undefined,
+          ageRange: photoAnalysis?.ageRange || undefined,
+          budgetLevel: photoAnalysis?.budgetLevel || undefined,
+          stylePreference: topStyles.length > 0 ? topStyles.join(", ") : (photoAnalysis?.detectedStyles?.join(", ") || undefined),
+          favoriteInfluencers: selectedInfluencers.length > 0 ? selectedInfluencers.join(", ") : undefined,
+          preferredStores: selectedStores.length > 0 ? selectedStores.join(", ") : undefined,
+          saveToWardrobe: true,
+          onboardingCompleted: true,
+          country: detectedCountry || undefined,
+        });
+        window.location.href = "/upload";
+      } else {
+        // Non-authenticated: show conversion step
+        setStep(6);
+        setSaving(false);
+      }
     } catch (err: any) {
       toast.error(lang === "he" ? "שגיאה בשמירה" : "Save error");
       setSaving(false);
@@ -588,6 +631,7 @@ export default function Onboarding() {
   }
 
   const firstName = user?.name?.split(" ")[0] || "";
+  const isGuest = !isAuthenticated;
   const isRtl = dir === "rtl";
 
   /* ═══════════════════════════════════════════════════════
@@ -597,12 +641,12 @@ export default function Onboarding() {
     <div className="min-h-screen bg-background text-foreground flex flex-col" dir={dir}>
       <WhatsAppOnboardingModal open={showWhatsAppModal} onClose={() => { window.location.href = "/upload"; }} phoneNumber="" />
 
-      {/* Progress dots */}
+      {/* Progress dots — show 5 for all, step 6 (conversion) doesn't get a dot */}
       <div className="fixed top-0 left-0 right-0 z-50">
         <div className="flex items-center justify-center gap-2 pt-6 pb-2">
-          {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
+          {Array.from({ length: 5 }).map((_, i) => (
             <div key={i} className={`rounded-full transition-all duration-500 ${
-              i + 1 === step ? "w-8 h-2 bg-primary" : i + 1 < step ? "w-2 h-2 bg-primary/60" : "w-2 h-2 bg-white/20"
+              i + 1 === step ? "w-8 h-2 bg-primary" : i + 1 < step || step === 6 ? "w-2 h-2 bg-primary/60" : "w-2 h-2 bg-white/20"
             }`} />
           ))}
         </div>
@@ -1011,6 +1055,74 @@ export default function Onboarding() {
               {/* Back */}
               <button onClick={() => setStep(4)} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                 {isRtl ? "→" : "←"} {lang === "he" ? "חזרה" : "Back"}
+              </button>
+            </div>
+          )}
+
+          {/* ═══════════════════════════════════════════
+              STEP 6: Conversion — Save & Sign Up (guests only)
+              ═══════════════════════════════════════════ */}
+          {step === 6 && (
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 text-center space-y-6">
+              <div>
+                <div className="text-5xl mb-3">🎉</div>
+                <h2 className="text-2xl md:text-3xl font-bold mb-2">
+                  {lang === "he" ? "הפרופיל שלך מוכן!" : "Your profile is ready!"}
+                </h2>
+                <p className="text-muted-foreground text-sm">
+                  {lang === "he"
+                    ? "שמור את הפרופיל שלך כדי לקבל ניתוחים מותאמים אישית"
+                    : "Save your profile to get personalized analyses"}
+                </p>
+              </div>
+
+              {/* Taste summary mini */}
+              {topStyles.length > 0 && (
+                <div className="bg-card/50 border border-white/5 rounded-2xl p-4">
+                  <p className="text-xs text-muted-foreground mb-2">{lang === "he" ? "הסגנונות שלך:" : "Your styles:"}</p>
+                  <div className="flex items-center justify-center gap-2 flex-wrap">
+                    {topStyles.map(style => {
+                      const styleNames: Record<string, { he: string; en: string }> = {
+                        streetwear: { he: "סטריטוור", en: "Streetwear" }, "smart-casual": { he: "סמארט קז'ואל", en: "Smart Casual" },
+                        classic: { he: "קלאסי", en: "Classic" }, boho: { he: "בוהו", en: "Boho" },
+                        minimalist: { he: "מינימליסט", en: "Minimalist" }, athleisure: { he: "אתלי'זר", en: "Athleisure" },
+                      };
+                      return <span key={style} className="px-3 py-1 rounded-full bg-primary/20 text-primary text-sm font-medium border border-primary/30">{styleNames[style]?.[lang] || style}</span>;
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Personalization promise */}
+              <div className="bg-card/50 border border-white/5 rounded-2xl p-4">
+                <p className="text-sm text-foreground/80">
+                  {lang === "he"
+                    ? "🧠 כל מה שלמדנו עליך ישמר — כל תמונה שתעלה בהמשך תדייק את הניתוח עוד יותר"
+                    : "🧠 Everything we learned about you will be saved — every photo you upload will refine your analysis further"}
+                </p>
+              </div>
+
+              {/* Primary CTA: Sign up / Login */}
+              <div className="space-y-3">
+                <Button
+                  onClick={() => { window.location.href = getLoginUrl("/upload"); }}
+                  className="w-full gap-2 rounded-xl h-12 text-base font-bold" size="lg"
+                >
+                  <UserPlus className="w-5 h-5" />
+                  {lang === "he" ? "שמור את הפרופיל שלי" : "Save my profile"}
+                </Button>
+
+                <p className="text-xs text-muted-foreground">
+                  {lang === "he" ? "הרשמה חינמית — שומר את כל הפרסונליזציה שלך" : "Free signup — saves all your personalization"}
+                </p>
+              </div>
+
+              {/* Secondary: Continue without saving */}
+              <button
+                onClick={() => navigate("/try/quick")}
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors underline"
+              >
+                {lang === "he" ? "אולי אחר כך, קח אותי לניתוח" : "Maybe later, take me to analysis"}
               </button>
             </div>
           )}

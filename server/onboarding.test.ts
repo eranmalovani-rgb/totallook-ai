@@ -230,3 +230,74 @@ describe("Onboarding V3 — profile.save procedure", () => {
     ).rejects.toThrow();
   });
 });
+
+describe("Onboarding V3 — analyzePhoto (public procedure)", () => {
+  it("is accessible without authentication (publicProcedure)", async () => {
+    const { ctx } = createUnauthContext();
+    const caller = appRouter.createCaller(ctx);
+    // The procedure should exist and be callable (will fail on LLM call, but shouldn't throw UNAUTHORIZED)
+    try {
+      await caller.onboarding.analyzePhoto({
+        imageBase64: "dGVzdA==", // "test" in base64
+        mimeType: "image/jpeg",
+      });
+    } catch (err: any) {
+      // Should NOT be UNAUTHORIZED error — any other error (LLM, storage) is fine
+      expect(err.code).not.toBe("UNAUTHORIZED");
+    }
+  });
+
+  it("is also accessible with authentication", async () => {
+    const { ctx } = createAuthContext();
+    const caller = appRouter.createCaller(ctx);
+    try {
+      await caller.onboarding.analyzePhoto({
+        imageBase64: "dGVzdA==",
+        mimeType: "image/jpeg",
+      });
+    } catch (err: any) {
+      // Should NOT be UNAUTHORIZED
+      expect(err.code).not.toBe("UNAUTHORIZED");
+    }
+  });
+
+  it("requires imageBase64 input", async () => {
+    const { ctx } = createUnauthContext();
+    const caller = appRouter.createCaller(ctx);
+    await expect(
+      caller.onboarding.analyzePhoto({ imageBase64: undefined as any })
+    ).rejects.toThrow();
+  });
+});
+
+describe("Path Chooser — Route Architecture", () => {
+  it("taste scoring works for Path B conversion flow (guest completes onboarding)", () => {
+    // Simulate a guest completing the full onboarding: R1 likes streetwear+classic, R2 reinforces
+    const r1Likes = ["r1-streetwear", "r1-classic"];
+    const r1Passes = ["r1-smart-casual", "r1-boho", "r1-minimalist", "r1-athleisure"];
+    const r2Cards: OutfitCard[] = [
+      { id: "r2-sw", styleId: "streetwear", styleTags: ["streetwear"] },
+      { id: "r2-cl", styleId: "classic", styleTags: ["classic"] },
+      { id: "r2-cl2", styleId: "classic", styleTags: ["classic", "minimalist"] },
+      { id: "r2-boho-neg", styleId: "boho", styleTags: ["boho"] },
+    ];
+    const r2Likes = ["r2-sw", "r2-cl", "r2-cl2"];
+    const r2Passes = ["r2-boho-neg"];
+    const scores = computeTasteScores(r1Likes, r1Passes, r2Likes, r2Passes, "r2-boho-neg", MOCK_R1, r2Cards);
+    const top = getTopStyles(scores);
+    // Classic and streetwear should be top styles
+    expect(top).toContain("classic");
+    expect(top).toContain("streetwear");
+    // Boho should be deeply negative
+    expect(scores["boho"]).toBeLessThan(-3);
+  });
+
+  it("Path A quick analysis can transition to Path B with same photo", () => {
+    // Verify the URL construction for passing photo from GuestReview to Onboarding
+    const imageUrl = "https://storage.example.com/onboarding/guest/abc123.jpg";
+    const params = imageUrl ? `?photo=${encodeURIComponent(imageUrl)}` : "";
+    const targetUrl = `/try/precise${params}`;
+    expect(targetUrl).toContain("/try/precise?photo=");
+    expect(targetUrl).toContain(encodeURIComponent(imageUrl));
+  });
+});

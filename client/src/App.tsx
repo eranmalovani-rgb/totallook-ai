@@ -16,6 +16,7 @@ import Feed from "./pages/Feed";
 import Admin from "./pages/Admin";
 import SharedWardrobe from "./pages/SharedWardrobe";
 import GuestUpload from "./pages/GuestUpload";
+import PathChooser from "./pages/PathChooser";
 import GuestReview from "./pages/GuestReview";
 import GuestWardrobe from "./pages/GuestWardrobe";
 import Terms from "./pages/Terms";
@@ -44,7 +45,9 @@ function Router() {
       <Route path={"/profile"} component={Profile} />
       <Route path={"/feed"} component={Feed} />
       <Route path={"/admin"} component={Admin} />
-      <Route path="/try" component={GuestUpload} />
+      <Route path="/try" component={PathChooser} />
+      <Route path="/try/quick" component={GuestUpload} />
+      <Route path="/try/precise" component={Onboarding} />
       <Route path="/guest/review/:id" component={GuestReview} />
       <Route path="/guest/wardrobe" component={GuestWardrobe} />
       <Route path="/terms" component={Terms} />

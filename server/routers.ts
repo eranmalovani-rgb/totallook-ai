@@ -8156,7 +8156,7 @@ Style: High-end fashion editorial flat lay for a ${genderWord}. Items arranged a
 
   // ─── Onboarding Photo Pre-Analysis ───
   onboarding: router({
-    analyzePhoto: protectedProcedure
+    analyzePhoto: publicProcedure
       .input(z.object({
         imageBase64: z.string(),
         mimeType: z.string().default("image/jpeg"),
@@ -8164,7 +8164,8 @@ Style: High-end fashion editorial flat lay for a ${genderWord}. Items arranged a
       .mutation(async ({ ctx, input }) => {
         // Upload to S3 first
         const fileExt = input.mimeType.split("/")[1] || "jpg";
-        const fileKey = `onboarding/${ctx.user.id}/${nanoid()}.${fileExt}`;
+        const userId = ctx.user?.id || "guest";
+        const fileKey = `onboarding/${userId}/${nanoid()}.${fileExt}`;
         const buffer = Buffer.from(input.imageBase64, "base64");
         const { url: imageUrl } = await storagePut(fileKey, buffer, input.mimeType);
 

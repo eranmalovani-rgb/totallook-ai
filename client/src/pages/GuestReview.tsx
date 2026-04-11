@@ -1554,13 +1554,44 @@ export default function GuestReview() {
         )}
 
         {/* ═══════════════════════════════════════════
-            BOTTOM CTA — Another Analysis + Signup
+            BOTTOM CTA — Conversion Upsells (Path A)
             ═══════════════════════════════════════════ */}
-        <section className="container max-w-2xl mx-auto text-center py-8 border-t border-border">
-          <div className="p-6 rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 via-rose-500/5 to-transparent">
-            <Sparkles className="w-8 h-8 text-primary mx-auto mb-3" />
-            <h2 className="text-xl font-bold mb-2">{t("guest", "signupCta")}</h2>
-            <p className="text-muted-foreground text-sm max-w-md mx-auto mb-5">{t("guest", "signupCtaDesc")}</p>
+        <section className="container max-w-2xl mx-auto py-8 border-t border-border space-y-4">
+          {/* Upsell 1: Try personalized analysis with same photo */}
+          <div className="p-6 rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-500/[0.06] via-amber-600/[0.03] to-transparent">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/15 flex items-center justify-center flex-shrink-0">
+                <Sparkles className="w-5 h-5 text-amber-400" />
+              </div>
+              <div>
+                <h3 className="font-bold text-base">
+                  {lang === "he" ? "רוצה תוצאה מדויקת יותר?" : "Want more accurate results?"}
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  {lang === "he" ? "עוד כמה בחירות קצרות → ניתוח מותאם אישית" : "A few quick choices → personalized analysis"}
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="default"
+              size="lg"
+              className="w-full gap-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-bold"
+              onClick={() => {
+                const imageUrl = result?.imageUrl || "";
+                const params = imageUrl ? `?photo=${encodeURIComponent(imageUrl)}` : "";
+                navigate(`/try/precise${params}`);
+              }}
+            >
+              🎯 {lang === "he" ? "בואי נכיר — ניתוח מותאם אישית" : "Let's get personal — precise analysis"}
+              <ArrowRight className="w-4 h-4" />
+            </Button>
+          </div>
+
+          {/* Upsell 2: Save + Signup */}
+          <div className="p-6 rounded-2xl border border-primary/15 bg-gradient-to-br from-primary/5 via-rose-500/5 to-transparent">
+            <Sparkles className="w-7 h-7 text-primary mx-auto mb-2" />
+            <h3 className="text-lg font-bold text-center mb-1">{t("guest", "signupCta")}</h3>
+            <p className="text-muted-foreground text-sm text-center max-w-md mx-auto mb-4">{t("guest", "signupCtaDesc")}</p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Button variant="default" size="lg" className="gap-2" onClick={() => navigate("/try")}>
                 <Upload className="w-5 h-5" />{lang === "he" ? "ניתוח נוסף" : "Another Analysis"}
