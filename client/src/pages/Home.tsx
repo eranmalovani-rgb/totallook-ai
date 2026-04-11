@@ -243,8 +243,8 @@ export default function Home() {
                 <LandingBeforeAfterSlider
                   beforeImg={HERO_SHOWCASE.afterImg}
                   afterImg={HERO_SHOWCASE.beforeImg}
-                  beforeLabel={isHe ? "אחרי" : "AFTER"}
-                  afterLabel={isHe ? "לפני" : "BEFORE"}
+                  beforeLabel={isHe ? "לפני" : "BEFORE"}
+                  afterLabel={isHe ? "אחרי" : "AFTER"}
                   scoreBefore={HERO_SHOWCASE.scoreAfter}
                   scoreAfter={HERO_SHOWCASE.scoreBefore}
                 />
@@ -391,8 +391,8 @@ export default function Home() {
                   <LandingBeforeAfterSlider
                     beforeImg={item.afterImg}
                     afterImg={item.beforeImg}
-                    beforeLabel={isHe ? "אחרי" : "AFTER"}
-                    afterLabel={isHe ? "לפני" : "BEFORE"}
+                    beforeLabel={isHe ? "לפני" : "BEFORE"}
+                    afterLabel={isHe ? "אחרי" : "AFTER"}
                     scoreBefore={item.scoreAfter}
                     scoreAfter={item.scoreBefore}
                   />

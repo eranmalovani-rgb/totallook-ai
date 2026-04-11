@@ -177,8 +177,8 @@ export default function LandingEN() {
                 <LandingBeforeAfterSlider
                   beforeImg={HERO_SHOWCASE.afterImg}
                   afterImg={HERO_SHOWCASE.beforeImg}
-                  beforeLabel="AFTER"
-                  afterLabel="BEFORE"
+                  beforeLabel="BEFORE"
+                  afterLabel="AFTER"
                   scoreBefore={HERO_SHOWCASE.scoreAfter}
                   scoreAfter={HERO_SHOWCASE.scoreBefore}
                 />
@@ -279,8 +279,8 @@ export default function LandingEN() {
                   <LandingBeforeAfterSlider
                     beforeImg={item.afterImg}
                     afterImg={item.beforeImg}
-                    beforeLabel="AFTER"
-                    afterLabel="BEFORE"
+                    beforeLabel="BEFORE"
+                    afterLabel="AFTER"
                     scoreBefore={item.scoreAfter}
                     scoreAfter={item.scoreBefore}
                   />
