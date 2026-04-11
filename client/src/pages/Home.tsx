@@ -1,28 +1,48 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
-import Navbar from "@/components/Navbar";
 import { Link, useLocation } from "wouter";
 import {
+  Camera,
+  Upload,
   Star,
+  Sparkles,
   Zap,
   ShoppingBag,
-  Sparkles,
-  SplitSquareHorizontal,
-  Shirt,
-  Users,
-  Lock,
-  Camera,
-  MessageCircle,
+  ArrowRight,
+  ChevronDown,
   Eye,
+  Lock,
+  TrendingUp,
 } from "lucide-react";
 import FashionSpinner from "@/components/FashionSpinner";
+import LandingBeforeAfterSlider from "@/components/LandingBeforeAfterSlider";
 import AnimatedSection from "@/components/AnimatedSection";
-import FeedPromoSection from "@/components/FeedPromoSection";
-import ShowcaseSection from "@/components/ShowcaseSection";
 import { useEffect, useRef, useState } from "react";
 import { useLanguage } from "@/i18n";
 import { useFingerprint } from "@/hooks/useFingerprint";
-import WhatsAppLogo from "@/components/WhatsAppLogo";
+
+/* ── Before/After showcase data ── */
+const HERO_SHOWCASE = {
+  beforeImg: "https://d2xsxph8kpxj0f.cloudfront.net/310519663364230752/SGdPHKr3xPrRPbHA9C9esB/showcase_before_casual-4c23nyv3Jk3w7AA6Yy2cd4.webp",
+  afterImg: "https://d2xsxph8kpxj0f.cloudfront.net/310519663364230752/SGdPHKr3xPrRPbHA9C9esB/showcase_after_casual-ck2BM8fQrAsF4fmfLLQERp.webp",
+  scoreBefore: 6.2,
+  scoreAfter: 9.2,
+};
+
+const MORE_SHOWCASES = [
+  {
+    beforeImg: "https://d2xsxph8kpxj0f.cloudfront.net/310519663364230752/SGdPHKr3xPrRPbHA9C9esB/showcase_before_smart-UmcQ6yp6Fqw6nTfdNyKWCK.webp",
+    afterImg: "https://d2xsxph8kpxj0f.cloudfront.net/310519663364230752/SGdPHKr3xPrRPbHA9C9esB/showcase_after_smart-faqtWN7goEYvS7QXbVLrio.webp",
+    scoreBefore: 6.8,
+    scoreAfter: 9.1,
+  },
+  {
+    beforeImg: "https://d2xsxph8kpxj0f.cloudfront.net/310519663364230752/SGdPHKr3xPrRPbHA9C9esB/showcase_before_elegant-AwCzvydkVRMvJNA85j8gHz.webp",
+    afterImg: "https://d2xsxph8kpxj0f.cloudfront.net/310519663364230752/SGdPHKr3xPrRPbHA9C9esB/showcase_after_elegant-ncCCyuqrtVQQAM5EMy59Hp.webp",
+    scoreBefore: 7.0,
+    scoreAfter: 9.4,
+  },
+];
 
 export default function Home() {
   const { user, isAuthenticated, loading: authLoading } = useAuth();
@@ -32,8 +52,8 @@ export default function Home() {
   const fingerprint = useFingerprint();
   const trackingRef = useRef(false);
   const trackPageView = trpc.tracking.trackPageView.useMutation();
-
   const isPreview = new URLSearchParams(window.location.search).get("preview") === "1";
+  const isHe = lang === "he";
 
   useEffect(() => {
     if (!fingerprint || trackingRef.current) return;
@@ -64,7 +84,6 @@ export default function Home() {
     if (isPreview) return;
     if (authLoading || !isAuthenticated) return;
     if (!profileFetched) return;
-
     const onboarded = !!profile?.onboardingCompleted;
     if (!profile || !onboarded) {
       setRedirecting(true);
@@ -90,409 +109,431 @@ export default function Home() {
     );
   }
 
-  const steps = [
-    { num: "01", title: t("home", "step1Title"), desc: t("home", "step1Desc"), icon: MessageCircle },
-    { num: "02", title: t("home", "step2Title"), desc: t("home", "step2Desc"), icon: Camera },
-    { num: "03", title: t("home", "step3Title"), desc: t("home", "step3Desc"), icon: Zap },
-    { num: "04", title: t("home", "step4Title"), desc: t("home", "step4Desc"), icon: Sparkles },
-    { num: "05", title: t("home", "step5Title"), desc: t("home", "step5Desc"), icon: Shirt },
-    { num: "06", title: t("home", "step6Title"), desc: t("home", "step6Desc"), icon: Users },
-  ];
-
-  const features = [
-    { icon: Star, title: t("home", "overallScore"), desc: t("home", "scoreCategories") },
-    { icon: Zap, title: t("home", "upgradeSuggestions"), desc: t("home", "improvementsCount") },
-    { icon: ShoppingBag, title: t("home", "shoppingLinks"), desc: t("home", "fromTopStores") },
-    { icon: Sparkles, title: t("home", "outfitSuggestions"), desc: t("home", "completeStylings") },
-    { icon: SplitSquareHorizontal, title: t("home", "beforeAfter"), desc: t("home", "beforeAfterDesc") },
-    { icon: Shirt, title: t("home", "wardrobeTracking"), desc: t("home", "autoSavedItems") },
-    { icon: Users, title: t("home", "communityFeed"), desc: t("home", "shareAndInspire") },
-    { icon: Lock, title: t("home", "privacyFirst"), desc: t("home", "privateByDefault") },
-  ];
-
-  const testimonials = [
-    { name: t("home", "testimonial1Name"), text: t("home", "testimonial1Text"), score: t("home", "testimonial1Score") },
-    { name: t("home", "testimonial2Name"), text: t("home", "testimonial2Text"), score: t("home", "testimonial2Score") },
-    { name: t("home", "testimonial3Name"), text: t("home", "testimonial3Text"), score: t("home", "testimonial3Score") },
-  ];
-
-  const faqs = [
-    { q: t("home", "faqWhatsAppQ"), a: t("home", "faqWhatsAppA") },
-    { q: t("home", "faq1Q"), a: t("home", "faq1A") },
-    { q: t("home", "faq2Q"), a: t("home", "faq2A") },
-    { q: t("home", "faq3Q"), a: t("home", "faq3A") },
-    { q: t("home", "faq4Q"), a: t("home", "faq4A") },
-    { q: t("home", "faq5Q"), a: t("home", "faq5A") },
-  ];
-
-  const whatsappMessage = lang === "he" ? "היי! אני רוצה ניתוח אופנתי 👋" : "Hi! I want a fashion analysis 👋";
-  const whatsappUrl = `https://wa.me/972526211811?text=${encodeURIComponent(whatsappMessage)}`;
-
-  const trackCtaClick = (target: "whatsapp" | "website", source: "hero" | "final") => {
+  const trackCtaClick = (source: string) => {
     if (!fingerprint) return;
     trackPageView.mutateAsync({
       fingerprint,
-      page: `/cta/${target}/${lang}/${source}`,
+      page: `/cta/upload/${lang}/${source}`,
       referrer: window.location.pathname,
       screenWidth: window.innerWidth,
     }).catch(() => {});
   };
 
+  const uploadHref = isAuthenticated ? "/upload" : "/try";
+
+  /* ── Testimonials ── */
+  const testimonials = [
+    { text: isHe ? "אני מכורה. זה שינה לי את הגישה ללבוש" : "I'm obsessed. This changed how I dress.", name: isHe ? "נועה, 22" : "Noa, 22", emoji: "🔥" },
+    { text: isHe ? "לא ידעתי מה לא עבד עד שזה הראה לי" : "I didn't know what was off until this showed me.", name: isHe ? "שירה, 19" : "Shira, 19", emoji: "💡" },
+    { text: isHe ? "זה ממש תיקן לי את הלוק. מטורף" : "This actually fixed my outfit. Insane.", name: isHe ? "מאיה, 24" : "Maya, 24", emoji: "✨" },
+    { text: isHe ? "כאילו יש לי סטייליסטית אישית בטלפון" : "Like having a personal stylist on my phone.", name: isHe ? "דנה, 20" : "Dana, 20", emoji: "👗" },
+  ];
+
   return (
-    <div className="min-h-screen bg-background text-foreground" dir={dir}>
+    <div className="min-h-screen bg-background text-foreground overflow-x-hidden" dir={dir}>
       {/* Admin Preview Banner */}
       {isPreview && (
         <div className="fixed top-0 left-0 right-0 z-[100] bg-amber-500/95 backdrop-blur-sm text-black text-center py-2 text-sm font-bold flex items-center justify-center gap-3 shadow-lg">
           <Eye className="w-4 h-4" />
-          <span>{lang === "he" ? "תצוגה מקדימה — דף נחיתה" : "Preview Mode — Landing Page"}</span>
+          <span>{isHe ? "תצוגה מקדימה — דף נחיתה" : "Preview Mode — Landing Page"}</span>
           <div className="flex items-center gap-1.5">
-            <a href="/?preview=1" className={`px-3 py-1 rounded text-xs font-bold ${lang === "he" ? "bg-black text-white" : "bg-black/10 text-black"}`}>עב</a>
-            <a href="/en?preview=1" className={`px-3 py-1 rounded text-xs font-bold ${lang === "en" ? "bg-black text-white" : "bg-black/10 text-black"}`}>EN</a>
+            <a href="/?preview=1" className={`px-3 py-1 rounded text-xs font-bold ${isHe ? "bg-black text-white" : "bg-black/10 text-black"}`}>עב</a>
+            <a href="/en?preview=1" className={`px-3 py-1 rounded text-xs font-bold ${!isHe ? "bg-black text-white" : "bg-black/10 text-black"}`}>EN</a>
           </div>
           <a href="/admin" className="px-3 py-1 rounded text-xs font-bold bg-black/10 text-black hover:bg-black/20">
-            {lang === "he" ? "← חזרה לניהול" : "← Back to Admin"}
+            {isHe ? "← חזרה לניהול" : "← Back to Admin"}
           </a>
         </div>
       )}
-      <Navbar />
 
-      {/* ═══════ HERO — Editorial Magazine ═══════ */}
-      <section className="pt-32 pb-20 md:pt-40 md:pb-28 px-4 relative overflow-hidden">
-        {/* Subtle ambient light */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-primary/3 rounded-full blur-[120px]" />
+      {/* ═══════════════════════════════════════════════════════════════
+          HERO SECTION — Above the Fold
+          "This outfit is a 62. Let's make it a 92"
+      ═══════════════════════════════════════════════════════════════ */}
+      <section className="relative min-h-[100dvh] flex flex-col justify-center px-4 pt-8 pb-24 md:pb-16">
+        {/* Ambient glow */}
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-amber-500/5 rounded-full blur-[150px] pointer-events-none" />
+        <div className="absolute bottom-0 right-0 w-[300px] h-[300px] bg-amber-600/3 rounded-full blur-[100px] pointer-events-none" />
 
-        <div className="container relative z-10 text-center max-w-4xl mx-auto animate-fade-in-up">
-          {/* Editorial label */}
-          <p className="editorial-label text-primary mb-8 tracking-[0.25em]">
-            {t("home", "aiBadge")}
-          </p>
-
-          {/* Massive serif headline */}
-          <h1 className="text-6xl md:text-8xl lg:text-9xl mb-8">
-            <span className="text-primary italic">
-              {t("home", "heroTitle1")}
+        <div className="container relative z-10 max-w-5xl mx-auto">
+          {/* Minimal top bar */}
+          <div className="flex items-center justify-between mb-8 md:mb-12">
+            <span className="text-xl md:text-2xl font-bold tracking-tight">
+              <span className="text-amber-400">TotalLook</span><span className="text-foreground/60">.ai</span>
             </span>
-            <br />
-            <span className="text-foreground">
-              {t("home", "heroTitle2")}
-            </span>
-          </h1>
-
-          {/* Decorative flourish — Vogue-style ornamental line */}
-          <div className="editorial-flourish mb-10">
-            <div className="editorial-flourish-line" />
-            <div className="editorial-flourish-dot" />
-            <div className="editorial-flourish-line" />
-          </div>
-
-          {/* Subtitle */}
-          <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto font-light tracking-wide leading-relaxed mb-14">
-            {t("home", "heroDesc")}
-          </p>
-
-          {/* CTA — editorial buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 items-center justify-center">
-            <a
-              href={whatsappUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => trackCtaClick("whatsapp", "hero")}
-              className={`btn-whatsapp-primary inline-flex items-center gap-3 w-full sm:w-auto ${dir === "rtl" ? "flex-row-reverse" : ""}`}
-            >
-              <WhatsAppLogo className="w-5 h-5" />
-              {t("home", "whatsappCta")}
-            </a>
             <Link
-              href="/try"
-              onClick={() => trackCtaClick("website", "hero")}
-              className={`btn-website-secondary inline-flex items-center gap-2 w-full sm:w-auto ${dir === "rtl" ? "flex-row-reverse" : ""}`}
+              href={uploadHref}
+              onClick={() => trackCtaClick("hero-nav")}
+              className="text-xs md:text-sm text-amber-400/80 hover:text-amber-300 transition-colors flex items-center gap-1.5"
             >
-              <Camera className="w-4 h-4" />
-              {t("home", "websiteCta")}
+              {isHe ? "התחילי עכשיו" : "Start now"}
+              <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
 
-          <p className="editorial-label mt-8 text-muted-foreground/40">
-            {t("home", "noCreditCard")}
-          </p>
-        </div>
-      </section>
+          <div className="grid md:grid-cols-2 gap-8 md:gap-12 items-center">
+            {/* Left/Right: Copy */}
+            <div className={`text-center md:text-start ${dir === "rtl" ? "md:order-2" : ""}`}>
+              {/* Badge */}
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-amber-500/20 bg-amber-500/5 mb-6">
+                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                <span className="text-xs text-amber-300/80 font-medium tracking-wide">
+                  {isHe ? "סטייליסטית AI אישית" : "AI Personal Stylist"}
+                </span>
+              </div>
 
-      {/* ═══════ SHOWCASE ═══════ */}
-      <ShowcaseSection />
+              {/* Main headline */}
+              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-[1.1] mb-6">
+                <span className="text-foreground">
+                  {isHe ? "הלוק הזה הוא " : "This outfit is a "}
+                </span>
+                <span className="text-amber-500/60 line-through decoration-amber-500/30">62</span>
+                <br />
+                <span className="text-foreground">
+                  {isHe ? "בואי נהפוך אותו ל-" : "Let's make it a "}
+                </span>
+                <span className="text-amber-400 font-extrabold">92</span>
+              </h1>
 
-      {/* ═══════ SOCIAL PROOF — Understated editorial stats ═══════ */}
-      <AnimatedSection>
-        <section className="py-10 md:py-14">
-          <div className="container max-w-4xl mx-auto">
-            {/* Diamond separator */}
-            <div className="editorial-diamond-sep mb-10">
-              <div className="editorial-diamond" />
-            </div>
+              {/* Subtitle */}
+              <p className="text-base md:text-lg text-muted-foreground max-w-md mx-auto md:mx-0 leading-relaxed mb-8">
+                {isHe
+                  ? "העלי תמונה של הלוק שלך. קבלי ציון. שדרגי את הסטייל שלך בשניות."
+                  : "Upload your look. Get a score. Upgrade your style in seconds."}
+              </p>
 
-            <AnimatedSection stagger staggerDelay={150} className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-              {[
-                { value: "10,000+", label: t("home", "statsOutfits") },
-                { value: "8.2", label: t("home", "statsAvgScore") },
-                { value: "50+", label: t("home", "statsBrands") },
-                { value: "4.9★", label: t("home", "statsRating") },
-              ].map((stat) => (
-                <div key={stat.label}>
-                  <p className="font-display text-3xl md:text-4xl text-primary font-light tracking-tight">
-                    {stat.value}
-                  </p>
-                  <p className="editorial-label mt-3">{stat.label}</p>
-                </div>
-              ))}
-            </AnimatedSection>
+              {/* Primary CTA */}
+              <Link
+                href={uploadHref}
+                onClick={() => trackCtaClick("hero")}
+                className="group inline-flex items-center gap-3 px-8 py-4 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-bold text-base md:text-lg transition-all duration-300 shadow-[0_0_30px_rgba(245,158,11,0.3)] hover:shadow-[0_0_40px_rgba(245,158,11,0.5)] hover:scale-[1.02] active:scale-[0.98]"
+              >
+                <Upload className="w-5 h-5" />
+                {isHe ? "העלי את הלוק שלך" : "Upload your outfit"}
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </Link>
 
-            <div className="editorial-diamond-sep mt-10">
-              <div className="editorial-diamond" />
-            </div>
-          </div>
-        </section>
-      </AnimatedSection>
-
-      {/* ═══════ HOW IT WORKS — Editorial numbered steps ═══════ */}
-      <AnimatedSection>
-        <section className="section-editorial px-4">
-          <div className="container max-w-4xl mx-auto">
-            {/* Section header with counter */}
-            <div className="text-center mb-12 md:mb-16">
-              <p className="editorial-section-num mb-4">I</p>
-              <p className="editorial-label text-primary mb-6">{lang === "he" ? "התהליך" : "The Process"}</p>
-              <h2 className="text-4xl md:text-5xl lg:text-6xl">
-                {t("home", "howItWorks")}
-              </h2>
-            </div>
-
-            {/* Steps — editorial layout with oversized numbers + icons */}
-            <AnimatedSection stagger staggerDelay={120} className="space-y-0">
-              {steps.map((step) => (
-                <div key={step.num} className="editorial-step grid md:grid-cols-[120px_1fr] gap-6 md:gap-10 items-start pt-8 md:pt-12">
-                  {/* Oversized number */}
-                  <div className="editorial-number flex items-center gap-4">
-                    {step.num}
-                    <step.icon className="w-5 h-5 text-primary/40" strokeWidth={1.5} />
-                  </div>
-                  {/* Content */}
-                  <div className="pt-2 md:pt-4">
-                    <h3 className="text-2xl md:text-3xl mb-4">{step.title}</h3>
-                    <p className="text-muted-foreground text-base leading-relaxed max-w-xl">{step.desc}</p>
-                  </div>
-                </div>
-              ))}
-            </AnimatedSection>
-          </div>
-        </section>
-      </AnimatedSection>
-
-      {/* ═══════ WHAT YOU GET — Feature grid with icons ═══════ */}
-      <AnimatedSection>
-        <section className="section-editorial px-4">
-          <div className="container max-w-5xl mx-auto">
-            <div className="editorial-diamond-sep mb-12">
-              <div className="editorial-diamond" />
-            </div>
-
-            <div className="text-center mb-12 md:mb-16">
-              <p className="editorial-section-num mb-4">II</p>
-              <p className="editorial-label text-primary mb-6">{lang === "he" ? "מה מקבלים" : "What You Get"}</p>
-              <h2 className="text-4xl md:text-5xl lg:text-6xl">
-                {t("home", "whatYouGet")}
-              </h2>
-              <p className="text-muted-foreground text-lg mt-6 max-w-2xl mx-auto font-light">
-                {lang === "he" ? "פלטפורמת אופנה חכמה — לא רק ציון" : "A complete fashion intelligence platform — not just a score"}
+              <p className="text-xs text-muted-foreground/40 mt-4 flex items-center justify-center md:justify-start gap-1.5">
+                <Lock className="w-3 h-3" />
+                {isHe ? "בלי הרשמה · בלי תשלום · 100% פרטי" : "No signup · Free · 100% private"}
               </p>
             </div>
 
-            <AnimatedSection stagger staggerDelay={100} className="grid sm:grid-cols-2 lg:grid-cols-4 gap-px bg-border/50">
-              {features.map((item) => (
-                <div
-                  key={item.title}
-                  className="editorial-feature-card group"
-                >
-                  <div className="editorial-icon">
-                    <item.icon className="w-6 h-6" strokeWidth={1.25} />
-                  </div>
-                  <h4 className="font-display text-lg mb-3 group-hover:text-primary transition-colors duration-300">{item.title}</h4>
-                  <p className="text-sm text-muted-foreground leading-relaxed font-light">{item.desc}</p>
-                </div>
-              ))}
-            </AnimatedSection>
-          </div>
-        </section>
-      </AnimatedSection>
-
-      {/* ═══════ EDITORIAL PULL-QUOTE ═══════ */}
-      <AnimatedSection>
-        <section className="py-10 md:py-14 px-4">
-          <div className="container max-w-3xl mx-auto text-center">
-            <div className="editorial-pullquote">
-              {lang === "he"
-                ? "אופנה היא לא רק מה שאתה לובש — זה איך שאתה מרגיש. ה-AI שלנו עוזר לך למצוא את הסגנון שמבטא אותך."
-                : "Fashion is not just what you wear — it's how you feel. Our AI helps you find the style that expresses who you are."}
-            </div>
-            <div className="editorial-flourish mt-6">
-              <div className="editorial-flourish-line" />
-              <div className="editorial-flourish-dot" />
-              <div className="editorial-flourish-line" />
+            {/* Right/Left: Before/After Visual Proof */}
+            <div className={`relative ${dir === "rtl" ? "md:order-1" : ""}`}>
+              <div className="rounded-2xl overflow-hidden border border-amber-500/10 shadow-2xl shadow-amber-500/5">
+                <LandingBeforeAfterSlider
+                  beforeImg={HERO_SHOWCASE.beforeImg}
+                  afterImg={HERO_SHOWCASE.afterImg}
+                  beforeLabel={isHe ? "לפני" : "BEFORE"}
+                  afterLabel={isHe ? "אחרי" : "AFTER"}
+                  scoreBefore={HERO_SHOWCASE.scoreBefore}
+                  scoreAfter={HERO_SHOWCASE.scoreAfter}
+                />
+              </div>
+              {/* Floating score badge */}
+              <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full bg-background/90 backdrop-blur-sm border border-amber-500/20 shadow-lg">
+                <span className="text-sm font-bold text-amber-400 flex items-center gap-1.5">
+                  <TrendingUp className="w-4 h-4" />
+                  +{(HERO_SHOWCASE.scoreAfter - HERO_SHOWCASE.scoreBefore).toFixed(1)} {isHe ? "נקודות" : "points"}
+                </span>
+              </div>
             </div>
           </div>
-        </section>
-      </AnimatedSection>
 
-      {/* ═══════ TESTIMONIALS — Editorial quotes with avatars ═══════ */}
-      <AnimatedSection>
-        <section className="section-editorial px-4">
-          <div className="container max-w-5xl mx-auto">
-            <div className="editorial-rule mb-12" />
-
-            <div className="text-center mb-12 md:mb-16">
-              <p className="editorial-section-num mb-4">III</p>
-              <p className="editorial-label text-primary mb-6">{lang === "he" ? "מה אומרים" : "Voices"}</p>
-              <h2 className="text-4xl md:text-5xl lg:text-6xl">
-                {t("home", "testimonialsTitle")}
-              </h2>
-            </div>
-
-            <AnimatedSection stagger staggerDelay={200} className="grid md:grid-cols-3 gap-px bg-border/50">
-              {testimonials.map((item) => (
-                <div key={item.name} className="bg-background p-8 md:p-10 relative editorial-quote">
-                  <p className="text-base text-muted-foreground leading-relaxed font-light italic mt-8 mb-8">
-                    {item.text}
-                  </p>
-                  <div className="editorial-rule-accent mb-6" style={{ margin: '0' }} />
-                  <div className="flex items-center gap-3 mt-4">
-                    <div className="editorial-avatar">
-                      {item.name[0]}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-foreground">{item.name}</p>
-                      <p className="editorial-label mt-0.5">{lang === "he" ? "ציון" : "Score"}: {item.score}/10</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </AnimatedSection>
+          {/* Scroll hint */}
+          <div className="flex justify-center mt-12 md:mt-16 animate-bounce">
+            <ChevronDown className="w-5 h-5 text-muted-foreground/30" />
           </div>
-        </section>
-      </AnimatedSection>
-
-      {/* ═══════ STYLE FEED PROMO ═══════ */}
-      <FeedPromoSection />
-
-      {/* ═══════ FAQ — Editorial accordion ═══════ */}
-      <AnimatedSection>
-        <section className="section-editorial px-4">
-          <div className="container max-w-3xl mx-auto">
-            <div className="editorial-diamond-sep mb-12">
-              <div className="editorial-diamond" />
-            </div>
-
-            <div className="text-center mb-12">
-              <p className="editorial-section-num mb-4">IV</p>
-              <h2 className="text-4xl md:text-5xl">
-                {t("home", "faqTitle")}
-              </h2>
-            </div>
-
-            <div className="divide-y divide-border/50">
-              {faqs.map((faq, i) => (
-                <details key={faq.q} className="group py-6 md:py-8">
-                  <summary className="flex items-center justify-between cursor-pointer list-none text-lg font-light tracking-wide">
-                    <span className="flex items-center gap-4">
-                      <span className="editorial-section-num text-xs">{String(i + 1).padStart(2, '0')}</span>
-                      {faq.q}
-                    </span>
-                    <span className="text-muted-foreground text-2xl font-light transition-transform duration-300 group-open:rotate-45 shrink-0 ml-4">+</span>
-                  </summary>
-                  <p className="mt-4 text-muted-foreground text-base leading-relaxed font-light max-w-2xl ps-10">{faq.a}</p>
-                </details>
-              ))}
-            </div>
-          </div>
-        </section>
-      </AnimatedSection>
-
-      {/* ═══════ FINAL CTA — Dramatic editorial closing ═══════ */}
-      <section className="section-editorial px-4 relative">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[400px] h-[400px] bg-primary/3 rounded-full blur-[100px]" />
-        <div className="container max-w-3xl mx-auto text-center relative z-10">
-          <div className="editorial-diamond-sep mb-12">
-            <div className="editorial-diamond" />
-          </div>
-
-          <p className="editorial-label text-primary mb-6">{lang === "he" ? "מוכנים?" : "Ready?"}</p>
-
-          <h2 className="text-4xl md:text-6xl lg:text-7xl mb-8">
-            {t("home", "finalCtaTitle")}
-          </h2>
-
-          {/* Flourish */}
-          <div className="editorial-flourish mb-10">
-            <div className="editorial-flourish-line" />
-            <div className="editorial-flourish-dot" />
-            <div className="editorial-flourish-line" />
-          </div>
-
-          <p className="text-lg text-muted-foreground mb-10 max-w-xl mx-auto font-light leading-relaxed">
-            {t("home", "finalCtaDesc")}
-          </p>
-
-          <div className="flex flex-col sm:flex-row gap-5 items-center justify-center">
-            <a
-              href={whatsappUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => trackCtaClick("whatsapp", "final")}
-              className={`btn-whatsapp-primary inline-flex items-center gap-3 w-full sm:w-auto ${dir === "rtl" ? "flex-row-reverse" : ""}`}
-            >
-              <WhatsAppLogo className="w-5 h-5" />
-              {t("home", "finalCtaButton")}
-            </a>
-            <Link
-              href="/try"
-              onClick={() => trackCtaClick("website", "final")}
-              className={`btn-website-secondary inline-flex items-center gap-2 w-full sm:w-auto ${dir === "rtl" ? "flex-row-reverse" : ""}`}
-            >
-              <Camera className="w-4 h-4" />
-              {t("home", "finalCtaSecondary")}
-            </Link>
-          </div>
-
-          <p className="editorial-label mt-8 text-muted-foreground/40">{t("home", "finalCtaNote")}</p>
         </div>
       </section>
 
-      {/* ═══════ FOOTER — Minimal editorial ═══════ */}
-      <footer className="py-10 md:py-14">
-        <div className="container max-w-5xl mx-auto text-center">
-          <div className="editorial-diamond-sep mb-12">
-            <div className="editorial-diamond" />
+      {/* ═══════════════════════════════════════════════════════════════
+          HOW IT WORKS — 3 Steps Only
+      ═══════════════════════════════════════════════════════════════ */}
+      <AnimatedSection>
+        <section className="py-16 md:py-24 px-4">
+          <div className="container max-w-4xl mx-auto">
+            <div className="text-center mb-12 md:mb-16">
+              <p className="text-xs text-amber-400/60 tracking-[0.2em] uppercase font-medium mb-4">
+                {isHe ? "איך זה עובד" : "How it works"}
+              </p>
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold">
+                {isHe ? "שלושה צעדים. זה הכל." : "Three steps. That's it."}
+              </h2>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-6 md:gap-8">
+              {[
+                {
+                  num: "01",
+                  icon: Camera,
+                  title: isHe ? "העלי תמונה" : "Upload your outfit",
+                  desc: isHe ? "צלמי או בחרי תמונה מהגלריה" : "Take a photo or pick from gallery",
+                },
+                {
+                  num: "02",
+                  icon: Star,
+                  title: isHe ? "קבלי ציון" : "Get your score",
+                  desc: isHe ? "ה-AI מנתח כל פריט ונותן ציון מפורט" : "AI analyzes every item and gives a detailed score",
+                },
+                {
+                  num: "03",
+                  icon: Zap,
+                  title: isHe ? "שדרגי מיד" : "Fix it instantly",
+                  desc: isHe ? "קבלי המלצות ספציפיות + קישורי קנייה" : "Get specific recommendations + shopping links",
+                },
+              ].map((step) => (
+                <div
+                  key={step.num}
+                  className="relative group text-center p-6 md:p-8 rounded-2xl border border-amber-500/10 bg-gradient-to-b from-amber-500/[0.03] to-transparent hover:border-amber-500/20 transition-all duration-300"
+                >
+                  {/* Step number */}
+                  <div className="text-5xl md:text-6xl font-bold text-amber-500/10 absolute top-4 left-4 pointer-events-none">
+                    {step.num}
+                  </div>
+                  {/* Icon */}
+                  <div className="relative z-10 w-14 h-14 mx-auto mb-5 rounded-xl bg-amber-500/10 flex items-center justify-center group-hover:bg-amber-500/15 transition-colors">
+                    <step.icon className="w-6 h-6 text-amber-400" />
+                  </div>
+                  <h3 className="text-lg md:text-xl font-bold mb-2 relative z-10">{step.title}</h3>
+                  <p className="text-sm text-muted-foreground relative z-10">{step.desc}</p>
+                </div>
+              ))}
+            </div>
           </div>
-          <p className="font-display text-lg text-muted-foreground/60 italic mb-6">
-            TotalLook.ai
+        </section>
+      </AnimatedSection>
+
+      {/* ═══════════════════════════════════════════════════════════════
+          WHAT YOU GET / RESULTS PREVIEW
+      ═══════════════════════════════════════════════════════════════ */}
+      <AnimatedSection>
+        <section className="py-16 md:py-24 px-4 relative">
+          <div className="absolute inset-0 bg-gradient-to-b from-amber-500/[0.02] via-transparent to-transparent pointer-events-none" />
+          <div className="container max-w-5xl mx-auto relative z-10">
+            <div className="text-center mb-12 md:mb-16">
+              <p className="text-xs text-amber-400/60 tracking-[0.2em] uppercase font-medium mb-4">
+                {isHe ? "מה מקבלים" : "What you get"}
+              </p>
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
+                {isHe ? "לא רק ציון — תוכנית שדרוג שלמה" : "Not just a score — a full upgrade plan"}
+              </h2>
+              <p className="text-base text-muted-foreground max-w-xl mx-auto">
+                {isHe
+                  ? "ככה נראית התוצאה שלך אחרי העלאת תמונה"
+                  : "Here's what your result looks like after uploading a photo"}
+              </p>
+            </div>
+
+            {/* Mock result card */}
+            <div className="max-w-lg mx-auto rounded-2xl border border-amber-500/15 bg-gradient-to-b from-amber-500/[0.04] to-background/80 backdrop-blur-sm overflow-hidden shadow-xl shadow-amber-500/5">
+              {/* Score header */}
+              <div className="p-6 text-center border-b border-amber-500/10">
+                <div className="inline-flex items-center justify-center w-20 h-20 rounded-full border-4 border-amber-500/30 mb-3">
+                  <span className="text-3xl font-bold text-amber-400">8.7</span>
+                </div>
+                <p className="text-sm text-amber-300/60 font-medium">
+                  {isHe ? "ציון הלוק שלך" : "Your look score"}
+                </p>
+              </div>
+
+              {/* Feature list */}
+              <div className="p-6 space-y-4">
+                {[
+                  { icon: "🎯", label: isHe ? "ניתוח מפורט לכל פריט" : "Detailed analysis per item" },
+                  { icon: "⚡", label: isHe ? "המלצות שדרוג ספציפיות" : "Specific upgrade suggestions" },
+                  { icon: "👗", label: isHe ? "לוקים חלופיים מלאים" : "Full alternative looks" },
+                  { icon: "🛍️", label: isHe ? "קישורי קנייה ישירים" : "Direct shopping links" },
+                  { icon: "🤳", label: isHe ? "לפני / אחרי ויזואלי" : "Visual before / after" },
+                ].map((item) => (
+                  <div key={item.label} className="flex items-center gap-3">
+                    <span className="text-lg">{item.icon}</span>
+                    <span className="text-sm text-foreground/80">{item.label}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* CTA inside card */}
+              <div className="p-6 pt-2">
+                <Link
+                  href={uploadHref}
+                  onClick={() => trackCtaClick("results-preview")}
+                  className="block w-full text-center py-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 font-bold text-sm hover:bg-amber-500/15 transition-colors"
+                >
+                  {isHe ? "רוצה לראות את שלי →" : "I want to see mine →"}
+                </Link>
+              </div>
+            </div>
+
+            {/* More before/after examples */}
+            <div className="grid md:grid-cols-2 gap-6 mt-12">
+              {MORE_SHOWCASES.map((item, i) => (
+                <div key={i} className="rounded-2xl overflow-hidden border border-amber-500/10">
+                  <LandingBeforeAfterSlider
+                    beforeImg={item.beforeImg}
+                    afterImg={item.afterImg}
+                    beforeLabel={isHe ? "לפני" : "BEFORE"}
+                    afterLabel={isHe ? "אחרי" : "AFTER"}
+                    scoreBefore={item.scoreBefore}
+                    scoreAfter={item.scoreAfter}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      </AnimatedSection>
+
+      {/* ═══════════════════════════════════════════════════════════════
+          SOCIAL PROOF — Short testimonials, social-style cards
+      ═══════════════════════════════════════════════════════════════ */}
+      <AnimatedSection>
+        <section className="py-16 md:py-24 px-4">
+          <div className="container max-w-4xl mx-auto">
+            <div className="text-center mb-10">
+              <p className="text-xs text-amber-400/60 tracking-[0.2em] uppercase font-medium mb-4">
+                {isHe ? "מה אומרים" : "What people say"}
+              </p>
+              <h2 className="text-3xl md:text-4xl font-bold">
+                {isHe ? "הן כבר משדרגות" : "They're already upgrading"}
+              </h2>
+            </div>
+
+            <div className="grid sm:grid-cols-2 gap-4">
+              {testimonials.map((item, i) => (
+                <div
+                  key={i}
+                  className="p-5 rounded-2xl border border-amber-500/10 bg-gradient-to-br from-amber-500/[0.03] to-transparent hover:border-amber-500/20 transition-all duration-300"
+                >
+                  <div className="flex items-start gap-3">
+                    <span className="text-2xl">{item.emoji}</span>
+                    <div>
+                      <p className="text-sm text-foreground/90 leading-relaxed mb-3">"{item.text}"</p>
+                      <p className="text-xs text-amber-400/60 font-medium">— {item.name}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Stats bar */}
+            <div className="flex flex-wrap justify-center gap-8 md:gap-16 mt-12 text-center">
+              {[
+                { value: "10,000+", label: isHe ? "לוקים נותחו" : "Looks analyzed" },
+                { value: "8.2", label: isHe ? "ציון ממוצע" : "Avg score" },
+                { value: "4.9★", label: isHe ? "דירוג" : "Rating" },
+              ].map((stat) => (
+                <div key={stat.label}>
+                  <p className="text-2xl md:text-3xl font-bold text-amber-400">{stat.value}</p>
+                  <p className="text-xs text-muted-foreground/60 mt-1">{stat.label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      </AnimatedSection>
+
+      {/* ═══════════════════════════════════════════════════════════════
+          FOMO / URGENCY BLOCK
+      ═══════════════════════════════════════════════════════════════ */}
+      <section className="py-16 md:py-20 px-4 relative overflow-hidden">
+        {/* Different background */}
+        <div className="absolute inset-0 bg-gradient-to-r from-amber-500/[0.06] via-amber-600/[0.04] to-amber-500/[0.06]" />
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-amber-500/20 to-transparent" />
+        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-amber-500/20 to-transparent" />
+
+        <div className="container max-w-3xl mx-auto text-center relative z-10">
+          <p className="text-3xl md:text-4xl lg:text-5xl font-bold leading-tight mb-6">
+            {isHe
+              ? <>כולן כבר משדרגות את הלוק.<br /><span className="text-amber-400/60">את עדיין מנחשת.</span></>
+              : <>Everyone is upgrading their look.<br /><span className="text-amber-400/60">You're still guessing.</span></>
+            }
           </p>
-          <p className="text-sm text-muted-foreground font-light mb-6">
-            {t("home", "footer")}
+          <p className="text-base text-muted-foreground max-w-md mx-auto mb-8">
+            {isHe
+              ? "לוקח 5 שניות לגלות מה הציון שלך"
+              : "Takes 5 seconds to find out your score"}
           </p>
-          <div className="flex items-center justify-center gap-6 editorial-label">
-            <Link href="/terms" className="hover:text-foreground transition-colors">
-              {lang === "he" ? "תנאי שימוש" : "Terms"}
+          <Link
+            href={uploadHref}
+            onClick={() => trackCtaClick("fomo")}
+            className="inline-flex items-center gap-3 px-8 py-4 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-bold text-base transition-all duration-300 shadow-[0_0_30px_rgba(245,158,11,0.3)] hover:shadow-[0_0_40px_rgba(245,158,11,0.5)] hover:scale-[1.02] active:scale-[0.98]"
+          >
+            <Upload className="w-5 h-5" />
+            {isHe ? "בואי נבדוק" : "Let's check"}
+          </Link>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════════════
+          FINAL CTA
+      ═══════════════════════════════════════════════════════════════ */}
+      <section className="py-20 md:py-28 px-4 relative">
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[400px] h-[400px] bg-amber-500/5 rounded-full blur-[120px] pointer-events-none" />
+        <div className="container max-w-3xl mx-auto text-center relative z-10">
+          <h2 className="text-3xl md:text-5xl lg:text-6xl font-bold mb-6">
+            {isHe
+              ? <>נסי את זה על הלוק שלך.<br /><span className="text-amber-400">לוקח 5 שניות.</span></>
+              : <>Try it on your outfit.<br /><span className="text-amber-400">Takes 5 seconds.</span></>
+            }
+          </h2>
+
+          <Link
+            href={uploadHref}
+            onClick={() => trackCtaClick("final")}
+            className="group inline-flex items-center gap-3 px-10 py-5 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-bold text-lg transition-all duration-300 shadow-[0_0_30px_rgba(245,158,11,0.3)] hover:shadow-[0_0_40px_rgba(245,158,11,0.5)] hover:scale-[1.02] active:scale-[0.98]"
+          >
+            <Upload className="w-5 h-5" />
+            {isHe ? "העלי את הלוק שלך" : "Upload your outfit"}
+            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+          </Link>
+
+          <p className="text-xs text-muted-foreground/40 mt-6 flex items-center justify-center gap-1.5">
+            <Lock className="w-3 h-3" />
+            {isHe ? "בלי הרשמה · בלי תשלום · 100% פרטי" : "No signup · Free · 100% private"}
+          </p>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════════════
+          FOOTER — Minimal
+      ═══════════════════════════════════════════════════════════════ */}
+      <footer className="py-10 border-t border-amber-500/5">
+        <div className="container max-w-5xl mx-auto text-center">
+          <p className="text-lg font-bold text-muted-foreground/40 mb-4">
+            <span className="text-amber-400/40">TotalLook</span>.ai
+          </p>
+          <div className="flex items-center justify-center gap-6 text-xs text-muted-foreground/40">
+            <Link href="/terms" className="hover:text-foreground/60 transition-colors">
+              {isHe ? "תנאי שימוש" : "Terms"}
             </Link>
-            <Link href="/privacy" className="hover:text-foreground transition-colors">
-              {lang === "he" ? "מדיניות פרטיות" : "Privacy"}
+            <Link href="/privacy" className="hover:text-foreground/60 transition-colors">
+              {isHe ? "מדיניות פרטיות" : "Privacy"}
             </Link>
-            <Link href="/about" className="hover:text-foreground transition-colors">
-              {lang === "he" ? "מי אנחנו" : "About"}
+            <Link href="/about" className="hover:text-foreground/60 transition-colors">
+              {isHe ? "מי אנחנו" : "About"}
             </Link>
-            <a href="mailto:eranmalovani@gmail.com" className="hover:text-foreground transition-colors">
-              {lang === "he" ? "צור קשר" : "Contact"}
+            <a href="mailto:eranmalovani@gmail.com" className="hover:text-foreground/60 transition-colors">
+              {isHe ? "צור קשר" : "Contact"}
             </a>
           </div>
         </div>
       </footer>
+
+      {/* ═══════════════════════════════════════════════════════════════
+          STICKY MOBILE CTA
+      ═══════════════════════════════════════════════════════════════ */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden p-3 bg-background/95 backdrop-blur-md border-t border-amber-500/10 safe-area-bottom">
+        <Link
+          href={uploadHref}
+          onClick={() => trackCtaClick("sticky")}
+          className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-black font-bold text-sm shadow-[0_-4px_20px_rgba(245,158,11,0.2)]"
+        >
+          <Upload className="w-4 h-4" />
+          {isHe ? "העלי את הלוק שלך" : "Upload your outfit"}
+        </Link>
+      </div>
     </div>
   );
 }

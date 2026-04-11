@@ -206,35 +206,41 @@ function ScoreCircle({ score, size = "lg" }: { score: number; size?: "sm" | "lg"
   const stroke = size === "lg" ? 6 : 4;
   const circumference = 2 * Math.PI * radius;
   const progress = (score / 10) * circumference;
-  const color = score >= 9 ? "text-amber-400" : score >= 7 ? "text-primary" : score >= 5 ? "text-yellow-400" : "text-orange-400";
+  const gradId = `demo-score-grad-${size}-${score}`;
+  const glowColor = score >= 8 ? "rgba(200,164,78,0.25)" : score >= 6 ? "rgba(200,164,78,0.15)" : "rgba(200,164,78,0.08)";
   return (
-    <div className="relative inline-flex items-center justify-center">
+    <div className="relative inline-flex items-center justify-center" style={{ filter: `drop-shadow(0 0 ${size === "lg" ? 10 : 6}px ${glowColor})` }}>
       <svg className={size === "lg" ? "w-32 h-32" : "w-16 h-16"} viewBox={`0 0 ${(radius + stroke) * 2} ${(radius + stroke) * 2}`}>
-        <circle cx={radius + stroke} cy={radius + stroke} r={radius} fill="none" stroke="currentColor" strokeWidth={stroke} className="text-white/5" />
-        <circle cx={radius + stroke} cy={radius + stroke} r={radius} fill="none" stroke="currentColor" strokeWidth={stroke}
+        <defs>
+          <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#c8a44e" />
+            <stop offset="50%" stopColor="#e8c86e" />
+            <stop offset="100%" stopColor="#c8a44e" />
+          </linearGradient>
+        </defs>
+        <circle cx={radius + stroke} cy={radius + stroke} r={radius} fill="none" stroke="currentColor" strokeWidth={stroke} className="text-white/[0.06]" />
+        <circle cx={radius + stroke} cy={radius + stroke} r={radius} fill="none" stroke={`url(#${gradId})`} strokeWidth={stroke}
           strokeDasharray={circumference} strokeDashoffset={circumference - progress} strokeLinecap="round"
-          className={`${color} transition-all duration-1000`} transform={`rotate(-90 ${radius + stroke} ${radius + stroke})`} />
+          className="transition-all duration-1000" transform={`rotate(-90 ${radius + stroke} ${radius + stroke})`} />
       </svg>
-      <span className={`absolute font-bold ${size === "lg" ? "text-3xl" : "text-lg"}`}>{score}</span>
+      <span className={`absolute font-bold text-amber-100 ${size === "lg" ? "text-3xl" : "text-lg"}`}>{score}</span>
     </div>
   );
 }
 
 function ScoreBar({ label, score, recommendation, lang }: { label: string; score: number | null; recommendation?: string | null; lang: "he" | "en" }) {
   if (score === null) return null;
-  const color = score >= 9 ? "bg-amber-400" : score >= 7 ? "bg-primary" : score >= 5 ? "bg-yellow-400" : "bg-orange-400";
-  const deduction = 10 - score;
   return (
     <div>
       <div className="flex items-center gap-4">
-        <span className={`text-sm text-muted-foreground w-40 shrink-0 ${lang === "he" ? "text-right" : "text-left"}`}>{label}</span>
-        <div className="flex-1 h-2.5 rounded-full bg-white/5 overflow-hidden">
-          <div className={`h-full rounded-full ${color} transition-all duration-1000`} style={{ width: `${score * 10}%` }} />
+        <span className={`text-sm text-amber-200/50 w-40 shrink-0 ${lang === "he" ? "text-right" : "text-left"}`}>{label}</span>
+        <div className="flex-1 h-2.5 rounded-full bg-amber-500/[0.06] overflow-hidden">
+          <div className="h-full rounded-full transition-all duration-1000" style={{ width: `${score * 10}%`, background: "linear-gradient(90deg, #c8a44e, #e8c86e)" }} />
         </div>
-        <span className="text-sm font-bold w-10">{score}/10</span>
+        <span className="text-sm font-bold text-amber-100 w-10">{score}/10</span>
       </div>
       {recommendation && (
-        <p className={`text-xs text-primary/70 mt-1.5 ${lang === "he" ? "mr-44" : "ml-44"} flex items-center gap-1`}>
+        <p className={`text-xs text-amber-400/60 mt-1.5 ${lang === "he" ? "mr-44" : "ml-44"} flex items-center gap-1`}>
           <span>✨</span> {recommendation}
         </p>
       )}
@@ -286,8 +292,8 @@ function DemoOutfitCard({
         onClick={() => setExpanded(!expanded)}
         className={`w-full flex items-center justify-center gap-2 py-3 px-4 text-sm font-medium transition-all border-t border-white/5 ${
           expanded
-            ? 'bg-primary/10 text-primary'
-            : 'bg-white/[0.02] text-muted-foreground hover:bg-white/[0.05] hover:text-foreground'
+            ? 'bg-amber-500/10 text-amber-400'
+            : 'bg-amber-500/[0.02] text-muted-foreground hover:bg-amber-500/[0.05] hover:text-foreground'
         }`}
       >
         <ShoppingBag className="w-4 h-4" />
@@ -307,8 +313,8 @@ function DemoOutfitCard({
         <div className="p-5 space-y-4">
           <div className="space-y-3">
             {outfit.items.map((item, j) => (
-              <div key={j} className="flex items-start gap-3 p-3 rounded-xl bg-white/[0.02] hover:bg-white/[0.05] transition-colors">
-                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 text-primary text-xs font-bold">
+              <div key={j} className="flex items-start gap-3 p-3 rounded-xl bg-amber-500/[0.02] hover:bg-amber-500/[0.05] transition-colors">
+                <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center shrink-0 text-amber-400 text-xs font-bold">
                   {j + 1}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -321,8 +327,8 @@ function DemoOutfitCard({
           </div>
           {outfit.inspirationNote && (
             <div className="pt-3 border-t border-white/5">
-              <p className="text-xs text-primary/80 italic leading-relaxed">
-                <Sparkles className="w-3 h-3 inline-block mr-1 text-primary/60" />
+              <p className="text-xs text-amber-400/80 italic leading-relaxed">
+                <Sparkles className="w-3 h-3 inline-block mr-1 text-amber-400/60" />
                 {outfit.inspirationNote}
               </p>
             </div>
@@ -345,8 +351,8 @@ function LinkedText({ text, mentions }: { text: string; mentions?: any[] }) {
       {parts.map((part, i) => {
         const mention = sorted.find(m => m.text === part);
         if (mention) {
-          const colorClass = mention.type === "brand" ? "text-primary hover:text-amber-300" :
-            mention.type === "influencer" ? "text-rose-400 hover:text-rose-300" : "text-primary hover:text-primary/80";
+          const colorClass = mention.type === "brand" ? "text-amber-400 hover:text-amber-300" :
+            mention.type === "influencer" ? "text-rose-400 hover:text-rose-300" : "text-amber-400 hover:text-amber-300";
           return (
             <a key={i} href={mention.url} target="_blank" rel="noopener noreferrer"
               className={`${colorClass} underline decoration-dotted underline-offset-2 transition-colors inline-flex items-center gap-0.5`}>
@@ -416,7 +422,7 @@ export default function Demo() {
             <div className="editorial-diamond-sep mb-6">
               <div className="editorial-diamond" />
             </div>
-            <p className="editorial-label text-primary text-center tracking-[0.2em]">
+            <p className="editorial-label text-amber-400 text-center tracking-[0.2em]">
               {lang === "he" ? "דוגמת ניתוח" : "Sample Analysis"} — {lang === "he" ? "כך נראה ניתוח אמיתי" : "This is what a real analysis looks like"}
             </p>
           </div>
@@ -437,7 +443,7 @@ export default function Demo() {
 
               {/* Score + Summary */}
               <div className={`${dir === "rtl" ? "text-right" : "text-left"}`}>
-                <p className="editorial-label text-primary mb-4 tracking-[0.2em]">
+                <p className="editorial-label text-amber-400 mb-4 tracking-[0.2em]">
                   {lang === "he" ? "חוות דעת אופנתית" : "Fashion Review"}
                 </p>
                 <h1 className="text-3xl md:text-4xl font-display mb-6">
@@ -465,7 +471,7 @@ export default function Demo() {
 
                 {/* Occasion badge */}
                 <div className="mt-6 inline-flex items-center gap-2 px-4 py-2 border border-border/50">
-                  <span className="editorial-label text-primary">{lang === "he" ? "אירוע:" : "Occasion:"}</span>
+                  <span className="editorial-label text-amber-400">{lang === "he" ? "אירוע:" : "Occasion:"}</span>
                   <span className="text-sm font-light">{lang === "he" ? "יומיומי / קז'ואל" : "Casual / Everyday"}</span>
                 </div>
               </div>
@@ -479,7 +485,7 @@ export default function Demo() {
             <section className="container max-w-4xl mx-auto mb-20">
               <div className="p-8 border border-border/50">
                 <div className="flex items-center gap-3 mb-5">
-                  <Users className="w-5 h-5 text-primary" strokeWidth={1.5} />
+                  <Users className="w-5 h-5 text-amber-400" strokeWidth={1.5} />
                   <h3 className="font-display text-lg">{lang === "he" ? "תובנות משפיענים" : "Influencer Insights"}</h3>
                 </div>
                 <p className="text-muted-foreground leading-relaxed font-light">
@@ -495,7 +501,7 @@ export default function Demo() {
           <section className="container max-w-5xl mx-auto mb-20">
             <div className="text-center mb-12">
               <p className="editorial-section-num mb-3">I</p>
-              <p className="editorial-label text-primary mb-4">{lang === "he" ? "פריטים שזוהו" : "Detected Items"}</p>
+              <p className="editorial-label text-amber-400 mb-4">{lang === "he" ? "פריטים שזוהו" : "Detected Items"}</p>
               <h2 className="text-3xl md:text-4xl font-display">{lang === "he" ? "ניתוח פריט-פריט" : "Item-by-Item Analysis"}</h2>
             </div>
 
@@ -519,7 +525,7 @@ export default function Demo() {
                       </p>
                       <span className={`inline-block text-xs px-3 py-1 border ${
                         item.verdict === "בחירה מצוינת" || item.verdict === "Excellent choice" ? "border-amber-400/30 text-amber-400" :
-                        item.verdict === "יש פוטנציאל" || item.verdict === "Has potential" ? "border-primary/30 text-primary" :
+                        item.verdict === "יש פוטנציאל" || item.verdict === "Has potential" ? "border-amber-500/30 text-amber-400" :
                         item.verdict === "ניתן לשדרג" || item.verdict === "Can be upgraded" ? "border-yellow-400/30 text-yellow-400" :
                         "border-orange-400/30 text-orange-400"
                       }`}>
@@ -541,7 +547,7 @@ export default function Demo() {
           <section className="container max-w-3xl mx-auto mb-20">
             <div className="text-center mb-12">
               <p className="editorial-section-num mb-3">II</p>
-              <p className="editorial-label text-primary mb-4">{lang === "he" ? "ציונים" : "Scores"}</p>
+              <p className="editorial-label text-amber-400 mb-4">{lang === "he" ? "ציונים" : "Scores"}</p>
               <h2 className="text-3xl md:text-4xl font-display">{lang === "he" ? "ציונים מפורטים" : "Detailed Scores"}</h2>
             </div>
 
@@ -558,9 +564,9 @@ export default function Demo() {
           <section className="container max-w-4xl mx-auto mb-20">
             <div className="text-center mb-12">
               <p className="editorial-section-num mb-3">III</p>
-              <p className="editorial-label text-primary mb-4">{lang === "he" ? "שדרוגים" : "Upgrades"}</p>
+              <p className="editorial-label text-amber-400 mb-4">{lang === "he" ? "שדרוגים" : "Upgrades"}</p>
               <h2 className="text-3xl md:text-4xl font-display">
-                <Sparkles className={`w-6 h-6 text-primary inline-block ${dir === "rtl" ? "ml-2" : "mr-2"}`} strokeWidth={1.5} />
+                <Sparkles className={`w-6 h-6 text-amber-400 inline-block ${dir === "rtl" ? "ml-2" : "mr-2"}`} strokeWidth={1.5} />
                 {lang === "he" ? "המלצות שדרוג" : "Upgrade Suggestions"}
               </h2>
             </div>
@@ -569,7 +575,7 @@ export default function Demo() {
               {demo.improvements.map((imp, i) => (
                 <div key={i} className="p-8 border border-border/50">
                   <div className="flex items-start gap-5 mb-5">
-                    <div className="w-10 h-10 flex items-center justify-center shrink-0 border border-primary/30 text-primary font-display text-lg">
+                    <div className="w-10 h-10 flex items-center justify-center shrink-0 border border-amber-500/30 text-amber-400 font-display text-lg">
                       {i + 1}
                     </div>
                     <div className="flex-1">
@@ -587,8 +593,8 @@ export default function Demo() {
                     </div>
                   </div>
                   {imp.shoppingLinks && imp.shoppingLinks.length > 0 && (
-                    <div className={`pt-5 border-t border-border/30 ${dir === "rtl" ? "mr-15" : "ml-15"}`}>
-                      <p className="text-xs text-muted-foreground mb-3 font-medium flex items-center gap-1.5 editorial-label">
+                    <div className={`pt-5 border-t border-amber-500/10 ${dir === "rtl" ? "mr-15" : "ml-15"}`}>
+                      <p className="text-xs text-amber-300/50 mb-3 font-medium flex items-center gap-1.5">
                         <ShoppingBag className="w-3.5 h-3.5" />
                         {lang === "he" ? "מוצרים מומלצים" : "Recommended Products"}
                       </p>
@@ -597,17 +603,17 @@ export default function Demo() {
                           const storeName = extractStoreFromUrl(link.url) || extractStoreFromLabel(link.label);
                           return (
                             <a key={j} href={link.url} target="_blank" rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1.5 px-4 py-2 border border-primary/20 text-xs text-primary hover:bg-primary/5 transition-colors">
+                              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-amber-500/20 text-xs text-amber-300 hover:bg-amber-500/10 hover:border-amber-500/40 transition-all duration-200">
                               {storeName ? (
                                 <>
                                   <StoreLogo name={storeName} size="sm" />
-                                  <ExternalLink className="w-3 h-3" />
+                                  <ExternalLink className="w-3 h-3 text-amber-400/50" />
                                 </>
                               ) : (
                                 <>
                                   <ShoppingBag className="w-3 h-3" />
                                   {link.label}
-                                  <ExternalLink className="w-3 h-3" />
+                                  <ExternalLink className="w-3 h-3 text-amber-400/50" />
                                 </>
                               )}
                             </a>
@@ -627,7 +633,7 @@ export default function Demo() {
           <section className="container max-w-5xl mx-auto mb-20">
             <div className="text-center mb-12">
               <p className="editorial-section-num mb-3">IV</p>
-              <p className="editorial-label text-primary mb-4">{lang === "he" ? "הצעות לוקים" : "Outfit Ideas"}</p>
+              <p className="editorial-label text-amber-400 mb-4">{lang === "he" ? "הצעות לוקים" : "Outfit Ideas"}</p>
               <h2 className="text-3xl md:text-4xl font-display">{lang === "he" ? "לוקים מלאים" : "Complete Outfits"}</h2>
             </div>
 
@@ -644,9 +650,9 @@ export default function Demo() {
           <section className="container max-w-4xl mx-auto mb-20">
             <div className="text-center mb-12">
               <p className="editorial-section-num mb-3">V</p>
-              <p className="editorial-label text-primary mb-4">{lang === "he" ? "מקורות" : "Sources"}</p>
+              <p className="editorial-label text-amber-400 mb-4">{lang === "he" ? "מקורות" : "Sources"}</p>
               <h2 className="text-3xl md:text-4xl font-display">
-                <BookOpen className={`w-6 h-6 text-primary inline-block ${dir === "rtl" ? "ml-2" : "mr-2"}`} strokeWidth={1.5} />
+                <BookOpen className={`w-6 h-6 text-amber-400 inline-block ${dir === "rtl" ? "ml-2" : "mr-2"}`} strokeWidth={1.5} />
                 {lang === "he" ? "מקורות טרנד" : "Trend Sources"}
               </h2>
             </div>
@@ -656,13 +662,13 @@ export default function Demo() {
                 <a key={i} href={src.url} target="_blank" rel="noopener noreferrer"
                   className="group bg-background p-6 hover:bg-card/50 transition-colors">
                   <div className="flex items-center gap-2 mb-3">
-                    <TrendingUp className="w-4 h-4 text-primary" strokeWidth={1.5} />
-                    <span className="text-sm font-display group-hover:text-primary transition-colors">{src.source}</span>
-                    <span className="editorial-label text-primary px-2 py-0.5 border border-primary/20">{src.season}</span>
+                    <TrendingUp className="w-4 h-4 text-amber-400" strokeWidth={1.5} />
+                    <span className="text-sm font-display group-hover:text-amber-400 transition-colors">{src.source}</span>
+                    <span className="eeditorial-label text-amber-400 px-2 py-0.5 border border-amber-500/200">{src.season}</span>
                   </div>
                   <h4 className="text-sm font-medium mb-2 line-clamp-2">{src.title}</h4>
                   <p className="text-xs text-muted-foreground line-clamp-2 mb-3 font-light">{src.relevance}</p>
-                  <div className="flex items-center gap-1.5 text-[11px] text-primary/70 group-hover:text-primary transition-colors editorial-label">
+                  <div className="flex items-center gap-1.5 text-[11px] text-amber-400/70 group-hover:text-amber-400 transition-colors editorial-label">
                     <span>{getStoreName(src.url)}</span>
                     <ExternalLink className="w-3 h-3" />
                   </div>
@@ -677,12 +683,12 @@ export default function Demo() {
           <AnimatedSection>
             <section className="container max-w-4xl mx-auto mb-20">
               <div className="p-6 border border-border/50">
-                <h3 className="editorial-label text-primary mb-4">{lang === "he" ? "מותגים ומשפיענים שהוזכרו" : "Mentioned Brands & Influencers"}</h3>
+                <h3 className="editorial-label text-amber-400 mb-4">{lang === "he" ? "מותגים ומשפיענים שהוזכרו" : "Mentioned Brands & Influencers"}</h3>
                 <div className="flex flex-wrap gap-2">
                   {mentions.map((m, i) => {
-                    const colorClass = m.type === "brand" ? "border-primary/30 text-primary" :
+                    const colorClass = m.type === "brand" ? "border-amber-500/30 text-amber-400" :
                       m.type === "influencer" ? "border-rose-400/30 text-rose-400" :
-                      "border-primary/30 text-primary";
+                      "border-amber-500/30 text-amber-400";
                     const typeLabel = m.type === "brand" ? (lang === "he" ? "מותג" : "Brand") :
                       m.type === "influencer" ? (lang === "he" ? "משפיען" : "Influencer") : "";
                     return (
@@ -706,7 +712,7 @@ export default function Demo() {
             <div className="editorial-diamond" />
           </div>
 
-          <p className="editorial-label text-primary mb-6 tracking-[0.2em]">
+          <p className="editorial-label text-amber-400 mb-6 tracking-[0.2em]">
             {lang === "he" ? "מוכנים?" : "Ready?"}
           </p>
 

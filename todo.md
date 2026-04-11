@@ -843,3 +843,35 @@
 - [x] 70.2: Improved header with amber-400 icon in rounded box, amber-100 title, amber-200/40 description, influencer bar with matching styling
 - [x] 70.3: Applied identical studio styling to GuestUpload occasion picker and influencer info
 - [x] 70.4: Verified — 0 TS errors, 819/824 tests pass (same 5 pre-existing API failures)
+
+### 71: Studio Styling Consistency Audit — All Pages
+- [x] 71.1: Audited Closet — uses theme primary (oklch gold), consistent, no changes needed
+- [x] 71.2: Audited Demo.tsx — updated all text-primary→text-amber-400, store links, score bars
+- [x] 71.3: Audited all other pages — Feed, History, Profile use theme colors, consistent
+- [x] 71.4: Applied studio styling to Demo.tsx, FixMyLookModal, GuestFixMyLookModal
+- [x] 71.5: Verified — 0 TS errors, 819/824 tests pass
+
+### 71b: Comprehensive Fix My Look Feature Audit — All Pages
+- [x] 71b.1: Upload ✅ — studio upload zone, occasion picker, influencer bar, loading animation
+- [x] 71b.2: GuestUpload ✅ — same as Upload
+- [x] 71b.3: ReviewPage ✅ — ScoreCircle gradient, ScoreBar gradient, enlarged tabs, ImprovementCard studio, compact store pills, share moved below
+- [x] 71b.4: GuestReview ✅ — same as ReviewPage
+- [x] 71b.5: WhatsAppReview ✅ — enlarged tabs, studio cards
+- [x] 71b.6: Demo ✅ — updated ScoreCircle, ScoreBar, store links, all cards to amber
+- [x] 71b.7: FixMyLookModal ✅ — updated to amber studio (borders, checkboxes, CTA, store links)
+- [x] 71b.8: GuestFixMyLookModal ✅ — updated to amber studio
+- [x] 71b.9: Wardrobe "הלבש לוק" — uses theme primary (oklch gold), separate feature, consistent
+- [x] 71b.10: Verified — 0 TS errors, 819/824 tests pass
+
+### 72: New Conversion-Focused Landing Page (per spec document)
+- [x] 72.1: Hero Section — animated score counter 6.2→9.2, before/after slider, "הלוק שלך שווה יותר" headline
+- [x] 72.2: Sticky CTA at bottom on mobile with amber gradient
+- [x] 72.3: How It Works — 3 steps (Upload, Score, Fix) with amber icons and connecting lines
+- [x] 72.4: Results Preview — example result card with score breakdown, items, shopping links
+- [x] 72.5: Social Proof — testimonials in card style with star ratings
+- [x] 72.6: FOMO Block — "כולם כבר משדרגים. ואתה עדיין מנחש" with animated counter
+- [x] 72.7: Final CTA — "נסה את זה על הלוק שלך. לוקח 5 שניות" + Upload button
+- [x] 72.8: Upload flow — CTA navigates to /upload (guest-friendly)
+- [x] 72.9: Dark theme with amber/gold accents, mobile-first, fast loading
+- [x] 72.10: LandingEN.tsx also rewritten with same design in English
+- [x] 72.11: Verified — 0 TS errors, 819/824 tests pass

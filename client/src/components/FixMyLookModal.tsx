@@ -318,16 +318,16 @@ export default function FixMyLookModal({ reviewId, analysis, trigger }: FixMyLoo
     <Dialog open={open} onOpenChange={handleOpen}>
       <DialogTrigger asChild>
         {trigger || (
-          <Button size="lg" className="gap-2 bg-gradient-to-r from-rose-600 to-amber-500 hover:from-rose-500 hover:to-amber-400 text-white font-bold shadow-lg">
+          <Button size="lg" className="gap-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-bold shadow-[0_0_20px_rgba(245,158,11,0.3)]">
             <Wand2 className="w-5 h-5" />
             {isHighScore ? (isHe ? "לפני ואחרי" : "Before & After") : (isHe ? "תקן את הלוק שלי" : "Fix My Look")}
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-card border-white/10" dir={dir}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-card border-amber-500/10" dir={dir}>
         <DialogHeader>
           <DialogTitle className="text-xl font-bold flex items-center gap-2">
-            <Wand2 className="w-5 h-5 text-primary" />
+            <Wand2 className="w-5 h-5 text-amber-400" />
             {isHighScore ? (isHe ? "לפני ואחרי — וריאציות" : "Before & After — Variations") : (isHe ? "תקן את הלוק שלי" : "Fix My Look")}
           </DialogTitle>
         </DialogHeader>
@@ -352,16 +352,16 @@ export default function FixMyLookModal({ reviewId, analysis, trigger }: FixMyLoo
                     key={impIdx}
                     className={`rounded-xl border transition-all overflow-hidden ${
                       isSelected
-                        ? isCloset ? "border-emerald-500/40 bg-emerald-500/5" : "border-primary/40 bg-primary/5"
-                        : "border-white/5 bg-background/50 opacity-60"
+                        ? isCloset ? "border-emerald-500/40 bg-emerald-500/5" : "border-amber-500/30 bg-amber-500/5"
+                        : "border-amber-500/5 bg-background/50 opacity-60"
                     }`}
                   >
                     {/* Header with toggle */}
                     <div className="flex items-center gap-3 p-3 cursor-pointer" onClick={() => toggleImp(impIdx)}>
                       <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-all ${
-                        isSelected ? "border-primary bg-primary" : "border-white/20"
+                        isSelected ? "border-amber-500 bg-amber-500" : "border-amber-500/20"
                       }`}>
-                        {isSelected && <Check className="w-4 h-4 text-white" strokeWidth={3} />}
+                        {isSelected && <Check className="w-4 h-4 text-black" strokeWidth={3} />}
                       </div>
                       <span className="text-xl">{icon}</span>
                       <div className="flex-1 min-w-0">
@@ -369,7 +369,7 @@ export default function FixMyLookModal({ reviewId, analysis, trigger }: FixMyLoo
                         {matchedItem && (
                           <div className="flex items-center gap-2 mt-0.5">
                             <span className="text-xs text-muted-foreground truncate">{matchedItem.name}</span>
-                            <span className={`text-xs font-bold ${matchedItem.score >= 8 ? "text-amber-400" : matchedItem.score >= 6 ? "text-primary" : "text-rose-400"}`}>
+                            <span className={`text-xs font-bold ${matchedItem.score >= 8 ? "text-amber-400" : matchedItem.score >= 6 ? "text-amber-400" : "text-rose-400"}`}>
                               {matchedItem.score}/10
                             </span>
                           </div>
@@ -377,7 +377,7 @@ export default function FixMyLookModal({ reviewId, analysis, trigger }: FixMyLoo
                       </div>
                       {isSelected && (
                         <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
-                          isCloset ? "bg-emerald-500/10 text-emerald-400" : "bg-primary/10 text-primary"
+                          isCloset ? "bg-emerald-500/10 text-emerald-400" : "bg-amber-500/10 text-amber-400"
                         }`}>
                           {isCloset ? (isHe ? "מהארון" : "Closet") : (isHe ? "קנייה חדשה" : "Buy new")}
                         </span>
@@ -394,7 +394,7 @@ export default function FixMyLookModal({ reviewId, analysis, trigger }: FixMyLoo
                             src={imp.upgradeImageUrl}
                             alt={imp.afterLabel}
                             className={`w-16 h-16 rounded-lg object-cover border-2 shrink-0 transition-all ${
-                              isSelected ? "border-primary/50 shadow-md shadow-primary/10" : "border-white/10 opacity-60"
+                              isSelected ? "border-amber-500/40 shadow-md shadow-amber-500/10" : "border-amber-500/5 opacity-60"
                             }`}
                           />
                         )}
@@ -423,7 +423,7 @@ export default function FixMyLookModal({ reviewId, analysis, trigger }: FixMyLoo
                             className={`flex-1 flex items-center gap-2 px-3 py-2 rounded-lg transition-all ${
                               isCloset
                                 ? "bg-emerald-500/20 border-2 border-emerald-500/50"
-                                : "bg-white/[0.02] border border-white/10 hover:border-emerald-500/30"
+                                : "bg-amber-500/[0.02] border border-amber-500/5 hover:border-emerald-500/30"
                             }`}
                           >
                             <span style={{ fontSize: '14px' }}>♻️</span>
@@ -444,16 +444,16 @@ export default function FixMyLookModal({ reviewId, analysis, trigger }: FixMyLoo
                             onClick={(e) => { e.stopPropagation(); switchToBuyNew(impIdx); }}
                             className={`flex-1 flex items-center gap-2 px-3 py-2 rounded-lg transition-all ${
                               !isCloset
-                                ? "bg-primary/20 border-2 border-primary/50"
-                                : "bg-white/[0.02] border border-white/10 hover:border-primary/30"
+                                ? "bg-amber-500/15 border-2 border-amber-500/40"
+                                : "bg-amber-500/[0.02] border border-amber-500/5 hover:border-amber-500/20"
                             }`}
                           >
-                            <ShoppingBag className="w-4 h-4 text-primary shrink-0" />
+                            <ShoppingBag className="w-4 h-4 text-amber-400 shrink-0" />
                             <div className="flex-1 min-w-0 text-start">
                               <span className="text-xs font-medium">{isHe ? "קנה חדש" : "Buy new"}</span>
                               <span className="text-[10px] text-muted-foreground block">{imp.afterLabel}</span>
                             </div>
-                            {!isCloset && <Check className="w-4 h-4 text-primary shrink-0" />}
+                            {!isCloset && <Check className="w-4 h-4 text-amber-400 shrink-0" />}
                           </button>
                         </div>
 
@@ -480,7 +480,7 @@ export default function FixMyLookModal({ reviewId, analysis, trigger }: FixMyLoo
                                 href={link.url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-white/10 bg-white/[0.03] hover:bg-white/[0.08] hover:border-primary/30 transition-all text-xs"
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-amber-500/10 bg-amber-500/[0.03] hover:bg-amber-500/[0.08] hover:border-amber-500/30 transition-all text-xs"
                               >
                                 {storeName ? (
                                   <>
@@ -511,7 +511,7 @@ export default function FixMyLookModal({ reviewId, analysis, trigger }: FixMyLoo
               <Button
                 onClick={handleFix}
                 disabled={selectedCount === 0}
-                className="gap-2 bg-gradient-to-r from-rose-600 to-amber-500 hover:from-rose-500 hover:to-amber-400 text-white font-bold"
+                className="gap-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-bold shadow-[0_0_20px_rgba(245,158,11,0.3)]"
               >
                 <Sparkles className="w-4 h-4" />
                 {isHe ? "תראה לי את התוצאה" : "Show me the result"}
@@ -529,7 +529,7 @@ export default function FixMyLookModal({ reviewId, analysis, trigger }: FixMyLoo
         {step === "result" && result && (
           <div className="space-y-6">
             {hasSavedResult && (
-              <div className="flex items-center justify-between p-3 rounded-xl bg-primary/5 border border-primary/10">
+              <div className="flex items-center justify-between p-3 rounded-xl bg-amber-500/5 border border-amber-500/10">
                 <p className="text-xs text-muted-foreground">{isHe ? "זו תוצאה שנשמרה מהפעם הקודמת." : "This is a saved result from your previous session."}</p>
                 <Button onClick={handleGenerateNew} variant="outline" size="sm" className="gap-1.5 text-xs h-7">
                   <RotateCcw className="w-3 h-3" />
@@ -566,7 +566,7 @@ export default function FixMyLookModal({ reviewId, analysis, trigger }: FixMyLoo
               <p className="text-sm font-bold mb-2">{isHe ? "פריטים ששופרו:" : "Items improved:"}</p>
               <div className="flex flex-wrap gap-2">
                 {result.itemsFixed.map((item, i) => (
-                  <span key={i} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs bg-primary/10 text-primary border border-primary/20">
+                  <span key={i} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs bg-amber-500/10 text-amber-400 border border-amber-500/20">
                     <span>{item.icon}</span>
                     <span>{item.name}</span>
                     <span className="text-rose-400 line-through">{item.scoreBefore}</span>
@@ -578,7 +578,7 @@ export default function FixMyLookModal({ reviewId, analysis, trigger }: FixMyLoo
             {result.shoppingLinks && result.shoppingLinks.length > 0 && (
               <div>
                 <p className="text-sm font-bold mb-3 flex items-center gap-1.5">
-                  <ShoppingBag className="w-4 h-4 text-primary" />
+                  <ShoppingBag className="w-4 h-4 text-amber-400" />
                   {isHe ? "קנה את הפריטים המומלצים:" : "Shop the recommended items:"}
                 </p>
                 <div className="flex flex-wrap gap-2">
@@ -586,16 +586,16 @@ export default function FixMyLookModal({ reviewId, analysis, trigger }: FixMyLoo
                     const storeName = extractStoreFromUrl(link.url) || extractStoreFromLabel(link.label);
                     return (
                       <a key={i} href={link.url} target="_blank" rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.08] hover:border-primary/30 transition-all group">
+                        className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-amber-500/10 bg-amber-500/[0.03] hover:bg-amber-500/[0.08] hover:border-amber-500/30 transition-all group">
                         {storeName ? (
                           <div className="flex items-center gap-2">
                             <div className="bg-white/90 rounded-lg px-1.5 py-0.5"><StoreLogo name={storeName} size="sm" /></div>
-                            <span className="text-xs text-muted-foreground group-hover:text-primary flex items-center gap-1">
+                            <span className="text-xs text-muted-foreground group-hover:text-amber-400 flex items-center gap-1">
                               {isHe ? "חפש" : "Search"}<ExternalLink className="w-2.5 h-2.5" />
                             </span>
                           </div>
                         ) : (
-                          <span className="text-xs font-medium group-hover:text-primary flex items-center gap-1">
+                          <span className="text-xs font-medium group-hover:text-amber-400 flex items-center gap-1">
                             {link.label}<ExternalLink className="w-2.5 h-2.5" />
                           </span>
                         )}
