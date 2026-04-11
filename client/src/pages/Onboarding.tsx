@@ -673,21 +673,42 @@ export default function Onboarding() {
 
               {!photoPreview ? (
                 <div className="space-y-4">
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="w-full max-w-xs mx-auto aspect-square rounded-3xl border-2 border-dashed border-primary/30 bg-primary/5 flex flex-col items-center justify-center gap-3 hover:border-primary/60 hover:bg-primary/10 transition-all cursor-pointer group"
-                  >
-                    <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                      <Camera className="w-8 h-8 text-primary" />
-                    </div>
-                    <span className="text-sm font-medium text-primary">
-                      {lang === "he" ? "לחץ להעלאת תמונה" : "Tap to upload photo"}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {lang === "he" ? "תמונה של הפנים + גוף מלא = הכי טוב" : "Face + full body = best results"}
-                    </span>
-                  </button>
-                  <input ref={fileInputRef} type="file" accept="image/*" capture="environment" onChange={handlePhotoSelect} className="hidden" />
+                  <p className="text-xs text-muted-foreground mb-2">
+                    {lang === "he" ? "תמונה של הפנים + גוף מלא = הכי טוב" : "Face + full body = best results"}
+                  </p>
+                  <div className="flex gap-4 justify-center max-w-sm mx-auto">
+                    {/* Camera capture button */}
+                    <button
+                      onClick={() => {
+                        const camInput = document.getElementById('onboard-camera-input') as HTMLInputElement;
+                        camInput?.click();
+                      }}
+                      className="flex-1 aspect-square rounded-3xl border-2 border-dashed border-primary/30 bg-primary/5 flex flex-col items-center justify-center gap-2 hover:border-primary/60 hover:bg-primary/10 transition-all cursor-pointer group"
+                    >
+                      <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                        <Camera className="w-7 h-7 text-primary" />
+                      </div>
+                      <span className="text-sm font-medium text-primary">
+                        {lang === "he" ? "צלם תמונה" : "Take Photo"}
+                      </span>
+                    </button>
+                    {/* Gallery/file upload button */}
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="flex-1 aspect-square rounded-3xl border-2 border-dashed border-primary/30 bg-primary/5 flex flex-col items-center justify-center gap-2 hover:border-primary/60 hover:bg-primary/10 transition-all cursor-pointer group"
+                    >
+                      <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                        <Upload className="w-7 h-7 text-primary" />
+                      </div>
+                      <span className="text-sm font-medium text-primary">
+                        {lang === "he" ? "העלה מהגלריה" : "Upload Photo"}
+                      </span>
+                    </button>
+                  </div>
+                  {/* Hidden camera input (with capture attribute for mobile) */}
+                  <input id="onboard-camera-input" type="file" accept="image/*" capture="environment" onChange={handlePhotoSelect} className="hidden" />
+                  {/* Hidden gallery/file input (no capture = opens file picker / gallery) */}
+                  <input ref={fileInputRef} type="file" accept="image/*" onChange={handlePhotoSelect} className="hidden" />
                 </div>
               ) : (
                 <div className="space-y-4">

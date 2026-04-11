@@ -979,3 +979,11 @@
 - [x] 83.7: Route wiring in App.tsx — /try shows chooser, /try/quick shows GuestUpload, /try/precise shows Onboarding V3
 - [x] 83.8: Landing page CTAs already point to /try (no change needed)
 - [x] 83.9: Write vitest tests for new flows (17/17 passing)
+
+## Stage 84: Add Camera Capture + File Upload Options
+- [x] 84.1: Onboarding photo step — two buttons: "צלם תמונה" (camera) + "העלה מהגלריה" (gallery/file)
+- [x] 84.2: GuestUpload — already had two-button UI (camera + gallery) with separate inputs
+- [x] 84.3: Camera uses input accept="image/*" capture="environment" for mobile camera
+- [x] 84.4: File upload uses input accept="image/*" without capture for gallery/file picker
+- [x] 84.5: Both work on desktop (file picker only) and mobile (camera + gallery)
+- [x] 84.6: Verified on preview — two buttons visible side by side, TypeScript 0 errors
