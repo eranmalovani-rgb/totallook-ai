@@ -3974,6 +3974,16 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
           }
           for (const cat of stage1Analysis.scores) { if (!cat.explanation) cat.explanation = ""; }
 
+          // ── Stage 55: Cache image dimensions in analysis (skip probeImageSize in Fix My Look) ──
+          try {
+            const probeResult = await probeImageSize(review.imageUrl);
+            stage1Analysis.imageWidth = probeResult.width;
+            stage1Analysis.imageHeight = probeResult.height;
+            console.log(`[Stage 55] Cached image dimensions: ${probeResult.width}x${probeResult.height}`);
+          } catch (dimErr) {
+            console.warn("[Stage 55] Could not cache image dimensions:", dimErr);
+          }
+
           // ── SAVE Stage 1 to DB immediately ──
           console.log(`[Stage 43] Saving Stage 1 results to DB (reviewId=${input.reviewId})`);
           await updateReviewAnalysis(input.reviewId, stage1Analysis.overallScore, stage1Analysis);
@@ -4409,26 +4419,42 @@ Style: High-end ${genderLabel} fashion editorial flat lay, items arranged aesthe
           .map(i => analysis.items[i]);
         if (itemsToFix.length === 0) throw new Error("No items selected");
 
-        // Detect original image dimensions for orientation matching
+        // Stage 55: Use cached dimensions from analysis (avoid re-probing)
         let imageOrientation = "portrait";
         let imageAspectRatio = "3:4";
         let imageDimensions = { width: 0, height: 0 };
-        try {
-          const probeResult = await probeImageSize(review.imageUrl);
-          imageDimensions = { width: probeResult.width, height: probeResult.height };
-          if (probeResult.width > probeResult.height) {
+        if (analysis.imageWidth && analysis.imageHeight) {
+          imageDimensions = { width: analysis.imageWidth, height: analysis.imageHeight };
+          if (analysis.imageWidth > analysis.imageHeight) {
             imageOrientation = "landscape";
-            imageAspectRatio = `${probeResult.width}:${probeResult.height}`;
-          } else if (probeResult.width === probeResult.height) {
+            imageAspectRatio = `${analysis.imageWidth}:${analysis.imageHeight}`;
+          } else if (analysis.imageWidth === analysis.imageHeight) {
             imageOrientation = "square";
             imageAspectRatio = "1:1";
           } else {
             imageOrientation = "portrait";
-            imageAspectRatio = `${probeResult.width}:${probeResult.height}`;
+            imageAspectRatio = `${analysis.imageWidth}:${analysis.imageHeight}`;
           }
-          console.log(`[Fix My Look] Original image: ${probeResult.width}x${probeResult.height} (${imageOrientation})`);
-        } catch (probeErr) {
-          console.warn("[Fix My Look] Could not detect image dimensions:", probeErr);
+          console.log(`[Fix My Look] Using cached dimensions: ${analysis.imageWidth}x${analysis.imageHeight} (${imageOrientation})`);
+        } else {
+          // Fallback: probe if not cached (old analyses)
+          try {
+            const probeResult = await probeImageSize(review.imageUrl);
+            imageDimensions = { width: probeResult.width, height: probeResult.height };
+            if (probeResult.width > probeResult.height) {
+              imageOrientation = "landscape";
+              imageAspectRatio = `${probeResult.width}:${probeResult.height}`;
+            } else if (probeResult.width === probeResult.height) {
+              imageOrientation = "square";
+              imageAspectRatio = "1:1";
+            } else {
+              imageOrientation = "portrait";
+              imageAspectRatio = `${probeResult.width}:${probeResult.height}`;
+            }
+            console.log(`[Fix My Look] Probed image: ${probeResult.width}x${probeResult.height} (${imageOrientation})`);
+          } catch (probeErr) {
+            console.warn("[Fix My Look] Could not detect image dimensions:", probeErr);
+          }
         }
 
         // Get matching improvements for context — use direct indices from client when available
@@ -5733,6 +5759,16 @@ Return ONLY a JSON object with these exact fields:
             influencerInsight: "",
           };
 
+          // Stage 55: Cache image dimensions in guest analysis
+          try {
+            const probeResult = await probeImageSize(session.imageUrl!);
+            guestStage1Analysis.imageWidth = probeResult.width;
+            guestStage1Analysis.imageHeight = probeResult.height;
+            console.log(`[Stage 55 Guest] Cached image dimensions: ${probeResult.width}x${probeResult.height}`);
+          } catch (dimErr) {
+            console.warn("[Stage 55 Guest] Could not cache image dimensions:", dimErr);
+          }
+
           // Save Stage 1 to DB immediately
           await updateGuestSessionAnalysis(input.sessionId, guestStage1Analysis.overallScore, guestStage1Analysis);
           console.log(`[Guest Analysis] Stage 1 saved to DB, returning to user immediately`);
@@ -6375,25 +6411,41 @@ Return ONLY a JSON object with these exact fields:
           .map(i => analysis.items[i]);
         if (itemsToFix.length === 0) throw new Error("No items selected");
 
-        // Detect original image dimensions
+        // Stage 55: Use cached dimensions from analysis (avoid re-probing)
         let imageOrientation = "portrait";
         let imageAspectRatio = "3:4";
         let imageDimensions = { width: 0, height: 0 };
-        try {
-          const probeResult = await probeImageSize(session.imageUrl!);
-          imageDimensions = { width: probeResult.width, height: probeResult.height };
-          if (probeResult.width > probeResult.height) {
+        if (analysis.imageWidth && analysis.imageHeight) {
+          imageDimensions = { width: analysis.imageWidth, height: analysis.imageHeight };
+          if (analysis.imageWidth > analysis.imageHeight) {
             imageOrientation = "landscape";
-            imageAspectRatio = `${probeResult.width}:${probeResult.height}`;
-          } else if (probeResult.width === probeResult.height) {
+            imageAspectRatio = `${analysis.imageWidth}:${analysis.imageHeight}`;
+          } else if (analysis.imageWidth === analysis.imageHeight) {
             imageOrientation = "square";
             imageAspectRatio = "1:1";
           } else {
             imageOrientation = "portrait";
-            imageAspectRatio = `${probeResult.width}:${probeResult.height}`;
+            imageAspectRatio = `${analysis.imageWidth}:${analysis.imageHeight}`;
           }
-        } catch (probeErr) {
-          console.warn("[Guest Fix My Look] Could not detect image dimensions:", probeErr);
+          console.log(`[Guest Fix My Look] Using cached dimensions: ${analysis.imageWidth}x${analysis.imageHeight} (${imageOrientation})`);
+        } else {
+          try {
+            const probeResult = await probeImageSize(session.imageUrl!);
+            imageDimensions = { width: probeResult.width, height: probeResult.height };
+            if (probeResult.width > probeResult.height) {
+              imageOrientation = "landscape";
+              imageAspectRatio = `${probeResult.width}:${probeResult.height}`;
+            } else if (probeResult.width === probeResult.height) {
+              imageOrientation = "square";
+              imageAspectRatio = "1:1";
+            } else {
+              imageOrientation = "portrait";
+              imageAspectRatio = `${probeResult.width}:${probeResult.height}`;
+            }
+            console.log(`[Guest Fix My Look] Probed image: ${probeResult.width}x${probeResult.height} (${imageOrientation})`);
+          } catch (probeErr) {
+            console.warn("[Guest Fix My Look] Could not detect image dimensions:", probeErr);
+          }
         }
 
         const allImprovements = analysis.improvements || [];

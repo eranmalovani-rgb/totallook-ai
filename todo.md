@@ -726,3 +726,13 @@
 - [ ] 54.5: Backend — skip image dimension probing if already cached in analysis metadata
 - [x] 54.6: Harden prompt — explicit catalog color (with hex) + material + pattern + fit as non-negotiable instructions
 - [x] 54.7: Test and verify — 0 TS errors, 819/824 tests pass (same 5 pre-existing API failures)
+
+### 55: Fix My Look — Show Product Images Inline
+- [x] 55.1: FixMyLookModal — show catalog product thumbnail next to each improvement row (always visible, not just when selected)
+- [x] 55.2: GuestFixMyLookModal — same inline thumbnail display
+- [x] 55.3: Verify — 0 TS errors, images show inline with color/material metadata
+
+### 56: Speed Improvements (No Quality Loss)
+- [x] 56.1: Analyze speed bottlenecks — Stage 1: 27-51s (LLM), Stage 2: 2.5-2.8s (catalog), Fix My Look: 74-77s (image gen ~70s)
+- [x] 56.2: Implemented: (a) Cache image dimensions in Stage 1 analysis → skip probeImageSize in Fix My Look (~1s saved), (b) Added imageWidth/imageHeight to FashionAnalysis type
+- [x] 56.3: Verified — 0 TS errors, 819/824 tests pass (same 5 pre-existing API failures)

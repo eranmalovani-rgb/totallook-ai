@@ -375,26 +375,35 @@ export default function FixMyLookModal({ reviewId, analysis, trigger }: FixMyLoo
                       )}
                     </div>
 
-                    {/* Before → After labels */}
+                    {/* Before → After with inline product thumbnail */}
                     <div className="px-3 pb-2">
-                      <div className="flex items-center gap-2 text-[11px] flex-wrap">
-                        <span className="px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-400 line-through">{imp.beforeLabel}</span>
-                        <span className="text-muted-foreground">→</span>
-                        <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 font-medium">{imp.afterLabel}</span>
+                      <div className="flex items-center gap-3">
+                        {/* Product thumbnail — always visible */}
+                        {imp.upgradeImageUrl && (
+                          <img
+                            loading="lazy"
+                            src={imp.upgradeImageUrl}
+                            alt={imp.afterLabel}
+                            className={`w-16 h-16 rounded-lg object-cover border-2 shrink-0 transition-all ${
+                              isSelected ? "border-primary/50 shadow-md shadow-primary/10" : "border-white/10 opacity-60"
+                            }`}
+                          />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 text-[11px] flex-wrap">
+                            <span className="px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-400 line-through">{imp.beforeLabel}</span>
+                            <span className="text-muted-foreground">→</span>
+                            <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 font-medium">{imp.afterLabel}</span>
+                          </div>
+                          {imp.afterColor && (
+                            <span className="text-[10px] text-muted-foreground mt-1 block">
+                              {imp.afterMaterial ? `${imp.afterColor} ${imp.afterMaterial}` : imp.afterColor}
+                              {imp.afterPattern && imp.afterPattern !== "solid" ? ` • ${imp.afterPattern}` : ""}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
-
-                    {/* AI Upgrade Image */}
-                    {isSelected && imp.upgradeImageUrl && (
-                      <div className="px-3 pb-2">
-                        <img
-                          loading="lazy"
-                          src={imp.upgradeImageUrl}
-                          alt={`${imp.beforeLabel} → ${imp.afterLabel}`}
-                          className="w-full aspect-[2/1] object-cover rounded-lg"
-                        />
-                      </div>
-                    )}
 
                     {/* Closet match option */}
                     {isSelected && hasClosetItem && (

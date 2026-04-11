@@ -16,6 +16,12 @@ export interface FashionAnalysis {
   personDetection?: PersonDetection;
   /** Structured overall look composition analysis */
   lookStructure?: LookStructure;
+
+  // ── Stage 55: Cached image dimensions (avoid re-probing) ──
+  /** Original image width in pixels (cached from initial probe) */
+  imageWidth?: number;
+  /** Original image height in pixels (cached from initial probe) */
+  imageHeight?: number;
 }
 
 /** Person/body detection metadata extracted from the image */
