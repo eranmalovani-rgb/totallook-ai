@@ -897,76 +897,161 @@ export default function GuestUpload() {
 
             {/* Upload Area */}
             {!preview ? (
-              <div className="mirror-scene">
-                <div
-                  className={`mirror-frame relative cursor-pointer transition-all duration-500 ${dragOver ? "scale-[1.02]" : ""}`}
-                  onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-                  onDragLeave={() => setDragOver(false)}
-                  onDrop={handleDrop}
-                  onClick={(e) => {
-                    if (window.innerWidth < 768) {
-                      e.stopPropagation();
-                      return;
-                    }
-                    fileInputRef.current?.click();
-                  }}
-                >
-                  <div className="relative rounded-[20px] p-[3px] bg-gradient-to-b from-primary/60 via-amber-600/40 to-primary/30 shadow-[0_8px_32px_rgba(180,140,60,0.15),0_2px_8px_rgba(0,0,0,0.3)]">
-                    <div className="rounded-[17px] p-[2px] bg-gradient-to-b from-amber-300/20 via-transparent to-amber-800/20">
-                      <div className={`relative rounded-[15px] overflow-hidden bg-gradient-to-b from-card via-background to-card/80 border border-white/5 ${dragOver ? "bg-primary/5" : ""}`}>
-                        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                          <div className="mirror-reflection-sweep absolute inset-0 w-[60%] h-full bg-gradient-to-r from-transparent via-white/[0.04] to-transparent" />
-                        </div>
-                        <div className="mirror-shimmer absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-amber-500/5 pointer-events-none" />
-                        <div className="relative z-10 py-10 px-6 flex flex-col items-center gap-4">
-                          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-16 h-[2px] bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
-                          <div className="mirror-float relative">
-                            <div className="absolute inset-0 rounded-full bg-primary/20 blur-xl scale-[1.8]" />
-                            <div className="relative w-18 h-18 rounded-full bg-gradient-to-br from-primary/25 to-amber-500/15 border border-primary/25 flex items-center justify-center backdrop-blur-sm">
-                              <Camera className="w-8 h-8 text-primary" />
-                              <ScanLine className="w-4 h-4 text-primary/50 absolute bottom-2 right-2" />
-                            </div>
-                          </div>
-                          <div className="text-center">
-                            <p className="text-lg font-bold text-foreground">{t("upload", "dragHere")}</p>
-                            <p className="text-muted-foreground text-sm mt-0.5 hidden md:block">{t("upload", "orClickToSelect")}</p>
-                          </div>
+              <div className="relative">
+                {/* ── Styling Studio Scene ── */}
+                <div className="relative">
+                  {/* Clothing rack — left side */}
+                  <div className="absolute -left-2 md:-left-6 top-8 bottom-16 w-10 md:w-14 pointer-events-none z-0 hidden sm:block">
+                    <div className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-[2px] bg-gradient-to-b from-primary/40 via-amber-600/30 to-primary/20 rounded-full" />
+                    {[15, 35, 55, 75].map((top, i) => (
+                      <div key={i} className="absolute left-1/2 -translate-x-1/2" style={{ top: `${top}%`, animation: `stylist-hold ${2 + i * 0.3}s ease-in-out infinite` }}>
+                        <svg width="32" height="24" viewBox="0 0 32 24" className="text-primary/30">
+                          <path d="M16 2 L16 6 L4 12 L4 14 L28 14 L28 12 L16 6" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                          <circle cx="16" cy="2" r="2" fill="none" stroke="currentColor" strokeWidth="1" />
+                        </svg>
+                        <div className="absolute top-3 left-1/2 -translate-x-1/2 w-6 h-8 rounded-b-lg opacity-20" style={{ background: ['#C8A97E', '#8B7355', '#D4AF37', '#A0522D'][i] }} />
+                      </div>
+                    ))}
+                  </div>
 
-                          {/* Mobile: Two separate buttons for Camera and Gallery */}
-                          <div className="flex gap-3 md:hidden w-full px-2">
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                cameraInputRef.current?.click();
-                              }}
-                              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-primary/15 border border-primary/30 text-primary font-bold text-sm hover:bg-primary/25 transition-colors"
-                            >
-                              <Camera className="w-5 h-5" />
-                              {t("upload", "takePhoto")}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                fileInputRef.current?.click();
-                              }}
-                              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-white/5 border border-white/10 text-foreground font-bold text-sm hover:bg-white/10 transition-colors"
-                            >
-                              <ImageIcon className="w-5 h-5" />
-                              {t("upload", "chooseFromGallery")}
-                            </button>
+                  {/* Clothing rack — right side */}
+                  <div className="absolute -right-2 md:-right-6 top-8 bottom-16 w-10 md:w-14 pointer-events-none z-0 hidden sm:block">
+                    <div className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-[2px] bg-gradient-to-b from-primary/40 via-amber-600/30 to-primary/20 rounded-full" />
+                    {[20, 45, 70].map((top, i) => (
+                      <div key={i} className="absolute left-1/2 -translate-x-1/2" style={{ top: `${top}%`, animation: `stylist-hold ${2.5 + i * 0.4}s ease-in-out infinite` }}>
+                        <svg width="32" height="24" viewBox="0 0 32 24" className="text-primary/30">
+                          <path d="M16 2 L16 6 L4 12 L4 14 L28 14 L28 12 L16 6" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                          <circle cx="16" cy="2" r="2" fill="none" stroke="currentColor" strokeWidth="1" />
+                        </svg>
+                        <div className="absolute top-3 left-1/2 -translate-x-1/2 w-6 h-8 rounded-b-lg opacity-20" style={{ background: ['#6B4423', '#C8A97E', '#8B6914'][i] }} />
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Studio sign */}
+                  <div className="flex items-center justify-center gap-2 mb-3">
+                    <div className="h-[1px] flex-1 max-w-16 bg-gradient-to-r from-transparent to-primary/30" />
+                    <span className="text-[10px] uppercase tracking-[0.2em] text-primary/50 font-medium">
+                      {lang === "he" ? "\u05e1\u05d8\u05d5\u05d3\u05d9\u05d5 \u05e1\u05d8\u05d9\u05d9\u05dc\u05d9\u05e0\u05d2" : "Styling Studio"}
+                    </span>
+                    <div className="h-[1px] flex-1 max-w-16 bg-gradient-to-l from-transparent to-primary/30" />
+                  </div>
+
+                  {/* Main mirror / upload zone */}
+                  <div
+                    className={`mirror-frame relative cursor-pointer transition-all duration-500 z-10 ${dragOver ? "scale-[1.02]" : ""}`}
+                    onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                    onDragLeave={() => setDragOver(false)}
+                    onDrop={handleDrop}
+                    onClick={(e) => {
+                      if (window.innerWidth < 768) {
+                        e.stopPropagation();
+                        return;
+                      }
+                      fileInputRef.current?.click();
+                    }}
+                  >
+                    <div className="relative rounded-[20px] p-[3px] bg-gradient-to-b from-primary/60 via-amber-600/40 to-primary/30 shadow-[0_8px_32px_rgba(180,140,60,0.15),0_2px_8px_rgba(0,0,0,0.3)]">
+                      <div className="rounded-[17px] p-[2px] bg-gradient-to-b from-amber-300/20 via-transparent to-amber-800/20">
+                        <div className={`relative rounded-[15px] overflow-hidden bg-gradient-to-b from-card via-background to-card/80 border border-white/5 ${dragOver ? "bg-primary/5" : ""}`}>
+                          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                            <div className="mirror-reflection-sweep absolute inset-0 w-[60%] h-full bg-gradient-to-r from-transparent via-white/[0.04] to-transparent" />
                           </div>
-                          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-16 h-[2px] bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
+                          <div className="mirror-shimmer absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-amber-500/5 pointer-events-none" />
+                          <div className="relative z-10 py-8 px-6 flex flex-col items-center gap-3">
+                            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-16 h-[2px] bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
+
+                            {/* Stylist figure */}
+                            <div className="relative mb-0" style={{ animation: 'stylist-sway 4s ease-in-out infinite' }}>
+                              <svg width="44" height="44" viewBox="0 0 48 48" className="text-primary/40">
+                                <circle cx="24" cy="10" r="5.5" fill="none" stroke="currentColor" strokeWidth="1.5" />
+                                <path d="M19 8 Q24 4 29 8" fill="none" stroke="currentColor" strokeWidth="1" />
+                                <line x1="24" y1="15.5" x2="24" y2="30" stroke="currentColor" strokeWidth="1.5" />
+                                <line x1="24" y1="21" x2="14" y2="25" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                                <line x1="24" y1="21" x2="34" y2="25" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                                <path d="M14 25 Q24 29 34 25" fill="none" stroke="currentColor" strokeWidth="1" strokeDasharray="2 2" style={{ animation: 'stylist-measure 3s ease-in-out infinite' }} />
+                                <line x1="19" y1="26" x2="19" y2="27.5" stroke="currentColor" strokeWidth="0.5" opacity="0.5" />
+                                <line x1="24" y1="27" x2="24" y2="28.5" stroke="currentColor" strokeWidth="0.5" opacity="0.5" />
+                                <line x1="29" y1="26" x2="29" y2="27.5" stroke="currentColor" strokeWidth="0.5" opacity="0.5" />
+                                <path d="M20 27 L17 44 L31 44 L28 27" fill="none" stroke="currentColor" strokeWidth="1.2" />
+                                <line x1="19" y1="28" x2="29" y2="28" stroke="currentColor" strokeWidth="1" />
+                              </svg>
+                            </div>
+
+                            <div className="mirror-float relative">
+                              <div className="absolute inset-0 rounded-full bg-primary/20 blur-xl scale-[1.8]" />
+                              <div className="relative w-18 h-18 rounded-full bg-gradient-to-br from-primary/25 to-amber-500/15 border border-primary/25 flex items-center justify-center backdrop-blur-sm">
+                                <Camera className="w-8 h-8 text-primary" />
+                                <ScanLine className="w-4 h-4 text-primary/50 absolute bottom-2 right-2" />
+                              </div>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-lg font-bold text-foreground">{t("upload", "dragHere")}</p>
+                              <p className="text-muted-foreground text-xs mt-1">
+                                {lang === "he" ? "\u05d4\u05e1\u05d8\u05d9\u05d9\u05dc\u05d9\u05e1\u05d8\u05d9\u05ea \u05e9\u05dc\u05da \u05de\u05d7\u05db\u05d4 \u05dc\u05da" : "Your stylist is waiting for you"}
+                              </p>
+                              <p className="text-muted-foreground text-sm mt-0.5 hidden md:block">{t("upload", "orClickToSelect")}</p>
+                            </div>
+
+                            {/* Mobile: Two separate buttons for Camera and Gallery */}
+                            <div className="flex gap-3 md:hidden w-full px-2">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  cameraInputRef.current?.click();
+                                }}
+                                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-primary/15 border border-primary/30 text-primary font-bold text-sm hover:bg-primary/25 transition-colors"
+                              >
+                                <Camera className="w-5 h-5" />
+                                {t("upload", "takePhoto")}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  fileInputRef.current?.click();
+                                }}
+                                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-white/5 border border-white/10 text-foreground font-bold text-sm hover:bg-white/10 transition-colors"
+                              >
+                                <ImageIcon className="w-5 h-5" />
+                                {t("upload", "chooseFromGallery")}
+                              </button>
+                            </div>
+                            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-16 h-[2px] bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
+                          </div>
+                          <div className="absolute top-2 left-2 w-4 h-4 border-t border-l border-primary/20 rounded-tl-sm pointer-events-none" />
+                          <div className="absolute top-2 right-2 w-4 h-4 border-t border-r border-primary/20 rounded-tr-sm pointer-events-none" />
+                          <div className="absolute bottom-2 left-2 w-4 h-4 border-b border-l border-primary/20 rounded-bl-sm pointer-events-none" />
+                          <div className="absolute bottom-2 right-2 w-4 h-4 border-b border-r border-primary/20 rounded-br-sm pointer-events-none" />
                         </div>
-                        <div className="absolute top-2 left-2 w-4 h-4 border-t border-l border-primary/20 rounded-tl-sm pointer-events-none" />
-                        <div className="absolute top-2 right-2 w-4 h-4 border-t border-r border-primary/20 rounded-tr-sm pointer-events-none" />
-                        <div className="absolute bottom-2 left-2 w-4 h-4 border-b border-l border-primary/20 rounded-bl-sm pointer-events-none" />
-                        <div className="absolute bottom-2 right-2 w-4 h-4 border-b border-r border-primary/20 rounded-br-sm pointer-events-none" />
                       </div>
                     </div>
                   </div>
+
+                  {/* Mirror stand/base with studio floor */}
                   <div className="mx-auto w-20 h-3 mirror-stand mt-0" />
+                  <div className="mx-auto w-48 h-[1px] bg-gradient-to-r from-transparent via-primary/15 to-transparent mt-1" />
+
+                  {/* Floating fabric swatches */}
+                  <div className="absolute -bottom-2 left-4 sm:left-8 md:left-16 flex gap-2 pointer-events-none opacity-40">
+                    {['#C8A97E', '#2C2C2C', '#F5F5DC', '#8B4513'].map((c, i) => (
+                      <div
+                        key={i}
+                        className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-sm border border-white/10 shadow-sm"
+                        style={{ background: c, animation: `float-swatch ${3 + i * 0.5}s ease-in-out infinite`, animationDelay: `${i * 0.3}s` }}
+                      />
+                    ))}
+                  </div>
+                  <div className="absolute -bottom-2 right-4 sm:right-8 md:right-16 flex gap-2 pointer-events-none opacity-40">
+                    {['#1C1C1C', '#D4AF37', '#704214', '#E8E0D0'].map((c, i) => (
+                      <div
+                        key={i}
+                        className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-sm border border-white/10 shadow-sm"
+                        style={{ background: c, animation: `float-swatch ${3.2 + i * 0.4}s ease-in-out infinite`, animationDelay: `${i * 0.2}s` }}
+                      />
+                    ))}
+                  </div>
                 </div>
                 {/* Hidden file input — gallery */}
                 <input

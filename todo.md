@@ -804,3 +804,10 @@
 - [x] 64.8: Replaced FashionLoadingAnimation in Upload.tsx
 - [x] 64.9: Replaced FashionLoadingAnimation in GuestUpload.tsx
 - [x] 64.10: Verified — 0 TS errors, 819/824 tests pass (same 5 pre-existing API failures)
+
+### 65: Upload Zone — Styling Studio Entrance Design
+- [x] 65.1: Redesign upload zone to look like a styling studio entrance — clothing racks with hangers on both sides, stylist figure SVG with measuring tape, "סטודיו סטיילינג" label, fabric color swatches at bottom
+- [x] 65.2: Create cohesive visual language between upload zone and loading animation — same stylist figure, measuring tape, color swatches, golden frame
+- [x] 65.3: Apply to Upload.tsx — full styling studio scene with racks, stylist, swatches, "הסטייליסטית שלך מחכה לך" text
+- [x] 65.4: Apply to GuestUpload.tsx — identical styling studio scene
+- [x] 65.5: Verified — 0 TS errors, 819/824 tests pass (same 5 pre-existing API failures)
