@@ -300,7 +300,7 @@ export default function StoreLogo({ name, size = "md", selected = false }: Store
   // If we have an actual logo image, use it
   if (logoUrl) {
     return (
-      <div className={`${sizeClasses.container} flex items-center justify-center rounded-lg`}>
+      <div className={`${sizeClasses.container} flex items-center justify-center rounded-lg bg-white`}>
         <img
           src={logoUrl}
           alt={name}
@@ -314,8 +314,8 @@ export default function StoreLogo({ name, size = "md", selected = false }: Store
   if (!brand) {
     // Fallback: simple styled text for unknown stores
     return (
-      <div className={`${sizeClasses.container} flex items-center justify-center rounded-lg`}>
-        <span className={`${sizeClasses.text} font-medium text-center leading-tight truncate`}>
+      <div className={`${sizeClasses.container} flex items-center justify-center rounded-lg bg-white`}>
+        <span className={`${sizeClasses.text} font-medium text-center leading-tight truncate text-gray-800`}>
           {name}
         </span>
       </div>
@@ -335,6 +335,11 @@ export default function StoreLogo({ name, size = "md", selected = false }: Store
   const containerStyle: React.CSSProperties = {};
   if (brand.bg && !selected) {
     containerStyle.backgroundColor = brand.bg;
+  }
+
+  // Add white background for brands that have dark text on no explicit bg
+  if (!brand.bg && !selected) {
+    containerStyle.backgroundColor = "#FFFFFF";
   }
 
   return (

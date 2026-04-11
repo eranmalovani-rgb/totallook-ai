@@ -1003,3 +1003,8 @@
 - [x] 86.2: Enlarge store logos in the mall/onboarding step — size sm→md, padding increased
 - [x] 86.3: Replace loading animation with StylingStudioAnimation (photo scanning, fitting room, mood board)
 - [x] 86.4: Test and verify — 26 onboarding tests pass, 845/850 total (5 pre-existing API failures)
+
+## Stage 87: Post-registration onboarding skip, analysis animation fix, store logos fix
+- [x] 87.1: Skip onboarding for users who registered after personalized analysis — getLoginUrl("/upload") + migrateGuestToUser already copies onboardingCompleted:1
+- [x] 87.2: Fix analysis animation — replaced FashionSpinner with StylingStudioAnimation in GuestReview analyzing/pending state, shows user photo with scanning effect
+- [x] 87.3: Fix store logos — added white background to all StoreLogo containers (text logos, image logos, and fallback)

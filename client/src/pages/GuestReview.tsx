@@ -25,6 +25,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import FashionSpinner, { FashionButtonSpinner } from "@/components/FashionSpinner";
+import StylingStudioAnimation from "@/components/StylingStudioAnimation";
 import StoreLogo, { extractStoreFromUrl, extractStoreFromLabel } from "@/components/StoreLogo";
 import type { FashionAnalysis, ShoppingLink, LinkedMention, OutfitSuggestion, ImprovementAlternative } from "../../../shared/fashionTypes";
 import { BRAND_URLS, POPULAR_INFLUENCERS } from "../../../shared/fashionTypes";
@@ -1073,11 +1074,14 @@ export default function GuestReview() {
 
   if (result.status === "analyzing" || result.status === "pending") {
     return (
-      <div className="min-h-screen bg-background text-foreground flex items-center justify-center" dir={dir}>
-        <div className="text-center space-y-4">
-          <FashionSpinner size="lg" />
-          <p className="text-muted-foreground">{t("guest", "analyzing")}</p>
-        </div>
+      <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center px-4" dir={dir}>
+        <StylingStudioAnimation
+          uploading={false}
+          analyzing={true}
+          selectedOccasion=""
+          selectedInfluencers={[]}
+          imagePreview={result.imageUrl || null}
+        />
       </div>
     );
   }
@@ -1600,7 +1604,7 @@ export default function GuestReview() {
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Button variant="default" size="lg" className="gap-2" asChild>
-                <a href={getLoginUrl()}>
+                <a href={getLoginUrl(fromOnboarding ? "/upload" : undefined)}>
                   <UserPlus className="w-4 h-4" />{fromOnboarding ? (lang === "he" ? "שמור את הפרופיל שלי" : "Save my profile") : t("guest", "signupButton")}
                 </a>
               </Button>
