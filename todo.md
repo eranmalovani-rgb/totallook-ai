@@ -1078,3 +1078,19 @@
 - [x] 97.6: Integrated checkLimit query + GuestTrialWall in Onboarding.tsx (blocks precise path when limit reached)
 - [x] 97.7: 14 new vitest tests for 3-trial limit (hasGuestUsedAnalysis, checkLimit shape, upload enforcement, boundary tests)
 - [x] 97.8: TypeScript 0 errors, all tests pass
+
+## Stage 98: Simplify non-personalized guest influencer section + remove mood board looks
+- [ ] 98.1: GuestReview (non-personalized / Path A only) — remove influencer avatar list, swap button, InfluencerPicker dialog; keep only AI-generated influencer insight text paragraph. Personalized guests (onboarding) keep full influencer section as-is.
+- [ ] 98.2: Remove mood board / outfit looks section entirely from GuestReview
+- [ ] 98.3: Remove mood board / outfit looks section entirely from ReviewPage (registered users)
+- [ ] 98.4: Remove mood board / outfit looks section entirely from WhatsAppReview
+- [ ] 98.5: Remove mood board / outfit looks section entirely from Demo page
+- [ ] 98.6: Update card labels/tabs to remove "Looks" tab from all review pages
+- [ ] 98.7: Verify TypeScript compiles, tests pass
+- [ ] 98.8: Push to GitHub
+
+## Stage 99: Update WhatsApp first message to reflect current features
+- [x] 99.1: Update no-image greeting message — mention 3 free analyses, signup benefits (unlimited analyses, smart wardrobe, personalized recommendations, influencer inspiration)
+- [x] 99.2: Update guest welcome message (sendWhatsAppWelcome) to match
+- [x] 99.3: Verify TypeScript compiles
+- [ ] 99.4: Push to GitHub
