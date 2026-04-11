@@ -782,3 +782,13 @@
 - [x] 62.4: Applied same gallery layout to GuestReview.tsx GuestImprovementCard
 - [x] 62.5: Selected alternative drives shoppingLinks, before/after badges, and color/material/pattern tags
 - [x] 62.6: Verified — 0 TS errors, 819/824 tests pass
+
+### 62b: Fix — alternatives lost in normalizeImprovementShoppingLinks
+- [x] 62b.1: Root cause: normalizeImprovementShoppingLinks built new object without `alternatives` field
+- [x] 62b.2: Added `alternatives: imp.alternatives` to return object
+- [x] 62b.3: Verified — alternatives now survive through sanitize → normalize → save pipeline
+
+### 63: Generic Stylistic Titles for Improvement Cards
+- [x] 63.1: Changed titles to category-based: שדרוג חלק עליון/מכנסיים/נעלה/שכבה עליונה/אקססורי + style tagline
+- [x] 63.2: Applied to both main catalog matching and default category matching
+- [x] 63.3: Verified — 0 TS errors, 819/824 tests pass (same 5 pre-existing API failures)

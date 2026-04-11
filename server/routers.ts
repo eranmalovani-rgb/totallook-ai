@@ -2442,6 +2442,7 @@ function normalizeImprovementShoppingLinks(
     shoppingLinks: finalLinks,
     closetMatch: imp.closetMatch,
     upgradeImageUrl: imp.upgradeImageUrl || undefined,
+    alternatives: imp.alternatives,
   };
 }
 
@@ -3134,6 +3135,15 @@ async function buildCatalogRecommendations(
     "sporty": isHebrew ? ["ספורט אלגנטי", "דינמיות מעוצבת"] : ["Elegant Sport", "Designed Dynamism"],
     "trendy": isHebrew ? ["על הגל", "טרנד מדויק"] : ["On Trend", "Precise Trend"],
   };
+  // Stage 63: Category-based generic titles (not product-specific)
+  const categoryTitles: Record<string, { he: string[]; en: string[] }> = {
+    "tops": { he: ["שדרוג חלק עליון", "חולצה חדשה ללוק"], en: ["Top Upgrade", "A Fresh Top"] },
+    "pants": { he: ["שדרוג מכנסיים", "חלק תחתון חדש"], en: ["Bottom Upgrade", "Fresh Pants"] },
+    "shoes": { he: ["שדרוג הנעלה", "נעליים שמשנות"], en: ["Footwear Upgrade", "Shoes That Transform"] },
+    "jackets": { he: ["שדרוג שכבה עליונה", "ז'קט שמשלים"], en: ["Outerwear Upgrade", "A Completing Layer"] },
+    "accessories": { he: ["אקססורי שמשלים", "הפרט שמשנה"], en: ["Completing Accessory", "The Detail That Matters"] },
+    "dresses": { he: ["שדרוג שמלה", "שמלה שמשנה"], en: ["Dress Upgrade", "A Dress That Transforms"] },
+  };
 
   for (const item of stageOneItems.slice(0, 8)) {
     const garmentType = (item.garmentType || "").toLowerCase();
@@ -3161,11 +3171,13 @@ async function buildCatalogRecommendations(
         userPaletteMaterials: uniqueMaterials, // Stage 60
         userPalettePatterns: uniquePatterns, // Stage 60
       });
+      console.log(`[Stage 52 Debug] Category=${garmentType} matches=${matches.length} items=[${matches.map(m => `${m.name}(id=${m.id})`).join(', ')}]`);
       if (matches.length === 0) continue;
       const catalogItem = matches[0];
       usedCatalogIds.push(catalogItem.id);
       // Stage 52: Store alternatives (2nd and 3rd matches)
       const altMatches = matches.slice(1);
+      console.log(`[Stage 52 Debug] Primary=${catalogItem.name}, alternatives=${altMatches.length} [${altMatches.map(m => m.name).join(', ')}]`);
       altMatches.forEach(m => usedCatalogIds.push(m.id));
 
       // Build Improvement from catalog item
@@ -3180,10 +3192,15 @@ async function buildCatalogRecommendations(
       const afterFit = catalogItem.fit || "regular";
       const afterStyle = (catalogItem.styleTags as string[] || [])[0] || "smart-casual";
 
-      // Build marketing-quality title
+      // Stage 63: Build category-based generic title (not product-specific)
+      const catKey = mapping.category || "tops";
+      const catTitleOptions = categoryTitles[catKey];
+      const catTitle = catTitleOptions
+        ? (isHebrew ? catTitleOptions.he : catTitleOptions.en)[Math.floor(Math.random() * (isHebrew ? catTitleOptions.he : catTitleOptions.en).length)]
+        : (isHebrew ? "שדרוג מדויק" : "Precise Upgrade");
       const taglineOptions = taglines[afterStyle] || (isHebrew ? ["שדרוג מדויק"] : ["Precise Upgrade"]);
       const tagline = taglineOptions[Math.floor(Math.random() * taglineOptions.length)];
-      const title = `${afterName} — ${tagline}`;
+      const title = `${catTitle} — ${tagline}`;
 
       // Build description
       const upgradeReason = isHebrew ? (catalogItem.upgradeReasonHe || catalogItem.upgradeReason || "") : (catalogItem.upgradeReason || "");
@@ -3259,8 +3276,15 @@ async function buildCatalogRecommendations(
       const alternatives: ImprovementAlternative[] = altMatches.map(alt =>
         buildAlternativeFromCatalog(alt, isHebrew, taglines, preferredStores, genderCat, budgetLevel)
       );
+      // Stage 63: Generic category title for default categories
+      const defCatTitleOptions = categoryTitles[cat];
+      const defCatTitle = defCatTitleOptions
+        ? (isHebrew ? defCatTitleOptions.he : defCatTitleOptions.en)[Math.floor(Math.random() * (isHebrew ? defCatTitleOptions.he : defCatTitleOptions.en).length)]
+        : (isHebrew ? "השלמה מושלמת" : "Perfect Addition");
+      const defTaglineOptions = taglines[afterStyle] || (isHebrew ? ["השלמה מושלמת"] : ["Perfect Addition"]);
+      const defTagline = defTaglineOptions[Math.floor(Math.random() * defTaglineOptions.length)];
       improvements.push({
-        title: `${afterName} — ${isHebrew ? "השלמה מושלמת" : "Perfect Addition"}`,
+        title: `${defCatTitle} — ${defTagline}`,
         description: upgradeReason || (isHebrew ? `${afterName} ישלים את הלוק בצורה מדויקת.` : `${afterName} will complete the look precisely.`),
         beforeLabel: isHebrew ? "חסר בלוק" : "Missing from look",
         afterLabel: afterName,
@@ -4300,7 +4324,6 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
               const impWithImages = (analysis.improvements || []).filter((i: any) => i.upgradeImageUrl);
               const outfitWithImages = (analysis.outfitSuggestions || []).filter((o: any) => o.aiImageUrl);
               console.log(`[Stage 51 DEBUG] Before save: ${impWithImages.length}/${(analysis.improvements || []).length} improvements have upgradeImageUrl, ${outfitWithImages.length}/${(analysis.outfitSuggestions || []).length} outfits have aiImageUrl`);
-              if (impWithImages.length > 0) console.log(`[Stage 51 DEBUG] Sample upgradeImageUrl: ${impWithImages[0].upgradeImageUrl?.substring(0, 80)}...`);
               await updateReviewAnalysis(bgReviewId, analysis.overallScore, analysis);
               const totalMs = Date.now() - stage2Start;
               console.log(`[Stage 51 Timing] Stage 2 TOTAL: ${totalMs}ms (catalog: ${catalogEndMs}ms, post: ${postProcessEndMs - catalogEndMs}ms, save: ${totalMs - postProcessEndMs}ms) reviewId=${bgReviewId}`);
