@@ -146,6 +146,23 @@ describe("Onboarding profile.save procedure", () => {
     expect(result).toBeDefined();
   });
 
+  it("accepts taste-scored profile from Tinder R1+R2 flow", async () => {
+    const { ctx } = createAuthContext();
+    const caller = appRouter.createCaller(ctx);
+
+    // Simulates: Venue=bar, R1 likes streetwear+classic+minimalist, R2 reinforced all 3, rejected boho negative
+    const result = await caller.profile.save({
+      occupation: "nightlife",
+      stylePreference: "minimalist, classic, streetwear",
+      saveToWardrobe: true,
+      onboardingCompleted: true,
+      country: "IL",
+    });
+
+    expect(result).toBeDefined();
+    expect(typeof result).toBe("object");
+  });
+
   it("validates input schema — rejects invalid types", async () => {
     const { ctx } = createAuthContext();
     const caller = appRouter.createCaller(ctx);

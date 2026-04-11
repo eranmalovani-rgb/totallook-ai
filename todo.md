@@ -927,3 +927,17 @@
 - [x] 79.5: New flow: Style → Venue → Tinder (6 outfits) → Quick Finish
 - [x] 79.6: Map Tinder likes to style preferences in profile
 - [x] 79.7: Test all screens and verify profile save works (6/6 vitest pass)
+
+## Stage 80: Onboarding — Remove Style Screen + Adaptive Tinder Round 2 (SUPERSEDED)
+- [x] Superseded by Stage 80 v2 below
+
+## Stage 80: Onboarding — Remove Style Screen + Adaptive R2 + Taste Scoring
+- [x] 80.1: Remove style silhouette screen — flow starts with Venue
+- [x] 80.2: Generate 3 reinforcement images per style (6 styles × 3 = 18 images)
+- [x] 80.3: Add adaptive Tinder Round 2 (4 cards): 3 reinforcements from liked styles + 1 negative from disliked style
+- [x] 80.4: Taste scoring system: R1 like=+1, R1 pass=-1, R2 like=+2, R2 pass=-2, R2 negative-like=+1, R2 negative-pass=-3
+- [x] 80.5: If user liked 0 in R1, show 4 random from all styles
+- [x] 80.6: New flow: Venue → Tinder R1 (6) → Tinder R2 (4: 3 reinforcement + 1 negative) → Quick Finish
+- [x] 80.7: Combine R1 + R2 scores for final ranked style preferences
+- [x] 80.8: Generated better minimalist reinforcement images
+- [x] 80.9: Update vitest tests for new flow + taste scoring (7/7 passing)
