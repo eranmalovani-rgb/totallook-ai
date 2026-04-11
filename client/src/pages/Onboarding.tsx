@@ -669,7 +669,7 @@ export default function Onboarding() {
           </div>
         </div>
       </div>
-      <div className="flex items-center justify-center gap-8 mt-5">
+      <div dir="ltr" className="flex items-center justify-center gap-8 mt-5">
         <button onClick={() => onSwipe("left")} className="w-14 h-14 rounded-full border-2 border-red-400/50 bg-red-500/10 flex items-center justify-center hover:bg-red-500/20 hover:border-red-400 transition-all active:scale-90">
           <X className="w-7 h-7 text-red-400" />
         </button>

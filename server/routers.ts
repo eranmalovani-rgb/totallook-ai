@@ -1047,7 +1047,7 @@ ${genderConstraint}`;
 
   // Occasion context
   const occasionMap: Record<string, string> = {
-    general: "GENERAL REVIEW — Give a comprehensive fashion review of this outfit. Evaluate the overall look holistically: style coherence, color harmony, fit, quality of items, and personal expression. Do NOT penalize for occasion-appropriateness since no specific occasion was chosen. Focus on the outfit's strengths and how to elevate it further. Be encouraging and constructive.",
+    general: "GENERAL REVIEW — Give a comprehensive fashion review of this outfit. CRITICAL: Since no specific occasion was chosen, you MUST DETECT THE LIKELY OCCASION/CONTEXT FROM THE PHOTO. Analyze the background, lighting, setting, and environment to determine WHERE the person is going or WHAT they are dressed for (e.g., elegant dark setting = evening event/dinner, outdoor caf\u00e9 = casual brunch, office background = work, etc.). State your detected context in the summary and tailor ALL recommendations to match that detected context. Do NOT give generic caf\u00e9-style recommendations to someone dressed elegantly in a dark/formal setting. Evaluate: style coherence, color harmony, fit, quality of items, and personal expression. Be encouraging and constructive.",
     casual: "CASUAL / EVERYDAY — Everyday activities, errands, regular day. Comfort and effortless style are key. A clean, put-together casual look scores high. Overdressing (suits, heels) would be inappropriate.",
     work: "WORK / OFFICE — Professional work environment. Polished, office-appropriate looks. Consider dress codes from smart casual to business formal. Too casual (flip-flops, ripped jeans, crop tops) would score low.",
     date: "DATE NIGHT — Romantic outing. Attractive, well-put-together looks that show personality and effort. Should look intentional and appealing. Too casual or sloppy scores low.",
@@ -1248,6 +1248,8 @@ Before analyzing items, scan the image for person/body information:
 - What is the body pose (standing, sitting, walking, leaning)?
 - Brief pose description (e.g. "standing facing camera, hands in pockets")
 This data is CRITICAL for downstream features — if feet are not visible, we know shoe analysis may be limited.
+
+GENDER DETECTION (REQUIRED): You MUST detect the person's gender (male/female) from the photo and explicitly mention it in the summary (e.g. "הגבר לובש..." or "האישה לובשת..." / "The man is wearing..." / "She is wearing..."). This is critical for matching influencers and recommendations to the correct gender.
 
 ENRICHED ITEM METADATA (REQUIRED FOR EACH ITEM):
 For EVERY item, you MUST provide structured metadata beyond just name/description:
@@ -2036,7 +2038,7 @@ export function buildRecommendationsPromptFromCore(
     ? (isHebrew
       ? `אירוע יעד: ${occasion}\n❗ קריטי: המשתמש הולך לאירוע הזה! כל ההמלצות, השדרוגים, הלוקים והשילובים חייבים להתאים ספציפית לאירוע הזה.\n- כל improvement חייב להסביר למה השדרוג מתאים לאירוע ("פולו פיקה — מושלם לדייט כי...")\n- outfitSuggestions חייבים להיות לוקים שמתאימים בדיוק לאירוע הזה, לא לוקים גנריים\n- אם הפריט הנוכחי לא מתאים לאירוע — ההמלצה חייבת להציע חלופה שכן מתאימה`
       : `Target occasion: ${occasion}\n❗ CRITICAL: The user is GOING TO THIS EVENT! ALL recommendations, upgrades, outfits, and styling advice MUST be specifically tailored for this occasion.\n- Every improvement must explain why the upgrade is right for this occasion\n- outfitSuggestions must be looks specifically suited for this occasion, not generic outfits\n- If the current item doesn't fit the occasion, the recommendation must suggest an occasion-appropriate alternative`)
-    : (isHebrew ? "אין אירוע יעד מחייב." : "No strict target occasion.");
+    : (isHebrew ? "אין אירוע יעד מחייב. חובה: זהה את ההקשר/סביבה מתוך נתוני שלב 1 (סיכום, פריטים, רקע) והתאם את כל ההמלצות להקשר המזוהה. אם הלוק אלגנטי והרקע חשוך — אל תמליץ על בית קפה!" : "No strict target occasion. IMPORTANT: Detect the likely occasion/context from Stage 1 data (summary, items, background) and tailor ALL recommendations to match. If the look is elegant and the setting is dark/formal — do NOT recommend caf\u00e9-style upgrades!");
   const normalizedGender = (userGender || "").toLowerCase();
   const genderLine = normalizedGender === "male"
     ? (isHebrew
@@ -6012,6 +6014,38 @@ Return ONLY a JSON object with these exact fields:
             }
           } catch (wardrobeErr: any) {
             console.warn(`[Guest Analysis] Failed to auto-save wardrobe items:`, wardrobeErr?.message);
+          }
+
+          // ── Stage 100: Auto-detect gender from Stage 1 summary for non-profiled guests ──
+          if (!profileForPrompt?.gender && analysisCore.summary) {
+            const summaryLower = analysisCore.summary.toLowerCase();
+            let detectedGender: string | null = null;
+            // Hebrew gender detection
+            if (summaryLower.includes("גבר") || summaryLower.includes("גברי") || summaryLower.includes("גברית")) detectedGender = "male";
+            else if (summaryLower.includes("אישה") || summaryLower.includes("נשית") || summaryLower.includes("נשי") || summaryLower.includes("אישה ")) detectedGender = "female";
+            // English gender detection
+            else if (/\bhe\b|\bhis\b|\bmale\b|\bman\b|\bgentleman\b/.test(summaryLower)) detectedGender = "male";
+            else if (/\bshe\b|\bher\b|\bfemale\b|\bwoman\b/.test(summaryLower)) detectedGender = "female";
+            // Fallback: check items for gendered garment types
+            if (!detectedGender) {
+              const allItemText = analysisCore.items.map(i => `${i.name} ${i.description || ""} ${i.analysis || ""}`).join(" ").toLowerCase();
+              if (allItemText.includes("שמלה") || allItemText.includes("חצאית") || allItemText.includes("dress") || allItemText.includes("skirt") || allItemText.includes("heels") || allItemText.includes("blouse")) detectedGender = "female";
+              else if (allItemText.includes("men's") || allItemText.includes("גברי")) detectedGender = "male";
+            }
+            if (detectedGender) {
+              console.log(`[Stage 100] Auto-detected gender from analysis: ${detectedGender}`);
+              if (profileForPrompt) {
+                (profileForPrompt as any).gender = detectedGender;
+              }
+              // Also save to guest profile for future analyses
+              if (session.fingerprint) {
+                try {
+                  await saveGuestProfile(session.fingerprint, { gender: detectedGender });
+                } catch (e) {
+                  console.warn("[Stage 100] Failed to save auto-detected gender:", e);
+                }
+              }
+            }
           }
 
           // ── Stage 2 runs in background (fire-and-forget) ──

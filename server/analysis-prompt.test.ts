@@ -553,7 +553,7 @@ describe("General review occasion", () => {
     const prompt = buildFashionPrompt(undefined, undefined, "general", null, [], "he");
     expect(prompt).toContain("GENERAL REVIEW");
     expect(prompt).toContain("comprehensive fashion review");
-    expect(prompt).toContain("Do NOT penalize for occasion-appropriateness");
+    expect(prompt).toContain("DETECT THE LIKELY OCCASION/CONTEXT FROM THE PHOTO");
   });
 
   it("does NOT include critical occasion-fit scoring rules for general", () => {

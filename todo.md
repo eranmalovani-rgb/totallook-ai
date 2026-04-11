@@ -1094,3 +1094,11 @@
 - [x] 99.2: Update guest welcome message (sendWhatsAppWelcome) to match
 - [x] 99.3: Verify TypeScript compiles
 - [x] 99.4: Push to GitHub (token lacks push scope — user can export from Management UI)
+
+## Stage 100: Fix guest recommendations, influencer matching, Tinder button order
+- [x] 100.1: Fix AI prompt — must detect occasion/context from photo (evening event, café, work, etc.) and tailor recommendations accordingly. No generic café recommendations for elegant evening looks.
+- [x] 100.2: Fix influencer matching — ALWAYS filter by detected gender + style, both for personalized and non-personalized guests. Never show male influencers to female guests or vice versa.
+- [x] 100.3: Fix personalized guest influencer section — must show influencers matching guest's gender + style (currently showing mismatched gender)
+- [x] 100.4: Fix Tinder swipe buttons — green V on right, red X on left (fixed RTL flip with dir=ltr)
+- [x] 100.5: Verify TypeScript compiles, tests pass (888 pass, 5 external API tests fail as expected)
+- [x] 100.6: Push to GitHub
