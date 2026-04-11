@@ -4,6 +4,7 @@ import { trpc } from "@/lib/trpc";
 import { Wand2, Download, ShoppingBag, ExternalLink, RotateCcw, Sparkles, Check, X, Eye } from "lucide-react";
 import StoreLogo, { extractStoreFromUrl, extractStoreFromLabel } from "@/components/StoreLogo";
 import FashionSpinner from "@/components/FashionSpinner";
+import StylistLoadingAnimation from "@/components/StylistLoadingAnimation";
 import BeforeAfterSlider from "@/components/BeforeAfterSlider";
 import {
   Dialog,
@@ -486,15 +487,7 @@ export default function GuestFixMyLookModal({ sessionId, analysis, trigger, clos
 
         {/* Step 2: Loading */}
         {step === "loading" && (
-          <div className="py-12 flex flex-col items-center gap-6">
-            <FashionSpinner />
-            <div className="text-center space-y-2">
-              <p className="font-bold text-lg">{isHe ? "משפר את הלוק שלך..." : "Improving your look..."}</p>
-              <p className="text-sm text-muted-foreground max-w-xs">
-                {isHe ? "ה-AI מנתח את השיפורים שבחרת ומייצר הדמיה. זה יכול לקחת 15-20 שניות." : "AI is analyzing your selected improvements and generating a visualization. This may take 15-20 seconds."}
-              </p>
-            </div>
-          </div>
+          <StylistLoadingAnimation isHebrew={isHe} />
         )}
 
         {/* Step 3: Result */}
