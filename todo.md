@@ -746,3 +746,13 @@
 - [x] 58.1: Found: normalizeImprovementShoppingLinks runs 80x during Fix My Look (16 polls × 5 improvements)
 - [x] 58.2: Added in-memory normalization cache (60s TTL) to review.get, getByShareToken, guest.getResult, guest.getByToken
 - [x] 58.3: Verified — 0 TS errors, 819/824 tests pass, no quality regression
+
+### 59: Catalog Color Matching — Color Distance & Relevance Scoring
+- [x] 59.1: Built COLOR_RGB map with 50+ colors (RGB values) in server/db.ts
+- [x] 59.2: Implemented colorDistance() — Euclidean distance in RGB space
+- [x] 59.3: Collect all user's detected colors from Stage 1 items, deduplicate, pass as userPaletteColors
+- [x] 59.4: Penalty system: -8 for far colors (dist 200-300), -15 for very far (>300)
+- [x] 59.5: Bonus system: +12 very close (<60), +6 close (60-120), +8 same family different shade
+- [x] 59.6: Defined 30+ COMPLEMENTARY_PAIRS (navy↔tan, black↔white, grey↔burgundy, etc.) → +15 bonus
+- [x] 59.7: Verified — 0 TS errors, 819/824 tests pass (same 5 pre-existing API failures)
+- [ ] 59.8: Test that green items no longer dominate when user wears neutrals/darks (needs live test)

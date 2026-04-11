@@ -2272,6 +2272,8 @@ export interface CatalogMatchParams {
   detectedSeason?: "cold" | "warm" | "transitional";
   /** Original sub-category from the photo (for length preservation rule) */
   originalSubCategory?: string;
+  /** Stage 59: ALL colors detected in the user's outfit (for color distance scoring) */
+  userPaletteColors?: string[];
 }
 
 /**
@@ -2383,6 +2385,71 @@ const OCCASION_DRESS_CODE: Record<string, Set<string>> = {
   shabbat: new Set(["shorts", "tank top", "crop top", "joggers"]),
 };
 
+// ── Stage 59: Color Distance Scoring ──
+// Map color names → RGB for Euclidean distance calculations
+const COLOR_RGB: Record<string, [number, number, number]> = {
+  black: [0, 0, 0], white: [255, 255, 255], navy: [0, 31, 63], "navy blue": [0, 31, 63],
+  "dark blue": [0, 0, 139], red: [204, 0, 0], burgundy: [128, 0, 32], maroon: [128, 0, 0],
+  beige: [245, 245, 220], camel: [193, 154, 107], tan: [210, 180, 140],
+  charcoal: [54, 69, 79], "charcoal gray": [54, 69, 79], grey: [128, 128, 128], gray: [128, 128, 128],
+  "dark grey": [64, 64, 64], "dark gray": [64, 64, 64], "light grey": [192, 192, 192], "light gray": [192, 192, 192],
+  "light blue": [173, 216, 230], "royal blue": [65, 105, 225], blue: [0, 0, 204],
+  "forest green": [34, 139, 34], "dark green": [0, 100, 0], green: [0, 128, 0],
+  olive: [128, 128, 0], "olive green": [85, 107, 47], khaki: [195, 176, 145],
+  brown: [139, 69, 19], "dark brown": [101, 67, 33], cream: [255, 253, 208],
+  "off-white": [250, 249, 246], ecru: [194, 178, 128], ivory: [255, 255, 240],
+  pink: [255, 192, 203], "light pink": [255, 182, 193], wine: [114, 47, 55],
+  coral: [255, 127, 80], orange: [255, 140, 0], yellow: [255, 215, 0],
+  purple: [128, 0, 128], lavender: [230, 230, 250], teal: [0, 128, 128],
+  turquoise: [64, 224, 208], sand: [194, 178, 128], stone: [146, 142, 133],
+  rust: [183, 65, 14], salmon: [250, 128, 114], peach: [255, 218, 185],
+  mint: [152, 255, 152], sage: [178, 172, 136], emerald: [80, 200, 120],
+  cobalt: [0, 71, 171], indigo: [75, 0, 130], mauve: [224, 176, 255],
+  plum: [142, 69, 133], taupe: [72, 60, 50], mocha: [150, 121, 105],
+  chocolate: [123, 63, 0], copper: [184, 115, 51], gold: [255, 215, 0],
+  silver: [192, 192, 192], rose: [255, 0, 127], magenta: [255, 0, 255],
+  "grey marl": [158, 158, 158],
+};
+
+/** Complementary color pairs — these are fashion-approved pairings that score a bonus */
+const COMPLEMENTARY_PAIRS: [string, string][] = [
+  // Classic neutrals pairings
+  ["black", "white"], ["navy", "white"], ["navy", "cream"], ["navy", "beige"],
+  ["navy", "tan"], ["navy", "camel"], ["charcoal", "white"], ["charcoal", "cream"],
+  ["grey", "white"], ["grey", "navy"], ["grey", "burgundy"], ["grey", "blue"],
+  ["black", "grey"], ["black", "charcoal"], ["black", "navy"],
+  // Earth tones
+  ["brown", "beige"], ["brown", "cream"], ["brown", "tan"], ["brown", "white"],
+  ["camel", "navy"], ["camel", "white"], ["camel", "cream"], ["camel", "grey"],
+  ["khaki", "navy"], ["khaki", "white"], ["olive", "cream"], ["olive", "tan"],
+  ["tan", "navy"], ["tan", "white"],
+  // Accent pairings
+  ["burgundy", "navy"], ["burgundy", "grey"], ["burgundy", "cream"],
+  ["wine", "navy"], ["wine", "grey"],
+  ["teal", "cream"], ["teal", "grey"],
+];
+
+function colorNameToRgb(name: string): [number, number, number] | null {
+  return COLOR_RGB[name.toLowerCase().trim()] || null;
+}
+
+function colorDistance(rgb1: [number, number, number], rgb2: [number, number, number]): number {
+  // Euclidean distance in RGB space (0 = identical, ~441 = max)
+  return Math.sqrt(
+    (rgb1[0] - rgb2[0]) ** 2 +
+    (rgb1[1] - rgb2[1]) ** 2 +
+    (rgb1[2] - rgb2[2]) ** 2
+  );
+}
+
+function isComplementaryPair(color1: string, color2: string): boolean {
+  const c1 = color1.toLowerCase().trim();
+  const c2 = color2.toLowerCase().trim();
+  return COMPLEMENTARY_PAIRS.some(([a, b]) =>
+    (a === c1 && b === c2) || (a === c2 && b === c1)
+  );
+}
+
 function scoreCandidates(candidates: CatalogItem[], params: CatalogMatchParams): CatalogItem[] {
   const {
     subCategory,
@@ -2393,7 +2460,15 @@ function scoreCandidates(candidates: CatalogItem[], params: CatalogMatchParams):
     season,
     detectedSeason,
     originalSubCategory,
+    userPaletteColors = [],
   } = params;
+
+  // Pre-compute user palette RGB values for distance scoring
+  const userPaletteRgb: Array<{ name: string; rgb: [number, number, number] }> = [];
+  for (const c of userPaletteColors) {
+    const rgb = colorNameToRgb(c);
+    if (rgb) userPaletteRgb.push({ name: c.toLowerCase().trim(), rgb });
+  }
 
   const scored = candidates.map(item => {
     let score = 0;
@@ -2485,6 +2560,62 @@ function scoreCandidates(candidates: CatalogItem[], params: CatalogMatchParams):
       // Harmony group match
       if (colors.some(c => colorGroups.some(g => g.includes(c.toLowerCase())))) {
         score += 6;
+      }
+    }
+
+    // ── Stage 59: Color Distance Scoring (user's full palette) ──
+    if (userPaletteRgb.length > 0) {
+      const itemColor = item.color.toLowerCase().trim();
+      const itemRgb = colorNameToRgb(itemColor);
+
+      if (itemRgb) {
+        // 1. Find minimum distance to any color in user's palette
+        let minDist = Infinity;
+        for (const uc of userPaletteRgb) {
+          const d = colorDistance(itemRgb, uc.rgb);
+          if (d < minDist) minDist = d;
+        }
+
+        // 2. Score based on distance:
+        //    Very close (< 60): strong bonus (+12) — same color family
+        //    Close (60-120): moderate bonus (+6) — related shade
+        //    Medium (120-200): neutral (0) — different but not clashing
+        //    Far (200-300): penalty (-8) — unrelated color
+        //    Very far (> 300): strong penalty (-15) — clashing color
+        if (minDist < 60) {
+          score += 12;
+        } else if (minDist < 120) {
+          score += 6;
+        } else if (minDist < 200) {
+          // neutral — no change
+        } else if (minDist < 300) {
+          score -= 8;
+        } else {
+          score -= 15;
+        }
+
+        // 3. Complementary pair bonus: check if item color forms a known good pair with any user color
+        let hasComplementary = false;
+        for (const uc of userPaletteRgb) {
+          if (isComplementaryPair(itemColor, uc.name)) {
+            hasComplementary = true;
+            break;
+          }
+        }
+        if (hasComplementary) {
+          score += 15; // Strong bonus for fashion-approved complementary pairing
+        }
+
+        // 4. Same-color-family bonus: if the item is the same base color as something the user wears
+        //    (e.g. user wears "navy", item is "dark blue" → same family)
+        const itemBaseColor = itemColor.replace(/^(dark|light|deep|pale|bright)\s+/, "");
+        for (const uc of userPaletteRgb) {
+          const userBaseColor = uc.name.replace(/^(dark|light|deep|pale|bright)\s+/, "");
+          if (itemBaseColor === userBaseColor && itemColor !== uc.name) {
+            score += 8; // Same family, different shade — good variation
+            break;
+          }
+        }
       }
     }
 

@@ -3096,6 +3096,16 @@ async function buildCatalogRecommendations(
     warmCount >= 2 && warmCount > coldCount ? "warm" : "transitional";
   console.log(`[Stage 51h] Detected season: ${detectedSeason} (cold=${coldCount}, warm=${warmCount})`);
 
+  // Stage 59: Collect ALL colors from user's outfit for color distance scoring
+  const userPaletteColors: string[] = [];
+  for (const item of stageOneItems) {
+    if (item.preciseColor) userPaletteColors.push(item.preciseColor.toLowerCase());
+    else if (item.color) userPaletteColors.push(item.color.toLowerCase());
+  }
+  // Deduplicate
+  const uniquePalette = [...new Set(userPaletteColors)];
+  console.log(`[Stage 59] User palette colors: [${uniquePalette.join(", ")}]`);
+
   // Find upgrade items for each Stage 1 item
   const usedCatalogIds: number[] = [];
   const improvements: Improvement[] = [];
@@ -3136,6 +3146,7 @@ async function buildCatalogRecommendations(
         limit: 3, // Stage 52: fetch 3 options per category
         detectedSeason,
         originalSubCategory: mapping.subCategory,
+        userPaletteColors: uniquePalette, // Stage 59: pass full palette for color distance scoring
       });
       if (matches.length === 0) continue;
       const catalogItem = matches[0];
@@ -3218,6 +3229,7 @@ async function buildCatalogRecommendations(
         excludeIds: usedCatalogIds,
         limit: 3, // Stage 52: fetch 3 options
         detectedSeason,
+        userPaletteColors: uniquePalette, // Stage 59
       });
       if (matches.length === 0) continue;
       const catalogItem = matches[0];
