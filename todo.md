@@ -909,12 +909,12 @@
 - [x] 77.3: Style the headline with proper amber/gold accents and emphasis
 
 ## Stage 78: New Visual Onboarding — "הסטייליסטית שלך רוצה להכיר אותך"
-- [ ] 78.1: Screen 1 — "מי את?" — 3 style silhouettes (casual, elegant, sporty) single-tap
-- [ ] 78.2: Screen 2 — "לאן את הולכת הכי הרבה?" — 4 atmosphere images (office, bar, beach, event) single-tap
-- [ ] 78.3: Screen 3 — "איזה ארון חלומות?" — 3 closet options (budget levels) single-tap
-- [ ] 78.4: Screen 4 — "בחרי את הלוק שהכי מדבר אלייך" — 6 outfit grid (optional)
-- [ ] 78.5: Stylist reactions between screens (speech bubbles)
-- [ ] 78.6: Adaptive logic — map selections to profile fields (gender, age, budget, occupation, style, brands)
-- [ ] 78.7: Save profile via existing tRPC profile.save mutation
-- [ ] 78.8: Apply to both regular (Onboarding.tsx) and guest flows
-- [ ] 78.9: Dark theme + amber/gold + studio aesthetic + RTL + mobile-first
+- [x] 78.1: Screen 1 — Gender selection with auto-advance (3 options, emoji cards)
+- [x] 78.2: Screen 2 — Style silhouette selection (casual/elegant/sporty) with generated images, auto-advance
+- [x] 78.3: Screen 3 — Venue/atmosphere selection (office/bar/beach/event) with generated images, auto-advance
+- [x] 78.4: Screen 4 — Age range + terms consent + Quick Finish CTA + "fine-tune" link to Phase B
+- [x] 78.5: Stylist reactions between screens (speech bubbles with contextual messages)
+- [x] 78.6: Adaptive logic — map visual selections to profile fields (style→stylePreference, venue→occupation)
+- [x] 78.7: Save profile via existing tRPC profile.save mutation (quick finish + full finish paths)
+- [ ] 78.8: Apply to guest flow (future — currently regular Onboarding.tsx only)
+- [x] 78.9: Dark theme + amber/gold + studio aesthetic + RTL + mobile-first + dot progress indicators
