@@ -703,3 +703,26 @@
 - [x] 52.5: Frontend — clicking tab switches all content (image, title, description, afterLabel, shopping links)
 - [x] 52.6: All rules apply to all 3 options (same findCatalogMatches with season/length/occasion scoring)
 - [x] 52.7: Tests pass (819/824, same 5 pre-existing). 0 TS errors.
+
+### 53: Add 1000 New Catalog Items (Free Method)
+- [ ] 53.1: Generate 1000 diverse catalog items programmatically (combinations of categories, styles, colors, materials, occasions)
+- [ ] 53.2: Generate AI images via Forge ImageService (free, already configured)
+- [ ] 53.3: Upload images to Manus S3 and insert items into DB
+- [ ] 53.4: Verify items inserted correctly with images
+- [ ] 53.5: Ensure gender balance (men + women), occasion coverage, and style diversity
+
+### 53: Add 1000 New Catalog Items with Images
+- [ ] 53.1: Generate 1000 diverse catalog items programmatically (categories, styles, colors, materials, occasions, genders)
+- [ ] 53.2: Generate AI images via Forge ImageService (free) and upload to Manus S3
+- [ ] 53.3: Insert items into Manus DB with Cloudfront image URLs
+- [ ] 53.4: Verify items inserted correctly — all with images, good gender/category/occasion distribution
+- [ ] 53.5: Ensure 3 alternatives per category work after adding items
+
+### 54: Fix My Look Improvements
+- [x] 54.1: Frontend — default all improvements to OFF (user selects what to fix, not deselects)
+- [x] 54.2: Frontend — same change for GuestFixMyLookModal
+- [x] 54.3: Backend — use catalog metadata (color, material, pattern, fit, subCategory) directly in prompt instead of re-analyzing
+- [x] 54.4: Backend — pass catalog item's exact color name + hex code in prompt for zero-ambiguity color instruction
+- [ ] 54.5: Backend — skip image dimension probing if already cached in analysis metadata
+- [x] 54.6: Harden prompt — explicit catalog color (with hex) + material + pattern + fit as non-negotiable instructions
+- [x] 54.7: Test and verify — 0 TS errors, 819/824 tests pass (same 5 pre-existing API failures)

@@ -138,16 +138,7 @@ export default function GuestFixMyLookModal({ sessionId, analysis, trigger, clos
     });
   }, [allImprovements, allItems]);
 
-  // Auto-select all improvements on open
-  useEffect(() => {
-    if (open && step === "select" && Object.keys(selectedPerImp).length === 0) {
-      const initial: Record<number, number> = {};
-      for (const card of improvementCards) {
-        initial[card.impIdx] = card.closetMatch ? -1 : 0;
-      }
-      setSelectedPerImp(initial);
-    }
-  }, [open, step, improvementCards]);
+  // Default: all improvements OFF — user selects what to fix
 
   const handleOpen = (isOpen: boolean) => {
     setOpen(isOpen);

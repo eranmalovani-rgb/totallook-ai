@@ -1370,6 +1370,25 @@ function detectColorHint(text: string): string | null {
   return null;
 }
 
+// Color name → hex code map for absolute precision in Fix My Look prompts
+const COLOR_HEX_MAP: Record<string, string> = {
+  BLACK: "#000000", WHITE: "#FFFFFF", NAVY: "#001F3F", "NAVY BLUE": "#001F3F",
+  RED: "#CC0000", BURGUNDY: "#800020", BEIGE: "#F5F5DC", CAMEL: "#C19A6B",
+  CHARCOAL: "#36454F", "CHARCOAL GRAY": "#36454F", GREY: "#808080", GRAY: "#808080",
+  "LIGHT BLUE": "#ADD8E6", "ROYAL BLUE": "#4169E1", BLUE: "#0000CC",
+  "FOREST GREEN": "#228B22", GREEN: "#008000", "OLIVE GREEN": "#556B2F", OLIVE: "#808000", KHAKI: "#C3B091",
+  BROWN: "#8B4513", "DARK BROWN": "#654321", TAN: "#D2B48C", CREAM: "#FFFDD0",
+  "OFF-WHITE": "#FAF9F6", ECRU: "#C2B280", PINK: "#FFC0CB", "LIGHT PINK": "#FFB6C1",
+  WINE: "#722F37", CORAL: "#FF7F50", ORANGE: "#FF8C00", YELLOW: "#FFD700",
+  PURPLE: "#800080", LAVENDER: "#E6E6FA", TEAL: "#008080", TURQUOISE: "#40E0D0",
+  "GREY MARL": "#9E9E9E", SAND: "#C2B280", STONE: "#928E85", IVORY: "#FFFFF0",
+  MAROON: "#800000", RUST: "#B7410E", SALMON: "#FA8072", PEACH: "#FFDAB9",
+  MINT: "#98FF98", SAGE: "#B2AC88", EMERALD: "#50C878", JADE: "#00A86B",
+  COBALT: "#0047AB", INDIGO: "#4B0082", MAUVE: "#E0B0FF", PLUM: "#8E4585",
+  TAUPE: "#483C32", MOCHA: "#967969", CHOCOLATE: "#7B3F00", COPPER: "#B87333",
+  GOLD: "#FFD700", SILVER: "#C0C0C0", ROSE: "#FF007F", MAGENTA: "#FF00FF",
+};
+
 function buildDeterministicFixMyLookPrompt(params: {
   analysis: FashionAnalysis;
   itemsToFix: FashionAnalysis["items"];
@@ -1438,7 +1457,7 @@ function buildDeterministicFixMyLookPrompt(params: {
     if (imp.afterStyle) extraAfterSpecs.push(`style: ${imp.afterStyle}`);
     const extraSpecsStr = extraAfterSpecs.length > 0 ? ` (${extraAfterSpecs.join(", ")})` : "";
 
-    // ---- Color extraction — priority order ----
+    // ---- Color extraction — priority order (catalog metadata first) ----
     const structuredAfterColor = (imp.afterColor || "").trim() || null;
     const colorFromProduct = !structuredAfterColor && selected?.productLabel ? detectColorHint(selected.productLabel) : null;
     const legacyFallback = !structuredAfterColor && !colorFromProduct
@@ -1446,31 +1465,45 @@ function buildDeterministicFixMyLookPrompt(params: {
       : null;
     const colorHint = structuredAfterColor?.toUpperCase() || colorFromProduct || legacyFallback;
 
+    const hexCode = colorHint ? COLOR_HEX_MAP[colorHint] || null : null;
+
     let colorInstruction: string;
-    if (colorHint) {
-      colorInstruction = `MANDATORY COLOR: ${colorHint}. Use EXACTLY this color with ZERO substitution.`;
+    if (colorHint && hexCode) {
+      colorInstruction = `ABSOLUTE COLOR REQUIREMENT: This garment MUST be ${colorHint} (${hexCode}). Any deviation from this exact color = FAILURE. Do NOT substitute with any similar shade. The garment color must be visually identical to ${colorHint}.`;
+    } else if (colorHint) {
+      colorInstruction = `ABSOLUTE COLOR REQUIREMENT: This garment MUST be ${colorHint}. Any other color = FAILURE. Do NOT substitute, approximate, or default to red/warm tones.`;
     } else if (selected?.productImageUrl) {
-      colorInstruction = `CRITICAL: Copy the EXACT color from the product reference image. NEVER default to red or warm tones.`;
+      colorInstruction = `CRITICAL: Copy the EXACT color from the product reference image. Match the dominant color pixel-for-pixel. NEVER default to red or warm tones.`;
     } else {
-      colorInstruction = `WARNING: No color provided. Keep the SAME color as the original garment in image[0]. NEVER introduce red or warm tones.`;
+      colorInstruction = `WARNING: No color specified. Keep the SAME color as the original garment in image[0]. NEVER introduce red or warm tones.`;
     }
 
-    // ---- Pattern instruction ----
-    const patternHint = imp.afterPattern && imp.afterPattern !== "solid"
-      ? ` PATTERN: ${imp.afterPattern.toUpperCase()} — the garment MUST show this pattern.`
-      : imp.afterPattern === "solid" ? " PATTERN: SOLID — single uniform color, no patterns." : "";
+    // ---- Pattern instruction (hardened) ----
+    let patternHint: string;
+    if (imp.afterPattern && imp.afterPattern !== "solid") {
+      patternHint = ` PATTERN REQUIREMENT: The garment MUST display a ${imp.afterPattern.toUpperCase()} pattern. This is non-negotiable.`;
+    } else if (imp.afterPattern === "solid") {
+      patternHint = " PATTERN REQUIREMENT: SOLID color only — absolutely no stripes, checks, prints, or patterns of any kind.";
+    } else {
+      patternHint = "";
+    }
 
-    // ---- Material/texture instruction ----
+    // ---- Material/texture instruction (hardened) ----
     const materialHint = imp.afterMaterial
-      ? ` MATERIAL: ${imp.afterMaterial} — render fabric draping, sheen, and texture consistent with ${imp.afterMaterial}.`
+      ? ` MATERIAL REQUIREMENT: ${imp.afterMaterial.toUpperCase()} — the fabric MUST look like ${imp.afterMaterial} with correct draping, sheen, and texture. Not a generic fabric.`
+      : "";
+
+    // ---- Fit instruction (new — from catalog) ----
+    const fitHint = imp.afterFit && imp.afterFit !== "regular"
+      ? ` FIT: ${imp.afterFit.toUpperCase()} — the garment must have a clearly ${imp.afterFit} silhouette.`
       : "";
 
     let imageRef = "";
     if (selected?.productImageUrl) {
-      imageRef = ` Reference product photo is image[${productImageRefIndex}] — copy its EXACT color, pattern, texture, and style from this image.`;
+      imageRef = ` Reference product photo is image[${productImageRefIndex}] — copy its EXACT color, pattern, texture, and style from this image. The output garment must be visually identical to this reference.`;
       productImageRefIndex++;
     }
-    return `- Replace the "${richBeforeDesc}" with a "${richAfterDesc}"${extraSpecsStr}. ${colorInstruction}${patternHint}${materialHint}${imageRef}`;
+    return `- Replace the "${richBeforeDesc}" with a "${richAfterDesc}"${extraSpecsStr}. ${colorInstruction}${patternHint}${materialHint}${fitHint}${imageRef}`;
   });
 
   const fallbackReplacements = itemsToFix.map((item) => {
