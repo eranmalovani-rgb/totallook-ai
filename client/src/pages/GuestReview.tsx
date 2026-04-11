@@ -1024,6 +1024,12 @@ export default function GuestReview() {
     { enabled: !!fingerprint }
   );
 
+  // Fetch guest profile for gender/age/style data (used for influencer matching)
+  const { data: guestProfile } = trpc.guest.getProfile.useQuery(
+    { fingerprint: fingerprint || "" },
+    { enabled: !!fingerprint }
+  );
+
 
   const closetItems = wardrobeData ?? [];
 
@@ -1212,21 +1218,30 @@ export default function GuestReview() {
     const influencerMentions = mentions.filter(m => m.type === "influencer");
     const mentionedNames = influencerMentions.map(m => m.text);
 
-    // Build match profile from analysis data
+      // Build match profile from guest profile data (onboarding) + analysis fallback
     const matchProfile: import("../../../shared/influencerMatcher").MatchProfile = {
       mentionedInfluencers: mentionedNames,
     };
-
-    // Try to extract style/gender info from the analysis summary
-    const summaryLower = (analysis.summary || "").toLowerCase();
-    if (summaryLower.includes("male") || summaryLower.includes("גבר")) matchProfile.gender = "male";
-    else if (summaryLower.includes("female") || summaryLower.includes("אישה") || summaryLower.includes("נשית")) matchProfile.gender = "female";
-
-    // Extract style from items
-    const styleHints = analysis.items.map(item => item.analysis || "").join(" ").toLowerCase();
-    const styleKeywords = ["streetwear", "smart-casual", "classic", "boho", "minimalist", "athleisure"];
-    const detectedStyles = styleKeywords.filter(s => styleHints.includes(s));
-    if (detectedStyles.length > 0) matchProfile.stylePreference = detectedStyles.join(", ");
+    // Use guest profile gender/age/budget/style if available (from onboarding)
+    if (guestProfile?.gender) {
+      matchProfile.gender = guestProfile.gender;
+    } else {
+      // Fallback: try to extract gender from analysis summary
+      const summaryLower = (analysis.summary || "").toLowerCase();
+      if (summaryLower.includes("male") || summaryLower.includes("גבר")) matchProfile.gender = "male";
+      else if (summaryLower.includes("female") || summaryLower.includes("אישה") || summaryLower.includes("נשית")) matchProfile.gender = "female";
+    }
+    if (guestProfile?.ageRange) matchProfile.ageRange = guestProfile.ageRange;
+    if (guestProfile?.budgetLevel) matchProfile.budgetLevel = guestProfile.budgetLevel;
+    if (guestProfile?.stylePreference) {
+      matchProfile.stylePreference = guestProfile.stylePreference;
+    } else {
+      // Fallback: extract style from analysis items
+      const styleHints = analysis.items.map(item => item.analysis || "").join(" ").toLowerCase();
+      const styleKeywords = ["streetwear", "smart-casual", "classic", "boho", "minimalist", "athleisure"];
+      const detectedStyles = styleKeywords.filter(s => styleHints.includes(s));
+      if (detectedStyles.length > 0) matchProfile.stylePreference = detectedStyles.join(", ");
+    }
 
     const autoInfluencers = autoMatchInfluencers(matchProfile, 3, detectedCountry);
 

@@ -2020,7 +2020,7 @@ export const recommendationsJsonSchema = {
   additionalProperties: false,
 };
 
-function buildRecommendationsPromptFromCore(
+export function buildRecommendationsPromptFromCore(
   lang: "he" | "en",
   occasion?: string | null,
   userGender?: string | null,
@@ -2251,7 +2251,7 @@ function isLikelyImageUrl(url: string | undefined | null): boolean {
   return /^https?:\/\//i.test(u) && !/placeholder|example\.com/i.test(u);
 }
 
-function pickInfluencersForProfile(
+export function pickInfluencersForProfile(
   userGender?: string | null,
   max = 2,
 ): Array<{ name: string; igUrl: string }> {
@@ -6166,6 +6166,26 @@ Return ONLY a JSON object with these exact fields:
           analysis = fixShoppingLinkUrls(analysis, guestGender, guestProfile?.preferredStores || null);
           analysis = normalizeOutfitSuggestionsForWearableCore(analysis, guestGender);
           analysis = normalizeImprovementsForWearableCore(analysis, guestGender);
+
+          // Gender-filter influencer mentions (same as registered user path)
+          const guestProfileGender = profileForPrompt?.gender;
+          for (const inf of POPULAR_INFLUENCERS) {
+            if (guestProfileGender && inf.gender !== "unisex" && inf.gender !== guestProfileGender) continue;
+            const mentioned = analysis.influencerInsight?.includes(inf.name) ||
+              analysis.summary?.includes(inf.name) ||
+              analysis.outfitSuggestions?.some(s => s.inspirationNote?.includes(inf.name));
+            if (mentioned && !analysis.linkedMentions!.find(m => m.text === inf.name)) {
+              analysis.linkedMentions!.push({ text: inf.name, type: "influencer", url: inf.igUrl });
+            }
+          }
+          if (guestProfileGender) {
+            analysis.linkedMentions = analysis.linkedMentions!.filter(m => {
+              if (m.type !== "influencer") return true;
+              const knownInf = POPULAR_INFLUENCERS.find(inf => inf.name === m.text);
+              if (!knownInf) return true;
+              return knownInf.gender === "unisex" || knownInf.gender === guestProfileGender;
+            });
+          }
 
           // --- Closet matching: enrich improvements with matching wardrobe items ---
           const wardrobeItemsForMatching = Array.isArray(wardrobeItemsList)

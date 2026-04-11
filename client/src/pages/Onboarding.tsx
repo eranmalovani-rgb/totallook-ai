@@ -63,36 +63,69 @@ const TINDER_R1_NEUTRAL: OutfitCard[] = [
 /* ═══════════════════════════════════════════════════════
    Tinder Round 2 — Reinforcement pool (3 per style)
    ═══════════════════════════════════════════════════════ */
-const REINFORCE_POOL: Record<StyleId, OutfitCard[]> = {
+const REINFORCE_POOL_MALE: Record<StyleId, OutfitCard[]> = {
   streetwear: [
-    { id: "r2-streetwear-1", styleId: "streetwear", image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/reinforce-streetwear-1-6NSFq3xqPbLn5eEJ9idWQw.webp", label: { he: "סטריטוור אורבני", en: "Urban Streetwear" }, styleTags: ["streetwear"] },
-    { id: "r2-streetwear-2", styleId: "streetwear", image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/reinforce-streetwear-2-bryCz9y9WCxGjmraimqTsE.webp", label: { he: "סטריטוור מודרני", en: "Modern Streetwear" }, styleTags: ["streetwear"] },
-    { id: "r2-streetwear-3", styleId: "streetwear", image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/reinforce-streetwear-3-YtigzyUVUACQZt5G2RT9KK.webp", label: { he: "סטריטוור קלאסי", en: "Classic Streetwear" }, styleTags: ["streetwear"] },
+    { id: "r2m-streetwear-1", styleId: "streetwear", image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/reinforce-streetwear-1-6NSFq3xqPbLn5eEJ9idWQw.webp", label: { he: "סטריטוור אורבני", en: "Urban Streetwear" }, styleTags: ["streetwear"] },
+    { id: "r2m-streetwear-2", styleId: "streetwear", image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/reinforce-streetwear-2-bryCz9y9WCxGjmraimqTsE.webp", label: { he: "סטריטוור מודרני", en: "Modern Streetwear" }, styleTags: ["streetwear"] },
+    { id: "r2m-streetwear-3", styleId: "streetwear", image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/reinforce-streetwear-3-YtigzyUVUACQZt5G2RT9KK.webp", label: { he: "סטריטוור קלאסי", en: "Classic Streetwear" }, styleTags: ["streetwear"] },
   ],
   "smart-casual": [
-    { id: "r2-smartcasual-1", styleId: "smart-casual", image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/reinforce-smartcasual-1-jpHh8rcuQZZ39XJ2mm4frC.webp", label: { he: "סמארט קז'ואל עירוני", en: "Urban Smart Casual" }, styleTags: ["smart-casual"] },
-    { id: "r2-smartcasual-2", styleId: "smart-casual", image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/reinforce-smartcasual-2-kepHqFMwi4S8b6Renb8Ekv.webp", label: { he: "סמארט קז'ואל מלוטש", en: "Polished Smart Casual" }, styleTags: ["smart-casual"] },
-    { id: "r2-smartcasual-3", styleId: "smart-casual", image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/reinforce-smartcasual-3-GubjBJ3fjzSM3Gmrky5tHz.webp", label: { he: "סמארט קז'ואל קליל", en: "Light Smart Casual" }, styleTags: ["smart-casual"] },
+    { id: "r2m-smartcasual-1", styleId: "smart-casual", image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/reinforce-smartcasual-1-jpHh8rcuQZZ39XJ2mm4frC.webp", label: { he: "סמארט קז'ואל עירוני", en: "Urban Smart Casual" }, styleTags: ["smart-casual"] },
+    { id: "r2m-smartcasual-2", styleId: "smart-casual", image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/reinforce-smartcasual-2-kepHqFMwi4S8b6Renb8Ekv.webp", label: { he: "סמארט קז'ואל מלוטש", en: "Polished Smart Casual" }, styleTags: ["smart-casual"] },
+    { id: "r2m-smartcasual-3", styleId: "smart-casual", image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/reinforce-smartcasual-3-GubjBJ3fjzSM3Gmrky5tHz.webp", label: { he: "סמארט קז'ואל קליל", en: "Light Smart Casual" }, styleTags: ["smart-casual"] },
   ],
   classic: [
-    { id: "r2-classic-1", styleId: "classic", image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/reinforce-classic-1-GCkLdJ4JFc7b6nfyN26TFP.webp", label: { he: "קלאסי מחויט", en: "Tailored Classic" }, styleTags: ["classic"] },
-    { id: "r2-classic-2", styleId: "classic", image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/reinforce-classic-2-UFHwoELBMAQridP8X43nEn.webp", label: { he: "קלאסי מודרני", en: "Modern Classic" }, styleTags: ["classic"] },
-    { id: "r2-classic-3", styleId: "classic", image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/reinforce-classic-3-fgACT9g8wtXyqfJSfRFQpD.webp", label: { he: "קלאסי אלגנטי", en: "Elegant Classic" }, styleTags: ["classic"] },
+    { id: "r2m-classic-1", styleId: "classic", image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/reinforce-classic-1-GCkLdJ4JFc7b6nfyN26TFP.webp", label: { he: "קלאסי מחויט", en: "Tailored Classic" }, styleTags: ["classic"] },
+    { id: "r2m-classic-2", styleId: "classic", image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/reinforce-classic-2-UFHwoELBMAQridP8X43nEn.webp", label: { he: "קלאסי מודרני", en: "Modern Classic" }, styleTags: ["classic"] },
+    { id: "r2m-classic-3", styleId: "classic", image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/reinforce-classic-3-fgACT9g8wtXyqfJSfRFQpD.webp", label: { he: "קלאסי אלגנטי", en: "Elegant Classic" }, styleTags: ["classic"] },
   ],
   boho: [
-    { id: "r2-boho-1", styleId: "boho", image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/reinforce-boho-1-GgLp387ohPmDAKRXTb8Xoe.webp", label: { he: "בוהו טבעי", en: "Natural Boho" }, styleTags: ["boho"] },
-    { id: "r2-boho-2", styleId: "boho", image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/reinforce-boho-2-4xNrkvYUevPEsHttKZoEHA.webp", label: { he: "בוהו שיק", en: "Boho Chic" }, styleTags: ["boho"] },
-    { id: "r2-boho-3", styleId: "boho", image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/reinforce-boho-3-cWs4F7njvuqjF8zbP7W295.webp", label: { he: "בוהו פסטיבלי", en: "Festival Boho" }, styleTags: ["boho"] },
+    { id: "r2m-boho-1", styleId: "boho", image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/reinforce-boho-1-GgLp387ohPmDAKRXTb8Xoe.webp", label: { he: "בוהו טבעי", en: "Natural Boho" }, styleTags: ["boho"] },
+    { id: "r2m-boho-2", styleId: "boho", image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/reinforce-boho-2-4xNrkvYUevPEsHttKZoEHA.webp", label: { he: "בוהו שיק", en: "Boho Chic" }, styleTags: ["boho"] },
+    { id: "r2m-boho-3", styleId: "boho", image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/reinforce-boho-3-cWs4F7njvuqjF8zbP7W295.webp", label: { he: "בוהו פסטיבלי", en: "Festival Boho" }, styleTags: ["boho"] },
   ],
   minimalist: [
-    { id: "r2-minimalist-1", styleId: "minimalist", image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/reinforce-minimalist-1-kDvmLafPoanWATUhoBDfyA.webp", label: { he: "מינימליסט נקי", en: "Clean Minimalist" }, styleTags: ["minimalist"] },
-    { id: "r2-minimalist-2", styleId: "minimalist", image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/reinforce-minimalist-2-nR7L7vtdqWtH5oZCw5cor6.webp", label: { he: "מינימליסט כהה", en: "Dark Minimalist" }, styleTags: ["minimalist"] },
-    { id: "r2-minimalist-3", styleId: "minimalist", image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/reinforce-minimalist-3-dENNrDiY5rHgrYSq4vGuje.webp", label: { he: "מינימליסט אדמה", en: "Earth Minimalist" }, styleTags: ["minimalist"] },
+    { id: "r2m-minimalist-1", styleId: "minimalist", image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/reinforce-minimalist-1-kDvmLafPoanWATUhoBDfyA.webp", label: { he: "מינימליסט נקי", en: "Clean Minimalist" }, styleTags: ["minimalist"] },
+    { id: "r2m-minimalist-2", styleId: "minimalist", image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/reinforce-minimalist-2-nR7L7vtdqWtH5oZCw5cor6.webp", label: { he: "מינימליסט כהה", en: "Dark Minimalist" }, styleTags: ["minimalist"] },
+    { id: "r2m-minimalist-3", styleId: "minimalist", image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/reinforce-minimalist-3-dENNrDiY5rHgrYSq4vGuje.webp", label: { he: "מינימליסט אדמה", en: "Earth Minimalist" }, styleTags: ["minimalist"] },
   ],
   athleisure: [
-    { id: "r2-athleisure-1", styleId: "athleisure", image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/reinforce-athleisure-1-5ZGqvUspq5cYvF5AcpyfMR.webp", label: { he: "אתלי'זר ספורטיבי", en: "Sporty Athleisure" }, styleTags: ["athleisure"] },
-    { id: "r2-athleisure-2", styleId: "athleisure", image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/reinforce-athleisure-2-56WXC2nvtEZeg2DqDRB5vn.webp", label: { he: "אתלי'זר אורבני", en: "Urban Athleisure" }, styleTags: ["athleisure"] },
-    { id: "r2-athleisure-3", styleId: "athleisure", image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/reinforce-athleisure-3-hy6K3nbwFZ5ELerPXw5FmZ.webp", label: { he: "אתלי'זר רטרו", en: "Retro Athleisure" }, styleTags: ["athleisure"] },
+    { id: "r2m-athleisure-1", styleId: "athleisure", image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/reinforce-athleisure-1-5ZGqvUspq5cYvF5AcpyfMR.webp", label: { he: "אתלי'זר ספורטיבי", en: "Sporty Athleisure" }, styleTags: ["athleisure"] },
+    { id: "r2m-athleisure-2", styleId: "athleisure", image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/reinforce-athleisure-2-56WXC2nvtEZeg2DqDRB5vn.webp", label: { he: "אתלי'זר אורבני", en: "Urban Athleisure" }, styleTags: ["athleisure"] },
+    { id: "r2m-athleisure-3", styleId: "athleisure", image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/reinforce-athleisure-3-hy6K3nbwFZ5ELerPXw5FmZ.webp", label: { he: "אתלי'זר רטרו", en: "Retro Athleisure" }, styleTags: ["athleisure"] },
+  ],
+};
+
+const REINFORCE_POOL_FEMALE: Record<StyleId, OutfitCard[]> = {
+  streetwear: [
+    { id: "r2f-streetwear-1", styleId: "streetwear", image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/r2f-streetwear-1-URYpLwHenDhYfUWpUA56ko.webp", label: { he: "סטריטוור אורבני", en: "Urban Streetwear" }, styleTags: ["streetwear"] },
+    { id: "r2f-streetwear-2", styleId: "streetwear", image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/r2f-streetwear-2-ecGXfbMjF3Vbz2xhscWosD.webp", label: { he: "סטריטוור מודרני", en: "Modern Streetwear" }, styleTags: ["streetwear"] },
+    { id: "r2f-streetwear-3", styleId: "streetwear", image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/r2f-streetwear-3-SzcZpYZLVJRHUAStS4iuA4.webp", label: { he: "סטריטוור קלאסי", en: "Classic Streetwear" }, styleTags: ["streetwear"] },
+  ],
+  "smart-casual": [
+    { id: "r2f-smartcasual-1", styleId: "smart-casual", image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/r2f-smartcasual-1-Npg4GCdzMsszWGnFX6mt27.webp", label: { he: "סמארט קז'ואל עירוני", en: "Urban Smart Casual" }, styleTags: ["smart-casual"] },
+    { id: "r2f-smartcasual-2", styleId: "smart-casual", image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/r2f-smartcasual-2-hqqtTXfRPzfrBD7occuGnp.webp", label: { he: "סמארט קז'ואל מלוטש", en: "Polished Smart Casual" }, styleTags: ["smart-casual"] },
+    { id: "r2f-smartcasual-3", styleId: "smart-casual", image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/r2f-smartcasual-3-iJ9J7wiuCXFFMtCcHMCUhm.webp", label: { he: "סמארט קז'ואל קליל", en: "Light Smart Casual" }, styleTags: ["smart-casual"] },
+  ],
+  classic: [
+    { id: "r2f-classic-1", styleId: "classic", image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/r2f-classic-1-dky9d9q2azpAYtaNqgjaRw.webp", label: { he: "קלאסי מחויט", en: "Tailored Classic" }, styleTags: ["classic"] },
+    { id: "r2f-classic-2", styleId: "classic", image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/r2f-classic-2-WN8RgGfQGY73ZvP7ZZpoNu.webp", label: { he: "קלאסי מודרני", en: "Modern Classic" }, styleTags: ["classic"] },
+    { id: "r2f-classic-3", styleId: "classic", image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/r2f-classic-3-CJuBMaALpGsYffhEvkH2Az.webp", label: { he: "קלאסי אלגנטי", en: "Elegant Classic" }, styleTags: ["classic"] },
+  ],
+  boho: [
+    { id: "r2f-boho-1", styleId: "boho", image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/r2f-boho-1-c3d2UQnH6HZ4E4e8eYMnzo.webp", label: { he: "בוהו טבעי", en: "Natural Boho" }, styleTags: ["boho"] },
+    { id: "r2f-boho-2", styleId: "boho", image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/r2f-boho-2-UrHfmA93fLeCBtLW8DZKYJ.webp", label: { he: "בוהו שיק", en: "Boho Chic" }, styleTags: ["boho"] },
+    { id: "r2f-boho-3", styleId: "boho", image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/r2f-boho-3-YtiudDnJupLw9ESmiGVGvR.webp", label: { he: "בוהו פסטיבלי", en: "Festival Boho" }, styleTags: ["boho"] },
+  ],
+  minimalist: [
+    { id: "r2f-minimalist-1", styleId: "minimalist", image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/r2f-minimalist-1-Y8UghdA7UkuJQcZHgYv4vs.webp", label: { he: "מינימליסט נקי", en: "Clean Minimalist" }, styleTags: ["minimalist"] },
+    { id: "r2f-minimalist-2", styleId: "minimalist", image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/r2f-minimalist-2-FerrnEY6E5oiZrqRZgs5Qz.webp", label: { he: "מינימליסט כהה", en: "Dark Minimalist" }, styleTags: ["minimalist"] },
+    { id: "r2f-minimalist-3", styleId: "minimalist", image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/r2f-minimalist-3-LW7zdkEzJfZkuAsSHvm3R2.webp", label: { he: "מינימליסט אדמה", en: "Earth Minimalist" }, styleTags: ["minimalist"] },
+  ],
+  athleisure: [
+    { id: "r2f-athleisure-1", styleId: "athleisure", image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/r2f-athleisure-1-BKyATuyRQY6NdkCWgdGoDh.webp", label: { he: "אתלי'זר ספורטיבי", en: "Sporty Athleisure" }, styleTags: ["athleisure"] },
+    { id: "r2f-athleisure-2", styleId: "athleisure", image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/r2f-athleisure-2-UBiG9AYHy7DuGkMFq2gMFN.webp", label: { he: "אתלי'זר אורבני", en: "Urban Athleisure" }, styleTags: ["athleisure"] },
+    { id: "r2f-athleisure-3", styleId: "athleisure", image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/r2f-athleisure-3-aRT8dRbL8ywofyWYvs3sWi.webp", label: { he: "אתלי'זר רטרו", en: "Retro Athleisure" }, styleTags: ["athleisure"] },
   ],
 };
 
@@ -137,7 +170,10 @@ function getTopStyles(scores: TasteScores, count = 3): string[] {
 /* ═══════════════════════════════════════════════════════
    Build adaptive R2 deck: 3 reinforcement + 1 negative
    ═══════════════════════════════════════════════════════ */
-function buildR2Deck(r1Likes: string[], _r1Passes: string[], r1Cards: OutfitCard[]): { cards: OutfitCard[]; negativeId: string } {
+function buildR2Deck(r1Likes: string[], _r1Passes: string[], r1Cards: OutfitCard[], gender?: string): { cards: OutfitCard[]; negativeId: string } {
+  // Select gender-appropriate reinforcement pool
+  const POOL = gender === "female" ? REINFORCE_POOL_FEMALE : REINFORCE_POOL_MALE;
+
   const styleLikeCounts: Record<StyleId, number> = { streetwear: 0, "smart-casual": 0, classic: 0, boho: 0, minimalist: 0, athleisure: 0 };
   r1Likes.forEach(cardId => {
     const card = r1Cards.find(c => c.id === cardId);
@@ -151,28 +187,28 @@ function buildR2Deck(r1Likes: string[], _r1Passes: string[], r1Cards: OutfitCard
 
   const reinforceCards: OutfitCard[] = [];
   if (likedStyles.length === 0) {
-    const shuffled = [...(Object.keys(REINFORCE_POOL) as StyleId[])].sort(() => Math.random() - 0.5);
-    for (let i = 0; i < 3 && i < shuffled.length; i++) reinforceCards.push(REINFORCE_POOL[shuffled[i]][0]);
+    const shuffled = [...(Object.keys(POOL) as StyleId[])].sort(() => Math.random() - 0.5);
+    for (let i = 0; i < 3 && i < shuffled.length; i++) reinforceCards.push(POOL[shuffled[i]][0]);
   } else if (likedStyles.length === 1) {
-    const pool = REINFORCE_POOL[likedStyles[0]];
+    const pool = POOL[likedStyles[0]];
     reinforceCards.push(pool[0], pool[1], pool[2]);
   } else if (likedStyles.length === 2) {
-    reinforceCards.push(REINFORCE_POOL[likedStyles[0]][0], REINFORCE_POOL[likedStyles[0]][1], REINFORCE_POOL[likedStyles[1]][0]);
+    reinforceCards.push(POOL[likedStyles[0]][0], POOL[likedStyles[0]][1], POOL[likedStyles[1]][0]);
   } else {
     const topCount = styleLikeCounts[likedStyles[0]];
     const secondCount = styleLikeCounts[likedStyles[1]];
     if (topCount > secondCount) {
-      reinforceCards.push(REINFORCE_POOL[likedStyles[0]][0], REINFORCE_POOL[likedStyles[0]][1], REINFORCE_POOL[likedStyles[1]][0]);
+      reinforceCards.push(POOL[likedStyles[0]][0], POOL[likedStyles[0]][1], POOL[likedStyles[1]][0]);
     } else {
-      reinforceCards.push(REINFORCE_POOL[likedStyles[0]][0], REINFORCE_POOL[likedStyles[1]][0],
-        REINFORCE_POOL[likedStyles[2]] ? REINFORCE_POOL[likedStyles[2]][0] : REINFORCE_POOL[likedStyles[0]][1]);
+      reinforceCards.push(POOL[likedStyles[0]][0], POOL[likedStyles[1]][0],
+        POOL[likedStyles[2]] ? POOL[likedStyles[2]][0] : POOL[likedStyles[0]][1]);
     }
   }
 
   let negativeStyle: StyleId;
   if (passedStyles.length > 0) negativeStyle = passedStyles[Math.floor(Math.random() * passedStyles.length)];
   else negativeStyle = likedStyles[likedStyles.length - 1];
-  const negativeCard = REINFORCE_POOL[negativeStyle][REINFORCE_POOL[negativeStyle].length - 1];
+  const negativeCard = POOL[negativeStyle][POOL[negativeStyle].length - 1];
 
   const allCards = [...reinforceCards, negativeCard];
   for (let i = allCards.length - 1; i > 0; i--) {
@@ -449,7 +485,7 @@ export default function Onboarding() {
 
   useEffect(() => {
     if (r1Done && r2Cards.length === 0) {
-      const { cards, negativeId } = buildR2Deck(r1Likes, r1Passes, r1Cards);
+      const { cards, negativeId } = buildR2Deck(r1Likes, r1Passes, r1Cards, detectedGender);
       setR2Cards(cards);
       setR2NegativeId(negativeId);
     }

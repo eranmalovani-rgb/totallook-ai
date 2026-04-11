@@ -1029,3 +1029,9 @@
 - [x] 90.3: Stage 2 catalog recommendations already use preferredStores + budgetLevel for filtering + normalizeImprovementShoppingLinks
 - [x] 90.4: Looks/outfits reflect tinder preferences via stylePreference in prompt + catalog style matching
 - [x] 90.5: 845/850 tests pass (5 pre-existing API failures)
+
+## Stage 91: Gender consistency fixes
+- [x] 91.1: Tinder R2 (REINFORCE_POOL) split into REINFORCE_POOL_MALE + REINFORCE_POOL_FEMALE with 18 new female outfit images; buildR2Deck accepts gender param
+- [x] 91.2: GuestReview fetches guest profile via trpc.guest.getProfile for influencer matching; autoMatchInfluencers uses profile gender (disqualifies wrong gender with -100 score)
+- [x] 91.3: Guest Stage 2 post-processing now includes gender-filtered influencer mention enrichment and filtering (same as registered user path)
+- [x] 91.4: 25 new vitest tests for gender filtering (pickInfluencersForProfile, autoMatchInfluencers, Stage 1/2 prompts, data integrity); 870/875 pass (5 pre-existing API failures)
