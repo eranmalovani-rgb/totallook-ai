@@ -713,41 +713,54 @@ function OutfitCard({
 }) {
   const { t } = useLanguage();
   const [expanded, setExpanded] = useState(false);
-  const [imgLoaded, setImgLoaded] = useState(false);
-  const [imgError, setImgError] = useState(false);
-  // Use aiImageUrl from background generation, fallback to legacy _lookImage
+  // Use itemImages grid from catalog, fallback to aiImageUrl
+  const itemImages = (outfit.itemImages || []).filter(Boolean);
   const lookImage = (outfit as any).aiImageUrl || (outfit as any)?._lookImage || null;
+  const hasItemImages = itemImages.length > 0;
 
   return (
     <div className="rounded-2xl border border-white/5 bg-card overflow-hidden flex flex-col">
       <div className="relative">
-        {lookImage && !imgError ? (
-          <>
-            {!imgLoaded && (
-              <div className="w-full aspect-[3/4] bg-gradient-to-br from-primary/5 via-rose-500/5 to-transparent flex flex-col items-center justify-center gap-4">
-                <FashionButtonSpinner />
+        {hasItemImages ? (
+          /* Catalog item images grid — instant, no AI generation needed */
+          <div className="w-full aspect-[3/4] bg-gradient-to-br from-white/[0.02] to-transparent p-3 grid gap-1.5" style={{ gridTemplateColumns: itemImages.length <= 2 ? '1fr 1fr' : 'repeat(2, 1fr)', gridTemplateRows: itemImages.length <= 2 ? '1fr' : 'repeat(2, 1fr)' }}>
+            {itemImages.slice(0, 4).map((imgUrl, j) => (
+              <div key={j} className="relative rounded-xl overflow-hidden bg-white/5 border border-white/5">
+                <img
+                  loading="lazy"
+                  src={imgUrl}
+                  alt={outfit.items?.[j] || `Item ${j + 1}`}
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent p-1.5">
+                  <p className="text-[10px] text-white/90 font-medium truncate">{outfit.items?.[j] || ''}</p>
+                </div>
               </div>
-            )}
-            <img
-              loading="lazy"
-              src={lookImage}
-              alt={outfit.name}
-              className={`w-full aspect-[3/4] object-cover ${imgLoaded ? 'opacity-100' : 'opacity-0 absolute inset-0'}`}
-              onLoad={() => setImgLoaded(true)}
-              onError={() => setImgError(true)}
-            />
-          </>
+            ))}
+          </div>
+        ) : lookImage ? (
+          <img
+            loading="lazy"
+            src={lookImage}
+            alt={outfit.name}
+            className="w-full aspect-[3/4] object-cover"
+          />
         ) : (
-          <div className="w-full aspect-[3/4] bg-gradient-to-br from-primary/5 via-rose-500/5 to-transparent flex flex-col items-center justify-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center animate-pulse">
-              <Sparkles className="w-6 h-6 text-primary/50" />
+          /* Fallback: color palette visualization */
+          <div className="w-full aspect-[3/4] bg-gradient-to-br from-primary/5 via-rose-500/5 to-transparent flex flex-col items-center justify-center gap-4 p-6">
+            <div className="flex gap-3 mb-2">
+              {(outfit.colors ?? []).slice(0, 4).map((color, j) => (
+                <div key={j} className="w-10 h-10 rounded-xl border-2 border-white/10 shadow-lg" style={{ backgroundColor: color }} />
+              ))}
             </div>
-            <p className="text-sm text-muted-foreground">
-              {lang === "he" ? "מייצר תמונת לוק..." : "Generating look image..."}
-            </p>
+            <div className="text-center space-y-2">
+              {(outfit.items ?? []).slice(0, 3).map((item, j) => (
+                <p key={j} className="text-xs text-muted-foreground/80">{item}</p>
+              ))}
+            </div>
           </div>
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent flex flex-col justify-end p-5 pointer-events-none">
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-5 pointer-events-none">
           <h3 className="text-white text-lg font-bold drop-shadow-lg">{outfit.name}</h3>
           <p className="text-white/70 text-sm">{outfit.occasion}</p>
           <div className="flex gap-1.5 mt-2">
@@ -772,9 +785,16 @@ function OutfitCard({
             {(outfit.items ?? []).map((item, j) => {
               const safeItem = item ?? "";
               const itemMention = mentions.find(m => safeItem.includes(m.text) && (m.type === 'brand' || m.type === 'store'));
+              const thumbUrl = itemImages[j];
               return (
                 <div key={j} className="flex items-start gap-3 p-3 rounded-xl bg-white/[0.02] hover:bg-white/[0.05] transition-colors">
-                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 text-primary text-xs font-bold">{j + 1}</div>
+                  {thumbUrl ? (
+                    <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 border border-white/10">
+                      <img src={thumbUrl} alt="" className="w-full h-full object-cover" />
+                    </div>
+                  ) : (
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 text-primary text-xs font-bold">{j + 1}</div>
+                  )}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium leading-snug">
                       <LinkedText text={safeItem} mentions={mentions} onInfluencerClick={onInfluencerClick} />

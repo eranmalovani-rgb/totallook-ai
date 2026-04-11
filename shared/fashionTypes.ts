@@ -267,6 +267,8 @@ export interface OutfitSuggestion {
   inspirationNote: string;
   /** AI-generated outfit look image URL */
   aiImageUrl?: string;
+  /** Per-item catalog images (parallel to items array) */
+  itemImages?: string[];
 }
 
 export interface TrendSource {

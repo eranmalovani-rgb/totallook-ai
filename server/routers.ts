@@ -3336,11 +3336,13 @@ async function buildCatalogRecommendations(
       const pairItems = await findPairingItems(dbGender, pairCats.slice(0, 3), catalogOccasion, styleArray, usedCatalogIds, 3);
       const outfitItems = [firstImp.afterLabel, ...pairItems.map(p => isHebrew ? (p.nameHe || p.name) : p.name)];
       const outfitColors = [firstImp.afterColor, ...pairItems.map(p => p.color || "")].filter(Boolean);
+      const outfitItemImages = [firstImp.upgradeImageUrl || "", ...pairItems.map(p => p.imageUrl || "")];
       outfitSuggestions.push({
         name: isHebrew ? "לוק נקי ומאוזן" : "Clean balanced look",
         occasion: occasion || (isHebrew ? "יומיומי" : "daily"),
         items: outfitItems,
         colors: outfitColors.slice(0, 4),
+        itemImages: outfitItemImages,
         lookDescription: isHebrew
           ? "מראה מלא עם שכבות נקיות, פרופורציות מאוזנות ונעליים מחברות."
           : "A complete look with clean layering, balanced proportions, and grounding footwear.",
@@ -3356,11 +3358,13 @@ async function buildCatalogRecommendations(
       const pairItems2 = await findPairingItems(dbGender, pairCats2.slice(0, 3), catalogOccasion, styleArray, usedCatalogIds, 3);
       const outfitItems2 = [secondImp.afterLabel, ...pairItems2.map(p => isHebrew ? (p.nameHe || p.name) : p.name)];
       const outfitColors2 = [secondImp.afterColor, ...pairItems2.map(p => p.color || "")].filter(Boolean);
+      const outfitItemImages2 = [secondImp.upgradeImageUrl || "", ...pairItems2.map(p => p.imageUrl || "")];
       outfitSuggestions.push({
         name: isHebrew ? "לוק מודרני משודרג" : "Elevated modern look",
         occasion: occasion || (isHebrew ? "יציאה" : "going out"),
         items: outfitItems2,
         colors: outfitColors2.slice(0, 4),
+        itemImages: outfitItemImages2,
         lookDescription: isHebrew
           ? "שילוב מודרני המדגיש צללית נקייה ואיכות חומרים."
           : "A modern combination emphasizing clean silhouette and elevated material quality.",

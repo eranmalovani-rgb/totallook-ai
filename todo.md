@@ -1035,3 +1035,16 @@
 - [x] 91.2: GuestReview fetches guest profile via trpc.guest.getProfile for influencer matching; autoMatchInfluencers uses profile gender (disqualifies wrong gender with -100 score)
 - [x] 91.3: Guest Stage 2 post-processing now includes gender-filtered influencer mention enrichment and filtering (same as registered user path)
 - [x] 91.4: 25 new vitest tests for gender filtering (pickInfluencersForProfile, autoMatchInfluencers, Stage 1/2 prompts, data integrity); 870/875 pass (5 pre-existing API failures)
+
+## Stage 92: Fix slow outfit look generation (all flows)
+- [x] 92.1: Investigated — outfit suggestions never had aiImageUrl set; showed infinite "generating look image..." spinner
+- [x] 92.2: Added itemImages field to OutfitSuggestion; server populates from catalog item imageUrl + improvement upgradeImageUrl; frontend shows 2x2 grid of product photos
+- [x] 92.3: Updated ReviewPage.OutfitCard and GuestReview.GuestOutfitCard; expanded item list shows thumbnails
+- [x] 92.4: 5 new vitest tests pass; 870/875 total pass (5 pre-existing API failures)
+
+## Stage 93: Railway Production Deployment Package
+- [x] 93.1: Only migration 0032 (CREATE TABLE catalogItems) needed; 0030-0031 are Manus-internal
+- [x] 93.2: Exported 1,028 catalog items as SQL INSERT statements → catalog-items-export.sql
+- [x] 93.3: Documented 3 new optional env vars: BRAVE_SEARCH_API_KEY, GOOGLE_CSE_API_KEY, GOOGLE_CSE_CX
+- [ ] 93.4: Push code to GitHub repo (waiting for user confirmation)
+- [x] 93.5: Created deployment guide → railway-deployment-guide.md
