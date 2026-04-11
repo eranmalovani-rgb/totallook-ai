@@ -188,14 +188,22 @@ export default function Home() {
               {/* Main headline */}
               <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-[1.1] mb-6">
                 <span className="text-foreground">
-                  {isHe ? "הלוק הזה הוא " : "This outfit is a "}
+                  {isHe ? "את חושבת שזה " : "You think it's an "}
                 </span>
-                <span className="text-amber-500/60 line-through decoration-amber-500/30">62</span>
-                <br />
+                <span className="text-amber-400 font-extrabold">8</span>
                 <span className="text-foreground">
-                  {isHe ? "בואי נהפוך אותו ל-" : "Let's make it a "}
+                  {isHe ? " — " : " — "}
                 </span>
-                <span className="text-amber-400 font-extrabold">92</span>
+                <br className="hidden sm:block" />
+                <span className="text-foreground">
+                  {isHe ? "זה בעצם " : "it's actually a "}
+                </span>
+                <span className="text-amber-500/60 line-through decoration-amber-500/40 decoration-2">6.2</span>
+                <br />
+                <span className="bg-gradient-to-r from-amber-300 via-amber-400 to-amber-500 bg-clip-text text-transparent">
+                  {isHe ? "בואי נהפוך את זה ל-" : "Let's turn it into a "}
+                </span>
+                <span className="text-amber-400 font-extrabold text-5xl sm:text-6xl md:text-7xl lg:text-8xl animate-pulse">9.2</span>
               </h1>
 
               {/* Subtitle */}

@@ -902,3 +902,19 @@
 - [x] 76.3: Restored slider in Hero of LandingEN.tsx — same swap
 - [x] 76.4: Restored slider in MORE_SHOWCASES of LandingEN.tsx — same swap
 - [x] 76.5: Verified — 0 TS errors
+
+## Stage 77: Update Landing Page Hero Headline
+- [x] 77.1: Update Home.tsx hero headline to "את חושבת שזה 8 — זה בעצם 6.2" → "בואי נהפוך את זה ל־9.2"
+- [x] 77.2: Update LandingEN.tsx hero headline with matching English version
+- [x] 77.3: Style the headline with proper amber/gold accents and emphasis
+
+## Stage 78: New Visual Onboarding — "הסטייליסטית שלך רוצה להכיר אותך"
+- [ ] 78.1: Screen 1 — "מי את?" — 3 style silhouettes (casual, elegant, sporty) single-tap
+- [ ] 78.2: Screen 2 — "לאן את הולכת הכי הרבה?" — 4 atmosphere images (office, bar, beach, event) single-tap
+- [ ] 78.3: Screen 3 — "איזה ארון חלומות?" — 3 closet options (budget levels) single-tap
+- [ ] 78.4: Screen 4 — "בחרי את הלוק שהכי מדבר אלייך" — 6 outfit grid (optional)
+- [ ] 78.5: Stylist reactions between screens (speech bubbles)
+- [ ] 78.6: Adaptive logic — map selections to profile fields (gender, age, budget, occupation, style, brands)
+- [ ] 78.7: Save profile via existing tRPC profile.save mutation
+- [ ] 78.8: Apply to both regular (Onboarding.tsx) and guest flows
+- [ ] 78.9: Dark theme + amber/gold + studio aesthetic + RTL + mobile-first
