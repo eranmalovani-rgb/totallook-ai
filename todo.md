@@ -774,3 +774,11 @@
 - [x] 61.5: Integrated into FixMyLookModal replacing FashionSpinner
 - [x] 61.6: Integrated into GuestFixMyLookModal with the same animation
 - [x] 61.7: Verified — 0 TS errors, 819/824 tests pass
+
+### 62: Show 3 Product Alternatives Per Improvement Row
+- [x] 62.1: Investigated — alternatives stored in imp.alternatives[], ImprovementAlternative type with upgradeImageUrl
+- [x] 62.2: Replaced tab-based selector with 3-column grid gallery showing all product images simultaneously
+- [x] 62.3: User clicks to select preferred option (default: first/top pick), selected shown with primary border + checkmark
+- [x] 62.4: Applied same gallery layout to GuestReview.tsx GuestImprovementCard
+- [x] 62.5: Selected alternative drives shoppingLinks, before/after badges, and color/material/pattern tags
+- [x] 62.6: Verified — 0 TS errors, 819/824 tests pass

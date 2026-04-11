@@ -406,59 +406,101 @@ function ImprovementCard({
 
   return (
     <div className="rounded-2xl border border-white/5 bg-card overflow-hidden">
-      {/* Stage 52: Option selector tabs — show when alternatives exist */}
-      {hasAlternatives && (
-        <div className="flex border-b border-white/5 bg-white/[0.02]">
-          {allOptions.map((opt, idx) => (
-            <button
-              key={idx}
-              onClick={() => { setSelectedOption(idx); setImgLoaded(false); setImgError(false); }}
-              className={`flex-1 py-2.5 px-3 text-xs font-medium transition-all duration-200 relative ${
-                selectedOption === idx
-                  ? 'text-primary bg-primary/5'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-white/[0.03]'
-              }`}
-            >
-              <span className="truncate block">
-                {idx === 0
-                  ? (lang === "he" ? "⭐ מומלץ" : "⭐ Top Pick")
-                  : (lang === "he" ? `אפשרות ${idx + 1}` : `Option ${idx + 1}`)}
-              </span>
-              {selectedOption === idx && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
-              )}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Product Image */}
-      {activeOption.upgradeImageUrl && !imgError ? (
-        <div className="relative">
-          {!imgLoaded && (
-            <div className="w-full aspect-[2/1] bg-gradient-to-br from-primary/5 via-rose-500/5 to-transparent flex items-center justify-center">
-              <FashionButtonSpinner />
-            </div>
-          )}
-          <img
-            loading="lazy"
-            src={activeOption.upgradeImageUrl}
-            alt={`${imp.beforeLabel} → ${activeOption.afterLabel}`}
-            className={`w-full aspect-[2/1] object-cover ${imgLoaded ? 'opacity-100' : 'opacity-0 absolute inset-0'}`}
-            onLoad={() => setImgLoaded(true)}
-            onError={() => setImgError(true)}
-          />
-        </div>
-      ) : !activeOption.upgradeImageUrl ? (
-        <div className="w-full aspect-[2/1] bg-gradient-to-br from-primary/5 via-rose-500/5 to-transparent flex flex-col items-center justify-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center animate-pulse">
-            <Sparkles className="w-5 h-5 text-primary/50" />
+      {/* Stage 62: All options displayed as horizontal gallery with images */}
+      {hasAlternatives ? (
+        <div className="p-3 space-y-2">
+          <div className="grid grid-cols-3 gap-2">
+            {allOptions.map((opt, idx) => {
+              const isActive = selectedOption === idx;
+              return (
+                <button
+                  key={idx}
+                  onClick={() => { setSelectedOption(idx); setImgLoaded(false); setImgError(false); }}
+                  className={`relative rounded-xl overflow-hidden border-2 transition-all duration-200 ${
+                    isActive
+                      ? 'border-primary ring-1 ring-primary/30 scale-[1.02]'
+                      : 'border-white/5 hover:border-white/20 opacity-75 hover:opacity-100'
+                  }`}
+                >
+                  {/* Option image */}
+                  {opt.upgradeImageUrl ? (
+                    <img
+                      loading="lazy"
+                      src={opt.upgradeImageUrl}
+                      alt={opt.afterLabel}
+                      className="w-full aspect-square object-cover"
+                    />
+                  ) : (
+                    <div className="w-full aspect-square bg-gradient-to-br from-primary/5 via-rose-500/5 to-transparent flex items-center justify-center">
+                      <Sparkles className="w-4 h-4 text-primary/40 animate-pulse" />
+                    </div>
+                  )}
+                  {/* Label overlay */}
+                  <div className={`absolute bottom-0 inset-x-0 px-1.5 py-1 text-[9px] font-medium text-center truncate ${
+                    isActive ? 'bg-primary/90 text-primary-foreground' : 'bg-black/60 text-white/80'
+                  }`}>
+                    {idx === 0
+                      ? (lang === "he" ? "⭐ מומלץ" : "⭐ Top Pick")
+                      : opt.afterLabel?.split(' ').slice(0, 3).join(' ') || (lang === "he" ? `אפשרות ${idx + 1}` : `Option ${idx + 1}`)}
+                  </div>
+                  {/* Selected checkmark */}
+                  {isActive && (
+                    <div className="absolute top-1 right-1 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                      <Check className="w-3 h-3 text-primary-foreground" />
+                    </div>
+                  )}
+                </button>
+              );
+            })}
           </div>
-          <span className="text-xs text-muted-foreground">
-            {lang === "he" ? "מייצר תמונת שידרוג..." : "Generating upgrade image..."}
-          </span>
+          {/* Color/material info for selected option */}
+          <div className="flex flex-wrap gap-1.5 px-1">
+            {activeOption.afterColor && (
+              <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary/80">
+                {activeOption.afterColor}
+              </span>
+            )}
+            {activeOption.afterMaterial && (
+              <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-500/80">
+                {activeOption.afterMaterial}
+              </span>
+            )}
+            {activeOption.afterPattern && activeOption.afterPattern !== 'solid' && (
+              <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-rose-500/10 text-rose-500/80">
+                {activeOption.afterPattern}
+              </span>
+            )}
+          </div>
         </div>
-      ) : null}
+      ) : (
+        /* Single option — show full-width image like before */
+        activeOption.upgradeImageUrl && !imgError ? (
+          <div className="relative">
+            {!imgLoaded && (
+              <div className="w-full aspect-[2/1] bg-gradient-to-br from-primary/5 via-rose-500/5 to-transparent flex items-center justify-center">
+                <FashionButtonSpinner />
+              </div>
+            )}
+            <img
+              loading="lazy"
+              src={activeOption.upgradeImageUrl}
+              alt={`${imp.beforeLabel} → ${activeOption.afterLabel}`}
+              className={`w-full aspect-[2/1] object-cover ${imgLoaded ? 'opacity-100' : 'opacity-0 absolute inset-0'}`}
+              onLoad={() => setImgLoaded(true)}
+              onError={() => setImgError(true)}
+            />
+          </div>
+        ) : !activeOption.upgradeImageUrl ? (
+          <div className="w-full aspect-[2/1] bg-gradient-to-br from-primary/5 via-rose-500/5 to-transparent flex flex-col items-center justify-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center animate-pulse">
+              <Sparkles className="w-5 h-5 text-primary/50" />
+            </div>
+            <span className="text-xs text-muted-foreground">
+              {lang === "he" ? "מייצר תמונת שידרוג..." : "Generating upgrade image..."}
+            </span>
+          </div>
+        ) : null
+      )}
 
       {/* Content */}
       <div className="p-4 space-y-3">

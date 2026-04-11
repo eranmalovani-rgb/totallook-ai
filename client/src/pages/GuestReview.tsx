@@ -4,7 +4,7 @@ import { useParams, useLocation } from "wouter";
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import {
   ArrowRight, ArrowLeft, Sparkles, TrendingUp, ShoppingBag,
-  ExternalLink, Upload, Users, BookOpen, Eye, RefreshCw, Recycle, Wand2, Trash2, Instagram, Pencil, Send, Loader2
+  ExternalLink, Upload, Users, BookOpen, Eye, RefreshCw, Recycle, Wand2, Trash2, Instagram, Pencil, Send, Loader2, Check
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/accordion";
 import FashionSpinner, { FashionButtonSpinner } from "@/components/FashionSpinner";
 import StoreLogo, { extractStoreFromUrl, extractStoreFromLabel } from "@/components/StoreLogo";
-import type { FashionAnalysis, ShoppingLink, LinkedMention, OutfitSuggestion } from "../../../shared/fashionTypes";
+import type { FashionAnalysis, ShoppingLink, LinkedMention, OutfitSuggestion, ImprovementAlternative } from "../../../shared/fashionTypes";
 import { BRAND_URLS, POPULAR_INFLUENCERS } from "../../../shared/fashionTypes";
 import { useLanguage } from "@/i18n";
 import { getLoginUrl } from "@/const";
@@ -253,39 +253,125 @@ function GuestImprovementAccordionCard({
   t: (ns: string, key: string) => string;
   closetMatch?: any;
 }) {
-  const links = imp.shoppingLinks || [];
+  const [selectedOption, setSelectedOption] = useState(0);
+  const alternatives: ImprovementAlternative[] = imp.alternatives || [];
+  const hasAlternatives = alternatives.length > 0;
+
+  const allOptions = useMemo(() => {
+    const primary = {
+      title: imp.title,
+      description: imp.description,
+      afterLabel: imp.afterLabel,
+      afterColor: imp.afterColor,
+      afterGarmentType: imp.afterGarmentType,
+      afterStyle: imp.afterStyle,
+      afterFit: imp.afterFit,
+      afterMaterial: imp.afterMaterial,
+      afterPattern: imp.afterPattern,
+      productSearchQuery: imp.productSearchQuery,
+      shoppingLinks: imp.shoppingLinks || [],
+      upgradeImageUrl: imp.upgradeImageUrl,
+    };
+    return [primary, ...alternatives];
+  }, [imp, alternatives]);
+
+  const activeOption = allOptions[selectedOption] || allOptions[0];
+  const links = activeOption.shoppingLinks || [];
   const [imgLoaded, setImgLoaded] = useState(false);
   const [imgError, setImgError] = useState(false);
 
   return (
     <AccordionItem value={`imp-${index}`} className="border border-white/5 rounded-xl bg-card/50 overflow-hidden">
-      {/* AI Before/After Image at top of accordion */}
-      {imp.upgradeImageUrl && !imgError ? (
-        <div className="relative">
-          {!imgLoaded && (
-            <div className="w-full aspect-[2/1] bg-gradient-to-br from-primary/5 via-rose-500/5 to-transparent flex items-center justify-center">
-              <FashionButtonSpinner />
-            </div>
-          )}
-          <img
-            loading="lazy"
-            src={imp.upgradeImageUrl}
-            alt={`${imp.beforeLabel} → ${imp.afterLabel}`}
-            className={`w-full aspect-[2/1] object-cover ${imgLoaded ? 'opacity-100' : 'opacity-0 absolute inset-0'}`}
-            onLoad={() => setImgLoaded(true)}
-            onError={() => setImgError(true)}
-          />
-        </div>
-      ) : !imp.upgradeImageUrl ? (
-        <div className="w-full aspect-[2/1] bg-gradient-to-br from-primary/5 via-rose-500/5 to-transparent flex flex-col items-center justify-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center animate-pulse">
-            <Sparkles className="w-5 h-5 text-primary/50" />
+      {/* Stage 62: All options displayed as horizontal gallery with images */}
+      {hasAlternatives ? (
+        <div className="p-3 space-y-2">
+          <div className="grid grid-cols-3 gap-2">
+            {allOptions.map((opt, idx) => {
+              const isActive = selectedOption === idx;
+              return (
+                <button
+                  key={idx}
+                  onClick={() => { setSelectedOption(idx); setImgLoaded(false); setImgError(false); }}
+                  className={`relative rounded-xl overflow-hidden border-2 transition-all duration-200 ${
+                    isActive
+                      ? 'border-primary ring-1 ring-primary/30 scale-[1.02]'
+                      : 'border-white/5 hover:border-white/20 opacity-75 hover:opacity-100'
+                  }`}
+                >
+                  {opt.upgradeImageUrl ? (
+                    <img
+                      loading="lazy"
+                      src={opt.upgradeImageUrl}
+                      alt={opt.afterLabel}
+                      className="w-full aspect-square object-cover"
+                    />
+                  ) : (
+                    <div className="w-full aspect-square bg-gradient-to-br from-primary/5 via-rose-500/5 to-transparent flex items-center justify-center">
+                      <Sparkles className="w-4 h-4 text-primary/40 animate-pulse" />
+                    </div>
+                  )}
+                  <div className={`absolute bottom-0 inset-x-0 px-1.5 py-1 text-[9px] font-medium text-center truncate ${
+                    isActive ? 'bg-primary/90 text-primary-foreground' : 'bg-black/60 text-white/80'
+                  }`}>
+                    {idx === 0
+                      ? (lang === "he" ? "⭐ מומלץ" : "⭐ Top Pick")
+                      : opt.afterLabel?.split(' ').slice(0, 3).join(' ') || (lang === "he" ? `אפשרות ${idx + 1}` : `Option ${idx + 1}`)}
+                  </div>
+                  {isActive && (
+                    <div className="absolute top-1 right-1 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                      <Check className="w-3 h-3 text-primary-foreground" />
+                    </div>
+                  )}
+                </button>
+              );
+            })}
           </div>
-          <span className="text-xs text-muted-foreground">
-            {lang === "he" ? "מייצר תמונת שידרוג..." : "Generating upgrade image..."}
-          </span>
+          <div className="flex flex-wrap gap-1.5 px-1">
+            {activeOption.afterColor && (
+              <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary/80">
+                {activeOption.afterColor}
+              </span>
+            )}
+            {activeOption.afterMaterial && (
+              <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-500/80">
+                {activeOption.afterMaterial}
+              </span>
+            )}
+            {activeOption.afterPattern && activeOption.afterPattern !== 'solid' && (
+              <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-rose-500/10 text-rose-500/80">
+                {activeOption.afterPattern}
+              </span>
+            )}
+          </div>
         </div>
-      ) : null}
+      ) : (
+        activeOption.upgradeImageUrl && !imgError ? (
+          <div className="relative">
+            {!imgLoaded && (
+              <div className="w-full aspect-[2/1] bg-gradient-to-br from-primary/5 via-rose-500/5 to-transparent flex items-center justify-center">
+                <FashionButtonSpinner />
+              </div>
+            )}
+            <img
+              loading="lazy"
+              src={activeOption.upgradeImageUrl}
+              alt={`${imp.beforeLabel} → ${activeOption.afterLabel}`}
+              className={`w-full aspect-[2/1] object-cover ${imgLoaded ? 'opacity-100' : 'opacity-0 absolute inset-0'}`}
+              onLoad={() => setImgLoaded(true)}
+              onError={() => setImgError(true)}
+            />
+          </div>
+        ) : !activeOption.upgradeImageUrl ? (
+          <div className="w-full aspect-[2/1] bg-gradient-to-br from-primary/5 via-rose-500/5 to-transparent flex flex-col items-center justify-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center animate-pulse">
+              <Sparkles className="w-5 h-5 text-primary/50" />
+            </div>
+            <span className="text-xs text-muted-foreground">
+              {lang === "he" ? "מייצר תמונת שידרוג..." : "Generating upgrade image..."}
+            </span>
+          </div>
+        ) : null
+      )}
 
       <div className="px-4">
         <AccordionTrigger className="hover:no-underline py-3">
