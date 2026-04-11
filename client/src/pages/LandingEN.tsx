@@ -129,22 +129,18 @@ export default function LandingEN() {
                 <span className="text-xs text-amber-300/80 font-medium tracking-wide">AI Personal Stylist</span>
               </div>
 
-              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-[1.1] mb-6">
-                <span className="text-foreground">You think it's an </span>
+              {/* Version B: Aggressive Converting */}
+              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-[1.1] mb-4">
+                <span className="text-foreground">You're </span>
+                <span className="text-red-400 font-extrabold">not</span>
+                <span className="text-foreground"> an </span>
                 <span className="text-amber-400 font-extrabold">8</span>
-                <span className="text-foreground"> — </span>
-                <br className="hidden sm:block" />
-                <span className="text-foreground">it's actually a </span>
-                <span className="text-amber-500/60 line-through decoration-amber-500/40 decoration-2">6.2</span>
                 <br />
-                <span className="bg-gradient-to-r from-amber-300 via-amber-400 to-amber-500 bg-clip-text text-transparent">
-                  Let's turn it into a{" "}
-                </span>
-                <span className="text-amber-400 font-extrabold text-5xl sm:text-6xl md:text-7xl lg:text-8xl animate-pulse">9.2</span>
+                <span className="text-foreground">like you think</span>
               </h1>
 
-              <p className="text-base md:text-lg text-muted-foreground max-w-md mx-auto md:mx-0 leading-relaxed mb-8">
-                Upload your look. Get a score. Upgrade your style in seconds.
+              <p className="text-xl md:text-2xl font-semibold bg-gradient-to-r from-amber-300 via-amber-400 to-amber-500 bg-clip-text text-transparent mb-8">
+                Let's find out
               </p>
 
               <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
@@ -154,7 +150,7 @@ export default function LandingEN() {
                   className="group inline-flex items-center gap-3 px-8 py-4 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-bold text-base md:text-lg transition-all duration-300 shadow-[0_0_30px_rgba(245,158,11,0.3)] hover:shadow-[0_0_40px_rgba(245,158,11,0.5)] hover:scale-[1.02] active:scale-[0.98]"
                 >
                   <Upload className="w-5 h-5" />
-                  Upload your outfit
+                  See your real score
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </Link>
 

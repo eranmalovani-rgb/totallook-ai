@@ -941,3 +941,10 @@
 - [x] 80.7: Combine R1 + R2 scores for final ranked style preferences
 - [x] 80.8: Generated better minimalist reinforcement images
 - [x] 80.9: Update vitest tests for new flow + taste scoring (7/7 passing)
+
+## Stage 81: Landing Page Version B — "Aggressive Converting"
+- [x] 81.1: Update hero headline to "את לא 8 כמו שאת חושבת"
+- [x] 81.2: Update hero subtitle to "בואי נבדוק את זה"
+- [x] 81.3: Update CTA button to "תראי את הציון האמיתי שלך"
+- [x] 81.4: Style with provocative/bold design — "לא" in red-400, "8" in amber-400, subtitle in amber gradient
+- [x] 81.5: Update English landing page (LandingEN.tsx) — "You're not an 8 like you think" + "Let's find out" + "See your real score"
