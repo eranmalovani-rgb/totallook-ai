@@ -11,6 +11,13 @@ const PURPLE = "#7B2EFF";
 const BG = "#0B0B0F";
 const BG_CARD = "#111118";
 
+/* ─── CDN Images ─── */
+const IMG_HERO = "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/glow-before-after-1-4xH8Y9JhG57dpaYNXKiwuW.webp";
+const IMG_BA2 = "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/glow-before-after-2-RHsUihVfH8XH8RJpJkrM8y.webp";
+const IMG_BA3 = "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/glow-before-after-3-XVjNG6azV8XfhaP8yMXmsX.webp";
+const IMG_PHONE = "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/glow-phone-mockup-oUna4gCEwvrKYv4LEaYKvp.webp";
+const IMG_GRID = "https://d2xsxph8kpxj0f.cloudfront.net/310519663514710188/AVfXZN2j3ffhBTKao83uCM/glow-style-card-grid-NFN8by5vn5dWWHcQn4eAyD.webp";
+
 /* ─── Mock data ─── */
 const LIVE_FEED_ITEMS = [
   { name: "נועה", from: 58, to: 88 },
@@ -34,16 +41,9 @@ const SOCIAL_PROOF = [
   { text: "כאילו יש לי סטייליסטית אישית.", name: "רותם, 21" },
 ];
 
-const STYLE_FEED = [
-  { before: 62, after: 92, label: "קז'ואל → אלגנטי" },
-  { before: 55, after: 88, label: "בסיסי → טרנדי" },
-  { before: 68, after: 95, label: "יומיומי → וואו" },
-  { before: 58, after: 87, label: "סתמי → מושלם" },
-  { before: 61, after: 91, label: "רגיל → מדהים" },
-  { before: 54, after: 86, label: "משעמם → בולט" },
-  { before: 66, after: 94, label: "נחמד → מהמם" },
-  { before: 57, after: 89, label: "אוקיי → מושלם" },
-  { before: 63, after: 93, label: "טוב → מצוין" },
+const BEFORE_AFTER_EXAMPLES = [
+  { img: IMG_BA2, label: "הודי → קז'ואל שיק", before: 58, after: 88 },
+  { img: IMG_BA3, label: "בסיסי → אלגנטי", before: 55, after: 91 },
 ];
 
 const PROBLEMS_FIXES = [
@@ -70,6 +70,11 @@ function ScoreCounter({ from, to, duration = 2000, className = "", trigger = tru
     requestAnimationFrame(step);
   }, [from, to, duration, trigger]);
   return <span className={className}>{value}</span>;
+}
+
+/* ─── LTR Number wrapper — keeps numbers left-to-right inside RTL page ─── */
+function LtrNum({ children, className = "", style = {} }: { children: React.ReactNode; className?: string; style?: React.CSSProperties }) {
+  return <span dir="ltr" style={{ unicodeBidi: "embed", display: "inline-block", ...style }} className={className}>{children}</span>;
 }
 
 /* ─── Intersection Observer Hook ─── */
@@ -141,6 +146,7 @@ export default function GlowLanding() {
   const [liveFeedIdx, setLiveFeedIdx] = useState(0);
 
   const heroRef = useInView(0.1);
+  const demoRef = useInView(0.2);
   const gameRef = useInView(0.3);
   const feedRef = useInView(0.2);
   const styleRef = useInView(0.2);
@@ -314,7 +320,8 @@ export default function GlowLanding() {
             </div>
           </div>
 
-          <div className="flex items-center justify-center gap-4 mb-6">
+          {/* Score: LTR so numbers read 62 → 92 naturally */}
+          <div className="flex items-center justify-center gap-4 mb-6" dir="ltr">
             <div className="text-center">
               <div className="text-5xl sm:text-7xl font-bold" style={{ color: "rgba(255,255,255,0.3)", fontFamily: "'Space Grotesk', sans-serif" }}>
                 <ScoreCounter from={0} to={62} duration={1500} trigger={heroRef.inView} />
@@ -367,12 +374,54 @@ export default function GlowLanding() {
           <span className="text-white/60">עכשיו:</span>
           <span className="font-medium text-white/90 transition-all duration-500" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
             {LIVE_FEED_ITEMS[liveFeedIdx].name} שיפרה{" "}
-            <span style={{ color: "rgba(255,255,255,0.4)" }}>{LIVE_FEED_ITEMS[liveFeedIdx].from}</span>
-            {" → "}
-            <span style={{ color: PINK, fontWeight: 700 }}>{LIVE_FEED_ITEMS[liveFeedIdx].to}</span>
+            <LtrNum>
+              <span style={{ color: "rgba(255,255,255,0.4)" }}>{LIVE_FEED_ITEMS[liveFeedIdx].from}</span>
+              {" → "}
+              <span style={{ color: PINK, fontWeight: 700 }}>{LIVE_FEED_ITEMS[liveFeedIdx].to}</span>
+            </LtrNum>
           </span>
         </div>
       </div>
+
+      {/* ─── HERO IMAGE — Before/After Demo ─── */}
+      <section
+        ref={demoRef.ref}
+        className="py-12 px-4"
+      >
+        <div className={`max-w-4xl mx-auto transition-all duration-700 ${demoRef.inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
+          {/* Main hero before/after image */}
+          <div className="rounded-2xl overflow-hidden mb-8 shadow-2xl" style={{ boxShadow: `0 0 60px ${PINK}15, 0 0 120px ${PURPLE}10` }}>
+            <img
+              src={IMG_HERO}
+              alt="לפני ואחרי — שדרוג לוק עם AI"
+              className="w-full h-auto"
+              loading="eager"
+            />
+          </div>
+
+          {/* Two smaller before/after examples */}
+          <div className="grid grid-cols-2 gap-4">
+            {BEFORE_AFTER_EXAMPLES.map((ex, i) => (
+              <div key={i} className="rounded-xl overflow-hidden relative group" style={{ boxShadow: `0 0 30px ${PINK}10` }}>
+                <img
+                  src={ex.img}
+                  alt={ex.label}
+                  className="w-full h-auto transition-transform duration-500 group-hover:scale-[1.02]"
+                  loading="lazy"
+                />
+                <div className="absolute bottom-0 left-0 right-0 p-3 text-center" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.8), transparent)" }}>
+                  <LtrNum className="text-sm font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                    <span style={{ color: "rgba(255,255,255,0.5)" }}>{ex.before}</span>
+                    <span className="text-white/40 mx-1">→</span>
+                    <span style={{ color: PINK }}>{ex.after}</span>
+                  </LtrNum>
+                  <p className="text-[10px] text-white/50 mt-0.5">{ex.label}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
       {/* ─── GAME HOOK ─── */}
       <section
@@ -390,8 +439,8 @@ export default function GlowLanding() {
           {/* Score distribution */}
           <div className="flex flex-col gap-4 mb-10">
             <div className="flex items-center gap-4 p-4 rounded-xl" style={{ background: BG_CARD, border: "1px solid rgba(255,255,255,0.05)" }}>
-              <div className="w-16 text-right">
-                <span className="text-2xl font-bold text-white/30" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>60-75</span>
+              <div className="w-16 text-center">
+                <LtrNum className="text-2xl font-bold text-white/30" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>60-75</LtrNum>
               </div>
               <div className="flex-1">
                 <div className="h-3 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.05)" }}>
@@ -402,8 +451,8 @@ export default function GlowLanding() {
             </div>
 
             <div className="flex items-center gap-4 p-4 rounded-xl" style={{ background: BG_CARD, border: `1px solid ${PINK}20` }}>
-              <div className="w-16 text-right">
-                <span className="text-2xl font-bold" style={{ color: PINK, fontFamily: "'Space Grotesk', sans-serif" }}>90+</span>
+              <div className="w-16 text-center">
+                <LtrNum className="text-2xl font-bold" style={{ color: PINK, fontFamily: "'Space Grotesk', sans-serif" }}>90+</LtrNum>
               </div>
               <div className="flex-1">
                 <div className="h-3 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.05)" }}>
@@ -418,7 +467,7 @@ export default function GlowLanding() {
         </div>
       </section>
 
-      {/* ─── STYLE FEED ─── */}
+      {/* ─── STYLE FEED — Visual Grid ─── */}
       <section
         ref={styleRef.ref}
         className="py-16 px-4"
@@ -433,42 +482,23 @@ export default function GlowLanding() {
           </h2>
           <p className="text-center text-white/40 text-sm mb-10">כל לוק עבר ניתוח AI ושודרג</p>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
-            {STYLE_FEED.map((item, i) => (
-              <div
-                key={i}
-                className="rounded-xl p-4 transition-all duration-300 hover:scale-[1.02]"
-                style={{
-                  background: BG_CARD,
-                  border: "1px solid rgba(255,255,255,0.05)",
-                  animationDelay: `${i * 100}ms`,
-                }}
-              >
-                {/* Mock outfit visual */}
-                <div
-                  className="aspect-[3/4] rounded-lg mb-3 flex items-center justify-center"
-                  style={{
-                    background: `linear-gradient(135deg, ${PINK}08, ${PURPLE}08)`,
-                    border: `1px dashed ${PINK}15`,
-                  }}
-                >
-                  <div className="text-center">
-                    <div className="flex items-center justify-center gap-2 mb-1">
-                      <span className="text-lg text-white/25 font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{item.before}</span>
-                      <ArrowLeft className="w-4 h-4 text-white/20 rotate-180" />
-                      <span className="text-lg font-bold" style={{ color: PINK, fontFamily: "'Space Grotesk', sans-serif" }}>{item.after}</span>
-                    </div>
-                    <div className="text-[10px] text-white/30">+{item.after - item.before} נקודות</div>
-                  </div>
-                </div>
-                <p className="text-xs text-white/50 text-center">{item.label}</p>
-              </div>
-            ))}
+          {/* Full-width style card grid image */}
+          <div className="rounded-2xl overflow-hidden mb-8" style={{ boxShadow: `0 0 40px ${PURPLE}10` }}>
+            <img
+              src={IMG_GRID}
+              alt="דוגמאות לוקים שנותחו ושודרגו"
+              className="w-full h-auto"
+              loading="lazy"
+            />
+          </div>
+
+          <div className="text-center">
+            <GlowCTA text="נסי גם את הלוק שלך" size="md" />
           </div>
         </div>
       </section>
 
-      {/* ─── RESULT PREVIEW ─── */}
+      {/* ─── RESULT PREVIEW — Phone Mockup ─── */}
       <section
         ref={resultRef.ref}
         className="py-20 px-4"
@@ -482,9 +512,20 @@ export default function GlowLanding() {
           </h2>
           <p className="text-white/40 text-sm mb-10">ניתוח מלא של הלוק שלך</p>
 
+          {/* Phone mockup image */}
+          <div className="max-w-xs mx-auto mb-10">
+            <img
+              src={IMG_PHONE}
+              alt="תצוגת ניתוח אופנתי באפליקציה"
+              className="w-full h-auto rounded-2xl"
+              loading="lazy"
+              style={{ boxShadow: `0 0 60px ${PINK}20, 0 0 120px ${PURPLE}10` }}
+            />
+          </div>
+
           {/* Score animation preview */}
           <div className="mb-8 p-6 rounded-2xl" style={{ background: BG_CARD, border: "1px solid rgba(255,255,255,0.05)" }}>
-            <div className="flex items-center justify-center gap-6 mb-4">
+            <div className="flex items-center justify-center gap-6 mb-4" dir="ltr">
               <div className="text-center">
                 <div className="text-4xl font-bold text-white/30" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
                   <ScoreCounter from={0} to={62} duration={1500} trigger={resultRef.inView} />
