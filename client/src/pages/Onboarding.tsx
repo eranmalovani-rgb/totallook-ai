@@ -525,18 +525,7 @@ export default function Onboarding() {
     }, 350);
   }, [r2Index, r2Cards]);
 
-  /* ── Touch swipe ── */
-  const touchStartX = useRef(0);
-  const touchStartY = useRef(0);
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    touchStartX.current = e.touches[0].clientX;
-    touchStartY.current = e.touches[0].clientY;
-  }, []);
-  const makeHandleTouchEnd = (swipeFn: (dir: "left" | "right") => void) => (e: React.TouchEvent) => {
-    const deltaX = e.changedTouches[0].clientX - touchStartX.current;
-    const deltaY = e.changedTouches[0].clientY - touchStartY.current;
-    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 60) swipeFn(deltaX > 0 ? "right" : "left");
-  };
+  /* ── Touch swipe (removed — now handled inside TinderCard) ── */
 
   /* ═══════════════════════════════════════════════════════
      Influencer helpers
@@ -669,30 +658,113 @@ export default function Onboarding() {
   };
 
   /* ═══════════════════════════════════════════════════════
-     Shared Tinder Card Component
+     Shared Tinder Card Component — REAL drag-follow swipe
      ═══════════════════════════════════════════════════════ */
-  const TinderCard = ({ card, index, total, direction, onSwipe, onTouchStartFn, onTouchEndFn, roundLabel }: {
+  const TinderCard = ({ card, index, total, direction, onSwipe, roundLabel }: {
     card: OutfitCard; index: number; total: number; direction: "left" | "right" | null;
-    onSwipe: (dir: "left" | "right") => void; onTouchStartFn: (e: React.TouchEvent) => void;
-    onTouchEndFn: (e: React.TouchEvent) => void; roundLabel: string;
-  }) => (
+    onSwipe: (dir: "left" | "right") => void; roundLabel: string;
+  }) => {
+    const cardRef = useRef<HTMLDivElement>(null);
+    const [dragX, setDragX] = useState(0);
+    const [isDragging, setIsDragging] = useState(false);
+    const [flyOut, setFlyOut] = useState<"left" | "right" | null>(null);
+    const startXRef = useRef(0);
+    const startYRef = useRef(0);
+    const lockedRef = useRef<"h" | "v" | null>(null);
+    const draggingRef = useRef(false);
+    const dragXRef = useRef(0); // mirror of dragX for closure-safe access
+    const DEAD_ZONE = 10;
+    const THRESHOLD = 0.25; // 25% of screen width
+
+    useEffect(() => {
+      const el = cardRef.current;
+      if (!el) return;
+      const onStart = (e: TouchEvent) => {
+        startXRef.current = e.touches[0].clientX;
+        startYRef.current = e.touches[0].clientY;
+        lockedRef.current = null;
+        draggingRef.current = false;
+        setDragX(0);
+        setFlyOut(null);
+      };
+      const onMove = (e: TouchEvent) => {
+        const dx = e.touches[0].clientX - startXRef.current;
+        const dy = e.touches[0].clientY - startYRef.current;
+        if (!lockedRef.current) {
+          if (Math.abs(dx) < DEAD_ZONE && Math.abs(dy) < DEAD_ZONE) return;
+          lockedRef.current = Math.abs(dx) >= Math.abs(dy) ? "h" : "v";
+        }
+        if (lockedRef.current === "v") return; // let browser scroll
+        e.preventDefault(); // block scroll for horizontal drag
+        if (!draggingRef.current) { draggingRef.current = true; setIsDragging(true); }
+        dragXRef.current = dx;
+        setDragX(dx);
+      };
+      const onEnd = () => {
+        if (!draggingRef.current) { lockedRef.current = null; return; }
+        const screenW = window.innerWidth;
+        const currentDragX = dragXRef.current;
+        const pct = Math.abs(currentDragX) / screenW;
+        if (pct > THRESHOLD) {
+          const dir = currentDragX > 0 ? "right" : "left";
+          setFlyOut(dir);
+          setTimeout(() => {
+            setFlyOut(null);
+            setDragX(0);
+            setIsDragging(false);
+            draggingRef.current = false;
+            lockedRef.current = null;
+            onSwipe(dir);
+          }, 300);
+        } else {
+          setDragX(0);
+          setIsDragging(false);
+          draggingRef.current = false;
+          lockedRef.current = null;
+        }
+      };
+      el.addEventListener("touchstart", onStart, { passive: true });
+      window.addEventListener("touchmove", onMove, { passive: false });
+      window.addEventListener("touchend", onEnd, { passive: true });
+      return () => {
+        el.removeEventListener("touchstart", onStart);
+        window.removeEventListener("touchmove", onMove);
+        window.removeEventListener("touchend", onEnd);
+      };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [onSwipe]);
+
+    // Reset on card change
+    useEffect(() => { setDragX(0); setIsDragging(false); setFlyOut(null); }, [index]);
+
+    const rotation = flyOut === "right" ? 15 : flyOut === "left" ? -15 : (dragX / window.innerWidth) * 15;
+    const translateX = flyOut === "right" ? window.innerWidth : flyOut === "left" ? -window.innerWidth : dragX;
+    const opacity = flyOut ? 0 : 1 - Math.abs(dragX) / window.innerWidth * 0.5;
+    const likeOpacity = Math.max(0, Math.min(1, dragX / 100));
+    const nopeOpacity = Math.max(0, Math.min(1, -dragX / 100));
+
+    return (
     <div className="relative mx-auto" style={{ maxWidth: 320 }}>
-      <div onTouchStart={onTouchStartFn} onTouchEnd={onTouchEndFn}
-        className={`relative rounded-3xl overflow-hidden border-2 border-white/10 shadow-2xl transition-all duration-300 ${
-          direction === "right" ? "translate-x-[120%] rotate-12 opacity-0" : direction === "left" ? "-translate-x-[120%] -rotate-12 opacity-0" : ""
-        }`}>
-        {direction === "right" && (
-          <div className="absolute inset-0 z-20 flex items-center justify-center bg-green-500/20">
-            <div className="border-4 border-green-400 text-green-400 px-6 py-2 rounded-xl text-3xl font-black rotate-[-20deg]">LIKE</div>
-          </div>
-        )}
-        {direction === "left" && (
-          <div className="absolute inset-0 z-20 flex items-center justify-center bg-red-500/20">
-            <div className="border-4 border-red-400 text-red-400 px-6 py-2 rounded-xl text-3xl font-black rotate-[20deg]">NOPE</div>
-          </div>
-        )}
-        <div className="aspect-[3/4] relative">
-          <img src={card.image} alt={card.label.en} className="w-full h-full object-cover" loading="eager" />
+      <div ref={cardRef}
+        style={{
+          transform: `translateX(${translateX}px) rotate(${rotation}deg)`,
+          opacity,
+          transition: isDragging ? "none" : "transform 0.3s ease-out, opacity 0.3s ease-out",
+          touchAction: isDragging ? "none" : "pan-y",
+        }}
+        className="relative rounded-3xl overflow-hidden border-2 border-white/10 shadow-2xl">
+        {/* LIKE overlay */}
+        <div className="absolute inset-0 z-20 flex items-center justify-center bg-green-500/20 pointer-events-none"
+          style={{ opacity: likeOpacity, transition: isDragging ? "none" : "opacity 0.2s" }}>
+          <div className="border-4 border-green-400 text-green-400 px-6 py-2 rounded-xl text-3xl font-black rotate-[-20deg]">LIKE</div>
+        </div>
+        {/* NOPE overlay */}
+        <div className="absolute inset-0 z-20 flex items-center justify-center bg-red-500/20 pointer-events-none"
+          style={{ opacity: nopeOpacity, transition: isDragging ? "none" : "opacity 0.2s" }}>
+          <div className="border-4 border-red-400 text-red-400 px-6 py-2 rounded-xl text-3xl font-black rotate-[20deg]">NOPE</div>
+        </div>
+        <div className="aspect-[3/4] relative" style={{ pointerEvents: isDragging ? "none" : "auto" }}>
+          <img src={card.image} alt={card.label.en} className="w-full h-full object-cover" loading="eager" draggable={false} />
           <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/90 via-black/50 to-transparent" />
           <div className="absolute bottom-4 inset-x-0 text-center">
             <span className="text-xl font-bold text-white drop-shadow-lg">{card.label[lang] || card.label.en}</span>
@@ -715,6 +787,7 @@ export default function Onboarding() {
       <div className="text-center mt-2"><span className="text-xs text-muted-foreground">{roundLabel}</span></div>
     </div>
   );
+  };
 
   /* ═══════════════════════════════════════════════════════
      Taste Score Visual Bar
@@ -929,7 +1002,7 @@ export default function Onboarding() {
                     {lang === "he" ? "סוויפ ימינה = אוהב/ת ❤️ | שמאלה = לא בשבילי ✕" : "Swipe right = love ❤️ | left = nope ✕"}
                   </p>
                   <TinderCard card={r1Cards[r1Index]} index={r1Index} total={r1Cards.length} direction={swipeDirection}
-                    onSwipe={handleR1Swipe} onTouchStartFn={handleTouchStart} onTouchEndFn={makeHandleTouchEnd(handleR1Swipe)}
+                    onSwipe={handleR1Swipe}
                     roundLabel={lang === "he" ? `סבב 1 — ${r1Index + 1}/${r1Cards.length}` : `Round 1 — ${r1Index + 1}/${r1Cards.length}`} />
                 </>
               )}
@@ -943,7 +1016,7 @@ export default function Onboarding() {
                   <h2 className="text-2xl md:text-3xl font-bold mb-1 mt-3">{lang === "he" ? "עוד קצת לדיוק..." : "A few more to refine..."}</h2>
                   <p className="text-muted-foreground text-sm mb-4">{lang === "he" ? "4 לוקים אחרונים — חיזוק הטעם שלך" : "4 final looks — reinforcing your taste"}</p>
                   <TinderCard card={r2Cards[r2Index]} index={r2Index} total={r2Cards.length} direction={r2SwipeDirection}
-                    onSwipe={handleR2Swipe} onTouchStartFn={handleTouchStart} onTouchEndFn={makeHandleTouchEnd(handleR2Swipe)}
+                    onSwipe={handleR2Swipe}
                     roundLabel={lang === "he" ? `סבב 2 — ${r2Index + 1}/${r2Cards.length}` : `Round 2 — ${r2Index + 1}/${r2Cards.length}`} />
                 </>
               )}
