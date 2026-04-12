@@ -1195,3 +1195,18 @@
 
 ## Stage 112b: No influencers when gender unknown
 - [x] 112b.1: When gender not detected: Stage 2 prompt says set influencerInsight to empty string; post-processing clears influencerInsight + linkedMentions + inspirationNotes in both foreground and background paths
+
+## Stage 113: Photo passthrough Quick→Personalized + Store tier upgrade button
+
+### 113a: Photo passthrough — Quick path photo reused in Personalized onboarding
+- [x] 113a.1: When guest finishes Quick analysis and clicks "ניתוח מותאם" upsell, pass the already-uploaded photo URL to the Personalized onboarding flow (already implemented via ?photo= param in GuestReview CTA)
+- [x] 113a.2: Onboarding V3 detects the passed photo, auto-analyzes it, and shows scan animation instead of upload buttons. If fetch fails, auto-retries. Never shows upload buttons when incomingPhoto exists.
+- [x] 113a.3: At the end of onboarding, the passed photo is used for the personalized analysis via photoAnalysis.imageUrl/imageKey (already working)
+- [x] 113a.4: Photo displays correctly in onboarding flow — shows preview with scan animation, then analysis results overlay
+
+### 113b: Store upgrade button — always suggest one tier higher
+- [x] 113b.1: Add "עדכן חנויות" button in the results page (both GuestReview and ReviewPage)
+- [x] 113b.2: When clicked, upgrade store tier: budget→mid-range, mid-range→premium, premium→luxury
+- [x] 113b.3: Replace shopping links with stores from the next tier up (via profile update + cache invalidation)
+- [x] 113b.4: Server-side: added guest.upgradeStores and review.upgradeStores mutations with cache clearing
+- [x] 113b.5: Button shows next tier label; hidden when already at luxury tier

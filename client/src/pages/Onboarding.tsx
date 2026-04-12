@@ -461,8 +461,19 @@ export default function Onboarding() {
         setAnalyzing(false);
       }, 1500);
     } catch (err) {
-      toast.error(lang === "he" ? "שגיאה בניתוח התמונה — ננסה שוב" : "Photo analysis error — try again");
-      setAnalyzing(false);
+      // If incoming photo from Path A failed (likely CORS), allow retry
+      if (incomingPhoto && !photoFile) {
+        console.warn("[Onboarding] incomingPhoto fetch failed, will retry");
+        toast.error(lang === "he" ? "שגיאה בטעינת התמונה — ננסה שוב" : "Photo loading error — retrying...");
+        setAnalyzing(false);
+        // Auto-retry after a short delay
+        setTimeout(() => {
+          autoAnalyzeRef.current = false; // allow re-trigger
+        }, 1500);
+      } else {
+        toast.error(lang === "he" ? "שגיאה בניתוח התמונה — ננסה שוב" : "Photo analysis error — try again");
+        setAnalyzing(false);
+      }
     }
   }, [photoFile, incomingPhoto, analyzePhotoMutation, lang]);
 
@@ -851,7 +862,7 @@ export default function Onboarding() {
                     )}
                   </div>
 
-                  {!analyzing && !photoAnalysis && (
+                  {!analyzing && !photoAnalysis && !incomingPhoto && (
                     <div className="flex gap-3 justify-center">
                       <Button variant="outline" onClick={() => { setPhotoPreview(null); setPhotoFile(null); }} className="rounded-xl">
                         {lang === "he" ? "תמונה אחרת" : "Different photo"}
@@ -860,6 +871,15 @@ export default function Onboarding() {
                         <Upload className="w-4 h-4" />
                         {lang === "he" ? "נתחי אותי!" : "Analyze me!"}
                       </Button>
+                    </div>
+                  )}
+                  {/* When incoming photo from Path A is loading/retrying, show analyzing state */}
+                  {!analyzing && !photoAnalysis && incomingPhoto && (
+                    <div className="flex flex-col items-center gap-2">
+                      <FashionSpinner size="sm" />
+                      <p className="text-sm text-muted-foreground">
+                        {lang === "he" ? "טוען את התמונה שלך..." : "Loading your photo..."}
+                      </p>
                     </div>
                   )}
 

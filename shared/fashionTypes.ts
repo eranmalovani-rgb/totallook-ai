@@ -1023,6 +1023,28 @@ export const BUDGET_STORE_MAP: Record<string, string[]> = {
   luxury: ["NET-A-PORTER", "Farfetch", "SSENSE", "Mr Porter", "MatchesFashion", "Nordstrom"],
 };
 
+/** Stage 113b: Budget tier upgrade order */
+export const BUDGET_TIER_ORDER = ["budget", "mid-range", "premium", "luxury"] as const;
+
+/** Get the next budget tier up (returns same tier if already at max) */
+export function getNextBudgetTier(current: string): string {
+  const idx = BUDGET_TIER_ORDER.indexOf(current as any);
+  if (idx === -1) return "mid-range"; // unknown → default to mid-range
+  if (idx >= BUDGET_TIER_ORDER.length - 1) return BUDGET_TIER_ORDER[BUDGET_TIER_ORDER.length - 1]; // luxury stays luxury
+  return BUDGET_TIER_ORDER[idx + 1];
+}
+
+/** Get the tier label for display */
+export function getBudgetTierLabel(tier: string, lang: "he" | "en"): string {
+  const labels: Record<string, { he: string; en: string }> = {
+    budget: { he: "בסיסי", en: "Budget" },
+    "mid-range": { he: "בינוני", en: "Mid-Range" },
+    premium: { he: "גבוה", en: "Premium" },
+    luxury: { he: "פרמיום", en: "Luxury" },
+  };
+  return labels[tier]?.[lang] || tier;
+}
+
 /** Store entry with gender and budget metadata for smart filtering */
 export interface StoreEntry {
   name: string;

@@ -9,7 +9,7 @@ import { findCatalogMatches, findPairingItems } from "./db";
 import { invokeLLM } from "./_core/llm";
 import { nanoid } from "nanoid";
 import type { FashionAnalysis } from "../shared/fashionTypes";
-import { POPULAR_INFLUENCERS, BRAND_URLS, COUNTRY_STORE_MAP, COUNTRY_LOCAL_BRANDS, filterStoresForUser } from "../shared/fashionTypes";
+import { POPULAR_INFLUENCERS, BRAND_URLS, COUNTRY_STORE_MAP, COUNTRY_LOCAL_BRANDS, filterStoresForUser, BUDGET_STORE_MAP, getNextBudgetTier } from "../shared/fashionTypes";
 // productImages pipeline removed in Stage 45 (Option C)
 import { sendWhatsAppWelcome } from "./whatsapp";
 import { notifyOwner } from "./_core/notification";
@@ -5120,6 +5120,41 @@ Return ONLY a JSON object with these exact fields:
         return { success: true };
       }),
 
+    /** Stage 113b: Upgrade store tier for authenticated user */
+    upgradeStores: protectedProcedure
+      .input(z.object({ reviewId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const review = await getReviewById(input.reviewId);
+        if (!review) throw new Error("Review not found");
+        if (review.userId !== ctx.user.id) throw new Error("Unauthorized");
+
+        const profile = await getUserProfile(review.userId);
+        const currentBudget = profile?.budgetLevel || "mid-range";
+        const nextBudget = getNextBudgetTier(currentBudget);
+
+        const nextTierStores = BUDGET_STORE_MAP[nextBudget] || BUDGET_STORE_MAP["mid-range"];
+        const newPreferredStores = nextTierStores.slice(0, 3).join(", ");
+
+        // Update user profile with new budget level and preferred stores
+        await upsertUserProfile({
+          userId: review.userId,
+          budgetLevel: nextBudget,
+          preferredStores: newPreferredStores,
+        });
+
+        // Clear the normalization cache so next get re-normalizes with new stores
+        normalizedImprovementsCache.delete(`review-${input.reviewId}`);
+
+        console.log(`[Stage 113b] User store upgrade: ${currentBudget} → ${nextBudget}, stores: ${newPreferredStores}`);
+
+        return {
+          success: true,
+          previousTier: currentBudget,
+          newTier: nextBudget,
+          newStores: newPreferredStores,
+        };
+      }),
+
     /** Delete a single review by ID (user must own it) */
     deleteOne: protectedProcedure
       .input(z.object({ reviewId: z.number() }))
@@ -6840,6 +6875,46 @@ Return ONLY a JSON object with these exact fields:
           } catch { /* try next session */ }
         }
         return { success: true };
+      }),
+
+    /** Stage 113b: Upgrade store tier for guest — clear cache so next getResult uses higher tier */
+    upgradeStores: publicProcedure
+      .input(z.object({
+        sessionId: z.number(),
+        fingerprint: z.string().min(8).max(128),
+      }))
+      .mutation(async ({ input }) => {
+        const session = await getGuestSessionById(input.sessionId);
+        if (!session) throw new Error("Session not found");
+        if (session.fingerprint !== input.fingerprint) throw new Error("Unauthorized");
+
+        // Get current guest profile to find current budget level
+        const guestProfile = session.fingerprint ? await getGuestProfile(session.fingerprint) : null;
+        const currentBudget = guestProfile?.budgetLevel || "mid-range";
+        const nextBudget = getNextBudgetTier(currentBudget);
+
+        // Get the stores for the next tier
+        const nextTierStores = BUDGET_STORE_MAP[nextBudget] || BUDGET_STORE_MAP["mid-range"];
+        // Pick top 3 stores from the next tier
+        const newPreferredStores = nextTierStores.slice(0, 3).join(", ");
+
+        // Update guest profile with new budget level and preferred stores
+        await saveGuestProfile(input.fingerprint, {
+          budgetLevel: nextBudget,
+          preferredStores: newPreferredStores,
+        });
+
+        // Clear the normalization cache so next getResult re-normalizes with new stores
+        normalizedImprovementsCache.delete(`guest-${input.sessionId}`);
+
+        console.log(`[Stage 113b] Guest store upgrade: ${currentBudget} → ${nextBudget}, stores: ${newPreferredStores}`);
+
+        return {
+          success: true,
+          previousTier: currentBudget,
+          newTier: nextBudget,
+          newStores: newPreferredStores,
+        };
       }),
 
     /** Delete a guest analysis/session by ID and fingerprint */

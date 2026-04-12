@@ -5,12 +5,12 @@ import { Button } from "@/components/ui/button";
 import { useParams, useLocation } from "wouter";
 import { Link } from "wouter";
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
-import { ArrowRight, ArrowLeft, Upload, ExternalLink, Sparkles, TrendingUp, Users, BookOpen, ShoppingBag, Instagram, RefreshCw, Eye, Share2, Check, Pencil, Loader2, Send, MessageCircle, Wand2, Trash2, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowRight, ArrowLeft, Upload, ExternalLink, Sparkles, TrendingUp, Users, BookOpen, ShoppingBag, Instagram, RefreshCw, Eye, Share2, Check, Pencil, Loader2, Send, MessageCircle, Wand2, Trash2, ChevronDown, ChevronLeft, ChevronRight, ArrowUpCircle } from "lucide-react";
 import { toast } from "sonner";
 import { translations } from "@/i18n/translations";
 import FashionSpinner, { FashionButtonSpinner } from "@/components/FashionSpinner";
 import type { FashionAnalysis, ShoppingLink, LinkedMention, OutfitSuggestion, ClosetMatch, ImprovementAlternative } from "../../../shared/fashionTypes";
-import { BRAND_URLS, POPULAR_INFLUENCERS } from "../../../shared/fashionTypes";
+import { BRAND_URLS, POPULAR_INFLUENCERS, getNextBudgetTier, getBudgetTierLabel } from "../../../shared/fashionTypes";
 import ShareButtons from "@/components/ShareButtons";
 import {
   AlertDialog,
@@ -1270,6 +1270,19 @@ export default function ReviewPage() {
     },
   });
 
+  // Stage 113b: Upgrade stores mutation
+  const upgradeStoresMutation = trpc.review.upgradeStores.useMutation({
+    onSuccess: (data) => {
+      const tierLabel = getBudgetTierLabel(data.newTier, lang);
+      toast.success(lang === "he" ? `החנויות עודכנו לרמת ${tierLabel}` : `Stores upgraded to ${tierLabel} tier`);
+      utils.review.get.invalidate({ id: reviewId });
+      utils.profile.get.invalidate();
+    },
+    onError: (err) => {
+      toast.error((lang === "he" ? "שגיאה בעדכון חנויות: " : "Store upgrade error: ") + err.message);
+    },
+  });
+
   const correctItemMutation = trpc.review.correctItem.useMutation({
     onSuccess: () => {
       toast.success(t("review", "correctItemSuccess"));
@@ -1730,6 +1743,35 @@ export default function ReviewPage() {
                   ))
                 )}
               </div>
+
+              {/* Stage 113b: Upgrade Stores Button */}
+              {isOwner && (() => {
+                const currentTier = userProfile?.budgetLevel || "mid-range";
+                const nextTier = getNextBudgetTier(currentTier);
+                const isMaxTier = currentTier === "luxury";
+                if (isMaxTier) return null;
+                const nextTierLabel = getBudgetTierLabel(nextTier, lang);
+                return (
+                  <div className="mt-3">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full gap-2 border-primary/30 text-primary hover:bg-primary/10 hover:border-primary/50 transition-all"
+                      disabled={upgradeStoresMutation.isPending}
+                      onClick={() => upgradeStoresMutation.mutate({ reviewId })}
+                    >
+                      {upgradeStoresMutation.isPending ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <ArrowUpCircle className="w-4 h-4" />
+                      )}
+                      {lang === "he"
+                        ? `\u05e2\u05d3\u05db\u05df \u05d7\u05e0\u05d5\u05d9\u05d5\u05ea \u05dc\u05e8\u05de\u05ea ${nextTierLabel}`
+                        : `Upgrade stores to ${nextTierLabel}`}
+                    </Button>
+                  </div>
+                );
+              })()}
 
               {/* Fix My Look CTA — attractive card inside Upgrades */}
               {isOwner && (

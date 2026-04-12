@@ -4,7 +4,7 @@ import { useParams, useLocation } from "wouter";
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import {
   ArrowRight, ArrowLeft, Sparkles, TrendingUp, ShoppingBag,
-  ExternalLink, Upload, Users, BookOpen, Eye, RefreshCw, Recycle, Wand2, Trash2, Instagram, Pencil, Send, Loader2, Check, UserPlus
+  ExternalLink, Upload, Users, BookOpen, Eye, RefreshCw, Recycle, Wand2, Trash2, Instagram, Pencil, Send, Loader2, Check, UserPlus, ArrowUpCircle
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -28,7 +28,7 @@ import FashionSpinner, { FashionButtonSpinner } from "@/components/FashionSpinne
 import StylingStudioAnimation from "@/components/StylingStudioAnimation";
 import StoreLogo, { extractStoreFromUrl, extractStoreFromLabel } from "@/components/StoreLogo";
 import type { FashionAnalysis, ShoppingLink, LinkedMention, OutfitSuggestion, ImprovementAlternative } from "../../../shared/fashionTypes";
-import { BRAND_URLS, POPULAR_INFLUENCERS } from "../../../shared/fashionTypes";
+import { BRAND_URLS, POPULAR_INFLUENCERS, getNextBudgetTier, getBudgetTierLabel, BUDGET_TIER_ORDER } from "../../../shared/fashionTypes";
 import { autoMatchInfluencers } from "../../../shared/influencerMatcher";
 import { useLanguage } from "@/i18n";
 import { getLoginUrl } from "@/const";
@@ -1026,6 +1026,21 @@ export default function GuestReview() {
     },
   });
 
+  // Stage 113b: Upgrade stores mutation
+  const utils = trpc.useUtils();
+  const upgradeStoresMutation = trpc.guest.upgradeStores.useMutation({
+    onSuccess: (data) => {
+      const tierLabel = getBudgetTierLabel(data.newTier, lang);
+      toast.success(lang === "he" ? `החנויות עודכנו לרמת ${tierLabel}` : `Stores upgraded to ${tierLabel} tier`);
+      // Invalidate the result query to re-fetch with new stores
+      utils.guest.getResult.invalidate({ sessionId });
+      utils.guest.getProfile.invalidate({ fingerprint: fingerprint || "" });
+    },
+    onError: (err: any) => {
+      toast.error((lang === "he" ? "שגיאה בעדכון חנויות: " : "Store upgrade error: ") + err.message);
+    },
+  });
+
   const { data: result, isLoading } = trpc.guest.getResult.useQuery(
     { sessionId },
     {
@@ -1406,6 +1421,38 @@ export default function GuestReview() {
             />
           ))}
         </Accordion>
+
+        {/* Stage 113b: Upgrade Stores Button */}
+        {(() => {
+          const currentTier = guestProfile?.budgetLevel || "mid-range";
+          const nextTier = getNextBudgetTier(currentTier);
+          const isMaxTier = currentTier === "luxury";
+          if (isMaxTier) return null;
+          const nextTierLabel = getBudgetTierLabel(nextTier, lang);
+          return (
+            <div className="mt-3">
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full gap-2 border-primary/30 text-primary hover:bg-primary/10 hover:border-primary/50 transition-all"
+                disabled={upgradeStoresMutation.isPending}
+                onClick={() => {
+                  if (!fingerprint) return;
+                  upgradeStoresMutation.mutate({ sessionId, fingerprint });
+                }}
+              >
+                {upgradeStoresMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <ArrowUpCircle className="w-4 h-4" />
+                )}
+                {lang === "he"
+                  ? `\u05e2\u05d3\u05db\u05df \u05d7\u05e0\u05d5\u05d9\u05d5\u05ea \u05dc\u05e8\u05de\u05ea ${nextTierLabel}`
+                  : `Upgrade stores to ${nextTierLabel}`}
+              </Button>
+            </div>
+          );
+        })()}
 
         {/* Fix My Look CTA — attractive card inside Upgrades */}
         <div className="mt-5">
