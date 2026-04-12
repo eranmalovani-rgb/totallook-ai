@@ -158,10 +158,11 @@ function StoryCardsContainer({
   const [activeIndex, setActiveIndex] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   const [showOverflow, setShowOverflow] = useState(false);
-  const [dragProgress, setDragProgress] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragX, setDragX] = useState(0);
   const [showSwipeHint, setShowSwipeHint] = useState(true);
   const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
-  const isDraggingRef = useRef(false);
+  const directionLockedRef = useRef<"h" | "v" | null>(null);
   const cardContainerRef = useRef<HTMLDivElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const validChildren = children.filter(Boolean);
@@ -217,71 +218,89 @@ function StoryCardsContainer({
     }, 300);
   }, [activeIndex, isAnimating, isRTL, triggerHaptic]);
 
-  // Touch swipe: finger follows card all the way
-  // ── Touch swipe: native listeners for {passive:false} so preventDefault works ──
+  // ── Refs to avoid stale closures in window listeners ──
   const isAnimatingRef = useRef(false);
   isAnimatingRef.current = isAnimating;
   const activeIndexRef = useRef(activeIndex);
   activeIndexRef.current = activeIndex;
   const validChildrenLenRef = useRef(validChildren.length);
   validChildrenLenRef.current = validChildren.length;
+  const isDraggingRef = useRef(false);
+  isDraggingRef.current = isDragging;
 
+  // ── Touch start: on the wrapper via React ──
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (isAnimatingRef.current) return;
+    touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, time: Date.now() };
+    directionLockedRef.current = null;
+    setShowSwipeHint(false);
+    if (cardContainerRef.current) {
+      cardContainerRef.current.style.transition = "none";
+    }
+  }, []);
+
+  // ── Touch move + end: on WINDOW so we never lose the gesture ──
   useEffect(() => {
-    const wrapper = wrapperRef.current;
-    if (!wrapper) return;
-
-    const onTouchStart = (e: TouchEvent) => {
-      if (isAnimatingRef.current) return;
-      touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, time: Date.now() };
-      isDraggingRef.current = false;
-      setShowSwipeHint(false);
-      if (cardContainerRef.current) {
-        cardContainerRef.current.style.transition = "none";
-      }
-    };
-
     const onTouchMove = (e: TouchEvent) => {
       if (!touchStartRef.current || isAnimatingRef.current) return;
       const dx = e.touches[0].clientX - touchStartRef.current.x;
       const dy = e.touches[0].clientY - touchStartRef.current.y;
-      if (!isDraggingRef.current) {
-        if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 8) {
-          touchStartRef.current = null;
-          return;
-        }
-        if (Math.abs(dx) > 8) {
-          isDraggingRef.current = true;
-        } else {
-          return;
-        }
+
+      // Lock direction on first significant movement
+      if (!directionLockedRef.current) {
+        if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
+        directionLockedRef.current = Math.abs(dx) >= Math.abs(dy) ? "h" : "v";
       }
+
+      // If locked to vertical, let browser handle scroll
+      if (directionLockedRef.current === "v") return;
+
+      // Horizontal drag — prevent scroll, start dragging
       e.preventDefault();
-      e.stopPropagation();
+      if (!isDraggingRef.current) {
+        setIsDragging(true);
+      }
+
+      // Move the card
       if (cardContainerRef.current) {
-        const w = wrapper.offsetWidth || 350;
+        const w = wrapperRef.current?.offsetWidth || 350;
         const rotation = (dx / w) * 12;
         const opacity = Math.max(0.15, 1 - Math.abs(dx) / (w * 1.2));
         cardContainerRef.current.style.transform = `translateX(${dx}px) rotate(${rotation}deg)`;
         cardContainerRef.current.style.opacity = `${opacity}`;
-        setDragProgress(Math.max(-1, Math.min(1, dx / w)));
+        setDragX(dx);
       }
     };
 
     const onTouchEnd = (e: TouchEvent) => {
-      if (!touchStartRef.current) return;
+      if (!touchStartRef.current) {
+        if (isDraggingRef.current) {
+          setIsDragging(false);
+          setDragX(0);
+        }
+        return;
+      }
       const dx = e.changedTouches[0].clientX - touchStartRef.current.x;
       const elapsed = Date.now() - touchStartRef.current.time;
+      const wasHorizontal = directionLockedRef.current === "h";
       touchStartRef.current = null;
+      directionLockedRef.current = null;
+
+      if (!wasHorizontal || !isDraggingRef.current) {
+        setIsDragging(false);
+        setDragX(0);
+        return;
+      }
 
       const velocity = Math.abs(dx) / Math.max(elapsed, 1);
-      const w = wrapper.offsetWidth || 350;
-      const shouldCommit = isDraggingRef.current && (Math.abs(dx) >= w * 0.25 || (velocity >= 0.6 && Math.abs(dx) > 30));
-      const wasDragging = isDraggingRef.current;
-      isDraggingRef.current = false;
+      const w = wrapperRef.current?.offsetWidth || 350;
+      const shouldCommit = Math.abs(dx) >= w * 0.2 || (velocity >= 0.5 && Math.abs(dx) > 25);
+
+      setIsDragging(false);
+      setDragX(0);
 
       const el = cardContainerRef.current;
       if (!el) return;
-      if (!wasDragging) return;
 
       const total = validChildrenLenRef.current;
       const curIdx = activeIndexRef.current;
@@ -299,13 +318,12 @@ function StoryCardsContainer({
         el.style.transition = "transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.3s ease-out";
         el.style.transform = "translateX(0) rotate(0deg)";
         el.style.opacity = "1";
-        setDragProgress(0);
         return;
       }
 
+      // Fly out
       setIsAnimating(true);
       triggerHaptic();
-      setDragProgress(0);
       const exitX = dx > 0 ? w : -w;
       const remaining = Math.abs(exitX) - Math.abs(dx);
       const exitDuration = Math.max(0.15, Math.min(0.3, remaining / (w * 2.5)));
@@ -331,16 +349,19 @@ function StoryCardsContainer({
       }, exitDuration * 1000 + 10);
     };
 
-    wrapper.addEventListener("touchstart", onTouchStart, { passive: true });
-    wrapper.addEventListener("touchmove", onTouchMove, { passive: false });
-    wrapper.addEventListener("touchend", onTouchEnd, { passive: true });
+    // CRITICAL: listeners on window with {passive: false}
+    window.addEventListener("touchmove", onTouchMove, { passive: false });
+    window.addEventListener("touchend", onTouchEnd, { passive: true });
 
     return () => {
-      wrapper.removeEventListener("touchstart", onTouchStart);
-      wrapper.removeEventListener("touchmove", onTouchMove);
-      wrapper.removeEventListener("touchend", onTouchEnd);
+      window.removeEventListener("touchmove", onTouchMove);
+      window.removeEventListener("touchend", onTouchEnd);
     };
   }, [isRTL, triggerHaptic]);
+
+  // Derived drag progress for UI indicators
+  const wrapperWidth = wrapperRef.current?.offsetWidth || 350;
+  const dragProgress = isDragging ? Math.max(-1, Math.min(1, dragX / wrapperWidth)) : 0;
 
   // Peek: determine which neighbor to show
   const peekIndex = useMemo(() => {
@@ -435,10 +456,11 @@ function StoryCardsContainer({
       <div
         ref={wrapperRef}
         className="px-2 relative"
-        style={{ touchAction: "pan-y" }}
+        style={{ touchAction: isDragging ? "none" : "pan-y" }}
+        onTouchStart={handleTouchStart}
       >
         {/* Swipe direction indicator */}
-        {isDraggingRef.current && Math.abs(dragProgress) > 0.08 && (
+        {isDragging && Math.abs(dragProgress) > 0.08 && (
           <div className="absolute inset-0 z-20 pointer-events-none flex items-start justify-between px-6 pt-6">
             <div
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border-2 font-bold text-sm"
@@ -487,6 +509,7 @@ function StoryCardsContainer({
         <div
           ref={cardContainerRef}
           className="relative z-10"
+          style={{ pointerEvents: isDragging ? "none" : "auto" }}
         >
           {validChildren[activeIndex]}
         </div>

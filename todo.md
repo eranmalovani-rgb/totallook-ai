@@ -1329,3 +1329,7 @@
 ## Stage 124 — Fix Tinder Swipe (passive event listener issue)
 
 - [x] 124a: Rewrote touch handlers using native addEventListener with {passive: false} via useEffect — both GuestReview and WhatsAppReview
+
+## Stage 125 — Fix Tinder Swipe (still not working on mobile)
+
+- [x] 125a: Complete rewrite — isDragging as STATE (not ref for UI), touchmove/end on WINDOW (never lose gesture), direction locking h/v (10px dead zone), touchAction:none during drag, pointer-events:none on card content during drag. Applied to both GuestReview and WhatsAppReview.
