@@ -1325,3 +1325,7 @@
 ## Stage 123 — Fix Tinder Swipe Not Following Finger
 
 - [x] 123a: Fixed: removed overflow-hidden (was clipping card), added touch-action:pan-y, added e.preventDefault() during horizontal drag, increased velocity threshold, added 10px dead zone before drag starts
+
+## Stage 124 — Fix Tinder Swipe (passive event listener issue)
+
+- [x] 124a: Rewrote touch handlers using native addEventListener with {passive: false} via useEffect — both GuestReview and WhatsAppReview

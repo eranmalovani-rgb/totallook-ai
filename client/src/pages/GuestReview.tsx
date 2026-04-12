@@ -707,104 +707,135 @@ function StoryCardsContainer({
     }, 300);
   }, [activeIndex, isAnimating, isRTL, triggerHaptic]);
 
-  // ── Touch swipe: finger follows card all the way, then next card enters ──
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    if (isAnimating) return;
-    touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, time: Date.now() };
-    isDraggingRef.current = false;
-    setShowSwipeHint(false);
-    if (cardContainerRef.current) {
-      cardContainerRef.current.style.transition = "none";
-    }
-  }, [isAnimating]);
+  // ── Touch swipe: native listeners for {passive:false} so preventDefault works ──
+  const isAnimatingRef = useRef(false);
+  isAnimatingRef.current = isAnimating;
+  const activeIndexRef = useRef(activeIndex);
+  activeIndexRef.current = activeIndex;
+  const validChildrenLenRef = useRef(validChildren.length);
+  validChildrenLenRef.current = validChildren.length;
 
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    if (!touchStartRef.current || isAnimating) return;
-    const dx = e.touches[0].clientX - touchStartRef.current.x;
-    const dy = e.touches[0].clientY - touchStartRef.current.y;
-    // If vertical scroll dominates and we haven't started dragging, let browser scroll
-    if (!isDraggingRef.current) {
-      if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 10) return;
-      if (Math.abs(dx) > 10) {
-        isDraggingRef.current = true;
+  useEffect(() => {
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return;
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (isAnimatingRef.current) return;
+      touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, time: Date.now() };
+      isDraggingRef.current = false;
+      setShowSwipeHint(false);
+      if (cardContainerRef.current) {
+        cardContainerRef.current.style.transition = "none";
+      }
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (!touchStartRef.current || isAnimatingRef.current) return;
+      const dx = e.touches[0].clientX - touchStartRef.current.x;
+      const dy = e.touches[0].clientY - touchStartRef.current.y;
+      // If vertical scroll dominates and we haven't started dragging, let browser scroll
+      if (!isDraggingRef.current) {
+        if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 8) {
+          touchStartRef.current = null; // cancel this gesture
+          return;
+        }
+        if (Math.abs(dx) > 8) {
+          isDraggingRef.current = true;
+        } else {
+          return;
+        }
+      }
+      // CRITICAL: prevent browser scroll/swipe-back while dragging card
+      e.preventDefault();
+      e.stopPropagation();
+      // Follow finger — card translates + rotates like Tinder
+      if (cardContainerRef.current) {
+        const w = wrapper.offsetWidth || 350;
+        const rotation = (dx / w) * 12;
+        const opacity = Math.max(0.15, 1 - Math.abs(dx) / (w * 1.2));
+        cardContainerRef.current.style.transform = `translateX(${dx}px) rotate(${rotation}deg)`;
+        cardContainerRef.current.style.opacity = `${opacity}`;
+        setDragProgress(Math.max(-1, Math.min(1, dx / w)));
+      }
+    };
+
+    const onTouchEnd = (e: TouchEvent) => {
+      if (!touchStartRef.current) return;
+      const dx = e.changedTouches[0].clientX - touchStartRef.current.x;
+      const elapsed = Date.now() - touchStartRef.current.time;
+      touchStartRef.current = null;
+
+      const velocity = Math.abs(dx) / Math.max(elapsed, 1);
+      const w = wrapper.offsetWidth || 350;
+      const shouldCommit = isDraggingRef.current && (Math.abs(dx) >= w * 0.25 || (velocity >= 0.6 && Math.abs(dx) > 30));
+      const wasDragging = isDraggingRef.current;
+      isDraggingRef.current = false;
+
+      const el = cardContainerRef.current;
+      if (!el) return;
+
+      if (!wasDragging) return;
+
+      const total = validChildrenLenRef.current;
+      const curIdx = activeIndexRef.current;
+      let canGo = false;
+      let newIdx = curIdx;
+      if (isRTL) {
+        if (dx > 0 && curIdx < total - 1) { canGo = true; newIdx = curIdx + 1; }
+        else if (dx < 0 && curIdx > 0) { canGo = true; newIdx = curIdx - 1; }
       } else {
+        if (dx < 0 && curIdx < total - 1) { canGo = true; newIdx = curIdx + 1; }
+        else if (dx > 0 && curIdx > 0) { canGo = true; newIdx = curIdx - 1; }
+      }
+
+      if (!shouldCommit || !canGo) {
+        el.style.transition = "transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.3s ease-out";
+        el.style.transform = "translateX(0) rotate(0deg)";
+        el.style.opacity = "1";
+        setDragProgress(0);
         return;
       }
-    }
-    // Prevent browser scroll while we're dragging the card horizontally
-    e.preventDefault();
-    // Follow finger — card translates + rotates like Tinder
-    if (cardContainerRef.current) {
-      const w = wrapperRef.current?.offsetWidth || 350;
-      const rotation = (dx / w) * 12; // max ~12deg tilt
-      const opacity = Math.max(0.15, 1 - Math.abs(dx) / (w * 1.2));
-      cardContainerRef.current.style.transform = `translateX(${dx}px) rotate(${rotation}deg)`;
-      cardContainerRef.current.style.opacity = `${opacity}`;
-      setDragProgress(Math.max(-1, Math.min(1, dx / w)));
-    }
-  }, [isAnimating]);
 
-  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
-    if (!touchStartRef.current) return;
-    const dx = e.changedTouches[0].clientX - touchStartRef.current.x;
-    const elapsed = Date.now() - touchStartRef.current.time;
-    touchStartRef.current = null;
-
-    const velocity = Math.abs(dx) / Math.max(elapsed, 1);
-    const w = wrapperRef.current?.offsetWidth || 350;
-    const shouldCommit = isDraggingRef.current && (Math.abs(dx) >= w * 0.25 || (velocity >= 0.6 && Math.abs(dx) > 30));
-    isDraggingRef.current = false;
-
-    const el = cardContainerRef.current;
-    if (!el) return;
-
-    const total = validChildren.length;
-    let canGo = false;
-    let newIdx = activeIndex;
-    if (isRTL) {
-      if (dx > 0 && activeIndex < total - 1) { canGo = true; newIdx = activeIndex + 1; }
-      else if (dx < 0 && activeIndex > 0) { canGo = true; newIdx = activeIndex - 1; }
-    } else {
-      if (dx < 0 && activeIndex < total - 1) { canGo = true; newIdx = activeIndex + 1; }
-      else if (dx > 0 && activeIndex > 0) { canGo = true; newIdx = activeIndex - 1; }
-    }
-
-    if (!shouldCommit || !canGo) {
-      el.style.transition = "transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.3s ease-out";
-      el.style.transform = "translateX(0)";
-      el.style.opacity = "1";
+      // Fly out
+      setIsAnimating(true);
+      triggerHaptic();
       setDragProgress(0);
-      return;
-    }
+      const exitX = dx > 0 ? w : -w;
+      const remaining = Math.abs(exitX) - Math.abs(dx);
+      const exitDuration = Math.max(0.15, Math.min(0.3, remaining / (w * 2.5)));
+      const exitRotation = dx > 0 ? 15 : -15;
 
-    // Continue sliding in the same direction the finger was going
-    setIsAnimating(true);
-    triggerHaptic();
-    setDragProgress(0);
-    const exitX = dx > 0 ? w : -w;
-    const remaining = Math.abs(exitX) - Math.abs(dx);
-    const exitDuration = Math.max(0.1, Math.min(0.25, remaining / (w * 3)));
-
-    const exitRotation = dx > 0 ? 15 : -15;
-    el.style.transition = `transform ${exitDuration}s cubic-bezier(0.4, 0, 1, 1), opacity ${exitDuration}s ease-out`;
-    el.style.transform = `translateX(${exitX}px) rotate(${exitRotation}deg)`;
-    el.style.opacity = "0";
-
-    setTimeout(() => {
-      setActiveIndex(newIdx);
-      const enterX = dx > 0 ? -w * 0.3 : w * 0.3;
-      el.style.transition = "none";
-      el.style.transform = `translateX(${enterX}px)`;
+      el.style.transition = `transform ${exitDuration}s cubic-bezier(0.4, 0, 1, 1), opacity ${exitDuration}s ease-out`;
+      el.style.transform = `translateX(${exitX}px) rotate(${exitRotation}deg)`;
       el.style.opacity = "0";
-      void el.offsetHeight;
 
-      el.style.transition = "transform 0.28s cubic-bezier(0.22, 0.61, 0.36, 1), opacity 0.22s ease-in";
-      el.style.transform = "translateX(0)";
-      el.style.opacity = "1";
+      setTimeout(() => {
+        setActiveIndex(newIdx);
+        const enterX = dx > 0 ? -w * 0.3 : w * 0.3;
+        el.style.transition = "none";
+        el.style.transform = `translateX(${enterX}px)`;
+        el.style.opacity = "0";
+        void el.offsetHeight;
 
-      setTimeout(() => setIsAnimating(false), 300);
-    }, exitDuration * 1000 + 10);
-  }, [isRTL, validChildren.length, activeIndex, triggerHaptic]);
+        el.style.transition = "transform 0.28s cubic-bezier(0.22, 0.61, 0.36, 1), opacity 0.22s ease-in";
+        el.style.transform = "translateX(0) rotate(0deg)";
+        el.style.opacity = "1";
+
+        setTimeout(() => setIsAnimating(false), 300);
+      }, exitDuration * 1000 + 10);
+    };
+
+    // Register with {passive: false} so preventDefault() works on mobile
+    wrapper.addEventListener("touchstart", onTouchStart, { passive: true });
+    wrapper.addEventListener("touchmove", onTouchMove, { passive: false });
+    wrapper.addEventListener("touchend", onTouchEnd, { passive: true });
+
+    return () => {
+      wrapper.removeEventListener("touchstart", onTouchStart);
+      wrapper.removeEventListener("touchmove", onTouchMove);
+      wrapper.removeEventListener("touchend", onTouchEnd);
+    };
+  }, [isRTL, triggerHaptic]); // minimal deps — refs handle the rest
 
   // Peek: determine which neighbor to show
   const peekIndex = useMemo(() => {
@@ -900,9 +931,6 @@ function StoryCardsContainer({
         ref={wrapperRef}
         className="px-2 relative"
         style={{ touchAction: "pan-y" }}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
       >
         {/* Swipe direction indicator */}
         {isDraggingRef.current && Math.abs(dragProgress) > 0.08 && (
