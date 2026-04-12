@@ -71,11 +71,21 @@ function ScoreCounter({ from, to, duration = 2000, className = "", trigger = tru
 }
 
 /* ─── Before/After Slider ─── */
-function BeforeAfterSlider({ beforeImage, afterImage }: { beforeImage: string; afterImage: string }) {
+function BeforeAfterSlider({ beforeImage, afterImage, sliderKey }: { beforeImage: string; afterImage: string; sliderKey: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState(50);
   const [isDragging, setIsDragging] = useState(false);
   const posRef = useRef(50);
+  const [containerWidth, setContainerWidth] = useState(0);
+
+  // Track container width
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => setContainerWidth(entry.contentRect.width));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   const updatePos = useCallback((clientX: number) => {
     const el = containerRef.current;
@@ -107,8 +117,9 @@ function BeforeAfterSlider({ beforeImage, afterImage }: { beforeImage: string; a
     };
   }, [isDragging, updatePos]);
 
-  // Auto-slide on mount
+  // Auto-slide on mount / when key changes
   useEffect(() => {
+    setPosition(50);
     const timer = setTimeout(() => {
       let start: number | null = null;
       const animate = (ts: number) => {
@@ -128,9 +139,9 @@ function BeforeAfterSlider({ beforeImage, afterImage }: { beforeImage: string; a
         }
       };
       requestAnimationFrame(animate);
-    }, 600);
+    }, 300);
     return () => clearTimeout(timer);
-  }, []);
+  }, [sliderKey]);
 
   return (
     <div
@@ -140,14 +151,14 @@ function BeforeAfterSlider({ beforeImage, afterImage }: { beforeImage: string; a
       onTouchStart={(e) => { setIsDragging(true); updatePos(e.touches[0].clientX); track("drag_slider"); }}
     >
       {/* AFTER (full background) */}
-      <img src={afterImage} className="absolute inset-0 w-full h-full object-cover" alt="After" loading="eager" draggable={false} />
+      <img key={`after-${sliderKey}`} src={afterImage} className="absolute inset-0 w-full h-full object-cover" alt="After" loading="eager" draggable={false} />
 
-      {/* BEFORE (clipped) */}
+      {/* BEFORE (clipped from left) */}
       <div className="absolute inset-0 overflow-hidden" style={{ width: `${position}%` }}>
         <img
           src={beforeImage}
-          className="absolute inset-0 w-full h-full object-cover"
-          style={{ width: `${containerRef.current ? containerRef.current.offsetWidth : 100}px`, maxWidth: "none" }}
+          className="absolute top-0 left-0 h-full object-cover"
+          style={{ width: containerWidth > 0 ? `${containerWidth}px` : "100%", maxWidth: "none" }}
           alt="Before"
           loading="eager"
           draggable={false}
@@ -210,12 +221,19 @@ export default function NewLanding() {
     return () => clearTimeout(t);
   }, []);
 
+  /* ─── Redirect logged-in users straight to upload ─── */
+  useEffect(() => {
+    if (user) {
+      navigate("/upload", { replace: true });
+    }
+  }, [user, navigate]);
+
   const openUpload = (source: string) => {
     track(`cta_click_${source}`);
     if (user) {
       navigate("/upload");
     } else {
-      navigate("/try");
+      navigate("/try/precise");
     }
   };
 
@@ -330,8 +348,8 @@ export default function NewLanding() {
             </button>
             <button
               onClick={() => openQuickUpload("hero-secondary")}
-              className="font-medium rounded-2xl text-sm px-6 py-3 text-white/50 transition-all hover:text-white/70 w-full sm:w-auto"
-              style={{ fontFamily: FONT, border: `1px solid rgba(255,255,255,0.1)` }}
+              className="font-medium rounded-2xl text-sm px-6 py-3 transition-all hover:bg-white/5 w-full sm:w-auto"
+              style={{ fontFamily: FONT, border: `1px solid rgba(255,255,255,0.12)`, color: "rgba(255,255,255,0.45)", background: "transparent" }}
             >
               {isHe ? "העלה לוק בלי פרסונליזציה" : "Upload without personalization"}
             </button>
@@ -395,6 +413,8 @@ export default function NewLanding() {
           {/* Slider */}
           <div className="rounded-2xl sm:rounded-3xl overflow-hidden" style={{ border: `1px solid ${BORDER}`, boxShadow: `0 0 60px ${PINK}08` }}>
             <BeforeAfterSlider
+              key={selectedUpgrade}
+              sliderKey={selectedUpgrade}
               beforeImage={BEFORE_IMG}
               afterImage={AFTER_IMGS[selectedUpgrade]}
             />

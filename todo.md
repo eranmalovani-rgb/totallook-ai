@@ -1368,3 +1368,14 @@
 - [x] 130j: Bilingual support (HE/EN)
 - [x] 130k: Wire up routing — replace GlowLanding with NewLanding as default
 - [x] 130l: Tracking events (view_killer_feature, drag_slider, click_upgrade, cta_click)
+
+## Stage 131 — Landing Page Fixes
+- [ ] 131a: Fix Before/After slider — images get corrupted when switching upgrade buttons (חולצה/נעליים/אקססוריז)
+- [ ] 131b: Change Process B CTA ("העלה לוק בלי פרסונליזציה") to transparent/black style instead of pink
+- [ ] 131c: Redirect logged-in users directly to system (upload/dashboard) — skip landing page entirely
+
+## Stage 131 — Landing Page Fixes
+- [x] 131a: Fix Before/After slider — key-based remount + ResizeObserver for proper width + auto-slide on switch
+- [x] 131b: Change Process B CTA to transparent/black style (border only, no gradient)
+- [x] 131c: Redirect logged-in users directly to /upload — useEffect redirect on mount
+- [x] 131d: CTAs now go directly to /try/precise (A) and /try/quick (B) — PathChooser bypassed
