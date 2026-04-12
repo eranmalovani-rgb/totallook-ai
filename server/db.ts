@@ -1314,7 +1314,8 @@ export async function getGuestAnalysisCount(fingerprint: string): Promise<{ coun
   const result = await db.select({ cnt: count() }).from(guestSessions)
     .where(and(
       eq(guestSessions.fingerprint, fingerprint),
-      eq(guestSessions.status, "completed")
+      eq(guestSessions.status, "completed"),
+      isNull(guestSessions.convertedUserId)
     ));
   // Check if any session for this fingerprint has an email
   const emailResult = await db.select({ email: guestSessions.email, onboarding: guestSessions.onboardingCompleted }).from(guestSessions)

@@ -1005,7 +1005,15 @@ export default function GuestReview() {
   }>({ open: false, name: "" });
 
   const handleInfluencerClick = useCallback((name: string, handle?: string, igUrl?: string) => {
-    setInfluencerModal({ open: true, name, handle, igUrl });
+    // Guests can't use InfluencerPostModal (requires auth) — open Instagram directly
+    if (igUrl) {
+      window.open(igUrl, "_blank", "noopener,noreferrer");
+    } else if (handle) {
+      window.open(`https://www.instagram.com/${handle.replace(/^@/, "")}/`, "_blank", "noopener,noreferrer");
+    } else {
+      // Fallback: search Instagram for the influencer name
+      window.open(`https://www.instagram.com/explore/search/keyword/?q=${encodeURIComponent(name)}`, "_blank", "noopener,noreferrer");
+    }
   }, []);
 
   const deleteGuestMutation = trpc.guest.deleteAnalysis.useMutation({

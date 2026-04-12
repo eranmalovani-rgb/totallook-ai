@@ -1108,4 +1108,18 @@
 - [x] 101.2: Fix: introduced `resolvedGender` variable that persists outside the if-block and is used in ALL Stage 2 calls (buildCatalogRecommendations, buildFallbackRecommendationsFromCore, sanitizeRecommendationsPayload, fixShoppingLinkUrls, stripWrongGenderInfluencers)
 - [x] 101.3: Verified personalized guest frontend — autoMatchInfluencers already disqualifies wrong gender with -100 score, guestProfile.gender comes from DB (saved by Stage 101 server fix)
 - [x] 101.4: TypeScript 0 errors, 889 tests pass (5 external API tests fail as expected)
-- [ ] 101.5: Push to GitHub
+- [x] 101.5: Push to GitHub (commit e62691c)
+
+## Stage 102: Fix Railway deployment build failure
+- [x] 102.1: Root cause: vite.config.ts was missing from GitHub repo — Vite couldn't find client/index.html
+- [x] 102.2: Copied vite.config.ts, drizzle.config.ts, vitest.config.ts, components.json to GitHub repo
+- [x] 102.3: Build passes locally (already verified)
+- [x] 102.4: Pushed to GitHub (commit db79a9b) — Railway should auto-deploy
+
+## Stage 103: Fix guest trial counter, influencer click, occasion detection
+- [x] 103.1: Fix guest trial counter — getGuestAnalysisCount now excludes converted sessions (isNull(convertedUserId)). After signup+delete, old sessions don't count.
+- [x] 103.2: Fix GuestTrialWall display — displayCount = Math.min(count, 3), never shows more than limit
+- [x] 103.3: Fix influencer click — guests now open Instagram profile/search directly instead of InfluencerPostModal (which requires auth)
+- [x] 103.4: Strengthen AI occasion detection — Stage 1 + Stage 2 prompts now have explicit rules: analyze CLOTHING first (sportswear=gym, suit=work, etc.), then ENVIRONMENT. Workout outfits get ONLY athletic recommendations.
+- [x] 103.5: Verify TypeScript compiles (0 errors), 889 tests pass (5 external API tests fail as expected)
+- [x] 103.6: Push to GitHub

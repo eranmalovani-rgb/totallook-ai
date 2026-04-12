@@ -13,6 +13,7 @@ import {
 export function GuestTrialWall({ count }: { count: number }) {
   const { lang, dir } = useLanguage();
   const isHe = lang === "he";
+  const displayCount = Math.min(count, 3); // Never show more than the limit
 
   return (
     <div
@@ -32,8 +33,8 @@ export function GuestTrialWall({ count }: { count: number }) {
         <Sparkles className="w-3.5 h-3.5 text-amber-400" />
         <span className="text-xs text-amber-300/80 font-medium">
           {isHe
-            ? `${count} מתוך 3 ניתוחים חינמיים נוצלו`
-            : `${count} of 3 free analyses used`}
+            ? `${displayCount} מתוך 3 ניתוחים חינמיים נוצלו`
+            : `${displayCount} of 3 free analyses used`}
         </span>
       </div>
 
