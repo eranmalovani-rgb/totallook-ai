@@ -1354,3 +1354,17 @@
 - [x] 129c: Add server-side sanitization: detect and reject inappropriate recommendations (shorts for formal, casual for elegant)
 - [x] 129d: Inject iron rules into Stage 2 LLM prompt (both HE and EN)
 - [x] 129e: Add vitest tests for iron rules validation
+
+## Stage 130 — New Responsive Landing Page
+- [x] 130a: Build new landing page component (NewLanding.tsx) with all 6 sections from spec
+- [x] 130b: HeroSection — headline, sub-headline, primary CTA, secondary CTA, Before/After visual
+- [x] 130c: KillerFeatureSection — Before/After Slider with upgrade buttons (jacket/shoes/accessories)
+- [x] 130d: HowItWorksSection — 4 steps with icons
+- [x] 130e: PersonalizationSection — "המערכת לומדת אותך עם כל לוק"
+- [x] 130f: EmotionalSection — "כמה פעמים חשבת שזה נראה טוב… וזה לא?"
+- [x] 130g: BottomCTA — "תראה איך אתה נראה טוב יותר — עכשיו"
+- [x] 130h: Sticky mobile CTA always visible
+- [x] 130i: Full responsive design (mobile-first)
+- [x] 130j: Bilingual support (HE/EN)
+- [x] 130k: Wire up routing — replace GlowLanding with NewLanding as default
+- [x] 130l: Tracking events (view_killer_feature, drag_slider, click_upgrade, cta_click)

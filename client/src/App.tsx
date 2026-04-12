@@ -7,6 +7,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import { LanguageProvider } from "./i18n";
 import Home from "./pages/Home";
 import GlowHome from "./pages/GlowLanding";
+import NewLanding from "./pages/NewLanding";
 import Upload from "./pages/Upload";
 import ReviewPage from "./pages/ReviewPage";
 import History from "./pages/History";
@@ -37,7 +38,7 @@ import WhatsAppFloatingButton from "./components/WhatsAppFloatingButton";
 function Router() {
   return (
     <Switch>
-      <Route path={"/"} component={GlowHome} />
+      <Route path={"/"} component={NewLanding} />
       <Route path={"/upload"} component={Upload} />
       <Route path={"/review/:id"} component={ReviewPage} />
       <Route path={"/history"} component={History} />
@@ -60,6 +61,7 @@ function Router() {
       <Route path="/style-diary" component={StyleDiary} />
       <Route path="/about" component={About} />
       <Route path="/glow" component={GlowHome} />
+      <Route path="/glow-old" component={GlowHome} />
       <Route path="/old-home" component={Home} />
       <Route path="/r/:token" component={WhatsAppReview} />
       <Route path="/wardrobe/shared/:token">
