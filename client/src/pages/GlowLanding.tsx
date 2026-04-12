@@ -219,11 +219,7 @@ export default function GlowLanding() {
   }, [fingerprint, lang, uploadMutation, analyzeMutation, navigate]);
 
   const openUpload = () => {
-    if (checkLimit.data && checkLimit.data.used) {
-      navigate("/try");
-      return;
-    }
-    setShowUpload(true);
+    navigate("/try");
   };
 
   // Glow CTA button component

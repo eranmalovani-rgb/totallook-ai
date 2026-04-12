@@ -1171,3 +1171,6 @@
 - [x] 108.8: Redesign Settings/Privacy/Terms pages with Glow theme — inherits from global CSS
 - [x] 108.9: Update all shared components (buttons, cards, modals, loading states) with Glow style — 30+ files updated, 0 amber references remaining
 - [x] 108.10: Verify all pages look consistent, TypeScript compiles clean, save checkpoint
+
+## Stage 109: Fix GlowLanding CTA Buttons Navigation
+- [x] 109.1: CTA buttons on /glow landing page now navigate to /try (path chooser)
