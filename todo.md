@@ -1336,5 +1336,9 @@
 
 ## Stage 126 — Fix Tinder Swipe in ONBOARDING (not review page)
 
-- [ ] 126a: Find the onboarding card swipe component (influencer/style selection)
-- [ ] 126b: Implement real Tinder-style drag-follow swipe on onboarding cards (card follows finger, rotates, flies out)
+- [x] 126a: Find the onboarding card swipe component (influencer/style selection)
+- [x] 126b: Implement real Tinder-style drag-follow swipe on onboarding cards (card follows finger, rotates, flies out)
+## Stage 127 — Owner Bypass for Guest Analysis Limit
+- [x] 127a: Add secret URL param (?owner=SECRET) that gives unlimited guest analyses from any device without login
+- [x] 127b: Bypass both checkLimit and upload rate limit when owner param is present
+- [x] 127c: Store owner param in localStorage so it persists across sessions

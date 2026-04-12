@@ -5780,10 +5780,14 @@ Return ONLY a JSON object with these exact fields:
   guest: router({
     /** Check guest analysis limit — returns count, limit, email status, onboarding status */
     checkLimit: publicProcedure
-      .input(z.object({ fingerprint: z.string().min(8).max(128), adminToken: z.string().optional() }))
+      .input(z.object({ fingerprint: z.string().min(8).max(128), adminToken: z.string().optional(), ownerSecret: z.string().optional() }))
       .query(async ({ ctx, input }) => {
         // Admin bypass — admins can use guest mode unlimited times
         if (ctx.user?.role === "admin") return { used: false, count: 0, limit: 999, hasEmail: false, onboardingCompleted: true };
+        // Owner bypass — secret URL param gives unlimited access from any device
+        if (input.ownerSecret && ENV.ownerBypassSecret && input.ownerSecret === ENV.ownerBypassSecret) {
+          return { used: false, count: 0, limit: 999, hasEmail: false, onboardingCompleted: true };
+        }
         // Admin token bypass (from admin panel "Test as Guest" link)
         if (input.adminToken) {
           try {
@@ -5806,10 +5810,15 @@ Return ONLY a JSON object with these exact fields:
         mimeType: z.string().default("image/jpeg"),
         fingerprint: z.string().min(8).max(128),
         adminToken: z.string().optional(),
+        ownerSecret: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         // Check if already used — admin bypass
         let isAdmin = ctx.user?.role === "admin";
+        // Owner bypass — secret URL param gives unlimited access
+        if (!isAdmin && input.ownerSecret && ENV.ownerBypassSecret && input.ownerSecret === ENV.ownerBypassSecret) {
+          isAdmin = true;
+        }
         // Admin token bypass
         if (!isAdmin && input.adminToken) {
           try {

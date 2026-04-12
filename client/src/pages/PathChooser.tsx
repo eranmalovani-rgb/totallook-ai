@@ -2,6 +2,7 @@ import { Link, useLocation } from "wouter";
 import { Zap, Target, ArrowRight, Sparkles } from "lucide-react";
 import { useLanguage } from "@/i18n";
 import { useFingerprint } from "@/hooks/useFingerprint";
+import { useOwnerBypass } from "@/hooks/useOwnerBypass";
 import { trpc } from "@/lib/trpc";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { compressImageToBase64 } from "@/lib/imageCompress";
@@ -15,12 +16,13 @@ export default function PathChooser() {
   const [, navigate] = useLocation();
   const isHe = lang === "he";
   const fingerprint = useFingerprint();
+  const ownerSecret = useOwnerBypass();
   const trackPageView = trpc.tracking.trackPageView.useMutation();
   const trackingRef = useRef(false);
 
   /* ─── Check guest limit ─── */
   const { data: limitData, isLoading: limitLoading } = trpc.guest.checkLimit.useQuery(
-    { fingerprint: fingerprint || "" },
+    { fingerprint: fingerprint || "", ...(ownerSecret ? { ownerSecret } : {}) },
     { enabled: !!fingerprint }
   );
 
@@ -91,6 +93,7 @@ export default function PathChooser() {
         imageBase64: base64,
         mimeType,
         fingerprint,
+        ...(ownerSecret ? { ownerSecret } : {}),
       });
 
       // 2. Analyze (with one auto-retry)

@@ -10,6 +10,7 @@ import StylingStudioAnimation from "@/components/StylingStudioAnimation";
 import { GuestTrialWall } from "@/components/GuestTrialWall";
 import { useLanguage } from "@/i18n";
 import { useFingerprint } from "@/hooks/useFingerprint";
+import { useOwnerBypass } from "@/hooks/useOwnerBypass";
 import { compressImageToBase64 } from "@/lib/imageCompress";
 import { trpc } from "@/lib/trpc";
 
@@ -23,10 +24,11 @@ export default function GuestUpload() {
   const [, navigate] = useLocation();
   const { t, dir, lang } = useLanguage();
   const fingerprint = useFingerprint();
+  const ownerSecret = useOwnerBypass();
 
   /* ─── Check guest limit ─── */
   const { data: limitData, isLoading: limitLoading } = trpc.guest.checkLimit.useQuery(
-    { fingerprint: fingerprint || "" },
+    { fingerprint: fingerprint || "", ...(ownerSecret ? { ownerSecret } : {}) },
     { enabled: !!fingerprint }
   );
 
@@ -93,6 +95,7 @@ export default function GuestUpload() {
           imageBase64: base64,
           mimeType: compressedMimeType,
           fingerprint,
+          ...(ownerSecret ? { ownerSecret } : {}),
         });
         sessionId = result.sessionId;
         setRetryReviewId(sessionId);

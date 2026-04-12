@@ -18,6 +18,7 @@ import { useLanguage } from "@/i18n";
 import { useCountry } from "@/hooks/useCountry";
 import { getCountryFlag } from "../../../shared/countries";
 import { useFingerprint } from "@/hooks/useFingerprint";
+import { useOwnerBypass } from "@/hooks/useOwnerBypass";
 import { GuestTrialWall } from "@/components/GuestTrialWall";
 
 /* ═══════════════════════════════════════════════════════
@@ -282,10 +283,11 @@ export default function Onboarding() {
   const [showAnalysisAnimation, setShowAnalysisAnimation] = useState(false);
   const { t, dir, lang } = useLanguage();
   const _fp = useFingerprint();
+  const ownerSecret = useOwnerBypass();
 
   /* ─── Check guest limit ─── */
   const { data: limitData, isLoading: limitLoading } = trpc.guest.checkLimit.useQuery(
-    { fingerprint: _fp || "" },
+    { fingerprint: _fp || "", ...(ownerSecret ? { ownerSecret } : {}) },
     { enabled: !!_fp && !isAuthenticated }
   );
 

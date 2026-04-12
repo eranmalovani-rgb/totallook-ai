@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation } from "wouter";
 import { Upload, Camera, Sparkles, Check, TrendingUp } from "lucide-react";
 import { useFingerprint } from "@/hooks/useFingerprint";
+import { useOwnerBypass } from "@/hooks/useOwnerBypass";
 import { trpc } from "@/lib/trpc";
 import { useLanguage } from "@/i18n";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -160,6 +161,7 @@ export default function GlowLanding() {
   const [, navigate] = useLocation();
   const { lang } = useLanguage();
   const fingerprint = useFingerprint();
+  const ownerSecret = useOwnerBypass();
   const [showUpload, setShowUpload] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -185,7 +187,7 @@ export default function GlowLanding() {
 
   // Check guest limit
   const checkLimit = trpc.guest.checkLimit.useQuery(
-    { fingerprint: fingerprint || "" },
+    { fingerprint: fingerprint || "", ...(ownerSecret ? { ownerSecret } : {}) },
     { enabled: !!fingerprint }
   );
 
@@ -211,6 +213,7 @@ export default function GlowLanding() {
       const result = await uploadMutation.mutateAsync({
         fingerprint,
         imageBase64: base64,
+        ...(ownerSecret ? { ownerSecret } : {}),
       });
 
       setUploadProgress(60);
