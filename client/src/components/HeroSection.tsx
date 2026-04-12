@@ -31,7 +31,7 @@ export default function HeroSection() {
         {/* Text */}
         <div className="text-center lg:text-right">
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black leading-tight mb-4">
-            <span className="bg-gradient-to-l from-white to-amber-200 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-l from-white to-[#FF6BB5] bg-clip-text text-transparent">
               חוות דעת אופנתית
             </span>
             <br />

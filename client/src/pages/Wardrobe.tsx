@@ -85,9 +85,9 @@ function getCategoryForItem(itemType: string): CategoryDef | null {
 
 function getScoreColor(score: number | null): string {
   if (!score) return "text-muted-foreground";
-  if (score >= 9) return "text-amber-400";
+  if (score >= 9) return "text-[#FF2E9F]";
   if (score >= 7) return "text-primary";
-  return "text-amber-400";
+  return "text-[#FF2E9F]";
 }
 
 // ─── Types ───

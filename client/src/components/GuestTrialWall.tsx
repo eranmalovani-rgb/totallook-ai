@@ -21,17 +21,17 @@ export function GuestTrialWall({ count }: { count: number }) {
       dir={dir}
     >
       {/* Ambient glow */}
-      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-amber-500/5 rounded-full blur-[200px] pointer-events-none" />
+      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-[#FF2E9F]/5 rounded-full blur-[200px] pointer-events-none" />
 
       {/* Lock icon */}
-      <div className="relative z-10 w-20 h-20 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mb-6">
-        <Lock className="w-10 h-10 text-amber-400" />
+      <div className="relative z-10 w-20 h-20 rounded-full bg-[#FF2E9F]/10 border border-[#FF2E9F]/20 flex items-center justify-center mb-6">
+        <Lock className="w-10 h-10 text-[#FF2E9F]" />
       </div>
 
       {/* Counter badge */}
-      <div className="relative z-10 inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-amber-500/20 bg-amber-500/5 mb-6">
-        <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-        <span className="text-xs text-amber-300/80 font-medium">
+      <div className="relative z-10 inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-[#FF2E9F]/20 bg-[#FF2E9F]/5 mb-6">
+        <Sparkles className="w-3.5 h-3.5 text-[#FF2E9F]" />
+        <span className="text-xs text-[#FF2E9F]/80 font-medium">
           {isHe
             ? `${displayCount} מתוך 3 ניתוחים חינמיים נוצלו`
             : `${displayCount} of 3 free analyses used`}
@@ -60,7 +60,7 @@ export function GuestTrialWall({ count }: { count: number }) {
       <div className="relative z-10 flex flex-col gap-3 w-full max-w-sm">
         <Button
           size="lg"
-          className="w-full gap-2 bg-gradient-to-r from-amber-500 to-amber-600 text-black font-bold hover:from-amber-400 hover:to-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.2)]"
+          className="w-full gap-2 bg-gradient-to-r from-[#FF2E9F] to-[#7B2EFF] text-black font-bold hover:from-[#FF2E9F] hover:to-[#7B2EFF] shadow-[0_0_20px_rgba(245,158,11,0.2)]"
           asChild
         >
           <a href={getLoginUrl()}>

@@ -58,10 +58,10 @@ function LinkedText({
       {parts.map((part, i) => {
         const mention = allMentions.find(m => m.text === part);
         if (mention) {
-          const colorClass = mention.type === "brand" ? "text-primary hover:text-amber-300" :
+          const colorClass = mention.type === "brand" ? "text-primary hover:text-[#FF2E9F]" :
             mention.type === "influencer" ? "text-rose-400 hover:text-rose-300" :
             mention.type === "store" ? "text-teal-400 hover:text-teal-300" :
-            "text-primary hover:text-amber-300";
+            "text-primary hover:text-[#FF2E9F]";
           return (
             <a key={i} href={mention.url} target="_blank" rel="noopener noreferrer"
               className={`${colorClass} font-medium transition-colors inline-flex items-center gap-0.5`}>
@@ -84,7 +84,7 @@ function ScoreCircle({ score, size = "lg" }: { score: number; size?: "sm" | "lg"
   const stroke = size === "lg" ? 6 : 4;
   const circumference = 2 * Math.PI * radius;
   const progress = (safeScore / 10) * circumference;
-  const color = safeScore >= 9 ? "text-amber-400" : safeScore >= 7 ? "text-primary" : safeScore >= 5 ? "text-yellow-400" : "text-orange-400";
+  const color = safeScore >= 9 ? "text-[#FF2E9F]" : safeScore >= 7 ? "text-primary" : safeScore >= 5 ? "text-yellow-400" : "text-orange-400";
 
   return (
     <div className="relative inline-flex items-center justify-center">
@@ -102,7 +102,7 @@ function ScoreCircle({ score, size = "lg" }: { score: number; size?: "sm" | "lg"
 /* ── Score Bar ── */
 function ScoreBar({ label, score, explanation, lang }: { label: string; score: number | null; explanation?: string; lang: "he" | "en" }) {
   if (score === null) return null;
-  const color = score >= 9 ? "bg-amber-400" : score >= 7 ? "bg-primary" : score >= 5 ? "bg-yellow-400" : "bg-orange-400";
+  const color = score >= 9 ? "bg-[#FF2E9F]" : score >= 7 ? "bg-primary" : score >= 5 ? "bg-yellow-400" : "bg-orange-400";
   return (
     <div>
       <div className="flex items-center gap-4">
@@ -328,7 +328,7 @@ function StoryCardsContainer({
               className="h-full rounded-full transition-all duration-500 ease-out"
               style={{
                 width: i < activeIndex ? "100%" : i === activeIndex ? "100%" : "0%",
-                background: i <= activeIndex ? "linear-gradient(90deg, #c8a44e, #e8c86e)" : "transparent",
+                background: i <= activeIndex ? "linear-gradient(90deg, #FF2E9F, #e8c86e)" : "transparent",
                 opacity: i === activeIndex ? 1 : 0.5,
               }}
             />
@@ -344,12 +344,12 @@ function StoryCardsContainer({
             onClick={() => { goToIndex(i); setShowOverflow(false); }}
             className={`group relative flex items-center gap-2 px-4 py-3 text-xs font-bold transition-all duration-300 flex-shrink-0 border rounded-xl ${
               activeIndex === i
-                ? "bg-gradient-to-b from-amber-900/30 to-amber-950/20 text-amber-300 border-amber-500/40 shadow-[0_0_14px_rgba(200,164,78,0.2)]"
+                ? "bg-gradient-to-b from-[#3D1580]/30 to-[#2D0F60]/20 text-[#FF2E9F] border-[#FF2E9F]/40 shadow-[0_0_14px_rgba(255,46,159,0.2)]"
                 : "bg-white/[0.02] text-muted-foreground border-white/[0.06] hover:border-white/15 hover:text-foreground hover:bg-white/[0.04]"
             }`}
           >
             {activeIndex === i && (
-              <span className="absolute -top-px inset-x-2 h-[2px] bg-gradient-to-r from-transparent via-amber-400/70 to-transparent rounded-full" />
+              <span className="absolute -top-px inset-x-2 h-[2px] bg-gradient-to-r from-transparent via-[#FF2E9F]/70 to-transparent rounded-full" />
             )}
             <span className={`transition-transform duration-200 text-base ${activeIndex === i ? 'scale-110' : 'group-hover:scale-105'}`}>{cardIcons[i]}</span>
             <span className="truncate max-w-[80px]">{label}</span>
@@ -361,14 +361,14 @@ function StoryCardsContainer({
               onClick={() => setShowOverflow(!showOverflow)}
               className={`flex items-center justify-center w-11 h-11 rounded-xl text-sm font-bold transition-all duration-300 border ${
                 activeIndex >= VISIBLE_TABS
-                  ? "bg-gradient-to-b from-amber-900/30 to-amber-950/20 text-amber-300 border-amber-500/40 shadow-[0_0_12px_rgba(200,164,78,0.15)]"
+                  ? "bg-gradient-to-b from-[#3D1580]/30 to-[#2D0F60]/20 text-[#FF2E9F] border-[#FF2E9F]/40 shadow-[0_0_12px_rgba(255,46,159,0.15)]"
                   : "bg-white/[0.02] text-muted-foreground border-white/[0.06] hover:border-white/15 hover:bg-white/[0.04]"
               }`}
             >
               •••
             </button>
             {showOverflow && (
-              <div className={`absolute top-full mt-2 ${dir === "rtl" ? "left-0" : "right-0"} z-50 bg-gradient-to-b from-neutral-900 to-neutral-950 border border-amber-500/10 rounded-xl shadow-2xl shadow-black/40 py-1.5 min-w-[160px] backdrop-blur-sm`}>
+              <div className={`absolute top-full mt-2 ${dir === "rtl" ? "left-0" : "right-0"} z-50 bg-gradient-to-b from-neutral-900 to-neutral-950 border border-[#FF2E9F]/10 rounded-xl shadow-2xl shadow-black/40 py-1.5 min-w-[160px] backdrop-blur-sm`}>
                 {overflowLabels.map((label, i) => {
                   const realIndex = VISIBLE_TABS + i;
                   return (
@@ -377,7 +377,7 @@ function StoryCardsContainer({
                       onClick={() => { goToIndex(realIndex); setShowOverflow(false); }}
                       className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-medium transition-all duration-200 ${
                         activeIndex === realIndex
-                          ? "text-amber-300 bg-amber-500/10"
+                          ? "text-[#FF2E9F] bg-[#FF2E9F]/10"
                           : "text-muted-foreground hover:text-foreground hover:bg-white/5"
                       }`}
                     >
@@ -646,7 +646,7 @@ export default function WhatsAppReview() {
     ? (isHe ? "בסיס מעולה עם פוטנציאל" : "Great base with potential")
     : (isHe ? "יש בסיס טוב — ניתן לשדרג" : "Good base — can be upgraded");
   cards.push(
-    <div key="hero" className="rounded-2xl border border-amber-500/10 bg-gradient-to-b from-white/[0.03] to-transparent overflow-hidden shadow-lg shadow-black/20">
+    <div key="hero" className="rounded-2xl border border-[#FF2E9F]/10 bg-gradient-to-b from-white/[0.03] to-transparent overflow-hidden shadow-lg shadow-black/20">
       {data.imageUrl && (
         <div className="relative">
           <img loading="lazy" src={data.imageUrl} alt="Look" className="w-full max-h-[350px] object-contain bg-black/20" />
@@ -685,7 +685,7 @@ export default function WhatsAppReview() {
     cardLabels.push(isHe ? "פריטים" : "Items");
     cardIcons.push("👔");
     cards.push(
-      <div key="items" className="rounded-2xl border border-amber-500/10 bg-gradient-to-b from-white/[0.03] to-transparent p-5 space-y-4 shadow-lg shadow-black/20">
+      <div key="items" className="rounded-2xl border border-[#FF2E9F]/10 bg-gradient-to-b from-white/[0.03] to-transparent p-5 space-y-4 shadow-lg shadow-black/20">
         <h3 className="text-lg font-bold text-center mb-2">
           {isHe ? "פריטים שזוהו" : "Items Detected"}
         </h3>
@@ -703,7 +703,7 @@ export default function WhatsAppReview() {
                 <LinkedText text={item.description} mentions={mentions} />
               </p>
               <span className={`inline-block text-[10px] px-2 py-0.5 rounded-full ${
-                item.verdict === "בחירה מצוינת" || item.verdict === "Excellent choice" ? "bg-amber-500/10 text-amber-400" :
+                item.verdict === "בחירה מצוינת" || item.verdict === "Excellent choice" ? "bg-[#FF2E9F]/10 text-[#FF2E9F]" :
                 item.verdict === "יש פוטנציאל" || item.verdict === "Has potential" ? "bg-primary/10 text-primary" :
                 "bg-yellow-500/10 text-yellow-400"
               }`}>
@@ -721,7 +721,7 @@ export default function WhatsAppReview() {
     cardLabels.push(isHe ? "ציונים" : "Scores");
     cardIcons.push("📊");
     cards.push(
-      <div key="scores" className="rounded-2xl border border-amber-500/10 bg-gradient-to-b from-white/[0.03] to-transparent p-5 shadow-lg shadow-black/20">
+      <div key="scores" className="rounded-2xl border border-[#FF2E9F]/10 bg-gradient-to-b from-white/[0.03] to-transparent p-5 shadow-lg shadow-black/20">
         <h3 className="text-lg font-bold text-center mb-5">
           {isHe ? "ציונים מפורטים" : "Detailed Scores"}
         </h3>
@@ -739,29 +739,29 @@ export default function WhatsAppReview() {
     cardLabels.push(isHe ? "שדרוגים" : "Upgrades");
     cardIcons.push("💡");
     cards.push(
-      <div key="improvements" className="rounded-2xl border border-amber-500/10 bg-gradient-to-b from-white/[0.03] to-transparent p-5 space-y-4 shadow-lg shadow-black/20">
+      <div key="improvements" className="rounded-2xl border border-[#FF2E9F]/10 bg-gradient-to-b from-white/[0.03] to-transparent p-5 space-y-4 shadow-lg shadow-black/20">
         <h3 className="text-lg font-bold text-center mb-2">
           <Sparkles className={`w-5 h-5 text-primary inline-block ${dir === "rtl" ? "ml-1.5" : "mr-1.5"}`} />
           {isHe ? "טיפים לשדרוג" : "Upgrade Tips"}
         </h3>
         {analysis.improvements.slice(0, 2).map((imp, i) => (
-          <div key={i} className="p-4 rounded-xl bg-white/[0.02] border border-amber-500/8">
+          <div key={i} className="p-4 rounded-xl bg-white/[0.02] border border-[#FF2E9F]/8">
             <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-500/20 to-amber-600/10 flex items-center justify-center shrink-0 mt-0.5 border border-amber-500/20">
-                <TrendingUp className="w-4 h-4 text-amber-400" />
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#FF2E9F]/20 to-[#7B2EFF]/10 flex items-center justify-center shrink-0 mt-0.5 border border-[#FF2E9F]/20">
+                <TrendingUp className="w-4 h-4 text-[#FF2E9F]" />
               </div>
               <div>
-                <h4 className="font-semibold text-sm mb-1 text-amber-100/90">{imp.title}</h4>
+                <h4 className="font-semibold text-sm mb-1 text-foreground/90">{imp.title}</h4>
                 <p className="text-xs text-muted-foreground/80 leading-relaxed line-clamp-3">{imp.description}</p>
               </div>
             </div>
             {/* Show first shopping link if available */}
             {imp.shoppingLinks?.slice(0, 1).map((link, j) => (
               <a key={j} href={link.url} target="_blank" rel="noopener noreferrer"
-                className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-amber-500/15 bg-amber-500/[0.04] hover:bg-amber-500/10 hover:border-amber-500/30 transition-all duration-300 text-xs">
-                <ShoppingBag className="w-3 h-3 text-amber-400/60" />
-                <span className="text-amber-200/70 font-medium">{link.label || getStoreName(link.url)}</span>
-                <ExternalLink className="w-2.5 h-2.5 text-amber-400/50" />
+                className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#FF2E9F]/15 bg-[#FF2E9F]/[0.04] hover:bg-[#FF2E9F]/10 hover:border-[#FF2E9F]/30 transition-all duration-300 text-xs">
+                <ShoppingBag className="w-3 h-3 text-[#FF2E9F]/60" />
+                <span className="text-[#FF6BB5]/70 font-medium">{link.label || getStoreName(link.url)}</span>
+                <ExternalLink className="w-2.5 h-2.5 text-[#FF2E9F]/50" />
               </a>
             ))}
           </div>
@@ -797,7 +797,7 @@ export default function WhatsAppReview() {
     cardLabels.push(isHe ? "משפיען" : "Influencer");
     cardIcons.push("📷");
     cards.push(
-      <div key="influencer" className="rounded-2xl border border-amber-500/10 bg-gradient-to-b from-white/[0.03] to-transparent p-5 shadow-lg shadow-black/20">
+      <div key="influencer" className="rounded-2xl border border-[#FF2E9F]/10 bg-gradient-to-b from-white/[0.03] to-transparent p-5 shadow-lg shadow-black/20">
         <h3 className="text-lg font-bold text-center mb-4">
           <Users className={`w-5 h-5 text-rose-400 inline-block ${dir === "rtl" ? "ml-1.5" : "mr-1.5"}`} />
           {isHe ? "השראה מסלבריטי" : "Celebrity Inspiration"}

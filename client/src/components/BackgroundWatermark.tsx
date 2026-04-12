@@ -47,111 +47,99 @@ export default function BackgroundWatermark() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, [loaded]);
 
-  // SVG pattern tile — studio elements in gold on transparent
+  // SVG pattern tile — fashion elements in pink/purple glow on transparent
   const patternSvg = `
 <svg xmlns="http://www.w3.org/2000/svg" width="320" height="400" viewBox="0 0 320 400">
   <defs>
     <style>
-      .gold { stroke: #c8a44e; fill: none; stroke-linecap: round; stroke-linejoin: round; }
-      .gold-fill { fill: #c8a44e; }
-      .gold-thin { stroke: #c8a44e; fill: none; stroke-width: 0.5; stroke-linecap: round; }
+      .pk { stroke: #FF2E9F; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+      .pk-fill { fill: #FF2E9F; }
+      .pr { stroke: #7B2EFF; fill: none; stroke-width: 0.5; stroke-linecap: round; }
     </style>
   </defs>
 
-  <!-- Hanger 1 — top left area -->
+  <!-- Hanger 1 -->
   <g transform="translate(50, 50)">
-    <!-- Hook -->
-    <path d="M0,-12 C0,-18 6,-20 6,-14" class="gold" stroke-width="1"/>
-    <!-- Triangle body -->
-    <path d="M0,-8 L-22,14 M0,-8 L22,14" class="gold" stroke-width="1"/>
-    <!-- Bottom bar -->
-    <line x1="-22" y1="14" x2="22" y2="14" class="gold" stroke-width="1"/>
+    <path d="M0,-12 C0,-18 6,-20 6,-14" class="pk" stroke-width="1"/>
+    <path d="M0,-8 L-22,14 M0,-8 L22,14" class="pk" stroke-width="1"/>
+    <line x1="-22" y1="14" x2="22" y2="14" class="pk" stroke-width="1"/>
   </g>
 
-  <!-- Measuring tape marks — horizontal, middle area -->
+  <!-- Measuring tape -->
   <g transform="translate(160, 120)">
-    <line x1="-60" y1="0" x2="60" y2="0" class="gold-thin"/>
-    <line x1="-60" y1="0" x2="-60" y2="5" class="gold-thin"/>
-    <line x1="-45" y1="0" x2="-45" y2="3" class="gold-thin"/>
-    <line x1="-30" y1="0" x2="-30" y2="5" class="gold-thin"/>
-    <line x1="-15" y1="0" x2="-15" y2="3" class="gold-thin"/>
-    <line x1="0" y1="0" x2="0" y2="6" class="gold-thin"/>
-    <line x1="15" y1="0" x2="15" y2="3" class="gold-thin"/>
-    <line x1="30" y1="0" x2="30" y2="5" class="gold-thin"/>
-    <line x1="45" y1="0" x2="45" y2="3" class="gold-thin"/>
-    <line x1="60" y1="0" x2="60" y2="5" class="gold-thin"/>
+    <line x1="-60" y1="0" x2="60" y2="0" class="pr"/>
+    <line x1="-60" y1="0" x2="-60" y2="5" class="pr"/>
+    <line x1="-30" y1="0" x2="-30" y2="5" class="pr"/>
+    <line x1="0" y1="0" x2="0" y2="6" class="pr"/>
+    <line x1="30" y1="0" x2="30" y2="5" class="pr"/>
+    <line x1="60" y1="0" x2="60" y2="5" class="pr"/>
   </g>
 
-  <!-- Scissors — small, right area -->
+  <!-- Scissors -->
   <g transform="translate(260, 60) scale(0.8)">
-    <circle cx="-6" cy="8" r="5" class="gold" stroke-width="0.8"/>
-    <circle cx="6" cy="8" r="5" class="gold" stroke-width="0.8"/>
-    <line x1="-3" y1="4" x2="4" y2="-10" class="gold" stroke-width="0.8"/>
-    <line x1="3" y1="4" x2="-4" y2="-10" class="gold" stroke-width="0.8"/>
+    <circle cx="-6" cy="8" r="5" class="pk" stroke-width="0.8"/>
+    <circle cx="6" cy="8" r="5" class="pk" stroke-width="0.8"/>
+    <line x1="-3" y1="4" x2="4" y2="-10" class="pk" stroke-width="0.8"/>
+    <line x1="3" y1="4" x2="-4" y2="-10" class="pk" stroke-width="0.8"/>
   </g>
 
-  <!-- Hanger 2 — bottom right, rotated slightly -->
+  <!-- Hanger 2 -->
   <g transform="translate(240, 280) rotate(-8)">
-    <path d="M0,-10 C0,-16 5,-17 5,-12" class="gold" stroke-width="0.8"/>
-    <path d="M0,-7 L-18,11 M0,-7 L18,11" class="gold" stroke-width="0.8"/>
-    <line x1="-18" y1="11" x2="18" y2="11" class="gold" stroke-width="0.8"/>
+    <path d="M0,-10 C0,-16 5,-17 5,-12" class="pr" stroke-width="0.8"/>
+    <path d="M0,-7 L-18,11 M0,-7 L18,11" class="pr" stroke-width="0.8"/>
+    <line x1="-18" y1="11" x2="18" y2="11" class="pr" stroke-width="0.8"/>
   </g>
 
-  <!-- Geometric diamond — center -->
+  <!-- Diamond -->
   <g transform="translate(160, 210)">
-    <path d="M0,-16 L12,0 L0,16 L-12,0 Z" class="gold" stroke-width="0.5"/>
-    <circle cx="0" cy="0" r="2" class="gold-fill" opacity="0.4"/>
+    <path d="M0,-16 L12,0 L0,16 L-12,0 Z" class="pk" stroke-width="0.5"/>
+    <circle cx="0" cy="0" r="2" class="pk-fill" opacity="0.4"/>
   </g>
 
-  <!-- Needle & thread — left side -->
+  <!-- Needle & thread -->
   <g transform="translate(70, 300)">
-    <line x1="0" y1="0" x2="0" y2="-20" class="gold-thin"/>
-    <ellipse cx="0" cy="-22" rx="2" ry="3" class="gold" stroke-width="0.5"/>
-    <!-- Thread curve -->
-    <path d="M0,0 C10,8 -5,16 8,24" class="gold-thin" stroke-dasharray="2,2"/>
+    <line x1="0" y1="0" x2="0" y2="-20" class="pr"/>
+    <ellipse cx="0" cy="-22" rx="2" ry="3" class="pk" stroke-width="0.5"/>
+    <path d="M0,0 C10,8 -5,16 8,24" class="pr" stroke-dasharray="2,2"/>
   </g>
 
-  <!-- Measuring tape marks — vertical, right side -->
+  <!-- Vertical tape -->
   <g transform="translate(300, 180)">
-    <line x1="0" y1="-40" x2="0" y2="40" class="gold-thin"/>
-    <line x1="0" y1="-40" x2="4" y2="-40" class="gold-thin"/>
-    <line x1="0" y1="-30" x2="2.5" y2="-30" class="gold-thin"/>
-    <line x1="0" y1="-20" x2="4" y2="-20" class="gold-thin"/>
-    <line x1="0" y1="-10" x2="2.5" y2="-10" class="gold-thin"/>
-    <line x1="0" y1="0" x2="5" y2="0" class="gold-thin"/>
-    <line x1="0" y1="10" x2="2.5" y2="10" class="gold-thin"/>
-    <line x1="0" y1="20" x2="4" y2="20" class="gold-thin"/>
-    <line x1="0" y1="30" x2="2.5" y2="30" class="gold-thin"/>
-    <line x1="0" y1="40" x2="4" y2="40" class="gold-thin"/>
+    <line x1="0" y1="-40" x2="0" y2="40" class="pr"/>
+    <line x1="0" y1="-40" x2="4" y2="-40" class="pr"/>
+    <line x1="0" y1="-20" x2="4" y2="-20" class="pr"/>
+    <line x1="0" y1="0" x2="5" y2="0" class="pr"/>
+    <line x1="0" y1="20" x2="4" y2="20" class="pr"/>
+    <line x1="0" y1="40" x2="4" y2="40" class="pr"/>
   </g>
 
-  <!-- Small button — decorative -->
+  <!-- Button -->
   <g transform="translate(120, 350)">
-    <circle cx="0" cy="0" r="6" class="gold" stroke-width="0.5"/>
-    <circle cx="0" cy="0" r="4" class="gold" stroke-width="0.3"/>
-    <circle cx="-1.5" cy="-1.5" r="0.7" class="gold-fill" opacity="0.5"/>
-    <circle cx="1.5" cy="-1.5" r="0.7" class="gold-fill" opacity="0.5"/>
-    <circle cx="-1.5" cy="1.5" r="0.7" class="gold-fill" opacity="0.5"/>
-    <circle cx="1.5" cy="1.5" r="0.7" class="gold-fill" opacity="0.5"/>
+    <circle cx="0" cy="0" r="6" class="pk" stroke-width="0.5"/>
+    <circle cx="0" cy="0" r="4" class="pk" stroke-width="0.3"/>
+    <circle cx="-1.5" cy="-1.5" r="0.7" class="pk-fill" opacity="0.5"/>
+    <circle cx="1.5" cy="-1.5" r="0.7" class="pk-fill" opacity="0.5"/>
+    <circle cx="-1.5" cy="1.5" r="0.7" class="pk-fill" opacity="0.5"/>
+    <circle cx="1.5" cy="1.5" r="0.7" class="pk-fill" opacity="0.5"/>
   </g>
 
-  <!-- Thin diagonal accent lines -->
-  <line x1="10" y1="160" x2="40" y2="180" class="gold-thin" opacity="0.3"/>
-  <line x1="280" y1="340" x2="310" y2="360" class="gold-thin" opacity="0.3"/>
+  <!-- Accent lines -->
+  <line x1="10" y1="160" x2="40" y2="180" class="pr" opacity="0.3"/>
+  <line x1="280" y1="340" x2="310" y2="360" class="pr" opacity="0.3"/>
 
-  <!-- Small star/sparkle -->
+  <!-- Sparkle -->
   <g transform="translate(200, 380)">
-    <line x1="0" y1="-4" x2="0" y2="4" class="gold-thin"/>
-    <line x1="-4" y1="0" x2="4" y2="0" class="gold-thin"/>
-    <line x1="-2.5" y1="-2.5" x2="2.5" y2="2.5" class="gold-thin" opacity="0.5"/>
-    <line x1="2.5" y1="-2.5" x2="-2.5" y2="2.5" class="gold-thin" opacity="0.5"/>
+    <line x1="0" y1="-4" x2="0" y2="4" class="pk" stroke-width="0.5"/>
+    <line x1="-4" y1="0" x2="4" y2="0" class="pk" stroke-width="0.5"/>
+    <line x1="-2.5" y1="-2.5" x2="2.5" y2="2.5" class="pr" opacity="0.5"/>
+    <line x1="2.5" y1="-2.5" x2="-2.5" y2="2.5" class="pr" opacity="0.5"/>
   </g>
 
-  <!-- Hanger 3 — small, top right -->
+  <!-- Hanger 3 -->
   <g transform="translate(180, 40) scale(0.6)">
-    <path d="M0,-10 C0,-16 5,-17 5,-12" class="gold" stroke-width="0.8"/>
-    <path d="M0,-7 L-18,11 M0,-7 L18,11" class="gold" stroke-width="0.8"/>
-    <line x1="-18" y1="11" x2="18" y2="11" class="gold" stroke-width="0.8"/>
+    <path d="M0,-10 C0,-16 5,-17 5,-12" class="pk" stroke-width="0.8"/>
+    <path d="M0,-7 L-18,11 M0,-7 L18,11" class="pk" stroke-width="0.8"/>
+    <line x1="-18" y1="11" x2="18" y2="11" class="pk" stroke-width="0.8"/>
   </g>
 
 </svg>`.trim();

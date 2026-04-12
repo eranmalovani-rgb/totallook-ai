@@ -109,7 +109,7 @@ function AdminGuestTestButton({ lang }: { lang: "he" | "en" }) {
       size="sm"
       onClick={() => generateToken.mutate()}
       disabled={generateToken.isPending}
-      className="gap-2 border-amber-500/30 text-amber-300 hover:bg-amber-500/10"
+      className="gap-2 border-[#FF2E9F]/30 text-[#FF2E9F] hover:bg-[#FF2E9F]/10"
     >
       <FlaskConical className="w-4 h-4" />
       {generateToken.isPending
@@ -164,8 +164,8 @@ export default function AdminPage() {
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 border border-amber-500/20">
-              <Shield className="w-6 h-6 text-amber-400" />
+            <div className="p-2.5 rounded-xl bg-gradient-to-br from-[#FF2E9F]/20 to-orange-500/20 border border-[#FF2E9F]/20">
+              <Shield className="w-6 h-6 text-[#FF2E9F]" />
             </div>
             <div>
               <h1 className="text-2xl font-bold">{t("title")}</h1>
@@ -179,7 +179,7 @@ export default function AdminPage() {
               <Button
                 variant="outline"
                 size="sm"
-                className="gap-2 border-amber-500/30 text-amber-400 hover:bg-amber-500/10"
+                className="gap-2 border-[#FF2E9F]/30 text-[#FF2E9F] hover:bg-[#FF2E9F]/10"
               >
                 <Store className="w-4 h-4" />
                 {lang === "he" ? "דמו Widget מותג" : "Brand Widget Demo"}
@@ -208,7 +208,7 @@ export default function AdminPage() {
               onClick={() => setActiveTab(tab.key)}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 activeTab === tab.key
-                  ? "bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-300 border border-amber-500/20"
+                  ? "bg-gradient-to-r from-[#FF2E9F]/20 to-orange-500/20 text-[#FF2E9F] border border-[#FF2E9F]/20"
                   : "text-muted-foreground hover:text-foreground hover:bg-white/5"
               }`}
             >
@@ -243,10 +243,10 @@ function OverviewTab({ lang, t }: { lang: "he" | "en"; t: (k: keyof typeof trans
   }
 
   const statCards = [
-    { label: t("totalUsers"), value: stats?.totalUsers ?? 0, icon: <Users className="w-5 h-5" />, color: "from-primary/20 to-amber-500/20 border-primary/20", iconColor: "text-primary" },
+    { label: t("totalUsers"), value: stats?.totalUsers ?? 0, icon: <Users className="w-5 h-5" />, color: "from-primary/20 to-[#7B2EFF]/20 border-primary/20", iconColor: "text-primary" },
     { label: t("totalReviews"), value: stats?.totalReviews ?? 0, icon: <Image className="w-5 h-5" />, color: "from-rose-500/20 to-pink-500/20 border-rose-500/20", iconColor: "text-rose-400" },
-    { label: t("completedReviews"), value: stats?.completedReviews ?? 0, icon: <Sparkles className="w-5 h-5" />, color: "from-amber-500/20 to-primary/20 border-amber-500/20", iconColor: "text-amber-400" },
-    { label: t("totalFeedPosts"), value: stats?.totalFeedPosts ?? 0, icon: <TrendingUp className="w-5 h-5" />, color: "from-orange-500/20 to-amber-500/20 border-orange-500/20", iconColor: "text-orange-400" },
+    { label: t("completedReviews"), value: stats?.completedReviews ?? 0, icon: <Sparkles className="w-5 h-5" />, color: "from-[#FF2E9F]/20 to-primary/20 border-[#FF2E9F]/20", iconColor: "text-[#FF2E9F]" },
+    { label: t("totalFeedPosts"), value: stats?.totalFeedPosts ?? 0, icon: <TrendingUp className="w-5 h-5" />, color: "from-orange-500/20 to-[#7B2EFF]/20 border-orange-500/20", iconColor: "text-orange-400" },
     { label: t("totalLikes"), value: stats?.totalLikes ?? 0, icon: <Heart className="w-5 h-5" />, color: "from-pink-500/20 to-rose-500/20 border-pink-500/20", iconColor: "text-pink-400" },
   ];
 
@@ -306,8 +306,8 @@ function FunnelTab({ lang }: { lang: "he" | "en" }) {
       label: isHe ? "המשיכו (אורח + נרשם)" : "Continued (Guest + Registered)",
       value: totalActions,
       sub: isHe ? `${conversionRate}% מהמבקרים` : `${conversionRate}% of visitors`,
-      color: "from-amber-500/20 to-yellow-500/20 border-amber-500/20",
-      iconColor: "text-amber-400",
+      color: "from-[#FF2E9F]/20 to-yellow-500/20 border-[#FF2E9F]/20",
+      iconColor: "text-[#FF2E9F]",
       width: uniqueVisitors > 0 ? `${Math.max(10, (totalActions / uniqueVisitors) * 100)}%` : "10%",
     },
     {
@@ -408,7 +408,7 @@ function FunnelTab({ lang }: { lang: "he" | "en" }) {
                   <th className="text-center py-2 px-3 font-medium text-green-400">
                     {isHe ? "נרשמו" : "Registered"}
                   </th>
-                  <th className="text-center py-2 px-3 font-medium text-amber-400">
+                  <th className="text-center py-2 px-3 font-medium text-[#FF2E9F]">
                     {isHe ? "אורחים" : "Guests"}
                   </th>
                   <th className="text-center py-2 px-3 font-medium text-purple-400">
@@ -433,7 +433,7 @@ function FunnelTab({ lang }: { lang: "he" | "en" }) {
                       <td className="py-2 px-3 text-center">
                         <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                           conv >= 50 ? "bg-green-500/20 text-green-300" :
-                          conv >= 20 ? "bg-amber-500/20 text-amber-300" :
+                          conv >= 20 ? "bg-[#FF2E9F]/20 text-[#FF2E9F]" :
                           "bg-red-500/20 text-red-300"
                         }`}>
                           {conv}%
@@ -473,8 +473,8 @@ function UploadsTab({ lang, t, dir }: { lang: "he" | "en"; t: (k: keyof typeof t
 
   const statusColors: Record<string, string> = {
     pending: "bg-yellow-500/20 text-yellow-300 border-yellow-500/30",
-    analyzing: "bg-primary/20 text-amber-300 border-primary/30",
-    completed: "bg-amber-500/20 text-amber-300 border-amber-500/30",
+    analyzing: "bg-primary/20 text-[#FF2E9F] border-primary/30",
+    completed: "bg-[#FF2E9F]/20 text-[#FF2E9F] border-[#FF2E9F]/30",
     failed: "bg-red-500/20 text-red-300 border-red-500/30",
   };
 
@@ -581,7 +581,7 @@ function ReviewCard({
 
   const scoreColor =
     score != null && score >= 8
-      ? "text-amber-400"
+      ? "text-[#FF2E9F]"
       : score != null && score >= 6
         ? "text-primary"
         : score != null && score >= 4
@@ -709,7 +709,7 @@ function ReviewDetailModal({
 
   const scoreColor =
     score != null && score >= 8
-      ? "text-amber-400"
+      ? "text-[#FF2E9F]"
       : score != null && score >= 6
         ? "text-primary"
         : score != null && score >= 4
@@ -718,11 +718,11 @@ function ReviewDetailModal({
 
   const scoreBg =
     score != null && score >= 8
-      ? "from-amber-500/20 to-primary/20 border-amber-500/20"
+      ? "from-[#FF2E9F]/20 to-primary/20 border-[#FF2E9F]/20"
       : score != null && score >= 6
-        ? "from-primary/20 to-amber-500/20 border-primary/20"
+        ? "from-primary/20 to-[#7B2EFF]/20 border-primary/20"
         : score != null && score >= 4
-          ? "from-yellow-500/20 to-amber-500/20 border-yellow-500/20"
+          ? "from-yellow-500/20 to-[#7B2EFF]/20 border-yellow-500/20"
           : "from-red-500/20 to-orange-500/20 border-red-500/20";
 
   return (
@@ -876,14 +876,14 @@ function ReviewDetailModal({
                   {analysis.scores && (
                     <div className="p-4 rounded-xl bg-white/5 border border-white/10">
                       <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-                        <Star className="w-4 h-4 text-amber-400" />
+                        <Star className="w-4 h-4 text-[#FF2E9F]" />
                         {t("scores")}
                       </h3>
                       <div className="space-y-2.5">
                         {Object.entries(analysis.scores).map(([key, val]) => {
                           const scoreVal = typeof val === "object" && val !== null ? (val as any).score : val;
                           if (scoreVal == null) return null;
-                          const barColor = scoreVal >= 8 ? "bg-amber-400" : scoreVal >= 6 ? "bg-primary" : scoreVal >= 4 ? "bg-yellow-400" : "bg-red-400";
+                          const barColor = scoreVal >= 8 ? "bg-[#FF2E9F]" : scoreVal >= 6 ? "bg-primary" : scoreVal >= 4 ? "bg-yellow-400" : "bg-red-400";
                           return (
                             <div key={key}>
                               <div className="flex items-center gap-3">
@@ -924,7 +924,7 @@ function ReviewDetailModal({
                               </div>
                             </div>
                             {item.score != null && (
-                              <span className={`text-xs font-bold ${item.score >= 8 ? "text-amber-400" : item.score >= 6 ? "text-primary" : "text-yellow-400"}`}>
+                              <span className={`text-xs font-bold ${item.score >= 8 ? "text-[#FF2E9F]" : item.score >= 6 ? "text-primary" : "text-yellow-400"}`}>
                                 {item.score}/10
                               </span>
                             )}
@@ -1102,7 +1102,7 @@ function UsersTab({ lang, t, dir }: { lang: "he" | "en"; t: (k: keyof typeof tra
                   <td className="px-4 py-3">
                     <span className={`text-xs px-2 py-0.5 rounded-full border ${
                       u.role === "admin"
-                        ? "bg-amber-500/20 text-amber-300 border-amber-500/30"
+                        ? "bg-[#FF2E9F]/20 text-[#FF2E9F] border-[#FF2E9F]/30"
                         : "bg-white/5 text-muted-foreground border-white/10"
                     }`}>
                       {u.role}
@@ -1311,7 +1311,7 @@ function GuestsTab({ lang, dir }: { lang: "he" | "en"; dir: string }) {
         <StatCard
           label={lang === "he" ? "לחצו הרשמה מדמו" : "Demo\u2192Signup"}
           value={stats.demoSignupClicks}
-          icon={<TrendingUp className="w-5 h-5 text-amber-400" />}
+          icon={<TrendingUp className="w-5 h-5 text-[#FF2E9F]" />}
         />
         <StatCard
           label={lang === "he" ? "המרה" : "Conversion"}
@@ -1352,8 +1352,8 @@ function GuestsTab({ lang, dir }: { lang: "he" | "en"; dir: string }) {
                   {session.overallScore != null && (
                     <div className={`absolute top-2 ${dir === "rtl" ? "left-2" : "right-2"} px-2 py-1 rounded-full text-xs font-bold backdrop-blur-md ${
                       session.overallScore >= 8 ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30" :
-                      session.overallScore >= 6 ? "bg-primary/20 text-amber-300 border border-primary/30" :
-                      "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                      session.overallScore >= 6 ? "bg-primary/20 text-[#FF2E9F] border border-primary/30" :
+                      "bg-[#FF2E9F]/20 text-[#FF2E9F] border border-[#FF2E9F]/30"
                     }`}>
                       {session.overallScore}/10
                     </div>
@@ -1554,7 +1554,7 @@ function GuestSessionDetailModal({ session, lang, dir, onClose }: {
                         strokeDasharray={2 * Math.PI * 54} strokeDashoffset={(2 * Math.PI * 54) - ((analysis.overallScore ?? 0) / 10) * (2 * Math.PI * 54)}
                         strokeLinecap="round"
                         className={`${
-                          (analysis.overallScore ?? 0) >= 9 ? "text-amber-400" : (analysis.overallScore ?? 0) >= 7 ? "text-primary" : "text-yellow-400"
+                          (analysis.overallScore ?? 0) >= 9 ? "text-[#FF2E9F]" : (analysis.overallScore ?? 0) >= 7 ? "text-primary" : "text-yellow-400"
                         } transition-all duration-1000`}
                         transform="rotate(-90 60 60)" />
                     </svg>
@@ -1599,7 +1599,7 @@ function GuestSessionDetailModal({ session, lang, dir, onClose }: {
                         <span className="font-medium text-sm">{item.name}</span>
                       </div>
                       <span className={`text-sm font-bold ${
-                        item.score >= 8 ? "text-emerald-400" : item.score >= 6 ? "text-primary" : "text-amber-400"
+                        item.score >= 8 ? "text-emerald-400" : item.score >= 6 ? "text-primary" : "text-[#FF2E9F]"
                       }`}>{item.score}/10</span>
                     </div>
                     <p className="text-xs text-muted-foreground">{item.description}</p>
@@ -1614,7 +1614,7 @@ function GuestSessionDetailModal({ session, lang, dir, onClose }: {
           {analysis && analysis.scores && analysis.scores.length > 0 && (
             <div>
               <h3 className="text-sm font-bold mb-3 flex items-center gap-2">
-                <Star className="w-4 h-4 text-amber-400" />
+                <Star className="w-4 h-4 text-[#FF2E9F]" />
                 {lang === "he" ? "ציונים מפורטים" : "Detailed Scores"}
               </h3>
               <div className="p-4 rounded-xl border border-white/5 bg-white/5 space-y-3">
@@ -1623,7 +1623,7 @@ function GuestSessionDetailModal({ session, lang, dir, onClose }: {
                     <span className="text-xs text-muted-foreground w-32 shrink-0">{s.category}</span>
                     <div className="flex-1 h-2 rounded-full bg-white/5 overflow-hidden">
                       <div className={`h-full rounded-full ${
-                        (s.score ?? 0) >= 8 ? "bg-emerald-400" : (s.score ?? 0) >= 6 ? "bg-primary" : "bg-amber-400"
+                        (s.score ?? 0) >= 8 ? "bg-emerald-400" : (s.score ?? 0) >= 6 ? "bg-primary" : "bg-[#FF2E9F]"
                       }`} style={{ width: `${(s.score ?? 0) * 10}%` }} />
                     </div>
                     <span className="text-xs font-bold w-10">{s.score ?? "—"}/10</span>
@@ -1746,14 +1746,14 @@ function BrandMatchingTab({ lang, dir }: { lang: "he" | "en"; dir: string }) {
 
   const getMatchColor = (pct: number) => {
     if (pct >= 70) return "from-emerald-500 to-emerald-400";
-    if (pct >= 50) return "from-amber-500 to-amber-400";
+    if (pct >= 50) return "from-[#FF2E9F] to-[#7B2EFF]";
     if (pct >= 30) return "from-orange-500 to-orange-400";
     return "from-red-500 to-red-400";
   };
 
   const getMatchBg = (pct: number) => {
     if (pct >= 70) return "bg-emerald-500/10 border-emerald-500/20";
-    if (pct >= 50) return "bg-amber-500/10 border-amber-500/20";
+    if (pct >= 50) return "bg-[#FF2E9F]/10 border-[#FF2E9F]/20";
     if (pct >= 30) return "bg-orange-500/10 border-orange-500/20";
     return "bg-red-500/10 border-red-500/20";
   };
@@ -1780,7 +1780,7 @@ function BrandMatchingTab({ lang, dir }: { lang: "he" | "en"; dir: string }) {
       {/* Top 5 Matches */}
       <div>
         <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <Star className="w-5 h-5 text-amber-400" />
+          <Star className="w-5 h-5 text-[#FF2E9F]" />
           {isHe ? "Top 5 — המותגים שהכי מתאימים לך" : "Top 5 — Your Best Brand Matches"}
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
@@ -1790,7 +1790,7 @@ function BrandMatchingTab({ lang, dir }: { lang: "he" | "en"; dir: string }) {
               className={`relative rounded-xl border p-5 text-center transition-all hover:scale-[1.02] ${getMatchBg(m.matchPct)}`}
             >
               {i === 0 && (
-                <div className="absolute -top-2 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[10px] font-bold px-3 py-0.5 rounded-full">
+                <div className="absolute -top-2 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#FF2E9F] to-orange-500 text-white text-[10px] font-bold px-3 py-0.5 rounded-full">
                   {isHe ? "ההתאמה הטובה ביותר" : "BEST MATCH"}
                 </div>
               )}

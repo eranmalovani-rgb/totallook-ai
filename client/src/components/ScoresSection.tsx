@@ -5,13 +5,13 @@
 import AnimatedSection from "./AnimatedSection";
 
 const scores = [
-  { label: "איכות הפריטים", score: 8.5, pct: 85, color: "from-primary to-amber-400" },
-  { label: "התאמת גזרה", score: 7, pct: 70, color: "from-primary to-amber-400" },
-  { label: "צבעוניות וניגודיות", score: 5.5, pct: 55, color: "from-amber-500 to-amber-400" },
+  { label: "איכות הפריטים", score: 8.5, pct: 85, color: "from-primary to-[#7B2EFF]" },
+  { label: "התאמת גזרה", score: 7, pct: 70, color: "from-primary to-[#7B2EFF]" },
+  { label: "צבעוניות וניגודיות", score: 5.5, pct: 55, color: "from-[#FF2E9F] to-[#7B2EFF]" },
   { label: "שכבתיות (Layering)", score: 4, pct: 40, color: "from-red-500 to-red-400" },
   { label: "אקססוריז", score: 3, pct: 30, color: "from-red-500 to-red-400" },
-  { label: "התאמה לגיל ולסגנון", score: 8, pct: 80, color: "from-primary to-amber-400" },
-  { label: "נעליים", score: 8, pct: 80, color: "from-primary to-amber-400" },
+  { label: "התאמה לגיל ולסגנון", score: 8, pct: 80, color: "from-primary to-[#7B2EFF]" },
+  { label: "נעליים", score: 8, pct: 80, color: "from-primary to-[#7B2EFF]" },
 ];
 
 export default function ScoresSection() {

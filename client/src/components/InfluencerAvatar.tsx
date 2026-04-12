@@ -3,13 +3,13 @@ import { useMemo } from "react";
 /** Deterministic gradient based on the influencer's name */
 const GRADIENTS = [
   "from-violet-500 to-fuchsia-500",
-  "from-amber-400 to-primary",
-  "from-amber-500 to-primary",
-  "from-orange-500 to-amber-500",
+  "from-[#FF2E9F] to-primary",
+  "from-[#FF2E9F] to-primary",
+  "from-orange-500 to-[#7B2EFF]",
   "from-rose-500 to-pink-500",
   "from-primary to-rose-500",
-  "from-amber-300 to-primary",
-  "from-amber-300 to-amber-500",
+  "from-[#FF2E9F] to-primary",
+  "from-[#FF2E9F] to-[#7B2EFF]",
   "from-red-500 to-orange-500",
   "from-teal-500 to-cyan-500",
 ];

@@ -171,7 +171,7 @@ export default function Navbar() {
           className="flex items-center gap-0 text-lg font-bold"
           dir="ltr"
         >
-          <span className="text-xl font-bold bg-gradient-to-r from-amber-300 to-primary bg-clip-text text-transparent">
+          <span className="text-xl font-bold bg-gradient-to-r from-[#FF2E9F] to-[#7B2EFF] bg-clip-text text-transparent">
             TotalLook
           </span>
           <span className="text-sm text-muted-foreground/70 font-medium">
@@ -262,7 +262,7 @@ export default function Navbar() {
                             }
                           }}
                         >
-                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-400 to-primary flex items-center justify-center text-white text-xs font-bold shrink-0 mt-0.5">
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#FF2E9F] to-[#7B2EFF] flex items-center justify-center text-white text-xs font-bold shrink-0 mt-0.5">
                             {(notif.actorName || "?")[0].toUpperCase()}
                           </div>
                           <div className="flex-1 min-w-0">
@@ -424,7 +424,7 @@ export default function Navbar() {
                             }
                           }}
                         >
-                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-400 to-primary flex items-center justify-center text-white text-xs font-bold shrink-0 mt-0.5">
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#FF2E9F] to-[#7B2EFF] flex items-center justify-center text-white text-xs font-bold shrink-0 mt-0.5">
                             {(notif.actorName || "?")[0].toUpperCase()}
                           </div>
                           <div className="flex-1 min-w-0">

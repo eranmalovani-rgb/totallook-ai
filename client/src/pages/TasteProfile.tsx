@@ -431,15 +431,15 @@ export default function TasteProfile() {
           {/* Improvements */}
           <div className="p-6 rounded-xl bg-card border border-white/5">
             <div className="flex items-center gap-2 mb-4">
-              <AlertTriangle className="w-5 h-5 text-amber-400" />
+              <AlertTriangle className="w-5 h-5 text-[#FF2E9F]" />
               <h2 className="text-lg font-semibold">{tr.improvements}</h2>
             </div>
             {data.improvements.length > 0 ? (
               <div className="space-y-3">
                 {data.improvements.map((s, i) => (
-                  <div key={s} className="flex items-center gap-3 p-3 rounded-lg bg-amber-500/5 border border-amber-500/10">
-                    <div className="w-8 h-8 rounded-full bg-amber-500/10 flex items-center justify-center shrink-0">
-                      <span className="text-amber-400 text-sm font-bold">#{i + 1}</span>
+                  <div key={s} className="flex items-center gap-3 p-3 rounded-lg bg-[#FF2E9F]/5 border border-[#FF2E9F]/10">
+                    <div className="w-8 h-8 rounded-full bg-[#FF2E9F]/10 flex items-center justify-center shrink-0">
+                      <span className="text-[#FF2E9F] text-sm font-bold">#{i + 1}</span>
                     </div>
                     <span className="text-sm">{s}</span>
                   </div>
@@ -584,14 +584,14 @@ function BrandMatchingSection({ lang, isHe }: { lang: "he" | "en"; isHe: boolean
 
   const getMatchGradient = (pct: number) => {
     if (pct >= 70) return "from-emerald-500/20 to-emerald-500/5";
-    if (pct >= 50) return "from-amber-500/20 to-amber-500/5";
+    if (pct >= 50) return "from-[#FF2E9F]/20 to-[#7B2EFF]/5";
     if (pct >= 30) return "from-orange-500/20 to-orange-500/5";
     return "from-red-500/20 to-red-500/5";
   };
 
   const getMatchTextColor = (pct: number) => {
     if (pct >= 70) return "text-emerald-400";
-    if (pct >= 50) return "text-amber-400";
+    if (pct >= 50) return "text-[#FF2E9F]";
     if (pct >= 30) return "text-orange-400";
     return "text-red-400";
   };
@@ -635,7 +635,7 @@ function BrandMatchingSection({ lang, isHe }: { lang: "he" | "en"; isHe: boolean
             className={`relative rounded-xl border border-white/5 bg-gradient-to-b ${getMatchGradient(m.matchPct)} p-4 transition-all hover:scale-[1.02] hover:border-white/10`}
           >
             {i === 0 && (
-              <div className="absolute -top-2 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[9px] font-bold px-2.5 py-0.5 rounded-full whitespace-nowrap">
+              <div className="absolute -top-2 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#FF2E9F] to-orange-500 text-white text-[9px] font-bold px-2.5 py-0.5 rounded-full whitespace-nowrap">
                 {isHe ? "ההתאמה הטובה ביותר" : "BEST MATCH"}
               </div>
             )}

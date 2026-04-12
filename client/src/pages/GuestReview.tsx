@@ -107,7 +107,7 @@ function LinkedText({
       {parts.map((part, i) => {
         const mention = allMentions.find(m => m.text === part);
         if (mention) {
-          const colorClass = mention.type === "brand" ? "text-primary hover:text-amber-300" :
+          const colorClass = mention.type === "brand" ? "text-primary hover:text-[#FF2E9F]" :
             mention.type === "influencer" ? "text-rose-400 hover:text-rose-300" :
             mention.type === "store" ? "text-teal-400 hover:text-teal-300" :
             "text-primary hover:text-primary/80";
@@ -150,11 +150,11 @@ function ScoreCircle({ score, size = "lg" }: { score: number; size?: "sm" | "lg"
   const stroke = size === "lg" ? 6 : 4;
   const circumference = 2 * Math.PI * radius;
   const progress = (safeScore / 10) * circumference;
-  const color = safeScore >= 9 ? "text-amber-400" : safeScore >= 7 ? "text-primary" : safeScore >= 5 ? "text-yellow-400" : "text-orange-400";
+  const color = safeScore >= 9 ? "text-[#FF2E9F]" : safeScore >= 7 ? "text-primary" : safeScore >= 5 ? "text-yellow-400" : "text-orange-400";
 
   const gradientId = `guest-score-grad-${size}-${Math.round(safeScore * 10)}`;
-  const glowColor = safeScore >= 9 ? "rgba(251,191,36,0.2)" : safeScore >= 7 ? "rgba(200,164,78,0.15)" : safeScore >= 5 ? "rgba(234,179,8,0.12)" : "rgba(249,115,22,0.12)";
-  const gradColors = safeScore >= 9 ? ["#fbbf24", "#f59e0b"] : safeScore >= 7 ? ["#c8a44e", "#e8c86e"] : safeScore >= 5 ? ["#eab308", "#ca8a04"] : ["#f97316", "#ea580c"];
+  const glowColor = safeScore >= 9 ? "rgba(251,191,36,0.2)" : safeScore >= 7 ? "rgba(255,46,159,0.15)" : safeScore >= 5 ? "rgba(234,179,8,0.12)" : "rgba(249,115,22,0.12)";
+  const gradColors = safeScore >= 9 ? ["#fbbf24", "#f59e0b"] : safeScore >= 7 ? ["#FF2E9F", "#e8c86e"] : safeScore >= 5 ? ["#eab308", "#ca8a04"] : ["#f97316", "#ea580c"];
 
   return (
     <div className="relative inline-flex items-center justify-center" style={{ filter: size !== "sm" ? `drop-shadow(0 0 8px ${glowColor})` : undefined }}>
@@ -170,7 +170,7 @@ function ScoreCircle({ score, size = "lg" }: { score: number; size?: "sm" | "lg"
           strokeDasharray={circumference} strokeDashoffset={circumference - progress} strokeLinecap="round"
           className="transition-all duration-1000" transform={`rotate(-90 ${radius + stroke} ${radius + stroke})`} />
       </svg>
-      <span className={`absolute font-bold tracking-tight ${size === "lg" ? "text-3xl" : "text-base"} ${safeScore >= 9 ? "text-amber-300" : safeScore >= 7 ? "text-amber-200/90" : safeScore >= 5 ? "text-yellow-300/90" : "text-orange-300/90"}`}>{safeScore}</span>
+      <span className={`absolute font-bold tracking-tight ${size === "lg" ? "text-3xl" : "text-base"} ${safeScore >= 9 ? "text-[#FF2E9F]" : safeScore >= 7 ? "text-[#FF6BB5]/90" : safeScore >= 5 ? "text-yellow-300/90" : "text-orange-300/90"}`}>{safeScore}</span>
     </div>
   );
 }
@@ -194,8 +194,8 @@ function ScoreBar({ label, score, explanation, recommendation, lang }: { label: 
       </div>
     );
   }
-  const barGradient = score >= 9 ? "from-amber-400 to-amber-500" : score >= 7 ? "from-amber-600/80 to-amber-500/80" : score >= 5 ? "from-yellow-500/70 to-yellow-400/70" : "from-orange-500/70 to-orange-400/70";
-  const scoreColor = score >= 9 ? "text-amber-300" : score >= 7 ? "text-amber-200/90" : score >= 5 ? "text-yellow-300/90" : "text-orange-300/90";
+  const barGradient = score >= 9 ? "from-[#FF2E9F] to-[#7B2EFF]" : score >= 7 ? "from-[#FF2E9F]/80 to-[#7B2EFF]/80" : score >= 5 ? "from-yellow-500/70 to-yellow-400/70" : "from-orange-500/70 to-orange-400/70";
+  const scoreColor = score >= 9 ? "text-[#FF2E9F]" : score >= 7 ? "text-[#FF6BB5]/90" : score >= 5 ? "text-yellow-300/90" : "text-orange-300/90";
   return (
     <div>
       <div className="flex items-center gap-4">
@@ -323,7 +323,7 @@ function GuestImprovementAccordionCard({
   const [imgError, setImgError] = useState(false);
 
   return (
-    <AccordionItem value={`imp-${index}`} className="border border-amber-500/10 rounded-xl bg-gradient-to-b from-white/[0.03] to-transparent overflow-hidden shadow-lg shadow-black/20">
+    <AccordionItem value={`imp-${index}`} className="border border-[#FF2E9F]/10 rounded-xl bg-gradient-to-b from-white/[0.03] to-transparent overflow-hidden shadow-lg shadow-black/20">
       {/* Stage 62: All options displayed as horizontal gallery with images */}
       {hasAlternatives ? (
         <div className="p-3 space-y-2">
@@ -336,7 +336,7 @@ function GuestImprovementAccordionCard({
                   onClick={() => { setSelectedOption(idx); setImgLoaded(false); setImgError(false); }}
                   className={`relative rounded-xl overflow-hidden border-2 transition-all duration-200 ${
                     isActive
-                      ? 'border-amber-500/60 ring-1 ring-amber-400/20 scale-[1.02]'
+                      ? 'border-[#FF2E9F]/60 ring-1 ring-[#FF2E9F]/20 scale-[1.02]'
                       : 'border-white/5 hover:border-white/20 opacity-75 hover:opacity-100'
                   }`}
                 >
@@ -353,14 +353,14 @@ function GuestImprovementAccordionCard({
                     </div>
                   )}
                   <div className={`absolute bottom-0 inset-x-0 px-1.5 py-1 text-[9px] font-medium text-center truncate ${
-                    isActive ? 'bg-gradient-to-r from-amber-600/90 to-amber-500/90 text-white' : 'bg-black/60 text-white/80'
+                    isActive ? 'bg-gradient-to-r from-[#FF2E9F]/90 to-[#7B2EFF]/90 text-white' : 'bg-black/60 text-white/80'
                   }`}>
                     {idx === 0
                       ? (lang === "he" ? "⭐ מומלץ" : "⭐ Top Pick")
                       : opt.afterLabel?.split(' ').slice(0, 3).join(' ') || (lang === "he" ? `אפשרות ${idx + 1}` : `Option ${idx + 1}`)}
                   </div>
                   {isActive && (
-                    <div className="absolute top-1 right-1 w-5 h-5 rounded-full bg-amber-500 flex items-center justify-center shadow-lg shadow-amber-500/30">
+                    <div className="absolute top-1 right-1 w-5 h-5 rounded-full bg-[#FF2E9F] flex items-center justify-center shadow-lg shadow-[#FF2E9F]/30">
                       <Check className="w-3 h-3 text-white" />
                     </div>
                   )}
@@ -375,7 +375,7 @@ function GuestImprovementAccordionCard({
               </span>
             )}
             {activeOption.afterMaterial && (
-              <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-500/80">
+              <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[#FF2E9F]/10 text-[#FF2E9F]/80">
                 {activeOption.afterMaterial}
               </span>
             )}
@@ -418,9 +418,9 @@ function GuestImprovementAccordionCard({
       <div className="px-4">
         <AccordionTrigger className="hover:no-underline py-3">
           <div className="flex items-center gap-3 flex-1">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-500/20 to-amber-600/10 flex items-center justify-center shrink-0 text-amber-300 font-bold text-sm border border-amber-500/20">{index + 1}</div>
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#FF2E9F]/20 to-[#7B2EFF]/10 flex items-center justify-center shrink-0 text-[#FF2E9F] font-bold text-sm border border-[#FF2E9F]/20">{index + 1}</div>
             <div className="flex-1 min-w-0 text-start">
-              <span className="font-bold text-sm line-clamp-1 text-amber-100/90">{imp.title}</span>
+              <span className="font-bold text-sm line-clamp-1 text-foreground/90">{imp.title}</span>
               <div className="flex gap-2 mt-1">
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-500/10 text-red-400">{imp.beforeLabel}</span>
                 <span className="text-[10px] self-center">→</span>
@@ -452,8 +452,8 @@ function GuestImprovementAccordionCard({
             {links.length > 0 && (
               <div className="pt-2 border-t border-white/[0.04]">
                 <div className="flex items-center gap-1.5 mb-2">
-                  <ShoppingBag className="w-3 h-3 text-amber-400/60" />
-                  <span className="text-[10px] text-amber-400/60 font-medium">
+                  <ShoppingBag className="w-3 h-3 text-[#FF2E9F]/60" />
+                  <span className="text-[10px] text-[#FF2E9F]/60 font-medium">
                     {t("review", "recommendedProducts")}
                   </span>
                 </div>
@@ -466,21 +466,21 @@ function GuestImprovementAccordionCard({
                         href={link.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="group inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-amber-500/15 bg-amber-500/[0.04] hover:bg-amber-500/10 hover:border-amber-500/30 hover:shadow-[0_0_10px_rgba(200,164,78,0.1)] transition-all duration-300 flex-shrink-0"
+                        className="group inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#FF2E9F]/15 bg-[#FF2E9F]/[0.04] hover:bg-[#FF2E9F]/10 hover:border-[#FF2E9F]/30 hover:shadow-[0_0_10px_rgba(200,164,78,0.1)] transition-all duration-300 flex-shrink-0"
                       >
                         {storeName ? (
                           <>
                             <div className="bg-white/90 rounded px-1 py-px">
                               <StoreLogo name={storeName} size="sm" />
                             </div>
-                            <ExternalLink className="w-2.5 h-2.5 text-amber-400/50 group-hover:text-amber-300 transition-colors" />
+                            <ExternalLink className="w-2.5 h-2.5 text-[#FF2E9F]/50 group-hover:text-[#FF2E9F] transition-colors" />
                           </>
                         ) : (
                           <>
-                            <span className="text-[10px] font-semibold text-amber-200/70 group-hover:text-amber-200 transition-colors">
+                            <span className="text-[10px] font-semibold text-[#FF6BB5]/70 group-hover:text-[#FF6BB5] transition-colors">
                               {link.label}
                             </span>
-                            <ExternalLink className="w-2.5 h-2.5 text-amber-400/50 group-hover:text-amber-300 transition-colors" />
+                            <ExternalLink className="w-2.5 h-2.5 text-[#FF2E9F]/50 group-hover:text-[#FF2E9F] transition-colors" />
                           </>
                         )}
                       </a>
@@ -528,7 +528,7 @@ function GuestOutfitCard({
     : undefined;
 
   return (
-    <div className="rounded-2xl border border-amber-500/10 bg-gradient-to-b from-white/[0.03] to-transparent overflow-hidden flex flex-col shadow-lg shadow-black/20">
+    <div className="rounded-2xl border border-[#FF2E9F]/10 bg-gradient-to-b from-white/[0.03] to-transparent overflow-hidden flex flex-col shadow-lg shadow-black/20">
       <div className="relative">
         {/* Color palette mood board */}
         <div className="w-full aspect-[3/4] flex flex-col" style={{ background: bgGradient || 'linear-gradient(135deg, rgba(255,255,255,0.02), transparent)' }}>
@@ -819,7 +819,7 @@ function StoryCardsContainer({
               className="h-full rounded-full transition-all duration-500 ease-out"
               style={{
                 width: i < activeIndex ? "100%" : i === activeIndex ? "100%" : "0%",
-                background: i <= activeIndex ? "linear-gradient(90deg, #c8a44e, #e8c86e)" : "transparent",
+                background: i <= activeIndex ? "linear-gradient(90deg, #FF2E9F, #e8c86e)" : "transparent",
                 opacity: i === activeIndex ? 1 : 0.5,
               }}
             />
@@ -835,12 +835,12 @@ function StoryCardsContainer({
             onClick={() => { goToIndex(i); setShowOverflow(false); }}
             className={`group relative flex items-center gap-2 px-4 py-3 text-xs font-bold transition-all duration-300 flex-shrink-0 border rounded-xl ${
               activeIndex === i
-                ? "bg-gradient-to-b from-amber-900/30 to-amber-950/20 text-amber-300 border-amber-500/40 shadow-[0_0_14px_rgba(200,164,78,0.2)]"
+                ? "bg-gradient-to-b from-[#3D1580]/30 to-[#2D0F60]/20 text-[#FF2E9F] border-[#FF2E9F]/40 shadow-[0_0_14px_rgba(255,46,159,0.2)]"
                 : "bg-white/[0.02] text-muted-foreground border-white/[0.06] hover:border-white/15 hover:text-foreground hover:bg-white/[0.04]"
             }`}
           >
             {activeIndex === i && (
-              <span className="absolute -top-px inset-x-2 h-[2px] bg-gradient-to-r from-transparent via-amber-400/70 to-transparent rounded-full" />
+              <span className="absolute -top-px inset-x-2 h-[2px] bg-gradient-to-r from-transparent via-[#FF2E9F]/70 to-transparent rounded-full" />
             )}
             <span className={`transition-transform duration-200 text-base ${activeIndex === i ? 'scale-110' : 'group-hover:scale-105'}`}>{cardIcons[i]}</span>
             <span className="truncate max-w-[80px]">{label}</span>
@@ -852,14 +852,14 @@ function StoryCardsContainer({
               onClick={() => setShowOverflow(!showOverflow)}
               className={`flex items-center justify-center w-11 h-11 rounded-xl text-sm font-bold transition-all duration-300 border ${
                 activeIndex >= VISIBLE_TABS
-                  ? "bg-gradient-to-b from-amber-900/30 to-amber-950/20 text-amber-300 border-amber-500/40 shadow-[0_0_12px_rgba(200,164,78,0.15)]"
+                  ? "bg-gradient-to-b from-[#3D1580]/30 to-[#2D0F60]/20 text-[#FF2E9F] border-[#FF2E9F]/40 shadow-[0_0_12px_rgba(255,46,159,0.15)]"
                   : "bg-white/[0.02] text-muted-foreground border-white/[0.06] hover:border-white/15 hover:bg-white/[0.04]"
               }`}
             >
               •••
             </button>
             {showOverflow && (
-              <div className={`absolute top-full mt-2 ${dir === "rtl" ? "left-0" : "right-0"} z-50 bg-gradient-to-b from-neutral-900 to-neutral-950 border border-amber-500/10 rounded-xl shadow-2xl shadow-black/40 py-1.5 min-w-[160px] backdrop-blur-sm`}>
+              <div className={`absolute top-full mt-2 ${dir === "rtl" ? "left-0" : "right-0"} z-50 bg-gradient-to-b from-neutral-900 to-neutral-950 border border-[#FF2E9F]/10 rounded-xl shadow-2xl shadow-black/40 py-1.5 min-w-[160px] backdrop-blur-sm`}>
                 {overflowLabels.map((label, i) => {
                   const realIndex = VISIBLE_TABS + i;
                   return (
@@ -868,7 +868,7 @@ function StoryCardsContainer({
                       onClick={() => { goToIndex(realIndex); setShowOverflow(false); }}
                       className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-medium transition-all duration-200 ${
                         activeIndex === realIndex
-                          ? "text-amber-300 bg-amber-500/10"
+                          ? "text-[#FF2E9F] bg-[#FF2E9F]/10"
                           : "text-muted-foreground hover:text-foreground hover:bg-white/5"
                       }`}
                     >
@@ -1183,14 +1183,14 @@ export default function GuestReview() {
       <div key="items" className="space-y-2">
         <Accordion type="multiple" className="space-y-2">
           {analysis.items.map((item, i) => {
-            const scoreColor = item.score >= 9 ? "text-amber-400" : item.score >= 7 ? "text-primary" : item.score >= 5 ? "text-yellow-400" : "text-orange-400";
-            const verdictColor = item.verdict === "בחירה מצוינת" || item.verdict === "Excellent choice" ? "bg-amber-500/10 text-amber-400" :
+            const scoreColor = item.score >= 9 ? "text-[#FF2E9F]" : item.score >= 7 ? "text-primary" : item.score >= 5 ? "text-yellow-400" : "text-orange-400";
+            const verdictColor = item.verdict === "בחירה מצוינת" || item.verdict === "Excellent choice" ? "bg-[#FF2E9F]/10 text-[#FF2E9F]" :
               item.verdict === "ניגודיות טובה" || item.verdict === "Good contrast" || item.verdict === "יש פוטנציאל" || item.verdict === "Has potential" ? "bg-primary/10 text-primary" :
               item.verdict === "ניתן לשדרג" || item.verdict === "Can be upgraded" || item.verdict === "דורש שיפור" || item.verdict === "Needs improvement" ? "bg-yellow-500/10 text-yellow-400" :
               "bg-orange-500/10 text-orange-400";
 
             return (
-              <AccordionItem key={i} value={`item-${i}`} className="border border-amber-500/8 rounded-xl bg-white/[0.02] px-4 overflow-hidden hover:bg-white/[0.03] transition-colors">
+              <AccordionItem key={i} value={`item-${i}`} className="border border-[#FF2E9F]/8 rounded-xl bg-white/[0.02] px-4 overflow-hidden hover:bg-white/[0.03] transition-colors">
                 <AccordionTrigger className="hover:no-underline py-3">
                   <div className="flex items-center gap-3 flex-1">
                     <span className="text-2xl">{item.icon}</span>
@@ -1203,7 +1203,7 @@ export default function GuestReview() {
                         <span className="text-[10px] text-muted-foreground/60">{item.brand}</span>
                       )}
                     </div>
-                    <span className={`text-base font-bold tracking-tight shrink-0 ${item.score >= 9 ? 'text-amber-300' : item.score >= 7 ? 'text-amber-200/90' : item.score >= 5 ? 'text-yellow-300/90' : 'text-orange-300/90'}`}>{item.score}</span>
+                    <span className={`text-base font-bold tracking-tight shrink-0 ${item.score >= 9 ? 'text-[#FF2E9F]' : item.score >= 7 ? 'text-[#FF6BB5]/90' : item.score >= 5 ? 'text-yellow-300/90' : 'text-orange-300/90'}`}>{item.score}</span>
                   </div>
                 </AccordionTrigger>
                 <AccordionContent>
@@ -1273,11 +1273,11 @@ export default function GuestReview() {
 
     storyCards.push(
       <div key="inspiration" className="space-y-4">
-        <div className="p-5 rounded-2xl border border-amber-500/10 bg-gradient-to-b from-white/[0.03] to-transparent shadow-lg shadow-black/20">
+        <div className="p-5 rounded-2xl border border-[#FF2E9F]/10 bg-gradient-to-b from-white/[0.03] to-transparent shadow-lg shadow-black/20">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-amber-400" />
-              <h3 className="text-base font-bold text-amber-100/90">
+              <Sparkles className="w-5 h-5 text-[#FF2E9F]" />
+              <h3 className="text-base font-bold text-foreground/90">
                 {lang === "he" ? "ההשראה שלך" : "Your Inspiration"}
               </h3>
             </div>
@@ -1302,7 +1302,7 @@ export default function GuestReview() {
                 <div className="relative flex-shrink-0">
                   <InfluencerAvatar name={inf.name} imageUrl={inf.imageUrl} size="md" className="ring-1 ring-white/10 group-hover:ring-primary/30 transition-all" />
                   {i === 0 && (
-                    <span className="absolute -top-1 -end-1 text-[8px] px-1.5 py-0.5 rounded-full bg-gradient-to-r from-rose-500 to-amber-500 text-white font-bold shadow-lg">
+                    <span className="absolute -top-1 -end-1 text-[8px] px-1.5 py-0.5 rounded-full bg-gradient-to-r from-rose-500 to-[#7B2EFF] text-white font-bold shadow-lg">
                       #1
                     </span>
                   )}
@@ -1332,11 +1332,11 @@ export default function GuestReview() {
     // Non-personalized guest (Path A) — text-only inspiration, no avatar list or swap
     storyCards.push(
       <div key="inspiration" className="space-y-4">
-        <div className="p-5 rounded-2xl border border-amber-500/10 bg-gradient-to-b from-white/[0.03] to-transparent shadow-lg shadow-black/20">
+        <div className="p-5 rounded-2xl border border-[#FF2E9F]/10 bg-gradient-to-b from-white/[0.03] to-transparent shadow-lg shadow-black/20">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-amber-400" />
-              <h3 className="text-base font-bold text-amber-100/90">
+              <Sparkles className="w-5 h-5 text-[#FF2E9F]" />
+              <h3 className="text-base font-bold text-foreground/90">
                 {lang === "he" ? "השראה" : "Inspiration"}
               </h3>
             </div>
@@ -1403,11 +1403,11 @@ export default function GuestReview() {
 
         {/* Fix My Look CTA — attractive card inside Upgrades */}
         <div className="mt-5">
-          <div className="relative overflow-hidden rounded-2xl border border-amber-500/30 bg-gradient-to-br from-rose-500/10 via-amber-500/10 to-primary/5 p-5">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+          <div className="relative overflow-hidden rounded-2xl border border-[#FF2E9F]/30 bg-gradient-to-br from-rose-500/10 via-[#FF2E9F]/10 to-primary/5 p-5">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-[#FF2E9F]/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
             <div className="relative z-10">
               <div className="flex items-center gap-3 mb-3">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-rose-500 to-amber-500 flex items-center justify-center shadow-lg shadow-amber-500/20">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-rose-500 to-[#7B2EFF] flex items-center justify-center shadow-lg shadow-[#FF2E9F]/20">
                   <Wand2 className="w-6 h-6 text-white" />
                 </div>
                 <div>
@@ -1433,7 +1433,7 @@ export default function GuestReview() {
                   sourceImageUrl: item.sourceImageUrl ?? undefined,
                 }))}
                 trigger={
-                  <Button size="lg" className="w-full gap-2 bg-gradient-to-r from-rose-600 to-amber-500 hover:from-rose-500 hover:to-amber-400 text-white font-bold shadow-lg shadow-amber-500/25 text-base py-6">
+                  <Button size="lg" className="w-full gap-2 bg-gradient-to-r from-rose-600 to-[#7B2EFF] hover:from-rose-500 hover:to-[#7B2EFF] text-white font-bold shadow-lg shadow-[#FF2E9F]/25 text-base py-6">
                     <Wand2 className="w-5 h-5" />
                     {analysis.overallScore >= 9
                       ? (lang === "he" ? "לפני ואחרי" : "Before & After")
@@ -1457,7 +1457,7 @@ export default function GuestReview() {
         <div className="grid sm:grid-cols-2 gap-4">
           {analysis.trendSources.map((src, i) => (
             <a key={i} href={src.url} target="_blank" rel="noopener noreferrer"
-              className="group p-5 rounded-2xl border border-amber-500/10 bg-gradient-to-b from-white/[0.03] to-transparent shadow-lg shadow-black/20 hover:border-amber-500/20 hover:shadow-xl hover:shadow-amber-500/5 transition-all duration-300">
+              className="group p-5 rounded-2xl border border-[#FF2E9F]/10 bg-gradient-to-b from-white/[0.03] to-transparent shadow-lg shadow-black/20 hover:border-[#FF2E9F]/20 hover:shadow-xl hover:shadow-[#FF2E9F]/5 transition-all duration-300">
               <div className="flex items-center gap-2 mb-2">
                 <TrendingUp className="w-4 h-4 text-primary" />
                 <span className="text-sm font-bold group-hover:text-primary transition-colors">{src.source}</span>
@@ -1474,13 +1474,13 @@ export default function GuestReview() {
         </div>
 
         {mentions.length > 0 && (
-          <div className="p-5 rounded-2xl border border-amber-500/10 bg-gradient-to-b from-white/[0.03] to-transparent shadow-lg shadow-black/20">
+          <div className="p-5 rounded-2xl border border-[#FF2E9F]/10 bg-gradient-to-b from-white/[0.03] to-transparent shadow-lg shadow-black/20">
             <h3 className="text-sm font-bold mb-3 text-muted-foreground">{t("review", "mentionsLegend")}</h3>
             <div className="flex flex-wrap gap-2">
               {mentions.map((m, i) => {
                 const colorClass = m.type === "brand" ? "bg-primary/10 text-primary border-primary/20" :
                   m.type === "influencer" ? "bg-rose-500/10 text-rose-400 border-rose-500/20" :
-                  m.type === "store" ? "bg-amber-500/10 text-amber-400 border-amber-500/20" :
+                  m.type === "store" ? "bg-[#FF2E9F]/10 text-[#FF2E9F] border-[#FF2E9F]/20" :
                   "bg-primary/10 text-primary border-primary/20";
                 const typeLabel = m.type === "brand" ? t("review", "brand") :
                   m.type === "influencer" ? t("review", "influencer") :
@@ -1572,14 +1572,14 @@ export default function GuestReview() {
             HERO CARD — Always visible
             ═══════════════════════════════════════════ */}
         <section className="container max-w-2xl mx-auto mb-8">
-          <div className="rounded-2xl border border-amber-500/10 bg-card overflow-hidden shadow-xl shadow-black/30">
+          <div className="rounded-2xl border border-[#FF2E9F]/10 bg-card overflow-hidden shadow-xl shadow-black/30">
             {/* Image + Score overlay */}
             <div className="relative">
               {result.imageUrl && (
                 <img loading="lazy" src={result.imageUrl} alt="Look" className="w-full max-h-[420px] object-contain bg-black/20" />
               )}
               <div className="absolute top-4 end-4">
-                <div className="bg-black/70 backdrop-blur-xl rounded-2xl p-2 border border-amber-500/10">
+                <div className="bg-black/70 backdrop-blur-xl rounded-2xl p-2 border border-[#FF2E9F]/10">
                   <ScoreCircle score={analysis.overallScore} size="sm" />
                 </div>
               </div>
@@ -1590,8 +1590,8 @@ export default function GuestReview() {
               <div className="flex items-center gap-4">
                 <ScoreCircle score={analysis.overallScore} size="lg" />
                 <div className="flex-1">
-                  <p className="text-xl font-black text-amber-100 tracking-wide">{analysis.overallScore}/10</p>
-                  <p className="text-sm text-amber-400/70 font-medium">{scoreComment}</p>
+                  <p className="text-xl font-black text-foreground tracking-wide">{analysis.overallScore}/10</p>
+                  <p className="text-sm text-[#FF2E9F]/70 font-medium">{scoreComment}</p>
                 </div>
               </div>
 
@@ -1601,7 +1601,7 @@ export default function GuestReview() {
 
               {/* Detailed Scores — compact accordion */}
               {analysis.scores.length > 0 && (
-                <Accordion type="single" collapsible className="border border-amber-500/8 rounded-xl overflow-hidden bg-white/[0.01]">
+                <Accordion type="single" collapsible className="border border-[#FF2E9F]/8 rounded-xl overflow-hidden bg-white/[0.01]">
                   <AccordionItem value="scores" className="border-0">
                     <AccordionTrigger className="px-4 py-3 hover:no-underline">
                       <span className="text-sm font-bold">{t("review", "detailedScores")}</span>
@@ -1665,10 +1665,10 @@ export default function GuestReview() {
         <section className="container max-w-2xl mx-auto py-8 border-t border-border space-y-4">
           {/* Upsell 1: Try personalized analysis — only show if NOT from onboarding (Path A quick) */}
           {!fromOnboarding && (
-            <div className="p-6 rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-500/[0.06] via-amber-600/[0.03] to-transparent">
+            <div className="p-6 rounded-2xl border border-[#FF2E9F]/20 bg-gradient-to-br from-[#FF2E9F]/[0.06] via-[#D0258A]/[0.03] to-transparent">
               <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 rounded-xl bg-amber-500/15 flex items-center justify-center flex-shrink-0">
-                  <Sparkles className="w-5 h-5 text-amber-400" />
+                <div className="w-10 h-10 rounded-xl bg-[#FF2E9F]/15 flex items-center justify-center flex-shrink-0">
+                  <Sparkles className="w-5 h-5 text-[#FF2E9F]" />
                 </div>
                 <div>
                   <h3 className="font-bold text-base">
@@ -1682,7 +1682,7 @@ export default function GuestReview() {
               <Button
                 variant="default"
                 size="lg"
-                className="w-full gap-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-bold"
+                className="w-full gap-2 bg-gradient-to-r from-[#FF2E9F] to-[#7B2EFF] hover:from-[#FF2E9F] hover:to-[#7B2EFF] text-black font-bold"
                 onClick={() => {
                   const imageUrl = result?.imageUrl || "";
                   const params = imageUrl ? `?photo=${encodeURIComponent(imageUrl)}` : "";

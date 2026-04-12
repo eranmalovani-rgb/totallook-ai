@@ -10,7 +10,7 @@ interface EmailCaptureCardProps {
   fingerprint: string;
   title: string;
   description: string;
-  variant?: "primary" | "amber" | "subtle";
+  variant?: "primary" | "pink" | "subtle";
   onSuccess?: () => void;
 }
 
@@ -29,14 +29,14 @@ export default function EmailCaptureCard({
   const ArrowIcon = lang === "he" ? ArrowLeft : ArrowRight;
 
   const borderClass =
-    variant === "amber"
-      ? "border-amber-500/20 bg-gradient-to-br from-amber-500/5 via-transparent to-primary/5"
+    variant === "pink"
+      ? "border-[#FF2E9F]/20 bg-gradient-to-br from-[#FF2E9F]/5 via-transparent to-primary/5"
       : variant === "subtle"
       ? "border-white/10 bg-card/50"
       : "border-primary/20 bg-gradient-to-br from-primary/5 via-transparent to-rose-500/5";
 
   const iconClass =
-    variant === "amber" ? "text-amber-400" : "text-primary";
+    variant === "pink" ? "text-[#FF2E9F]" : "text-primary";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -92,7 +92,7 @@ export default function InfluencerPostModal({
 
               <div className="p-4 rounded-xl border border-white/5 bg-card">
                 <div className="flex items-center gap-3 mb-3 pb-3 border-b border-white/5">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 via-primary to-rose-400 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#FF2E9F] via-primary to-rose-400 flex items-center justify-center">
                     <span className="text-white text-xs font-bold">
                       {influencerName.charAt(0)}
                     </span>

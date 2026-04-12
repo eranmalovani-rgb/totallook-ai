@@ -149,7 +149,7 @@ export default function StylistLoadingAnimation({ isHebrew }: StylistLoadingAnim
       <div className="w-full space-y-1.5">
         <div className="h-1.5 rounded-full bg-muted overflow-hidden">
           <div
-            className="h-full rounded-full bg-gradient-to-r from-primary via-amber-500 to-primary transition-all duration-500 ease-out"
+            className="h-full rounded-full bg-gradient-to-r from-primary via-[#FF2E9F] to-primary transition-all duration-500 ease-out"
             style={{ width: `${progress}%` }}
           />
         </div>
@@ -183,7 +183,7 @@ function MeasuringAnimation() {
       <path d="M60 70 L70 95" className="stroke-primary" strokeWidth="2" strokeLinecap="round" />
       
       {/* Measuring tape — animated */}
-      <line x1="36" y1="56" x2="84" y2="48" className="stroke-amber-500" strokeWidth="1.5" strokeDasharray="4 2">
+      <line x1="36" y1="56" x2="84" y2="48" className="stroke-[#FF2E9F]" strokeWidth="1.5" strokeDasharray="4 2">
         <animate attributeName="x2" values="84;78;84" dur="2s" repeatCount="indefinite" />
         <animate attributeName="y2" values="48;44;48" dur="2s" repeatCount="indefinite" />
       </line>
@@ -195,7 +195,7 @@ function MeasuringAnimation() {
           y1="53"
           x2={40 + i * 6}
           y2={i % 2 === 0 ? "50" : "51.5"}
-          className="stroke-amber-500/60"
+          className="stroke-[#FF2E9F]/60"
           strokeWidth="0.8"
         >
           <animate attributeName="opacity" values="0.4;1;0.4" dur="2s" begin={`${i * 0.15}s`} repeatCount="indefinite" />
@@ -203,7 +203,7 @@ function MeasuringAnimation() {
       ))}
       
       {/* Floating measurement numbers */}
-      <text x="82" y="42" className="fill-amber-500 text-[7px] font-mono" opacity="0.8">
+      <text x="82" y="42" className="fill-[#FF2E9F] text-[7px] font-mono" opacity="0.8">
         <animate attributeName="opacity" values="0;0.8;0" dur="3s" repeatCount="indefinite" />
         cm
       </text>
@@ -238,7 +238,7 @@ function SelectingAnimation() {
         <path d="M78 25 L68 35 L88 35 Z" className="stroke-primary" strokeWidth="1.2" fill="none" />
         <path d="M70 35 L70 58 L86 58 L86 35 M74 35 L74 58 M82 35 L82 58" className="fill-primary/15 stroke-primary/60" strokeWidth="0.8" />
         {/* Sparkle on selected item */}
-        <circle cx="90" cy="30" r="2" className="fill-amber-400">
+        <circle cx="90" cy="30" r="2" className="fill-[#FF2E9F]">
           <animate attributeName="r" values="0;2;0" dur="1.5s" repeatCount="indefinite" />
           <animate attributeName="opacity" values="0;1;0" dur="1.5s" repeatCount="indefinite" />
         </circle>
@@ -256,7 +256,7 @@ function SelectingAnimation() {
       <rect x="8" y="87" width="8" height="8" rx="2" className="fill-blue-400/40">
         <animate attributeName="y" values="87;84;87" dur="2s" begin="0.3s" repeatCount="indefinite" />
       </rect>
-      <rect x="8" y="99" width="8" height="8" rx="2" className="fill-amber-400/40">
+      <rect x="8" y="99" width="8" height="8" rx="2" className="fill-[#FF2E9F]/40">
         <animate attributeName="y" values="99;96;99" dur="2s" begin="0.6s" repeatCount="indefinite" />
       </rect>
     </svg>
@@ -360,7 +360,7 @@ function FinalTouchesAnimation() {
           {/* 4-point star sparkle */}
           <path
             d={`M${spark.cx} ${spark.cy - 4} L${spark.cx + 1.5} ${spark.cy - 1.5} L${spark.cx + 4} ${spark.cy} L${spark.cx + 1.5} ${spark.cy + 1.5} L${spark.cx} ${spark.cy + 4} L${spark.cx - 1.5} ${spark.cy + 1.5} L${spark.cx - 4} ${spark.cy} L${spark.cx - 1.5} ${spark.cy - 1.5} Z`}
-            className="fill-amber-400"
+            className="fill-[#FF2E9F]"
           >
             <animate attributeName="opacity" values="0;1;0" dur="2s" begin={spark.delay} repeatCount="indefinite" />
             <animateTransform attributeName="transform" type="scale" values="0.3;1;0.3" dur="2s" begin={spark.delay} repeatCount="indefinite" additive="sum" />
@@ -370,10 +370,10 @@ function FinalTouchesAnimation() {
       
       {/* Score badge */}
       <g>
-        <circle cx="98" cy="15" r="12" className="fill-amber-500/20 stroke-amber-500/50" strokeWidth="1">
+        <circle cx="98" cy="15" r="12" className="fill-[#FF2E9F]/20 stroke-[#FF2E9F]/50" strokeWidth="1">
           <animate attributeName="r" values="10;12;10" dur="2s" repeatCount="indefinite" />
         </circle>
-        <text x="98" y="18" textAnchor="middle" className="fill-amber-500 text-[8px] font-bold">
+        <text x="98" y="18" textAnchor="middle" className="fill-[#FF2E9F] text-[8px] font-bold">
           <animate attributeName="opacity" values="0.5;1;0.5" dur="2s" repeatCount="indefinite" />
           +✨
         </text>

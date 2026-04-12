@@ -74,7 +74,7 @@ export default function StyleDiary() {
         <Navbar />
         <div className="max-w-2xl mx-auto px-4 pt-32 text-center">
           <BookOpen className="w-16 h-16 text-primary mx-auto mb-6" />
-          <h1 className="text-3xl font-bold mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>
+          <h1 className="text-3xl font-bold mb-4" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
             {isHe ? "יומן הסגנון שלך" : "Your Style Diary"}
           </h1>
           <p className="text-muted-foreground text-lg mb-6">
@@ -107,7 +107,7 @@ export default function StyleDiary() {
             <BookOpen className="w-7 h-7 text-white" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold" style={{ fontFamily: "'Playfair Display', serif" }}>
+            <h1 className="text-3xl font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
               {isHe ? "יומן הסגנון שלך" : "Your Style Diary"}
             </h1>
             <p className="text-muted-foreground">
@@ -220,7 +220,7 @@ export default function StyleDiary() {
         {/* Style Diary Weekly Summaries */}
         {diary && diary.length > 0 && (
           <div className="mb-8">
-            <h2 className="text-xl font-bold mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>
+            <h2 className="text-xl font-bold mb-4" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
               {isHe ? "סיכומים שבועיים" : "Weekly Summaries"}
             </h2>
             <div className="space-y-3">
@@ -281,7 +281,7 @@ export default function StyleDiary() {
 
         {/* Story Mentions Timeline */}
         <div>
-          <h2 className="text-xl font-bold mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>
+          <h2 className="text-xl font-bold mb-4" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
             {isHe ? "ציר זמן — הלוקים שלך" : "Timeline — Your Looks"}
           </h2>
 

@@ -45,7 +45,7 @@ export default function WhatsAppOnboardingModal({ open, onClose, phoneNumber }: 
       icon: <ShoppingBag className="w-6 h-6" />,
       title: t("step3Title"),
       desc: t("step3Desc"),
-      color: "from-amber-500 to-orange-500",
+      color: "from-[#FF2E9F] to-orange-500",
     },
   ];
 

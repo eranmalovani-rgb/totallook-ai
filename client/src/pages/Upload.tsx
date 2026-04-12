@@ -312,9 +312,9 @@ export default function Upload() {
         </div>
 
         {/* Privacy Reassurance Banner */}
-        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 mb-4">
+        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#FF2E9F]/10 border border-[#FF2E9F]/20 mb-4">
           <span className="text-base">{t("upload", "privacyIcon")}</span>
-          <p className="text-xs text-amber-400 font-medium">{t("upload", "privacyBanner")}</p>
+          <p className="text-xs text-[#FF2E9F] font-medium">{t("upload", "privacyBanner")}</p>
         </div>
 
         {/* Step 1: Upload Image — 3D Mirror */}
@@ -325,7 +325,7 @@ export default function Upload() {
               {/* Clothing rack — left side */}
               <div className="absolute -left-2 md:-left-6 top-8 bottom-16 w-10 md:w-14 pointer-events-none z-0 hidden sm:block">
                 {/* Rack pole */}
-                <div className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-[2px] bg-gradient-to-b from-primary/40 via-amber-600/30 to-primary/20 rounded-full" />
+                <div className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-[2px] bg-gradient-to-b from-primary/40 via-[#7B2EFF]/30 to-primary/20 rounded-full" />
                 {/* Hangers */}
                 {[15, 35, 55, 75].map((top, i) => (
                   <div key={i} className="absolute left-1/2 -translate-x-1/2" style={{ top: `${top}%`, animation: `stylist-hold ${2 + i * 0.3}s ease-in-out infinite` }}>
@@ -340,7 +340,7 @@ export default function Upload() {
 
               {/* Clothing rack — right side */}
               <div className="absolute -right-2 md:-right-6 top-8 bottom-16 w-10 md:w-14 pointer-events-none z-0 hidden sm:block">
-                <div className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-[2px] bg-gradient-to-b from-primary/40 via-amber-600/30 to-primary/20 rounded-full" />
+                <div className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-[2px] bg-gradient-to-b from-primary/40 via-[#7B2EFF]/30 to-primary/20 rounded-full" />
                 {[20, 45, 70].map((top, i) => (
                   <div key={i} className="absolute left-1/2 -translate-x-1/2" style={{ top: `${top}%`, animation: `stylist-hold ${2.5 + i * 0.4}s ease-in-out infinite` }}>
                     <svg width="32" height="24" viewBox="0 0 32 24" className="text-primary/30">
@@ -378,9 +378,9 @@ export default function Upload() {
                 }}
               >
                 {/* Outer frame — ornate mirror border */}
-                <div className="relative rounded-[20px] p-[3px] bg-gradient-to-b from-primary/60 via-amber-600/40 to-primary/30 shadow-[0_8px_32px_rgba(180,140,60,0.15),0_2px_8px_rgba(0,0,0,0.3)]">
+                <div className="relative rounded-[20px] p-[3px] bg-gradient-to-b from-primary/60 via-[#D0258A]/40 to-primary/30 shadow-[0_8px_32px_rgba(255,46,159,0.15),0_2px_8px_rgba(0,0,0,0.3)]">
                   {/* Inner frame bevel */}
-                  <div className="rounded-[17px] p-[2px] bg-gradient-to-b from-amber-300/20 via-transparent to-amber-800/20">
+                  <div className="rounded-[17px] p-[2px] bg-gradient-to-b from-[#FF2E9F]/20 via-transparent to-[#5B1EBF]/20">
                     {/* Mirror glass surface */}
                     <div className={`relative rounded-[15px] overflow-hidden bg-gradient-to-b from-card via-background to-card/80 border border-white/5 ${
                       dragOver ? "bg-primary/5" : ""
@@ -391,7 +391,7 @@ export default function Upload() {
                       </div>
 
                       {/* Subtle shimmer layer */}
-                      <div className="mirror-shimmer absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-amber-500/5 pointer-events-none" />
+                      <div className="mirror-shimmer absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-[#7B2EFF]/5 pointer-events-none" />
 
                       {/* Content area */}
                       <div className="relative z-10 py-8 px-6 flex flex-col items-center gap-3">
@@ -426,7 +426,7 @@ export default function Upload() {
                         {/* Camera/scan icon with mirror glow */}
                         <div className="mirror-float relative">
                           <div className="absolute inset-0 rounded-full bg-primary/20 blur-xl scale-[1.8]" />
-                          <div className="relative w-18 h-18 rounded-full bg-gradient-to-br from-primary/25 to-amber-500/15 border border-primary/25 flex items-center justify-center backdrop-blur-sm">
+                          <div className="relative w-18 h-18 rounded-full bg-gradient-to-br from-primary/25 to-[#7B2EFF]/15 border border-primary/25 flex items-center justify-center backdrop-blur-sm">
                             <Camera className="w-8 h-8 text-primary" />
                             <ScanLine className="w-4 h-4 text-primary/50 absolute bottom-2 right-2" />
                           </div>
@@ -618,20 +618,20 @@ export default function Upload() {
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
                 {/* Occasion Selection */}
-                <div ref={occasionRef} className="relative p-6 rounded-2xl border border-amber-500/15 bg-gradient-to-b from-amber-950/10 to-transparent scroll-mt-24 overflow-hidden">
+                <div ref={occasionRef} className="relative p-6 rounded-2xl border border-[#FF2E9F]/15 bg-gradient-to-b from-[#2D0F60]/10 to-transparent scroll-mt-24 overflow-hidden">
                   {/* Decorative corner accents */}
-                  <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-amber-500/20 rounded-tl-2xl" />
-                  <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-amber-500/20 rounded-tr-2xl" />
-                  <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-amber-500/20 rounded-bl-2xl" />
-                  <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-amber-500/20 rounded-br-2xl" />
+                  <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-[#FF2E9F]/20 rounded-tl-2xl" />
+                  <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-[#FF2E9F]/20 rounded-tr-2xl" />
+                  <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-[#FF2E9F]/20 rounded-bl-2xl" />
+                  <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-[#FF2E9F]/20 rounded-br-2xl" />
 
                   <div className="flex items-center gap-2.5 mb-2">
-                    <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
-                      <MapPin className="w-4 h-4 text-amber-400" />
+                    <div className="w-8 h-8 rounded-lg bg-[#FF2E9F]/10 border border-[#FF2E9F]/20 flex items-center justify-center">
+                      <MapPin className="w-4 h-4 text-[#FF2E9F]" />
                     </div>
-                    <h3 className="font-bold text-lg text-amber-100 tracking-wide">{t("upload", "occasionTitle")}</h3>
+                    <h3 className="font-bold text-lg text-foreground tracking-wide">{t("upload", "occasionTitle")}</h3>
                   </div>
-                  <p className="text-xs text-amber-200/40 mb-5 leading-relaxed">
+                  <p className="text-xs text-[#FF6BB5]/40 mb-5 leading-relaxed">
                     {t("upload", "occasionDesc")}
                   </p>
                   <div className="grid grid-cols-3 gap-2.5">
@@ -652,16 +652,16 @@ export default function Upload() {
                           }}
                           className={`group relative p-3.5 rounded-xl text-center transition-all duration-300 border ${
                             isSelected
-                              ? "bg-gradient-to-b from-amber-900/40 to-amber-950/30 text-amber-200 border-amber-500/50 shadow-[0_0_16px_rgba(200,164,78,0.15)] scale-[1.02]"
-                              : "bg-white/[0.02] border-white/[0.06] hover:border-amber-500/25 hover:bg-amber-950/15 text-foreground"
+                              ? "bg-gradient-to-b from-[#3D1580]/40 to-[#2D0F60]/30 text-[#FF6BB5] border-[#FF2E9F]/50 shadow-[0_0_16px_rgba(255,46,159,0.15)] scale-[1.02]"
+                              : "bg-white/[0.02] border-white/[0.06] hover:border-[#FF2E9F]/25 hover:bg-[#2D0F60]/15 text-foreground"
                           }`}
                         >
                           {/* Gold stitch on selected */}
                           {isSelected && (
-                            <span className="absolute -top-px inset-x-2 h-[2px] bg-gradient-to-r from-transparent via-amber-400/60 to-transparent rounded-full" />
+                            <span className="absolute -top-px inset-x-2 h-[2px] bg-gradient-to-r from-transparent via-[#FF2E9F]/60 to-transparent rounded-full" />
                           )}
                           <span className={`text-2xl block mb-1.5 transition-transform duration-200 ${isSelected ? 'scale-110' : 'group-hover:scale-105'}`}>{occ.icon}</span>
-                          <span className={`block text-[11px] font-semibold tracking-wide ${isSelected ? 'text-amber-300' : 'text-muted-foreground group-hover:text-amber-200/70'}`}>{getOccasionLabel(occ.id)}</span>
+                          <span className={`block text-[11px] font-semibold tracking-wide ${isSelected ? 'text-[#FF2E9F]' : 'text-muted-foreground group-hover:text-[#FF6BB5]/70'}`}>{getOccasionLabel(occ.id)}</span>
                         </button>
                       );
                     })}
@@ -669,23 +669,23 @@ export default function Upload() {
                 </div>
 
                 {/* Influencer Info Bar — shows selected influencers with link to change in Profile */}
-                <div className="relative p-4 rounded-2xl border border-amber-500/10 bg-gradient-to-b from-amber-950/5 to-transparent overflow-hidden">
+                <div className="relative p-4 rounded-2xl border border-[#FF2E9F]/10 bg-gradient-to-b from-[#2D0F60]/5 to-transparent overflow-hidden">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/15 flex items-center justify-center">
-                        <UserCheck className="w-3.5 h-3.5 text-amber-400" />
+                      <div className="w-7 h-7 rounded-lg bg-[#FF2E9F]/10 border border-[#FF2E9F]/15 flex items-center justify-center">
+                        <UserCheck className="w-3.5 h-3.5 text-[#FF2E9F]" />
                       </div>
-                      <h3 className="font-bold text-sm text-amber-100">{t("upload", "influencerInfoTitle")}</h3>
+                      <h3 className="font-bold text-sm text-foreground">{t("upload", "influencerInfoTitle")}</h3>
                     </div>
                     <button
                       onClick={() => navigate("/profile")}
-                      className="text-xs text-amber-400 hover:text-amber-300 transition-colors flex items-center gap-1"
+                      className="text-xs text-[#FF2E9F] hover:text-[#FF2E9F] transition-colors flex items-center gap-1"
                     >
                       <Settings className="w-3.5 h-3.5" />
                       {selectedInfluencers.length > 0 ? t("upload", "influencerChange") : t("upload", "influencerChoose")}
                     </button>
                   </div>
-                  <p className="text-xs text-amber-200/30 mt-1.5 mb-2">
+                  <p className="text-xs text-[#FF6BB5]/30 mt-1.5 mb-2">
                     {t("upload", "influencerInfoDesc")}
                   </p>
                   {selectedInfluencers.length > 0 ? (
@@ -693,14 +693,14 @@ export default function Upload() {
                       {selectedInfluencers.map(name => (
                         <span
                           key={name}
-                          className="px-2.5 py-1 rounded-lg text-xs bg-amber-500/10 text-amber-300 border border-amber-500/20"
+                          className="px-2.5 py-1 rounded-lg text-xs bg-[#FF2E9F]/10 text-[#FF2E9F] border border-[#FF2E9F]/20"
                         >
                           {name}
                         </span>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-xs text-amber-200/30 italic">
+                    <p className="text-xs text-[#FF6BB5]/30 italic">
                       {t("upload", "influencerNone")}
                     </p>
                   )}
@@ -710,12 +710,12 @@ export default function Upload() {
 
                 {/* Profile badge */}
                 {!!profile?.onboardingCompleted ? (
-                  <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-amber-500/10 border border-amber-500/20">
-                    <div className="w-2 h-2 rounded-full bg-amber-500" />
-                    <span className="text-sm text-amber-400">{t("upload", "profileConnected")}</span>
+                  <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-[#FF2E9F]/10 border border-[#FF2E9F]/20">
+                    <div className="w-2 h-2 rounded-full bg-[#FF2E9F]" />
+                    <span className="text-sm text-[#FF2E9F]">{t("upload", "profileConnected")}</span>
                     <button
                       onClick={() => navigate("/onboarding")}
-                      className={`${dir === "rtl" ? "mr-auto" : "ml-auto"} text-xs text-amber-400/60 hover:text-amber-400 transition-colors`}
+                      className={`${dir === "rtl" ? "mr-auto" : "ml-auto"} text-xs text-[#FF2E9F]/60 hover:text-[#FF2E9F] transition-colors`}
                     >
                       {t("upload", "updateProfile")}
                     </button>
@@ -723,7 +723,7 @@ export default function Upload() {
                 ) : (
                   <button
                     onClick={() => navigate("/onboarding")}
-                    className="w-full flex items-center gap-2 px-4 py-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-sm text-amber-400 hover:bg-amber-500/15 transition-colors"
+                    className="w-full flex items-center gap-2 px-4 py-3 rounded-xl bg-[#FF2E9F]/10 border border-[#FF2E9F]/20 text-sm text-[#FF2E9F] hover:bg-[#FF2E9F]/15 transition-colors"
                   >
                     <Settings className="w-4 h-4" />
                     {t("upload", "completeProfileFull")}
@@ -733,10 +733,10 @@ export default function Upload() {
                 {/* Analyze Button — Dominant CTA */}
                 <div ref={analyzeButtonRef} className="relative mt-2">
                   {/* Glow effect behind button */}
-                  <div className="absolute -inset-1 bg-gradient-to-r from-primary via-amber-500 to-primary rounded-2xl blur-lg opacity-40 animate-pulse" />
+                  <div className="absolute -inset-1 bg-gradient-to-r from-primary via-[#FF2E9F] to-primary rounded-2xl blur-lg opacity-40 animate-pulse" />
                   <Button
                     size="lg"
-                    className="relative w-full gap-3 text-xl font-bold py-8 rounded-2xl bg-gradient-to-r from-primary to-amber-500 hover:from-primary/90 hover:to-amber-500/90 shadow-2xl shadow-primary/30 hover:shadow-primary/50 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
+                    className="relative w-full gap-3 text-xl font-bold py-8 rounded-2xl bg-gradient-to-r from-primary to-[#7B2EFF] hover:from-primary/90 hover:to-[#7B2EFF]/90 shadow-2xl shadow-primary/30 hover:shadow-primary/50 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
                     onClick={() => {
                       handleAnalyze();
                       // Scroll to loading animation area after a short delay to let it render
@@ -821,7 +821,7 @@ export default function Upload() {
 
       {/* Try Demo CTA — below tips, before feed promo */}
       <div className="container max-w-2xl mx-auto mt-6 mb-2">
-        <div className="relative p-5 rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 via-transparent to-amber-500/5 overflow-hidden">
+        <div className="relative p-5 rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 via-transparent to-[#7B2EFF]/5 overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
           <div className="flex flex-col sm:flex-row items-center gap-4">
             <div className="flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 border border-primary/20 shrink-0">

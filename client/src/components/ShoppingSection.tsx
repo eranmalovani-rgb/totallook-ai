@@ -37,8 +37,8 @@ const shoppingList: ShoppingItem[] = [
   },
   {
     priority: "בינונית",
-    priorityColor: "text-amber-400",
-    dotColor: "bg-amber-400",
+    priorityColor: "text-[#FF2E9F]",
+    dotColor: "bg-[#FF2E9F]",
     item: "ז'קט בומבר / אוברשירט",
     priceRange: "$200–$600",
     store: "Stone Island",
@@ -46,8 +46,8 @@ const shoppingList: ShoppingItem[] = [
   },
   {
     priority: "בינונית",
-    priorityColor: "text-amber-400",
-    dotColor: "bg-amber-400",
+    priorityColor: "text-[#FF2E9F]",
+    dotColor: "bg-[#FF2E9F]",
     item: "צמיד עור מינימליסטי",
     priceRange: "$20–$80",
     store: "Trendhim",

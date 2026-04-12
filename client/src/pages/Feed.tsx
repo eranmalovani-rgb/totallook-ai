@@ -265,7 +265,7 @@ export default function Feed() {
       <div className="pt-24 pb-4 px-4">
         <div className="max-w-5xl mx-auto text-center">
           <h1 className="text-3xl md:text-4xl font-bold mb-2">
-            <span className="bg-gradient-to-r from-amber-400 to-primary bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-[#FF2E9F] to-primary bg-clip-text text-transparent">
               {t("title")}
             </span>
           </h1>
@@ -303,7 +303,7 @@ export default function Feed() {
                 onClick={() => setOccasionFilter(null)}
                 className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
                   occasionFilter === null
-                    ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                    ? "bg-[#FF2E9F]/20 text-[#FF2E9F] border border-[#FF2E9F]/30"
                     : "bg-white/5 text-muted-foreground hover:bg-white/10 border border-transparent"
                 }`}
               >
@@ -317,7 +317,7 @@ export default function Feed() {
                     onClick={() => setOccasionFilter(key)}
                     className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
                       occasionFilter === key
-                        ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                        ? "bg-[#FF2E9F]/20 text-[#FF2E9F] border border-[#FF2E9F]/30"
                         : "bg-white/5 text-muted-foreground hover:bg-white/10 border border-transparent"
                     }`}
                   >
@@ -465,9 +465,9 @@ function FeedCard({
   const score = post.overallScore;
   const scoreColor =
     score != null && score >= 8
-      ? "from-amber-400 to-primary"
+      ? "from-[#FF2E9F] to-primary"
       : score != null && score >= 6
-        ? "from-amber-400 to-primary"
+        ? "from-[#FF2E9F] to-primary"
         : score != null && score >= 4
           ? "from-yellow-400 to-orange-500"
           : "from-red-400 to-red-500";
@@ -605,7 +605,7 @@ function FeedCard({
         {/* User info row with follow button */}
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-400 to-primary flex items-center justify-center text-white text-xs font-bold shadow-md">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#FF2E9F] to-primary flex items-center justify-center text-white text-xs font-bold shadow-md">
               {(post.userName || "?")[0].toUpperCase()}
             </div>
             <div className="flex flex-col">
@@ -655,7 +655,7 @@ function FeedCard({
         {/* Occasion badge */}
         {post.occasion && occasionEmojis[post.occasion as OccasionKey] && (
           <div className="mb-2">
-            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-[#FF2E9F]/10 text-[#FF2E9F] border border-[#FF2E9F]/20">
               {occasionEmojis[post.occasion as OccasionKey]}
               {translations.occasions[post.occasion as OccasionKey]?.[lang]}
             </span>

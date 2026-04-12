@@ -65,7 +65,7 @@ export function ManusDialog({
 
           {/* Title and subtitle */}
           {title ? (
-            <DialogTitle className="text-xl font-semibold text-[#f0ece4] leading-[26px] tracking-[-0.44px]" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+            <DialogTitle className="text-xl font-semibold text-[#f0ece4] leading-[26px] tracking-[-0.44px]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
               {title}
             </DialogTitle>
           ) : null}
@@ -78,7 +78,7 @@ export function ManusDialog({
           {/* Login button */}
           <Button
             onClick={onLogin}
-            className="w-full h-10 bg-gradient-to-l from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-black font-semibold rounded-[10px] text-sm leading-5 tracking-[-0.154px]"
+            className="w-full h-10 bg-gradient-to-l from-[#FF2E9F] to-[#7B2EFF] hover:from-[#FF2E9F] hover:to-[#7B2EFF] text-black font-semibold rounded-[10px] text-sm leading-5 tracking-[-0.154px]"
           >
             התחבר ל-TotalLook.ai
           </Button>

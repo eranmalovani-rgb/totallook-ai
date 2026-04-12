@@ -222,7 +222,7 @@ export default function BeforeAfterSlider({
             <div className="absolute top-2 right-2 z-10">
               <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-black/70 backdrop-blur-sm text-white border border-primary/30 shadow-md">
                 {afterScore !== undefined && (
-                  <span className="text-amber-400 font-black ml-1">{afterScore}</span>
+                  <span className="text-[#FF2E9F] font-black ml-1">{afterScore}</span>
                 )}
                 {afterLabel}
               </span>
@@ -343,7 +343,7 @@ export default function BeforeAfterSlider({
             <span className="px-3 py-1.5 rounded-full text-xs font-bold bg-black/70 backdrop-blur-sm text-white border border-white/20 shadow-md">
               {afterLabel}
               {afterScore !== undefined && (
-                <span className="mr-1.5 text-amber-400 font-black">{afterScore}</span>
+                <span className="mr-1.5 text-[#FF2E9F] font-black">{afterScore}</span>
               )}
             </span>
           </div>

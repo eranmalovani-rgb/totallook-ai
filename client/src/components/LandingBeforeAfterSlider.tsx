@@ -143,8 +143,8 @@ export default function LandingBeforeAfterSlider({
     [updatePosition]
   );
 
-  const gold = "oklch(0.75 0.14 75)";
-  const goldDim = "oklch(0.75 0.14 75 / 0.6)";
+  const gold = "#FF2E9F";
+  const goldDim = "rgba(255, 46, 159, 0.6)";
 
   return (
     <div

@@ -198,8 +198,8 @@ export default function StylingStudioAnimation({
     <div className="py-6 space-y-6">
       {/* Auto-retry */}
       {attempt > 0 && (
-        <div className="max-w-sm mx-auto px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-center">
-          <p className="text-xs text-amber-400">
+        <div className="max-w-sm mx-auto px-3 py-2 rounded-lg bg-[#FF2E9F]/10 border border-[#FF2E9F]/20 text-center">
+          <p className="text-xs text-[#FF2E9F]">
             {lang === "he" ? "🔄 מנסה שוב אוטומטית..." : "🔄 Auto-retrying..."}
           </p>
         </div>
@@ -290,7 +290,7 @@ export default function StylingStudioAnimation({
           <div className="absolute bottom-0 left-0 right-0 h-1/4 bg-gradient-to-t from-primary/5 to-transparent" />
 
           {/* Mirror frame */}
-          <div className="absolute top-8 left-1/2 -translate-x-1/2 w-[140px] h-[200px] rounded-lg border-4 border-amber-700/60 bg-gradient-to-b from-white/5 to-white/[0.02] shadow-[inset_0_0_30px_rgba(212,168,67,0.08)]"
+          <div className="absolute top-8 left-1/2 -translate-x-1/2 w-[140px] h-[200px] rounded-lg border-4 border-[#7B2EFF]/60 bg-gradient-to-b from-white/5 to-white/[0.02] shadow-[inset_0_0_30px_rgba(212,168,67,0.08)]"
             style={{ transform: "translateX(-50%) rotateY(-2deg)", transformStyle: "preserve-3d" }}
           >
             {/* User's image in the mirror */}
@@ -313,7 +313,7 @@ export default function StylingStudioAnimation({
           {/* Clothing rack — scrolling horizontally */}
           <div className="absolute top-6 right-4 w-[80px]">
             {/* Rack bar */}
-            <div className="w-full h-1 rounded-full bg-amber-800/50 mb-1" />
+            <div className="w-full h-1 rounded-full bg-[#5B1EBF]/50 mb-1" />
             {/* Hangers */}
             <div className="overflow-hidden h-[100px]">
               <div
@@ -322,7 +322,7 @@ export default function StylingStudioAnimation({
               >
                 {[...RACK_ITEMS, ...RACK_ITEMS].map((item, i) => (
                   <div key={i} className="flex items-center gap-1">
-                    <div className="w-4 h-0.5 bg-amber-700/40 rounded" />
+                    <div className="w-4 h-0.5 bg-[#5B1EBF]/40 rounded" />
                     <span className="text-2xl drop-shadow-lg" style={{
                       filter: i === Math.floor(rackOffset / 36) % RACK_ITEMS.length ? "brightness(1.5)" : "brightness(0.6)",
                       transform: i === Math.floor(rackOffset / 36) % RACK_ITEMS.length ? "scale(1.3)" : "scale(1)",
@@ -507,7 +507,7 @@ export default function StylingStudioAnimation({
           </div>
 
           {/* Curtain rod */}
-          <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-b from-amber-800/60 to-amber-900/30 z-20" />
+          <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-b from-[#5B1EBF]/60 to-[#3D1580]/30 z-20" />
 
           {/* User's image revealed behind curtains */}
           {imagePreview && (

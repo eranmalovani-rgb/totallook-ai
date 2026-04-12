@@ -76,7 +76,7 @@ function LinkedText({
       {parts.map((part, i) => {
         const mention = allMentions.find(m => m.text === part);
         if (mention) {
-          const colorClass = mention.type === "brand" ? "text-primary hover:text-amber-300" :
+          const colorClass = mention.type === "brand" ? "text-primary hover:text-[#FF2E9F]" :
             mention.type === "influencer" ? "text-rose-400 hover:text-rose-300" :
             mention.type === "store" ? "text-teal-400 hover:text-teal-300" :
             "text-primary hover:text-primary/80";
@@ -124,11 +124,11 @@ function ScoreCircle({ score, size = "lg" }: { score: number; size?: "sm" | "lg"
   const stroke = size === "xl" ? 7 : size === "lg" ? 6 : 4;
   const circumference = 2 * Math.PI * radius;
   const progress = (safeScore / 10) * circumference;
-  const color = safeScore >= 9 ? "text-amber-400" : safeScore >= 7 ? "text-primary" : safeScore >= 5 ? "text-yellow-400" : "text-orange-400";
+  const color = safeScore >= 9 ? "text-[#FF2E9F]" : safeScore >= 7 ? "text-primary" : safeScore >= 5 ? "text-yellow-400" : "text-orange-400";
 
   const gradientId = `score-grad-${size}-${Math.round(safeScore * 10)}`;
-  const glowColor = safeScore >= 9 ? "rgba(251,191,36,0.2)" : safeScore >= 7 ? "rgba(200,164,78,0.15)" : safeScore >= 5 ? "rgba(234,179,8,0.12)" : "rgba(249,115,22,0.12)";
-  const gradColors = safeScore >= 9 ? ["#fbbf24", "#f59e0b"] : safeScore >= 7 ? ["#c8a44e", "#e8c86e"] : safeScore >= 5 ? ["#eab308", "#ca8a04"] : ["#f97316", "#ea580c"];
+  const glowColor = safeScore >= 9 ? "rgba(251,191,36,0.2)" : safeScore >= 7 ? "rgba(255,46,159,0.15)" : safeScore >= 5 ? "rgba(234,179,8,0.12)" : "rgba(249,115,22,0.12)";
+  const gradColors = safeScore >= 9 ? ["#fbbf24", "#f59e0b"] : safeScore >= 7 ? ["#FF2E9F", "#e8c86e"] : safeScore >= 5 ? ["#eab308", "#ca8a04"] : ["#f97316", "#ea580c"];
 
   return (
     <div className="relative inline-flex items-center justify-center" style={{ filter: size !== "sm" ? `drop-shadow(0 0 8px ${glowColor})` : undefined }}>
@@ -144,7 +144,7 @@ function ScoreCircle({ score, size = "lg" }: { score: number; size?: "sm" | "lg"
           strokeDasharray={circumference} strokeDashoffset={circumference - progress} strokeLinecap="round"
           className="transition-all duration-1000" transform={`rotate(-90 ${radius + stroke} ${radius + stroke})`} />
       </svg>
-      <span className={`absolute font-bold tracking-tight ${size === "xl" ? "text-4xl" : size === "lg" ? "text-3xl" : "text-base"} ${safeScore >= 9 ? "text-amber-300" : safeScore >= 7 ? "text-amber-200/90" : safeScore >= 5 ? "text-yellow-300/90" : "text-orange-300/90"}`}>
+      <span className={`absolute font-bold tracking-tight ${size === "xl" ? "text-4xl" : size === "lg" ? "text-3xl" : "text-base"} ${safeScore >= 9 ? "text-[#FF2E9F]" : safeScore >= 7 ? "text-[#FF6BB5]/90" : safeScore >= 5 ? "text-yellow-300/90" : "text-orange-300/90"}`}>
         {safeScore}
       </span>
     </div>
@@ -173,8 +173,8 @@ function ScoreBar({ label, score, explanation, recommendation, lang }: { label: 
     );
   }
 
-  const barGradient = score >= 9 ? "from-amber-400 to-amber-500" : score >= 7 ? "from-amber-600/80 to-amber-500/80" : score >= 5 ? "from-yellow-500/70 to-yellow-400/70" : "from-orange-500/70 to-orange-400/70";
-  const scoreColor = score >= 9 ? "text-amber-300" : score >= 7 ? "text-amber-200/90" : score >= 5 ? "text-yellow-300/90" : "text-orange-300/90";
+  const barGradient = score >= 9 ? "from-[#FF2E9F] to-[#7B2EFF]" : score >= 7 ? "from-[#FF2E9F]/80 to-[#7B2EFF]/80" : score >= 5 ? "from-yellow-500/70 to-yellow-400/70" : "from-orange-500/70 to-orange-400/70";
+  const scoreColor = score >= 9 ? "text-[#FF2E9F]" : score >= 7 ? "text-[#FF6BB5]/90" : score >= 5 ? "text-yellow-300/90" : "text-orange-300/90";
   return (
     <div>
       <div className="flex items-center gap-3">
@@ -416,7 +416,7 @@ function ImprovementCard({
   }, [imp]);
 
   return (
-    <div className="rounded-2xl border border-amber-500/10 bg-gradient-to-b from-white/[0.03] to-transparent overflow-hidden shadow-lg shadow-black/20">
+    <div className="rounded-2xl border border-[#FF2E9F]/10 bg-gradient-to-b from-white/[0.03] to-transparent overflow-hidden shadow-lg shadow-black/20">
       {/* Stage 62: All options displayed as horizontal gallery with images */}
       {hasAlternatives ? (
         <div className="p-3 space-y-2">
@@ -429,7 +429,7 @@ function ImprovementCard({
                   onClick={() => { setSelectedOption(idx); setImgLoaded(false); setImgError(false); }}
                   className={`relative rounded-xl overflow-hidden border-2 transition-all duration-200 ${
                     isActive
-                      ? 'border-amber-500/60 ring-1 ring-amber-400/20 scale-[1.02]'
+                      ? 'border-[#FF2E9F]/60 ring-1 ring-[#FF2E9F]/20 scale-[1.02]'
                       : 'border-white/5 hover:border-white/20 opacity-75 hover:opacity-100'
                   }`}
                 >
@@ -448,7 +448,7 @@ function ImprovementCard({
                   )}
                   {/* Label overlay */}
                   <div className={`absolute bottom-0 inset-x-0 px-1.5 py-1 text-[9px] font-medium text-center truncate ${
-                    isActive ? 'bg-gradient-to-r from-amber-600/90 to-amber-500/90 text-white' : 'bg-black/60 text-white/80'
+                    isActive ? 'bg-gradient-to-r from-[#FF2E9F]/90 to-[#7B2EFF]/90 text-white' : 'bg-black/60 text-white/80'
                   }`}>
                     {idx === 0
                       ? (lang === "he" ? "⭐ מומלץ" : "⭐ Top Pick")
@@ -456,7 +456,7 @@ function ImprovementCard({
                   </div>
                   {/* Selected checkmark */}
                   {isActive && (
-                    <div className="absolute top-1 right-1 w-5 h-5 rounded-full bg-amber-500 flex items-center justify-center shadow-lg shadow-amber-500/30">
+                    <div className="absolute top-1 right-1 w-5 h-5 rounded-full bg-[#FF2E9F] flex items-center justify-center shadow-lg shadow-[#FF2E9F]/30">
                       <Check className="w-3 h-3 text-white" />
                     </div>
                   )}
@@ -472,7 +472,7 @@ function ImprovementCard({
               </span>
             )}
             {activeOption.afterMaterial && (
-              <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-500/80">
+              <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[#FF2E9F]/10 text-[#FF2E9F]/80">
                 {activeOption.afterMaterial}
               </span>
             )}
@@ -516,11 +516,11 @@ function ImprovementCard({
       {/* Content */}
       <div className="p-4 space-y-3">
         <div className="flex items-start gap-3">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-500/20 to-amber-600/10 flex items-center justify-center shrink-0 text-amber-300 font-bold text-sm border border-amber-500/20">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#FF2E9F]/20 to-[#7B2EFF]/10 flex items-center justify-center shrink-0 text-[#FF2E9F] font-bold text-sm border border-[#FF2E9F]/20">
             {index + 1}
           </div>
           <div className="flex-1 min-w-0">
-            <h4 className="font-bold text-sm mb-1 text-amber-100/90">
+            <h4 className="font-bold text-sm mb-1 text-foreground/90">
               <LinkedText text={activeOption.title} mentions={mentions} onInfluencerClick={onInfluencerClick} />
             </h4>
             <p className="text-xs text-muted-foreground/80 leading-relaxed">
@@ -573,8 +573,8 @@ function ImprovementCard({
         {links.length > 0 && (
           <div className="pt-2 border-t border-white/[0.04]">
             <div className="flex items-center gap-1.5 mb-2">
-              <ShoppingBag className="w-3 h-3 text-amber-400/60" />
-              <span className="text-[10px] text-amber-400/60 font-medium">
+              <ShoppingBag className="w-3 h-3 text-[#FF2E9F]/60" />
+              <span className="text-[10px] text-[#FF2E9F]/60 font-medium">
                 {t("review", "recommendedProducts")}
               </span>
             </div>
@@ -587,21 +587,21 @@ function ImprovementCard({
                     href={link.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="group inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-amber-500/15 bg-amber-500/[0.04] hover:bg-amber-500/10 hover:border-amber-500/30 hover:shadow-[0_0_10px_rgba(200,164,78,0.1)] transition-all duration-300 flex-shrink-0"
+                    className="group inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#FF2E9F]/15 bg-[#FF2E9F]/[0.04] hover:bg-[#FF2E9F]/10 hover:border-[#FF2E9F]/30 hover:shadow-[0_0_10px_rgba(200,164,78,0.1)] transition-all duration-300 flex-shrink-0"
                   >
                     {storeName ? (
                       <>
                         <div className="bg-white/90 rounded px-1 py-px">
                           <StoreLogo name={storeName} size="sm" />
                         </div>
-                        <ExternalLink className="w-2.5 h-2.5 text-amber-400/50 group-hover:text-amber-300 transition-colors" />
+                        <ExternalLink className="w-2.5 h-2.5 text-[#FF2E9F]/50 group-hover:text-[#FF2E9F] transition-colors" />
                       </>
                     ) : (
                       <>
-                        <span className="text-[10px] font-semibold text-amber-200/70 group-hover:text-amber-200 transition-colors">
+                        <span className="text-[10px] font-semibold text-[#FF6BB5]/70 group-hover:text-[#FF6BB5] transition-colors">
                           {link.label}
                         </span>
-                        <ExternalLink className="w-2.5 h-2.5 text-amber-400/50 group-hover:text-amber-300 transition-colors" />
+                        <ExternalLink className="w-2.5 h-2.5 text-[#FF2E9F]/50 group-hover:text-[#FF2E9F] transition-colors" />
                       </>
                     )}
                   </a>
@@ -1028,7 +1028,7 @@ function StoryCards({
               className="h-full rounded-full transition-all duration-500 ease-out"
               style={{
                 width: i < activeIndex ? "100%" : i === activeIndex ? "100%" : "0%",
-                background: i <= activeIndex ? "linear-gradient(90deg, #c8a44e, #e8c86e)" : "transparent",
+                background: i <= activeIndex ? "linear-gradient(90deg, #FF2E9F, #e8c86e)" : "transparent",
                 opacity: i === activeIndex ? 1 : 0.5,
               }}
             />
@@ -1044,13 +1044,13 @@ function StoryCards({
             onClick={() => { goToIndex(i); setShowOverflow(false); }}
             className={`group relative flex items-center gap-2 px-4 py-3 text-xs font-bold transition-all duration-300 flex-shrink-0 border rounded-xl ${
               activeIndex === i
-                ? "bg-gradient-to-b from-amber-900/30 to-amber-950/20 text-amber-300 border-amber-500/40 shadow-[0_0_14px_rgba(200,164,78,0.2)]"
+                ? "bg-gradient-to-b from-[#3D1580]/30 to-[#2D0F60]/20 text-[#FF2E9F] border-[#FF2E9F]/40 shadow-[0_0_14px_rgba(255,46,159,0.2)]"
                 : "bg-white/[0.02] text-muted-foreground border-white/[0.06] hover:border-white/15 hover:text-foreground hover:bg-white/[0.04]"
             }`}
           >
             {/* Active indicator — gold stitch line at top */}
             {activeIndex === i && (
-              <span className="absolute -top-px inset-x-2 h-[2px] bg-gradient-to-r from-transparent via-amber-400/70 to-transparent rounded-full" />
+              <span className="absolute -top-px inset-x-2 h-[2px] bg-gradient-to-r from-transparent via-[#FF2E9F]/70 to-transparent rounded-full" />
             )}
             <span className={`transition-transform duration-200 text-base ${activeIndex === i ? 'scale-110' : 'group-hover:scale-105'}`}>{icons[i]}</span>
             <span className="truncate max-w-[80px]">{label}</span>
@@ -1062,14 +1062,14 @@ function StoryCards({
               onClick={() => setShowOverflow(!showOverflow)}
               className={`flex items-center justify-center w-11 h-11 rounded-xl text-sm font-bold transition-all duration-300 border ${
                 activeIndex >= VISIBLE_TABS
-                  ? "bg-gradient-to-b from-amber-900/30 to-amber-950/20 text-amber-300 border-amber-500/40 shadow-[0_0_12px_rgba(200,164,78,0.15)]"
+                  ? "bg-gradient-to-b from-[#3D1580]/30 to-[#2D0F60]/20 text-[#FF2E9F] border-[#FF2E9F]/40 shadow-[0_0_12px_rgba(255,46,159,0.15)]"
                   : "bg-white/[0.02] text-muted-foreground border-white/[0.06] hover:border-white/15 hover:bg-white/[0.04]"
               }`}
             >
               •••
             </button>
             {showOverflow && (
-              <div className={`absolute top-full mt-2 ${dir === "rtl" ? "left-0" : "right-0"} z-50 bg-gradient-to-b from-neutral-900 to-neutral-950 border border-amber-500/10 rounded-xl shadow-2xl shadow-black/40 py-1.5 min-w-[160px] backdrop-blur-sm`}>
+              <div className={`absolute top-full mt-2 ${dir === "rtl" ? "left-0" : "right-0"} z-50 bg-gradient-to-b from-neutral-900 to-neutral-950 border border-[#FF2E9F]/10 rounded-xl shadow-2xl shadow-black/40 py-1.5 min-w-[160px] backdrop-blur-sm`}>
                 {overflowLabels.map((label, i) => {
                   const realIndex = VISIBLE_TABS + i;
                   return (
@@ -1078,7 +1078,7 @@ function StoryCards({
                       onClick={() => { goToIndex(realIndex); setShowOverflow(false); }}
                       className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-medium transition-all duration-200 ${
                         activeIndex === realIndex
-                          ? "text-amber-300 bg-amber-500/10"
+                          ? "text-[#FF2E9F] bg-[#FF2E9F]/10"
                           : "text-muted-foreground hover:text-foreground hover:bg-white/5"
                       }`}
                     >
@@ -1191,13 +1191,13 @@ function ExpandableSection({
     <div className={`border-b border-white/[0.06] last:border-b-0 transition-colors duration-300 ${open ? 'bg-white/[0.02]' : ''}`}>
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between py-3.5 px-1 text-sm font-medium text-foreground hover:text-amber-300 transition-all duration-200 group"
+        className="w-full flex items-center justify-between py-3.5 px-1 text-sm font-medium text-foreground hover:text-[#FF2E9F] transition-all duration-200 group"
       >
         <span className="flex items-center gap-2.5">
           {icon}
           <span className="tracking-wide">{title}</span>
         </span>
-        <ChevronDown className={`w-4 h-4 text-muted-foreground/60 group-hover:text-amber-400/60 transition-all duration-300 ${open ? "rotate-180 text-amber-400/60" : ""}`} />
+        <ChevronDown className={`w-4 h-4 text-muted-foreground/60 group-hover:text-[#FF2E9F]/60 transition-all duration-300 ${open ? "rotate-180 text-[#FF2E9F]/60" : ""}`} />
       </button>
       <div className={`transition-all duration-400 overflow-hidden ${open ? "max-h-[2000px] opacity-100 pb-4 px-1" : "max-h-0 opacity-0"}`}>
         {children}
@@ -1468,18 +1468,18 @@ export default function ReviewPage() {
             ═══════════════════════════════════════════════ */}
         <section className="container max-w-lg mx-auto mb-6 px-4">
           {/* Image + Score overlay */}
-          <div className="relative rounded-2xl overflow-hidden border border-amber-500/10 bg-card shadow-xl shadow-black/30">
+          <div className="relative rounded-2xl overflow-hidden border border-[#FF2E9F]/10 bg-card shadow-xl shadow-black/30">
             <img loading="lazy" src={review.imageUrl}
               alt="Outfit"
               className="w-full max-h-[420px] object-contain bg-black/20"
             />
             {/* Score badge overlay */}
             <div className="absolute top-4 left-4">
-              <div className="bg-black/70 backdrop-blur-xl rounded-2xl p-3 flex items-center gap-3 border border-amber-500/10">
+              <div className="bg-black/70 backdrop-blur-xl rounded-2xl p-3 flex items-center gap-3 border border-[#FF2E9F]/10">
                 <ScoreCircle score={analysis.overallScore} size="sm" />
                 <div>
-                  <p className="text-amber-100 text-sm font-bold tracking-wide">{analysis.overallScore}/10</p>
-                  <p className="text-amber-200/40 text-[10px]">{t("review", "overallScore")}</p>
+                  <p className="text-foreground text-sm font-bold tracking-wide">{analysis.overallScore}/10</p>
+                  <p className="text-[#FF6BB5]/40 text-[10px]">{t("review", "overallScore")}</p>
                 </div>
               </div>
             </div>
@@ -1498,7 +1498,7 @@ export default function ReviewPage() {
             <p className="text-sm text-muted-foreground/90 leading-relaxed tracking-wide">
               <LinkedText text={analysis.summary} mentions={mentions} onInfluencerClick={handleInfluencerClick} />
             </p>
-            <p className="text-xs font-semibold text-amber-400/80 flex items-center gap-1.5">{scoreComment}</p>
+            <p className="text-xs font-semibold text-[#FF2E9F]/80 flex items-center gap-1.5">{scoreComment}</p>
 
 
 
@@ -1512,9 +1512,9 @@ export default function ReviewPage() {
         <section className="container max-w-lg mx-auto px-4">
           <StoryCards labels={storyLabels} icons={storyIcons} dir={dir}>
             {/* ── CARD 1: Items ── */}
-            <div className="rounded-2xl border border-amber-500/10 bg-gradient-to-b from-white/[0.03] to-transparent p-5 shadow-lg shadow-black/20">
-              <h3 className="text-base font-bold mb-4 flex items-center gap-2.5 text-amber-100/90">
-                <Eye className="w-4.5 h-4.5 text-amber-400/70" />
+            <div className="rounded-2xl border border-[#FF2E9F]/10 bg-gradient-to-b from-white/[0.03] to-transparent p-5 shadow-lg shadow-black/20">
+              <h3 className="text-base font-bold mb-4 flex items-center gap-2.5 text-foreground/90">
+                <Eye className="w-4.5 h-4.5 text-[#FF2E9F]/70" />
                 {t("review", "itemsDetected")}
               </h3>
 
@@ -1533,7 +1533,7 @@ export default function ReviewPage() {
                       </p>
                       <div className="flex flex-wrap items-center gap-1.5">
                         <span className={`inline-block text-[10px] px-2 py-0.5 rounded-full ${
-                          item.verdict === "בחירה מצוינת" || item.verdict === "Excellent choice" ? "bg-amber-500/10 text-amber-400" :
+                          item.verdict === "בחירה מצוינת" || item.verdict === "Excellent choice" ? "bg-[#FF2E9F]/10 text-[#FF2E9F]" :
                           item.verdict === "ניגודיות טובה" || item.verdict === "Good contrast" ? "bg-primary/10 text-primary" :
                           item.verdict === "יש פוטנציאל" || item.verdict === "Has potential" ? "bg-primary/10 text-primary" :
                           item.verdict === "ניתן לשדרג" || item.verdict === "Can be upgraded" ? "bg-yellow-500/10 text-yellow-400" :
@@ -1633,7 +1633,7 @@ export default function ReviewPage() {
 
             {/* ── CARD 2: Influencer Insights (conditional) ── */}
             {hasInfluencerInsight && (
-              <div className="rounded-2xl border border-amber-500/10 bg-gradient-to-b from-white/[0.03] to-transparent p-5 shadow-lg shadow-black/20">
+              <div className="rounded-2xl border border-[#FF2E9F]/10 bg-gradient-to-b from-white/[0.03] to-transparent p-5 shadow-lg shadow-black/20">
                 {/* Best matching influencer — hero style with large avatar */}
                 {(() => {
                   const influencerMentions = mentions.filter(m => m.type === "influencer");
@@ -1652,7 +1652,7 @@ export default function ReviewPage() {
                       <div className="flex justify-center mb-3">
                         <div className="relative">
                           <InfluencerAvatar name={bestMatch.name} imageUrl={bestMatch.imageUrl} size="lg" className="!w-20 !h-20 !text-2xl ring-2 ring-primary/30" />
-                          <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 text-[9px] px-2 py-0.5 rounded-full bg-gradient-to-r from-rose-500 to-amber-500 text-white font-bold whitespace-nowrap shadow-lg">
+                          <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 text-[9px] px-2 py-0.5 rounded-full bg-gradient-to-r from-rose-500 to-[#7B2EFF] text-white font-bold whitespace-nowrap shadow-lg">
                             {lang === "he" ? "✨ הכי מתאים" : "✨ Best Match"}
                           </span>
                         </div>
@@ -1681,10 +1681,10 @@ export default function ReviewPage() {
 
             {/* ── CARD 3: Upgrades ── */}
             {/* (was Card 2, now Card 3 after inserting Influencer) */}
-            <div className="rounded-2xl border border-amber-500/10 bg-gradient-to-b from-white/[0.03] to-transparent p-5 shadow-lg shadow-black/20">
+            <div className="rounded-2xl border border-[#FF2E9F]/10 bg-gradient-to-b from-white/[0.03] to-transparent p-5 shadow-lg shadow-black/20">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-base font-bold flex items-center gap-2.5 text-amber-100/90">
-                  <Sparkles className="w-4.5 h-4.5 text-amber-400/70" />
+                <h3 className="text-base font-bold flex items-center gap-2.5 text-foreground/90">
+                  <Sparkles className="w-4.5 h-4.5 text-[#FF2E9F]/70" />
                   {t("review", "upgradeSuggestions")}
                 </h3>
                 {detectedCountry && (
@@ -1734,11 +1734,11 @@ export default function ReviewPage() {
               {/* Fix My Look CTA — attractive card inside Upgrades */}
               {isOwner && (
                 <div ref={fixMyLookSectionRef} className="mt-5">
-                  <div className="relative overflow-hidden rounded-2xl border border-amber-500/30 bg-gradient-to-br from-rose-500/10 via-amber-500/10 to-primary/5 p-5">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+                  <div className="relative overflow-hidden rounded-2xl border border-[#FF2E9F]/30 bg-gradient-to-br from-rose-500/10 via-[#FF2E9F]/10 to-primary/5 p-5">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-[#FF2E9F]/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
                     <div className="relative z-10">
                       <div className="flex items-center gap-3 mb-3">
-                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-rose-500 to-amber-500 flex items-center justify-center shadow-lg shadow-amber-500/20">
+                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-rose-500 to-[#7B2EFF] flex items-center justify-center shadow-lg shadow-[#FF2E9F]/20">
                           <Wand2 className="w-6 h-6 text-white" />
                         </div>
                         <div>
@@ -1756,7 +1756,7 @@ export default function ReviewPage() {
                         reviewId={reviewId}
                         analysis={analysis}
                         trigger={
-                          <Button size="lg" className="w-full gap-2 bg-gradient-to-r from-rose-600 to-amber-500 hover:from-rose-500 hover:to-amber-400 text-white font-bold shadow-lg shadow-amber-500/25 text-base py-6">
+                          <Button size="lg" className="w-full gap-2 bg-gradient-to-r from-rose-600 to-[#7B2EFF] hover:from-rose-500 hover:to-[#7B2EFF] text-white font-bold shadow-lg shadow-[#FF2E9F]/25 text-base py-6">
                             <Wand2 className="w-5 h-5" />
                             {analysis.overallScore >= 9
                               ? (lang === "he" ? "לפני ואחרי" : "Before & After")
@@ -1773,9 +1773,9 @@ export default function ReviewPage() {
             {/* ── CARD 4: Outfit Suggestions ── REMOVED (Stage 98: mood looks disabled) */}
 
             {/* ── CARD 4 (was 5): Trends & Sources ── */}
-            <div className="rounded-2xl border border-amber-500/10 bg-gradient-to-b from-white/[0.03] to-transparent p-5 shadow-lg shadow-black/20">
-              <h3 className="text-base font-bold mb-4 flex items-center gap-2.5 text-amber-100/90">
-                <BookOpen className="w-4.5 h-4.5 text-amber-400/70" />
+            <div className="rounded-2xl border border-[#FF2E9F]/10 bg-gradient-to-b from-white/[0.03] to-transparent p-5 shadow-lg shadow-black/20">
+              <h3 className="text-base font-bold mb-4 flex items-center gap-2.5 text-foreground/90">
+                <BookOpen className="w-4.5 h-4.5 text-[#FF2E9F]/70" />
                 {t("review", "trendSources")}
               </h3>
               {(!analysis.trendSources || analysis.trendSources.length === 0) && (analysis.improvements ?? []).length === 0 ? (
@@ -1835,7 +1835,7 @@ export default function ReviewPage() {
                       {mentions.map((m, i) => {
                         const colorClass = m.type === "brand" ? "bg-primary/10 text-primary border-primary/20" :
                           m.type === "influencer" ? "bg-rose-500/10 text-rose-400 border-rose-500/20" :
-                          m.type === "store" ? "bg-amber-500/10 text-amber-400 border-amber-500/20" :
+                          m.type === "store" ? "bg-[#FF2E9F]/10 text-[#FF2E9F] border-[#FF2E9F]/20" :
                           "bg-primary/10 text-primary border-primary/20";
                         const typeLabel = m.type === "brand" ? t("review", "brand") :
                           m.type === "influencer" ? t("review", "influencer") :
@@ -1932,9 +1932,9 @@ export default function ReviewPage() {
             ═══════════════════════════════════════════════ */}
         {isOwner && (
           <div className="container max-w-lg mx-auto px-4 mt-3 mb-2">
-            <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20">
+            <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-[#FF2E9F]/10 border border-[#FF2E9F]/20">
               <span className="text-sm">🔒</span>
-              <p className="text-[10px] text-amber-400">
+              <p className="text-[10px] text-[#FF2E9F]">
                 {translations.feed.privateNote[lang]}
               </p>
             </div>
@@ -2006,12 +2006,12 @@ function ShareCTABanner({ reviewId, message, score, summary }: { reviewId: numbe
   if (isPublishedQuery.data?.published) {
     return (
       <div className="container max-w-lg mx-auto mb-6 px-4">
-        <div className="flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-amber-500/5 border border-amber-500/15">
+        <div className="flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-[#FF2E9F]/5 border border-[#FF2E9F]/15">
           <div className="flex items-center gap-2">
-            <Check className="w-4 h-4 text-amber-400" />
-            <span className="text-xs text-amber-400">{tf("shareCTAShared")}</span>
+            <Check className="w-4 h-4 text-[#FF2E9F]" />
+            <span className="text-xs text-[#FF2E9F]">{tf("shareCTAShared")}</span>
           </div>
-          <button onClick={handleWhatsApp} className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 text-[10px] font-medium transition-colors">
+          <button onClick={handleWhatsApp} className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#FF2E9F]/10 hover:bg-[#FF2E9F]/20 text-[#FF2E9F] text-[10px] font-medium transition-colors">
             <MessageCircle className="w-3 h-3" />
             WhatsApp
           </button>
@@ -2063,7 +2063,7 @@ function ShareCTABanner({ reviewId, message, score, summary }: { reviewId: numbe
           <span className="text-[10px] font-medium text-primary whitespace-nowrap">{tf("shareCTAButton")}</span>
         </button>
         <button onClick={handleWhatsApp} className="flex items-center justify-center w-10 h-10 rounded-2xl border border-teal-500/15 bg-teal-500/5 hover:bg-teal-500/15 transition-all shrink-0" title="WhatsApp">
-          <MessageCircle className="w-4 h-4 text-amber-400" />
+          <MessageCircle className="w-4 h-4 text-[#FF2E9F]" />
         </button>
       </div>
     </div>
@@ -2094,7 +2094,7 @@ function ShareToFeedButton({ reviewId }: { reviewId: number }) {
 
   if (isPublishedQuery.data?.published) {
     return (
-      <Button size="sm" variant="outline" className="gap-1.5 border-amber-500/30 text-amber-400 text-xs" disabled>
+      <Button size="sm" variant="outline" className="gap-1.5 border-[#FF2E9F]/30 text-[#FF2E9F] text-xs" disabled>
         <Check className="w-3.5 h-3.5" />
         {tf("alreadyShared")}
       </Button>

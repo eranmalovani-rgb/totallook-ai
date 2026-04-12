@@ -90,7 +90,7 @@ function getCategoryLabel(catId: string, isHe: boolean): string {
 
 function getScoreColor(score: number): string {
   if (score >= 8) return "text-emerald-400";
-  if (score >= 6) return "text-amber-400";
+  if (score >= 6) return "text-[#FF2E9F]";
   return "text-red-400";
 }
 
@@ -386,18 +386,18 @@ export default function GuestWardrobe() {
               onClick={handleOpenWardrobe}
               className="relative mx-auto w-64 h-80 cursor-pointer group"
             >
-              <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-amber-900/40 to-amber-950/60 border-2 border-amber-700/30 overflow-hidden">
+              <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-[#3D1580]/40 to-[#2D0F60]/60 border-2 border-[#7B2EFF]/30 overflow-hidden">
                 {/* Left door */}
-                <div className="absolute top-0 left-0 w-1/2 h-full border-r border-amber-700/20 bg-gradient-to-r from-amber-900/20 to-amber-800/30 transition-transform duration-300 group-hover:-translate-x-2">
-                  <div className="absolute top-1/2 right-2 w-2 h-8 rounded-full bg-amber-600/60 -translate-y-1/2" />
+                <div className="absolute top-0 left-0 w-1/2 h-full border-r border-[#7B2EFF]/20 bg-gradient-to-r from-[#3D1580]/20 to-[#5B1EBF]/30 transition-transform duration-300 group-hover:-translate-x-2">
+                  <div className="absolute top-1/2 right-2 w-2 h-8 rounded-full bg-[#FF2E9F]/60 -translate-y-1/2" />
                 </div>
                 {/* Right door */}
-                <div className="absolute top-0 right-0 w-1/2 h-full border-l border-amber-700/20 bg-gradient-to-l from-amber-900/20 to-amber-800/30 transition-transform duration-300 group-hover:translate-x-2">
-                  <div className="absolute top-1/2 left-2 w-2 h-8 rounded-full bg-amber-600/60 -translate-y-1/2" />
+                <div className="absolute top-0 right-0 w-1/2 h-full border-l border-[#7B2EFF]/20 bg-gradient-to-l from-[#3D1580]/20 to-[#5B1EBF]/30 transition-transform duration-300 group-hover:translate-x-2">
+                  <div className="absolute top-1/2 left-2 w-2 h-8 rounded-full bg-[#FF2E9F]/60 -translate-y-1/2" />
                 </div>
                 {/* Center icon */}
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <DoorClosed className="w-12 h-12 text-amber-500/60 group-hover:scale-110 transition-transform" />
+                  <DoorClosed className="w-12 h-12 text-[#FF2E9F]/60 group-hover:scale-110 transition-transform" />
                 </div>
               </div>
             </button>
@@ -412,15 +412,15 @@ export default function GuestWardrobe() {
         {(doorsAnimating || doorsFullyOpen) && (
           <div className="text-center py-8">
             <div className="relative mx-auto w-64 h-80 overflow-hidden">
-              <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-amber-900/40 to-amber-950/60 border-2 border-amber-700/30 overflow-hidden">
-                <div className={`absolute top-0 left-0 w-1/2 h-full border-r border-amber-700/20 bg-gradient-to-r from-amber-900/20 to-amber-800/30 transition-transform duration-[900ms] ease-in-out ${doorsAnimating ? "-translate-x-full" : ""}`}>
-                  <div className="absolute top-1/2 right-2 w-2 h-8 rounded-full bg-amber-600/60 -translate-y-1/2" />
+              <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-[#3D1580]/40 to-[#2D0F60]/60 border-2 border-[#7B2EFF]/30 overflow-hidden">
+                <div className={`absolute top-0 left-0 w-1/2 h-full border-r border-[#7B2EFF]/20 bg-gradient-to-r from-[#3D1580]/20 to-[#5B1EBF]/30 transition-transform duration-[900ms] ease-in-out ${doorsAnimating ? "-translate-x-full" : ""}`}>
+                  <div className="absolute top-1/2 right-2 w-2 h-8 rounded-full bg-[#FF2E9F]/60 -translate-y-1/2" />
                 </div>
-                <div className={`absolute top-0 right-0 w-1/2 h-full border-l border-amber-700/20 bg-gradient-to-l from-amber-900/20 to-amber-800/30 transition-transform duration-[900ms] ease-in-out ${doorsAnimating ? "translate-x-full" : ""}`}>
-                  <div className="absolute top-1/2 left-2 w-2 h-8 rounded-full bg-amber-600/60 -translate-y-1/2" />
+                <div className={`absolute top-0 right-0 w-1/2 h-full border-l border-[#7B2EFF]/20 bg-gradient-to-l from-[#3D1580]/20 to-[#5B1EBF]/30 transition-transform duration-[900ms] ease-in-out ${doorsAnimating ? "translate-x-full" : ""}`}>
+                  <div className="absolute top-1/2 left-2 w-2 h-8 rounded-full bg-[#FF2E9F]/60 -translate-y-1/2" />
                 </div>
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <Sparkles className="w-8 h-8 text-amber-400 animate-pulse" />
+                  <Sparkles className="w-8 h-8 text-[#FF2E9F] animate-pulse" />
                 </div>
               </div>
             </div>
@@ -431,12 +431,12 @@ export default function GuestWardrobe() {
         {showClosingDoors && (
           <div className="text-center py-8">
             <div className="relative mx-auto w-64 h-80 overflow-hidden">
-              <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-amber-900/40 to-amber-950/60 border-2 border-amber-700/30 overflow-hidden">
-                <div className={`absolute top-0 left-0 w-1/2 h-full border-r border-amber-700/20 bg-gradient-to-r from-amber-900/20 to-amber-800/30 transition-transform duration-[900ms] ease-in-out ${doorsClosing ? "translate-x-0" : "-translate-x-full"}`}>
-                  <div className="absolute top-1/2 right-2 w-2 h-8 rounded-full bg-amber-600/60 -translate-y-1/2" />
+              <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-[#3D1580]/40 to-[#2D0F60]/60 border-2 border-[#7B2EFF]/30 overflow-hidden">
+                <div className={`absolute top-0 left-0 w-1/2 h-full border-r border-[#7B2EFF]/20 bg-gradient-to-r from-[#3D1580]/20 to-[#5B1EBF]/30 transition-transform duration-[900ms] ease-in-out ${doorsClosing ? "translate-x-0" : "-translate-x-full"}`}>
+                  <div className="absolute top-1/2 right-2 w-2 h-8 rounded-full bg-[#FF2E9F]/60 -translate-y-1/2" />
                 </div>
-                <div className={`absolute top-0 right-0 w-1/2 h-full border-l border-amber-700/20 bg-gradient-to-l from-amber-900/20 to-amber-800/30 transition-transform duration-[900ms] ease-in-out ${doorsClosing ? "translate-x-0" : "translate-x-full"}`}>
-                  <div className="absolute top-1/2 left-2 w-2 h-8 rounded-full bg-amber-600/60 -translate-y-1/2" />
+                <div className={`absolute top-0 right-0 w-1/2 h-full border-l border-[#7B2EFF]/20 bg-gradient-to-l from-[#3D1580]/20 to-[#5B1EBF]/30 transition-transform duration-[900ms] ease-in-out ${doorsClosing ? "translate-x-0" : "translate-x-full"}`}>
+                  <div className="absolute top-1/2 left-2 w-2 h-8 rounded-full bg-[#FF2E9F]/60 -translate-y-1/2" />
                 </div>
               </div>
             </div>

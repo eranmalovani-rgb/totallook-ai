@@ -177,7 +177,7 @@ export default function GuestUpload() {
       <div className="pt-20 pb-8 container max-w-2xl mx-auto">
         {/* Header */}
         <div className="text-center mb-6">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-medium mb-3">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#FF2E9F]/10 border border-[#FF2E9F]/20 text-[#FF2E9F] text-xs font-medium mb-3">
             <Sparkles className="w-3.5 h-3.5" />
             {lang === "he" ? "בדיקה מהירה ⚡" : "Quick Check ⚡"}
           </div>
@@ -212,14 +212,14 @@ export default function GuestUpload() {
                 fileInputRef.current?.click();
               }}
             >
-              <div className="relative rounded-[20px] p-[3px] bg-gradient-to-b from-primary/60 via-amber-600/40 to-primary/30 shadow-[0_8px_32px_rgba(180,140,60,0.15)]">
-                <div className="rounded-[17px] p-[2px] bg-gradient-to-b from-amber-300/20 via-transparent to-amber-800/20">
+              <div className="relative rounded-[20px] p-[3px] bg-gradient-to-b from-primary/60 via-[#D0258A]/40 to-primary/30 shadow-[0_8px_32px_rgba(255,46,159,0.15)]">
+                <div className="rounded-[17px] p-[2px] bg-gradient-to-b from-[#FF2E9F]/20 via-transparent to-[#5B1EBF]/20">
                   <div className={`relative rounded-[15px] overflow-hidden bg-gradient-to-b from-card via-background to-card/80 border border-white/5 ${dragOver ? "bg-primary/5" : ""}`}>
                     <div className="relative z-10 py-10 px-6 flex flex-col items-center gap-4">
                       {/* Camera icon */}
                       <div className="relative">
                         <div className="absolute inset-0 rounded-full bg-primary/20 blur-xl scale-[1.8]" />
-                        <div className="relative w-20 h-20 rounded-full bg-gradient-to-br from-primary/25 to-amber-500/15 border border-primary/25 flex items-center justify-center">
+                        <div className="relative w-20 h-20 rounded-full bg-gradient-to-br from-primary/25 to-[#7B2EFF]/15 border border-primary/25 flex items-center justify-center">
                           <Camera className="w-9 h-9 text-primary" />
                           <ScanLine className="w-4 h-4 text-primary/50 absolute bottom-2 right-2" />
                         </div>
@@ -288,10 +288,10 @@ export default function GuestUpload() {
             {/* Analyze Button */}
             {!uploading && !analyzing && (
               <div ref={analyzeButtonRef} className="relative">
-                <div className="absolute -inset-1 bg-gradient-to-r from-primary via-amber-500 to-primary rounded-2xl blur-lg opacity-40 animate-pulse" />
+                <div className="absolute -inset-1 bg-gradient-to-r from-primary via-[#FF2E9F] to-primary rounded-2xl blur-lg opacity-40 animate-pulse" />
                 <Button
                   size="lg"
-                  className="relative w-full gap-3 text-xl font-bold py-8 rounded-2xl bg-gradient-to-r from-primary to-amber-500 hover:from-primary/90 hover:to-amber-500/90 shadow-2xl shadow-primary/30 hover:shadow-primary/50 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
+                  className="relative w-full gap-3 text-xl font-bold py-8 rounded-2xl bg-gradient-to-r from-primary to-[#7B2EFF] hover:from-primary/90 hover:to-[#7B2EFF]/90 shadow-2xl shadow-primary/30 hover:shadow-primary/50 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
                   onClick={() => {
                     handleAnalyze();
                     setTimeout(() => {

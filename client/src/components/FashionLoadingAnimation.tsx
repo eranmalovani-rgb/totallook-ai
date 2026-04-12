@@ -149,8 +149,8 @@ export default function FashionLoadingAnimation({
     <div className="py-6 space-y-6">
       {/* Auto-retry indicator */}
       {attempt > 0 && (
-        <div className="max-w-sm mx-auto px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-center">
-          <p className="text-xs text-amber-400">
+        <div className="max-w-sm mx-auto px-3 py-2 rounded-lg bg-[#FF2E9F]/10 border border-[#FF2E9F]/20 text-center">
+          <p className="text-xs text-[#FF2E9F]">
             {lang === "he" ? "🔄 מנסה שוב אוטומטית..." : "🔄 Auto-retrying..."}
           </p>
         </div>

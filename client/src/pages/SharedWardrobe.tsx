@@ -68,7 +68,7 @@ export default function SharedWardrobe({ token }: { token: string }) {
         <div className="max-w-5xl mx-auto">
           {/* Header */}
           <div className="text-center mb-10">
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-amber-400 to-primary bg-clip-text text-transparent">
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-[#FF2E9F] to-primary bg-clip-text text-transparent">
               {t("sharedWardrobe")} {data.userName}
             </h1>
             {data.stylePreference && (
@@ -128,7 +128,7 @@ export default function SharedWardrobe({ token }: { token: string }) {
                         {item.score && (
                           <div className="mt-2 flex items-center gap-1">
                             <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                              item.score >= 8 ? "bg-amber-500/20 text-amber-400" :
+                              item.score >= 8 ? "bg-[#FF2E9F]/20 text-[#FF2E9F]" :
                               item.score >= 6 ? "bg-yellow-500/20 text-yellow-400" :
                               "bg-red-500/20 text-red-400"
                             }`}>

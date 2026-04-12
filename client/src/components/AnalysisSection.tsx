@@ -24,9 +24,9 @@ const items = [
     subtitle: "אינדיגו כהה / Raw Denim — גזרה ישרה-סלים",
     description: "ג'ינס כהה הוא תמיד בחירה בטוחה ואלגנטית. הגזרה טובה ומחמיאה. הבעיה: בשילוב עם סווטשירט כהה נוצר אפקט \"בלוק כהה\" שמחסיר ניגודיות ועומק מהלוק. חסר קיפול בתחתית או טייפרינג מודגש יותר.",
     tag: "דורש ניגודיות",
-    tagColor: "bg-amber-500/15 text-amber-400",
+    tagColor: "bg-[#FF2E9F]/15 text-[#FF2E9F]",
     rating: 65,
-    ratingColor: "from-amber-500 to-amber-400",
+    ratingColor: "from-[#FF2E9F] to-[#7B2EFF]",
   },
   {
     icon: "👟",

@@ -283,16 +283,16 @@ export default function GuestFixMyLookModal({ sessionId, analysis, trigger, clos
     <Dialog open={open} onOpenChange={handleOpen}>
       <DialogTrigger asChild>
         {trigger || (
-          <Button size="lg" className="gap-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-bold shadow-[0_0_20px_rgba(245,158,11,0.3)]">
+          <Button size="lg" className="gap-2 bg-gradient-to-r from-[#FF2E9F] to-[#7B2EFF] hover:from-[#FF2E9F] hover:to-[#7B2EFF] text-black font-bold shadow-[0_0_20px_rgba(245,158,11,0.3)]">
             <Wand2 className="w-5 h-5" />
             {isHighScore ? (isHe ? "לפני ואחרי" : "Before & After") : (isHe ? "תקן את הלוק שלי" : "Fix My Look")}
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-card border-amber-500/10" dir={dir}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-card border-[#FF2E9F]/10" dir={dir}>
         <DialogHeader>
           <DialogTitle className="text-xl font-bold flex items-center gap-2">
-            <Wand2 className="w-5 h-5 text-amber-400" />
+            <Wand2 className="w-5 h-5 text-[#FF2E9F]" />
             {isHighScore ? (isHe ? "לפני ואחרי — וריאציות" : "Before & After — Variations") : (isHe ? "תקן את הלוק שלי" : "Fix My Look")}
           </DialogTitle>
         </DialogHeader>
@@ -317,14 +317,14 @@ export default function GuestFixMyLookModal({ sessionId, analysis, trigger, clos
                     key={impIdx}
                     className={`rounded-xl border transition-all overflow-hidden ${
                       isSelected
-                        ? isCloset ? "border-emerald-500/40 bg-emerald-500/5" : "border-amber-500/30 bg-amber-500/5"
-                        : "border-amber-500/5 bg-background/50 opacity-60"
+                        ? isCloset ? "border-emerald-500/40 bg-emerald-500/5" : "border-[#FF2E9F]/30 bg-[#FF2E9F]/5"
+                        : "border-[#FF2E9F]/5 bg-background/50 opacity-60"
                     }`}
                   >
                     {/* Header with toggle */}
                     <div className="flex items-center gap-3 p-3 cursor-pointer" onClick={() => toggleImp(impIdx)}>
                       <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-all ${
-                        isSelected ? "border-amber-500 bg-amber-500" : "border-amber-500/20"
+                        isSelected ? "border-[#FF2E9F] bg-[#FF2E9F]" : "border-[#FF2E9F]/20"
                       }`}>
                         {isSelected && <Check className="w-4 h-4 text-black" strokeWidth={3} />}
                       </div>
@@ -334,7 +334,7 @@ export default function GuestFixMyLookModal({ sessionId, analysis, trigger, clos
                         {matchedItem && (
                           <div className="flex items-center gap-2 mt-0.5">
                             <span className="text-xs text-muted-foreground truncate">{matchedItem.name}</span>
-                            <span className={`text-xs font-bold ${matchedItem.score >= 8 ? "text-amber-400" : matchedItem.score >= 6 ? "text-amber-400" : "text-rose-400"}`}>
+                            <span className={`text-xs font-bold ${matchedItem.score >= 8 ? "text-[#FF2E9F]" : matchedItem.score >= 6 ? "text-[#FF2E9F]" : "text-rose-400"}`}>
                               {matchedItem.score}/10
                             </span>
                           </div>
@@ -342,7 +342,7 @@ export default function GuestFixMyLookModal({ sessionId, analysis, trigger, clos
                       </div>
                       {isSelected && (
                         <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
-                          isCloset ? "bg-emerald-500/10 text-emerald-400" : "bg-amber-500/10 text-amber-400"
+                          isCloset ? "bg-emerald-500/10 text-emerald-400" : "bg-[#FF2E9F]/10 text-[#FF2E9F]"
                         }`}>
                           {isCloset ? (isHe ? "מהארון" : "Closet") : (isHe ? "קנייה חדשה" : "Buy new")}
                         </span>
@@ -359,7 +359,7 @@ export default function GuestFixMyLookModal({ sessionId, analysis, trigger, clos
                             src={imp.upgradeImageUrl}
                             alt={imp.afterLabel}
                             className={`w-16 h-16 rounded-lg object-cover border-2 shrink-0 transition-all ${
-                              isSelected ? "border-amber-500/40 shadow-md shadow-amber-500/10" : "border-amber-500/5 opacity-60"
+                              isSelected ? "border-[#FF2E9F]/40 shadow-md shadow-[#FF2E9F]/10" : "border-[#FF2E9F]/5 opacity-60"
                             }`}
                           />
                         )}
@@ -367,7 +367,7 @@ export default function GuestFixMyLookModal({ sessionId, analysis, trigger, clos
                           <div className="flex items-center gap-2 text-[11px] flex-wrap">
                             <span className="px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-400 line-through">{imp.beforeLabel}</span>
                             <span className="text-muted-foreground">→</span>
-                            <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 font-medium">{imp.afterLabel}</span>
+                            <span className="px-2 py-0.5 rounded-full bg-[#FF2E9F]/10 text-[#FF2E9F] font-medium">{imp.afterLabel}</span>
                           </div>
                           {imp.afterColor && (
                             <span className="text-[10px] text-muted-foreground mt-1 block">
@@ -388,7 +388,7 @@ export default function GuestFixMyLookModal({ sessionId, analysis, trigger, clos
                             className={`flex-1 flex items-center gap-2 px-3 py-2 rounded-lg transition-all ${
                               isCloset
                                 ? "bg-emerald-500/20 border-2 border-emerald-500/50"
-                                : "bg-amber-500/[0.02] border border-amber-500/5 hover:border-emerald-500/30"
+                                : "bg-[#FF2E9F]/[0.02] border border-[#FF2E9F]/5 hover:border-emerald-500/30"
                             }`}
                           >
                             <span style={{ fontSize: '14px' }}>♻️</span>
@@ -409,16 +409,16 @@ export default function GuestFixMyLookModal({ sessionId, analysis, trigger, clos
                             onClick={(e) => { e.stopPropagation(); switchToBuyNew(impIdx); }}
                             className={`flex-1 flex items-center gap-2 px-3 py-2 rounded-lg transition-all ${
                               !isCloset
-                                ? "bg-amber-500/15 border-2 border-amber-500/40"
-                                : "bg-amber-500/[0.02] border border-amber-500/5 hover:border-amber-500/20"
+                                ? "bg-[#FF2E9F]/15 border-2 border-[#FF2E9F]/40"
+                                : "bg-[#FF2E9F]/[0.02] border border-[#FF2E9F]/5 hover:border-[#FF2E9F]/20"
                             }`}
                           >
-                            <ShoppingBag className="w-4 h-4 text-amber-400 shrink-0" />
+                            <ShoppingBag className="w-4 h-4 text-[#FF2E9F] shrink-0" />
                             <div className="flex-1 min-w-0 text-start">
                               <span className="text-xs font-medium">{isHe ? "קנה חדש" : "Buy new"}</span>
                               <span className="text-[10px] text-muted-foreground block">{imp.afterLabel}</span>
                             </div>
-                            {!isCloset && <Check className="w-4 h-4 text-amber-400 shrink-0" />}
+                            {!isCloset && <Check className="w-4 h-4 text-[#FF2E9F] shrink-0" />}
                           </button>
                         </div>
 
@@ -445,7 +445,7 @@ export default function GuestFixMyLookModal({ sessionId, analysis, trigger, clos
                                 href={link.url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-amber-500/10 bg-amber-500/[0.03] hover:bg-amber-500/[0.08] hover:border-amber-500/30 transition-all text-xs"
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-[#FF2E9F]/10 bg-[#FF2E9F]/[0.03] hover:bg-[#FF2E9F]/[0.08] hover:border-[#FF2E9F]/30 transition-all text-xs"
                               >
                                 {storeName ? (
                                   <>
@@ -476,7 +476,7 @@ export default function GuestFixMyLookModal({ sessionId, analysis, trigger, clos
               <Button
                 onClick={handleFix}
                 disabled={selectedCount === 0}
-                className="gap-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-bold shadow-[0_0_20px_rgba(245,158,11,0.3)]"
+                className="gap-2 bg-gradient-to-r from-[#FF2E9F] to-[#7B2EFF] hover:from-[#FF2E9F] hover:to-[#7B2EFF] text-black font-bold shadow-[0_0_20px_rgba(245,158,11,0.3)]"
               >
                 <Sparkles className="w-4 h-4" />
                 {isHe ? "תראה לי את התוצאה" : "Show me the result"}
@@ -502,7 +502,7 @@ export default function GuestFixMyLookModal({ sessionId, analysis, trigger, clos
               afterScore={result.estimatedScore}
             />
 
-            <div className="flex items-center justify-center gap-4 p-4 rounded-xl bg-gradient-to-r from-rose-500/10 to-amber-500/10 border border-amber-500/20">
+            <div className="flex items-center justify-center gap-4 p-4 rounded-xl bg-gradient-to-r from-rose-500/10 to-[#7B2EFF]/10 border border-[#FF2E9F]/20">
               <div className="text-center">
                 <p className="text-xs text-muted-foreground">{isHe ? "לפני" : "Before"}</p>
                 <p className="text-2xl font-bold text-rose-400">{result.originalScore}</p>
@@ -510,10 +510,10 @@ export default function GuestFixMyLookModal({ sessionId, analysis, trigger, clos
               <div className="text-2xl text-muted-foreground">→</div>
               <div className="text-center">
                 <p className="text-xs text-muted-foreground">{isHe ? "אחרי (משוער)" : "After (est.)"}</p>
-                <p className="text-2xl font-bold text-amber-400">{result.estimatedScore}</p>
+                <p className="text-2xl font-bold text-[#FF2E9F]">{result.estimatedScore}</p>
               </div>
-              <div className="text-center px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20">
-                <p className="text-sm font-bold text-amber-400">+{(result.estimatedScore - result.originalScore).toFixed(1)}</p>
+              <div className="text-center px-3 py-1.5 rounded-full bg-[#FF2E9F]/10 border border-[#FF2E9F]/20">
+                <p className="text-sm font-bold text-[#FF2E9F]">+{(result.estimatedScore - result.originalScore).toFixed(1)}</p>
               </div>
             </div>
 
@@ -521,7 +521,7 @@ export default function GuestFixMyLookModal({ sessionId, analysis, trigger, clos
               <p className="text-sm font-bold mb-2">{isHe ? "פריטים ששופרו:" : "Items improved:"}</p>
               <div className="flex flex-wrap gap-2">
                 {result.itemsFixed.map((item, i) => (
-                  <span key={i} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                  <span key={i} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs bg-[#FF2E9F]/10 text-[#FF2E9F] border border-[#FF2E9F]/20">
                     <span>{item.icon}</span>
                     <span>{item.name}</span>
                     <span className="text-rose-400 line-through">{item.scoreBefore}</span>
@@ -533,7 +533,7 @@ export default function GuestFixMyLookModal({ sessionId, analysis, trigger, clos
             {result.shoppingLinks && result.shoppingLinks.length > 0 && (
               <div>
                 <p className="text-sm font-bold mb-3 flex items-center gap-1.5">
-                  <ShoppingBag className="w-4 h-4 text-amber-400" />
+                  <ShoppingBag className="w-4 h-4 text-[#FF2E9F]" />
                   {isHe ? "קנה את הפריטים המומלצים:" : "Shop the recommended items:"}
                 </p>
                 <div className="flex flex-wrap gap-2">
@@ -541,16 +541,16 @@ export default function GuestFixMyLookModal({ sessionId, analysis, trigger, clos
                     const storeName = extractStoreFromUrl(link.url) || extractStoreFromLabel(link.label);
                     return (
                       <a key={i} href={link.url} target="_blank" rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-amber-500/10 bg-amber-500/[0.03] hover:bg-amber-500/[0.08] hover:border-amber-500/30 transition-all group">
+                        className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-[#FF2E9F]/10 bg-[#FF2E9F]/[0.03] hover:bg-[#FF2E9F]/[0.08] hover:border-[#FF2E9F]/30 transition-all group">
                         {storeName ? (
                           <div className="flex items-center gap-2">
                             <div className="bg-white/90 rounded-lg px-1.5 py-0.5"><StoreLogo name={storeName} size="sm" /></div>
-                            <span className="text-xs text-muted-foreground group-hover:text-amber-400 flex items-center gap-1">
+                            <span className="text-xs text-muted-foreground group-hover:text-[#FF2E9F] flex items-center gap-1">
                               {isHe ? "חפש" : "Search"}<ExternalLink className="w-2.5 h-2.5" />
                             </span>
                           </div>
                         ) : (
-                          <span className="text-xs font-medium group-hover:text-amber-400 flex items-center gap-1">
+                          <span className="text-xs font-medium group-hover:text-[#FF2E9F] flex items-center gap-1">
                             {link.label}<ExternalLink className="w-2.5 h-2.5" />
                           </span>
                         )}
@@ -636,7 +636,7 @@ export default function GuestFixMyLookModal({ sessionId, analysis, trigger, clos
                 <p className="text-base font-bold text-foreground">{cm.name}</p>
                 <div className="flex flex-wrap items-center justify-center gap-2">
                   {cm.brand && (
-                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs bg-[#FF2E9F]/10 text-[#FF2E9F] border border-[#FF2E9F]/20">
                       {cm.brand}
                     </span>
                   )}

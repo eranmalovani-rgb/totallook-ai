@@ -136,7 +136,7 @@ export default function Home() {
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden" dir={dir}>
       {/* Admin Preview Banner */}
       {isPreview && (
-        <div className="fixed top-0 left-0 right-0 z-[100] bg-amber-500/95 backdrop-blur-sm text-black text-center py-2 text-sm font-bold flex items-center justify-center gap-3 shadow-lg">
+        <div className="fixed top-0 left-0 right-0 z-[100] bg-[#FF2E9F]/95 backdrop-blur-sm text-black text-center py-2 text-sm font-bold flex items-center justify-center gap-3 shadow-lg">
           <Eye className="w-4 h-4" />
           <span>{isHe ? "תצוגה מקדימה — דף נחיתה" : "Preview Mode — Landing Page"}</span>
           <div className="flex items-center gap-1.5">
@@ -155,19 +155,19 @@ export default function Home() {
       ═══════════════════════════════════════════════════════════════ */}
       <section className="relative min-h-[100dvh] flex flex-col justify-center px-4 pt-8 pb-24 md:pb-16">
         {/* Ambient glow */}
-        <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-amber-500/5 rounded-full blur-[150px] pointer-events-none" />
-        <div className="absolute bottom-0 right-0 w-[300px] h-[300px] bg-amber-600/3 rounded-full blur-[100px] pointer-events-none" />
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-[#FF2E9F]/5 rounded-full blur-[150px] pointer-events-none" />
+        <div className="absolute bottom-0 right-0 w-[300px] h-[300px] bg-[#FF2E9F]/3 rounded-full blur-[100px] pointer-events-none" />
 
         <div className="container relative z-10 max-w-5xl mx-auto">
           {/* Minimal top bar */}
           <div className="flex items-center justify-between mb-8 md:mb-12">
             <span className="text-xl md:text-2xl font-bold tracking-tight">
-              <span className="text-amber-400">TotalLook</span><span className="text-foreground/60">.ai</span>
+              <span className="text-[#FF2E9F]">TotalLook</span><span className="text-foreground/60">.ai</span>
             </span>
             <Link
               href={uploadHref}
               onClick={() => trackCtaClick("hero-nav")}
-              className="text-xs md:text-sm text-amber-400/80 hover:text-amber-300 transition-colors flex items-center gap-1.5"
+              className="text-xs md:text-sm text-[#FF2E9F]/80 hover:text-[#FF2E9F] transition-colors flex items-center gap-1.5"
             >
               {isHe ? "התחילי עכשיו" : "Start now"}
               <ArrowRight className="w-3.5 h-3.5" />
@@ -178,9 +178,9 @@ export default function Home() {
             {/* Left/Right: Copy */}
             <div className={`text-center md:text-start ${dir === "rtl" ? "md:order-2" : ""}`}>
               {/* Badge */}
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-amber-500/20 bg-amber-500/5 mb-6">
-                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                <span className="text-xs text-amber-300/80 font-medium tracking-wide">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#FF2E9F]/20 bg-[#FF2E9F]/5 mb-6">
+                <Sparkles className="w-3.5 h-3.5 text-[#FF2E9F]" />
+                <span className="text-xs text-[#FF2E9F]/80 font-medium tracking-wide">
                   {isHe ? "סטייליסטית AI אישית" : "AI Personal Stylist"}
                 </span>
               </div>
@@ -196,7 +196,7 @@ export default function Home() {
                 <span className="text-foreground">
                   {isHe ? " " : " an "}
                 </span>
-                <span className="text-amber-400 font-extrabold">8</span>
+                <span className="text-[#FF2E9F] font-extrabold">8</span>
                 <br />
                 <span className="text-foreground">
                   {isHe ? "כמו שאת חושבת" : "like you think"}
@@ -204,7 +204,7 @@ export default function Home() {
               </h1>
 
               {/* Subtitle — provocative follow-up */}
-              <p className="text-xl md:text-2xl font-semibold bg-gradient-to-r from-amber-300 via-amber-400 to-amber-500 bg-clip-text text-transparent mb-8">
+              <p className="text-xl md:text-2xl font-semibold bg-gradient-to-r from-[#FF2E9F] via-[#FF2E9F] to-[#7B2EFF] bg-clip-text text-transparent mb-8">
                 {isHe ? "בואי נבדוק את זה" : "Let's find out"}
               </p>
 
@@ -213,7 +213,7 @@ export default function Home() {
                 <Link
                   href={uploadHref}
                   onClick={() => trackCtaClick("hero")}
-                  className="group inline-flex items-center gap-3 px-8 py-4 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-bold text-base md:text-lg transition-all duration-300 shadow-[0_0_30px_rgba(245,158,11,0.3)] hover:shadow-[0_0_40px_rgba(245,158,11,0.5)] hover:scale-[1.02] active:scale-[0.98]"
+                  className="group inline-flex items-center gap-3 px-8 py-4 rounded-2xl bg-gradient-to-r from-[#FF2E9F] to-[#7B2EFF] hover:from-[#FF2E9F] hover:to-[#7B2EFF] text-black font-bold text-base md:text-lg transition-all duration-300 shadow-[0_0_30px_rgba(245,158,11,0.3)] hover:shadow-[0_0_40px_rgba(245,158,11,0.5)] hover:scale-[1.02] active:scale-[0.98]"
                 >
                   <Upload className="w-5 h-5" />
                   {isHe ? "תראי את הציון האמיתי שלך" : "See your real score"}
@@ -242,7 +242,7 @@ export default function Home() {
 
             {/* Right/Left: Before/After Slider */}
             <div className={`relative ${dir === "rtl" ? "md:order-1" : ""}`}>
-              <div className="rounded-2xl overflow-hidden border border-amber-500/10 shadow-2xl shadow-amber-500/5">
+              <div className="rounded-2xl overflow-hidden border border-[#FF2E9F]/10 shadow-2xl shadow-[#FF2E9F]/5">
                 <LandingBeforeAfterSlider
                   beforeImg={HERO_SHOWCASE.afterImg}
                   afterImg={HERO_SHOWCASE.beforeImg}
@@ -253,8 +253,8 @@ export default function Home() {
                 />
               </div>
               {/* Floating score badge */}
-              <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full bg-background/90 backdrop-blur-sm border border-amber-500/20 shadow-lg">
-                <span className="text-sm font-bold text-amber-400 flex items-center gap-1.5">
+              <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full bg-background/90 backdrop-blur-sm border border-[#FF2E9F]/20 shadow-lg">
+                <span className="text-sm font-bold text-[#FF2E9F] flex items-center gap-1.5">
                   <TrendingUp className="w-4 h-4" />
                   +{(HERO_SHOWCASE.scoreAfter - HERO_SHOWCASE.scoreBefore).toFixed(1)} {isHe ? "נקודות" : "points"}
                 </span>
@@ -276,7 +276,7 @@ export default function Home() {
         <section className="py-16 md:py-24 px-4">
           <div className="container max-w-4xl mx-auto">
             <div className="text-center mb-12 md:mb-16">
-              <p className="text-xs text-amber-400/60 tracking-[0.2em] uppercase font-medium mb-4">
+              <p className="text-xs text-[#FF2E9F]/60 tracking-[0.2em] uppercase font-medium mb-4">
                 {isHe ? "איך זה עובד" : "How it works"}
               </p>
               <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold">
@@ -307,15 +307,15 @@ export default function Home() {
               ].map((step) => (
                 <div
                   key={step.num}
-                  className="relative group text-center p-6 md:p-8 rounded-2xl border border-amber-500/10 bg-gradient-to-b from-amber-500/[0.03] to-transparent hover:border-amber-500/20 transition-all duration-300"
+                  className="relative group text-center p-6 md:p-8 rounded-2xl border border-[#FF2E9F]/10 bg-gradient-to-b from-[#FF2E9F]/[0.03] to-transparent hover:border-[#FF2E9F]/20 transition-all duration-300"
                 >
                   {/* Step number */}
-                  <div className="text-5xl md:text-6xl font-bold text-amber-500/10 absolute top-4 left-4 pointer-events-none">
+                  <div className="text-5xl md:text-6xl font-bold text-[#FF2E9F]/10 absolute top-4 left-4 pointer-events-none">
                     {step.num}
                   </div>
                   {/* Icon */}
-                  <div className="relative z-10 w-14 h-14 mx-auto mb-5 rounded-xl bg-amber-500/10 flex items-center justify-center group-hover:bg-amber-500/15 transition-colors">
-                    <step.icon className="w-6 h-6 text-amber-400" />
+                  <div className="relative z-10 w-14 h-14 mx-auto mb-5 rounded-xl bg-[#FF2E9F]/10 flex items-center justify-center group-hover:bg-[#FF2E9F]/15 transition-colors">
+                    <step.icon className="w-6 h-6 text-[#FF2E9F]" />
                   </div>
                   <h3 className="text-lg md:text-xl font-bold mb-2 relative z-10">{step.title}</h3>
                   <p className="text-sm text-muted-foreground relative z-10">{step.desc}</p>
@@ -331,10 +331,10 @@ export default function Home() {
       ═══════════════════════════════════════════════════════════════ */}
       <AnimatedSection>
         <section className="py-16 md:py-24 px-4 relative">
-          <div className="absolute inset-0 bg-gradient-to-b from-amber-500/[0.02] via-transparent to-transparent pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#FF2E9F]/[0.02] via-transparent to-transparent pointer-events-none" />
           <div className="container max-w-5xl mx-auto relative z-10">
             <div className="text-center mb-12 md:mb-16">
-              <p className="text-xs text-amber-400/60 tracking-[0.2em] uppercase font-medium mb-4">
+              <p className="text-xs text-[#FF2E9F]/60 tracking-[0.2em] uppercase font-medium mb-4">
                 {isHe ? "מה מקבלים" : "What you get"}
               </p>
               <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
@@ -348,13 +348,13 @@ export default function Home() {
             </div>
 
             {/* Mock result card */}
-            <div className="max-w-lg mx-auto rounded-2xl border border-amber-500/15 bg-gradient-to-b from-amber-500/[0.04] to-background/80 backdrop-blur-sm overflow-hidden shadow-xl shadow-amber-500/5">
+            <div className="max-w-lg mx-auto rounded-2xl border border-[#FF2E9F]/15 bg-gradient-to-b from-[#FF2E9F]/[0.04] to-background/80 backdrop-blur-sm overflow-hidden shadow-xl shadow-[#FF2E9F]/5">
               {/* Score header */}
-              <div className="p-6 text-center border-b border-amber-500/10">
-                <div className="inline-flex items-center justify-center w-20 h-20 rounded-full border-4 border-amber-500/30 mb-3">
-                  <span className="text-3xl font-bold text-amber-400">8.7</span>
+              <div className="p-6 text-center border-b border-[#FF2E9F]/10">
+                <div className="inline-flex items-center justify-center w-20 h-20 rounded-full border-4 border-[#FF2E9F]/30 mb-3">
+                  <span className="text-3xl font-bold text-[#FF2E9F]">8.7</span>
                 </div>
-                <p className="text-sm text-amber-300/60 font-medium">
+                <p className="text-sm text-[#FF2E9F]/60 font-medium">
                   {isHe ? "ציון הלוק שלך" : "Your look score"}
                 </p>
               </div>
@@ -380,7 +380,7 @@ export default function Home() {
                 <Link
                   href={uploadHref}
                   onClick={() => trackCtaClick("results-preview")}
-                  className="block w-full text-center py-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 font-bold text-sm hover:bg-amber-500/15 transition-colors"
+                  className="block w-full text-center py-3.5 rounded-xl bg-[#FF2E9F]/10 border border-[#FF2E9F]/20 text-[#FF2E9F] font-bold text-sm hover:bg-[#FF2E9F]/15 transition-colors"
                 >
                   {isHe ? "רוצה לראות את שלי →" : "I want to see mine →"}
                 </Link>
@@ -390,7 +390,7 @@ export default function Home() {
             {/* More before/after examples */}
             <div className="grid md:grid-cols-2 gap-6 mt-12">
               {MORE_SHOWCASES.map((item, i) => (
-                <div key={i} className="rounded-2xl overflow-hidden border border-amber-500/10">
+                <div key={i} className="rounded-2xl overflow-hidden border border-[#FF2E9F]/10">
                   <LandingBeforeAfterSlider
                     beforeImg={item.afterImg}
                     afterImg={item.beforeImg}
@@ -413,7 +413,7 @@ export default function Home() {
         <section className="py-16 md:py-24 px-4">
           <div className="container max-w-4xl mx-auto">
             <div className="text-center mb-10">
-              <p className="text-xs text-amber-400/60 tracking-[0.2em] uppercase font-medium mb-4">
+              <p className="text-xs text-[#FF2E9F]/60 tracking-[0.2em] uppercase font-medium mb-4">
                 {isHe ? "מה אומרים" : "What people say"}
               </p>
               <h2 className="text-3xl md:text-4xl font-bold">
@@ -425,13 +425,13 @@ export default function Home() {
               {testimonials.map((item, i) => (
                 <div
                   key={i}
-                  className="p-5 rounded-2xl border border-amber-500/10 bg-gradient-to-br from-amber-500/[0.03] to-transparent hover:border-amber-500/20 transition-all duration-300"
+                  className="p-5 rounded-2xl border border-[#FF2E9F]/10 bg-gradient-to-br from-[#FF2E9F]/[0.03] to-transparent hover:border-[#FF2E9F]/20 transition-all duration-300"
                 >
                   <div className="flex items-start gap-3">
                     <span className="text-2xl">{item.emoji}</span>
                     <div>
                       <p className="text-sm text-foreground/90 leading-relaxed mb-3">"{item.text}"</p>
-                      <p className="text-xs text-amber-400/60 font-medium">— {item.name}</p>
+                      <p className="text-xs text-[#FF2E9F]/60 font-medium">— {item.name}</p>
                     </div>
                   </div>
                 </div>
@@ -446,7 +446,7 @@ export default function Home() {
                 { value: "4.9★", label: isHe ? "דירוג" : "Rating" },
               ].map((stat) => (
                 <div key={stat.label}>
-                  <p className="text-2xl md:text-3xl font-bold text-amber-400">{stat.value}</p>
+                  <p className="text-2xl md:text-3xl font-bold text-[#FF2E9F]">{stat.value}</p>
                   <p className="text-xs text-muted-foreground/60 mt-1">{stat.label}</p>
                 </div>
               ))}
@@ -460,15 +460,15 @@ export default function Home() {
       ═══════════════════════════════════════════════════════════════ */}
       <section className="py-16 md:py-20 px-4 relative overflow-hidden">
         {/* Different background */}
-        <div className="absolute inset-0 bg-gradient-to-r from-amber-500/[0.06] via-amber-600/[0.04] to-amber-500/[0.06]" />
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-amber-500/20 to-transparent" />
-        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-amber-500/20 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#FF2E9F]/[0.06] via-[#7B2EFF]/[0.04] to-[#7B2EFF]/[0.06]" />
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#FF2E9F]/20 to-transparent" />
+        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#FF2E9F]/20 to-transparent" />
 
         <div className="container max-w-3xl mx-auto text-center relative z-10">
           <p className="text-3xl md:text-4xl lg:text-5xl font-bold leading-tight mb-6">
             {isHe
-              ? <>כולן כבר משדרגות את הלוק.<br /><span className="text-amber-400/60">את עדיין מנחשת.</span></>
-              : <>Everyone is upgrading their look.<br /><span className="text-amber-400/60">You're still guessing.</span></>
+              ? <>כולן כבר משדרגות את הלוק.<br /><span className="text-[#FF2E9F]/60">את עדיין מנחשת.</span></>
+              : <>Everyone is upgrading their look.<br /><span className="text-[#FF2E9F]/60">You're still guessing.</span></>
             }
           </p>
           <p className="text-base text-muted-foreground max-w-md mx-auto mb-8">
@@ -479,7 +479,7 @@ export default function Home() {
           <Link
             href={uploadHref}
             onClick={() => trackCtaClick("fomo")}
-            className="inline-flex items-center gap-3 px-8 py-4 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-bold text-base transition-all duration-300 shadow-[0_0_30px_rgba(245,158,11,0.3)] hover:shadow-[0_0_40px_rgba(245,158,11,0.5)] hover:scale-[1.02] active:scale-[0.98]"
+            className="inline-flex items-center gap-3 px-8 py-4 rounded-2xl bg-gradient-to-r from-[#FF2E9F] to-[#7B2EFF] hover:from-[#FF2E9F] hover:to-[#7B2EFF] text-black font-bold text-base transition-all duration-300 shadow-[0_0_30px_rgba(245,158,11,0.3)] hover:shadow-[0_0_40px_rgba(245,158,11,0.5)] hover:scale-[1.02] active:scale-[0.98]"
           >
             <Upload className="w-5 h-5" />
             {isHe ? "בואי נבדוק" : "Let's check"}
@@ -569,19 +569,19 @@ export default function Home() {
           FINAL CTA
       ═══════════════════════════════════════════════════════════════ */}
       <section className="py-20 md:py-28 px-4 relative">
-        <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[400px] h-[400px] bg-amber-500/5 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[400px] h-[400px] bg-[#FF2E9F]/5 rounded-full blur-[120px] pointer-events-none" />
         <div className="container max-w-3xl mx-auto text-center relative z-10">
           <h2 className="text-3xl md:text-5xl lg:text-6xl font-bold mb-6">
             {isHe
-              ? <>נסי את זה על הלוק שלך.<br /><span className="text-amber-400">לוקח 5 שניות.</span></>
-              : <>Try it on your outfit.<br /><span className="text-amber-400">Takes 5 seconds.</span></>
+              ? <>נסי את זה על הלוק שלך.<br /><span className="text-[#FF2E9F]">לוקח 5 שניות.</span></>
+              : <>Try it on your outfit.<br /><span className="text-[#FF2E9F]">Takes 5 seconds.</span></>
             }
           </h2>
 
           <Link
             href={uploadHref}
             onClick={() => trackCtaClick("final")}
-            className="group inline-flex items-center gap-3 px-10 py-5 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-bold text-lg transition-all duration-300 shadow-[0_0_30px_rgba(245,158,11,0.3)] hover:shadow-[0_0_40px_rgba(245,158,11,0.5)] hover:scale-[1.02] active:scale-[0.98]"
+            className="group inline-flex items-center gap-3 px-10 py-5 rounded-2xl bg-gradient-to-r from-[#FF2E9F] to-[#7B2EFF] hover:from-[#FF2E9F] hover:to-[#7B2EFF] text-black font-bold text-lg transition-all duration-300 shadow-[0_0_30px_rgba(245,158,11,0.3)] hover:shadow-[0_0_40px_rgba(245,158,11,0.5)] hover:scale-[1.02] active:scale-[0.98]"
           >
             <Upload className="w-5 h-5" />
             {isHe ? "העלי את הלוק שלך" : "Upload your outfit"}
@@ -598,10 +598,10 @@ export default function Home() {
       {/* ═══════════════════════════════════════════════════════════════
           FOOTER — Minimal
       ═══════════════════════════════════════════════════════════════ */}
-      <footer className="py-10 border-t border-amber-500/5">
+      <footer className="py-10 border-t border-[#FF2E9F]/5">
         <div className="container max-w-5xl mx-auto text-center">
           <p className="text-lg font-bold text-muted-foreground/40 mb-4">
-            <span className="text-amber-400/40">TotalLook</span>.ai
+            <span className="text-[#FF2E9F]/40">TotalLook</span>.ai
           </p>
           <div className="flex items-center justify-center gap-6 text-xs text-muted-foreground/40">
             <Link href="/terms" className="hover:text-foreground/60 transition-colors">
@@ -623,11 +623,11 @@ export default function Home() {
       {/* ═══════════════════════════════════════════════════════════════
           STICKY MOBILE CTA
       ═══════════════════════════════════════════════════════════════ */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden p-3 bg-background/95 backdrop-blur-md border-t border-amber-500/10 safe-area-bottom">
+      <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden p-3 bg-background/95 backdrop-blur-md border-t border-[#FF2E9F]/10 safe-area-bottom">
         <Link
           href={uploadHref}
           onClick={() => trackCtaClick("sticky")}
-          className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-black font-bold text-sm shadow-[0_-4px_20px_rgba(245,158,11,0.2)]"
+          className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl bg-gradient-to-r from-[#FF2E9F] to-[#7B2EFF] text-black font-bold text-sm shadow-[0_-4px_20px_rgba(245,158,11,0.2)]"
         >
           <Upload className="w-4 h-4" />
           {isHe ? "העלי את הלוק שלך" : "Upload your outfit"}

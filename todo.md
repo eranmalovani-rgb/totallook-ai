@@ -1159,3 +1159,15 @@
 
 ## Stage 107: /glow Hero — Add Visual Element to Hero Section
 - [x] 107.1: Move before/after hero image INTO the hero section — now shows title + image + scores + CTA all in one compact hero
+
+## Stage 108: Full Glow Redesign — Apply /glow Theme Across Entire App
+- [x] 108.1: Update index.css global theme — dark bg (#0B0B0F), pink (#FF2E9F), purple (#7B2EFF), glow effects, Space Grotesk + Inter fonts
+- [x] 108.2: Make GlowLanding the official home route (/) instead of /glow
+- [x] 108.3: Redesign Navbar with Glow theme — pink/purple logo gradient, pink notification avatars
+- [x] 108.4: Redesign Upload page with Glow theme — all amber/gold replaced with pink/purple
+- [x] 108.5: Redesign Results page with Glow theme — all amber/gold replaced with pink/purple
+- [x] 108.6: Redesign Profile page with Glow theme — all amber/gold replaced with pink/purple
+- [x] 108.7: Redesign History page with Glow theme — all amber/gold replaced with pink/purple
+- [x] 108.8: Redesign Settings/Privacy/Terms pages with Glow theme — inherits from global CSS
+- [x] 108.9: Update all shared components (buttons, cards, modals, loading states) with Glow style — 30+ files updated, 0 amber references remaining
+- [x] 108.10: Verify all pages look consistent, TypeScript compiles clean, save checkpoint

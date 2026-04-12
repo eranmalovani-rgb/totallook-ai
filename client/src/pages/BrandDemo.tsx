@@ -323,7 +323,7 @@ function TotalLookWidget({
 
   const matchLevel =
     matchScore >= 80 ? { he: "התאמה מצוינת!", en: "Excellent Match!", color: "text-emerald-400", bg: "bg-emerald-500/20", border: "border-emerald-500/30" } :
-    matchScore >= 60 ? { he: "התאמה טובה", en: "Good Match", color: "text-amber-400", bg: "bg-amber-500/20", border: "border-amber-500/30" } :
+    matchScore >= 60 ? { he: "התאמה טובה", en: "Good Match", color: "text-[#FF2E9F]", bg: "bg-[#FF2E9F]/20", border: "border-[#FF2E9F]/30" } :
     { he: "התאמה חלקית", en: "Partial Match", color: "text-orange-400", bg: "bg-orange-500/20", border: "border-orange-500/30" };
 
   const hasWardrobeItems = (widgetData?.matchingWardrobeItems?.length ?? 0) > 0;
@@ -351,10 +351,10 @@ function TotalLookWidget({
         {/* Widget Header */}
         <div className="flex items-center justify-between px-5 py-3 border-b border-white/10 flex-shrink-0">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-md bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
+            <div className="w-6 h-6 rounded-md bg-gradient-to-br from-[#FF2E9F] to-orange-600 flex items-center justify-center">
               <Sparkles className="w-3.5 h-3.5 text-white" />
             </div>
-            <span className="text-sm font-bold bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent">
+            <span className="text-sm font-bold bg-gradient-to-r from-[#FF2E9F] to-orange-400 bg-clip-text text-transparent">
               TotalLook.ai
             </span>
           </div>
@@ -369,10 +369,10 @@ function TotalLookWidget({
             {animState === "scanning" ? (
               <div className="flex flex-col items-center py-10 gap-4">
                 <div className="relative w-20 h-20">
-                  <div className="absolute inset-0 rounded-full border-2 border-amber-500/30 animate-ping" />
-                  <div className="absolute inset-2 rounded-full border-2 border-amber-500/50 animate-pulse" />
-                  <div className="absolute inset-4 rounded-full bg-gradient-to-br from-amber-500/20 to-orange-500/20 flex items-center justify-center">
-                    <Sparkles className="w-6 h-6 text-amber-400 animate-spin" />
+                  <div className="absolute inset-0 rounded-full border-2 border-[#FF2E9F]/30 animate-ping" />
+                  <div className="absolute inset-2 rounded-full border-2 border-[#FF2E9F]/50 animate-pulse" />
+                  <div className="absolute inset-4 rounded-full bg-gradient-to-br from-[#FF2E9F]/20 to-orange-500/20 flex items-center justify-center">
+                    <Sparkles className="w-6 h-6 text-[#FF2E9F] animate-spin" />
                   </div>
                 </div>
                 <p className="text-sm text-white/60 animate-pulse">
@@ -382,7 +382,7 @@ function TotalLookWidget({
                   {[0, 1, 2].map((i) => (
                     <div
                       key={i}
-                      className="w-1.5 h-1.5 rounded-full bg-amber-500"
+                      className="w-1.5 h-1.5 rounded-full bg-[#FF2E9F]"
                       style={{ animation: `pulse 1.5s ease-in-out ${i * 0.3}s infinite` }}
                     />
                   ))}
@@ -416,7 +416,7 @@ function TotalLookWidget({
                       onClick={() => setActiveTab(tab.key)}
                       className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-medium whitespace-nowrap transition-all ${
                         activeTab === tab.key
-                          ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                          ? "bg-[#FF2E9F]/20 text-[#FF2E9F] border border-[#FF2E9F]/30"
                           : "text-white/40 hover:text-white/70 border border-transparent"
                       }`}
                     >
@@ -495,7 +495,7 @@ function TotalLookWidget({
                         className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg bg-white/5 hover:bg-white/8 transition-colors border border-white/5"
                       >
                         <div className="flex items-center gap-2">
-                          <Recycle className="w-4 h-4 text-amber-400" />
+                          <Recycle className="w-4 h-4 text-[#FF2E9F]" />
                           <span className="text-xs text-white/70">
                             {isHe
                               ? `יש לך ${widgetData?.matchingWardrobeItems?.length} פריטים שמשתלבים`
@@ -512,7 +512,7 @@ function TotalLookWidget({
                 {activeTab === "wardrobe" && (
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
-                      <Recycle className="w-4 h-4 text-amber-400" />
+                      <Recycle className="w-4 h-4 text-[#FF2E9F]" />
                       <p className="text-xs text-white/40 uppercase tracking-wider">
                         {isHe ? "פריטים מהארון שלך שמשתלבים" : "Items from your closet that pair well"}
                       </p>
@@ -523,7 +523,7 @@ function TotalLookWidget({
                         {widgetData.matchingWardrobeItems.map((item) => (
                           <div
                             key={item.id}
-                            className="flex items-center gap-3 p-2.5 rounded-lg bg-white/5 border border-white/5 hover:border-amber-500/20 transition-colors"
+                            className="flex items-center gap-3 p-2.5 rounded-lg bg-white/5 border border-white/5 hover:border-[#FF2E9F]/20 transition-colors"
                           >
                             {/* Item image */}
                             <div className="w-12 h-12 rounded-md overflow-hidden bg-white/10 flex-shrink-0">
@@ -569,8 +569,8 @@ function TotalLookWidget({
 
                     {/* Styling tip */}
                     {widgetData?.matchingWardrobeItems && widgetData.matchingWardrobeItems.length > 0 && (
-                      <div className="px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                        <p className="text-xs text-amber-300/80">
+                      <div className="px-3 py-2 rounded-lg bg-[#FF2E9F]/10 border border-[#FF2E9F]/20">
+                        <p className="text-xs text-[#FF2E9F]/80">
                           <Sparkles className="w-3 h-3 inline mr-1 rtl:ml-1 rtl:mr-0" />
                           {isHe
                             ? `שלב את ה${product.name.he} עם הפריטים שלך ליצירת לוק מושלם — כבר יש לך את הבסיס!`
@@ -585,7 +585,7 @@ function TotalLookWidget({
                 {activeTab === "looks" && (
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
-                      <TrendingUp className="w-4 h-4 text-amber-400" />
+                      <TrendingUp className="w-4 h-4 text-[#FF2E9F]" />
                       <p className="text-xs text-white/40 uppercase tracking-wider">
                         {isHe ? "שדרג לוקים אחרונים" : "Upgrade Your Recent Looks"}
                       </p>
@@ -611,13 +611,13 @@ function TotalLookWidget({
                                       ? `יום ${look.dayNameHe} — ${look.date}`
                                       : `${look.dayNameEn} — ${look.date}`}
                                   </span>
-                                  <span className={`text-xs font-bold ${look.overallScore >= 7 ? "text-emerald-400" : look.overallScore >= 5 ? "text-amber-400" : "text-orange-400"}`}>
+                                  <span className={`text-xs font-bold ${look.overallScore >= 7 ? "text-emerald-400" : look.overallScore >= 5 ? "text-[#FF2E9F]" : "text-orange-400"}`}>
                                     {look.overallScore}/10
                                   </span>
                                 </div>
 
                                 {/* How this product would improve this look */}
-                                <p className="text-xs text-amber-300/80">
+                                <p className="text-xs text-[#FF2E9F]/80">
                                   <Zap className="w-3 h-3 inline mr-1 rtl:ml-1 rtl:mr-0" />
                                   {isHe
                                     ? `ה${product.name.he} היה משדרג את הלוק הזה`
@@ -708,7 +708,7 @@ function TotalLookWidget({
                       <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-white/5 border border-white/5">
                         <div className="text-center">
                           <p className="text-[10px] text-white/30 uppercase">{isHe ? "לפני" : "Before"}</p>
-                          <p className={`text-lg font-black ${selectedLook.overallScore >= 7 ? "text-emerald-400" : selectedLook.overallScore >= 5 ? "text-amber-400" : "text-orange-400"}`}>
+                          <p className={`text-lg font-black ${selectedLook.overallScore >= 7 ? "text-emerald-400" : selectedLook.overallScore >= 5 ? "text-[#FF2E9F]" : "text-orange-400"}`}>
                             {selectedLook.overallScore}
                           </p>
                         </div>
@@ -890,7 +890,7 @@ function TotalLookWidget({
                 {activeTab === "complete" && (
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
-                      <Layers className="w-4 h-4 text-amber-400" />
+                      <Layers className="w-4 h-4 text-[#FF2E9F]" />
                       <p className="text-xs text-white/40 uppercase tracking-wider">
                         {isHe ? "איך תיראה עם זה" : "How You'll Look"}
                       </p>
@@ -898,7 +898,7 @@ function TotalLookWidget({
 
                     {/* AI Generated Look Image */}
                     {generatedLookUrl ? (
-                      <div className="relative rounded-xl overflow-hidden border border-amber-500/30 bg-black/30">
+                      <div className="relative rounded-xl overflow-hidden border border-[#FF2E9F]/30 bg-black/30">
                         <img loading="lazy" src={generatedLookUrl}
                           alt="AI Generated Look"
                           className="w-full object-contain max-h-[300px]"
@@ -967,13 +967,13 @@ function TotalLookWidget({
                       <div className="flex items-center justify-center gap-2 flex-wrap">
                         {/* The product being viewed */}
                         <div className="relative">
-                          <div className="w-20 h-24 rounded-lg overflow-hidden border-2 border-amber-500/50 shadow-lg shadow-amber-500/10">
+                          <div className="w-20 h-24 rounded-lg overflow-hidden border-2 border-[#FF2E9F]/50 shadow-lg shadow-[#FF2E9F]/10">
                             <img loading="lazy" src={product.image} alt={product.name[lang]} className="w-full h-full object-cover" />
                           </div>
-                          <div className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-amber-500 flex items-center justify-center">
+                          <div className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-[#FF2E9F] flex items-center justify-center">
                             <ShoppingBag className="w-2.5 h-2.5 text-black" />
                           </div>
-                          <p className="text-[9px] text-center text-amber-400 mt-1 truncate w-20">
+                          <p className="text-[9px] text-center text-[#FF2E9F] mt-1 truncate w-20">
                             {isHe ? "מוצר חדש" : "New Item"}
                           </p>
                         </div>
@@ -1011,7 +1011,7 @@ function TotalLookWidget({
                             : `Combine the ${product.name.en} with ${widgetData?.completeLookSuggestion?.length || 0} items you already own`}
                         </p>
                         {widgetData?.personalInsights?.dominantStyle && (
-                          <p className="text-[10px] text-amber-400/60 mt-1">
+                          <p className="text-[10px] text-[#FF2E9F]/60 mt-1">
                             {isHe
                               ? `מותאם לסגנון ה-${widgetData.personalInsights.dominantStyle} שלך`
                               : `Tailored to your ${widgetData.personalInsights.dominantStyle} style`}
@@ -1056,7 +1056,7 @@ function TotalLookWidget({
 
                 {/* CTA */}
                 <div className="flex gap-2 pt-2">
-                  <button className="flex-1 bg-gradient-to-r from-amber-500 to-orange-600 text-white text-sm font-semibold py-2.5 rounded-lg hover:opacity-90 transition-opacity">
+                  <button className="flex-1 bg-gradient-to-r from-[#FF2E9F] to-orange-600 text-white text-sm font-semibold py-2.5 rounded-lg hover:opacity-90 transition-opacity">
                     {isHe ? "הוסף לסל" : "Add to Cart"}
                   </button>
                   <button className="px-3 py-2.5 rounded-lg border border-white/10 hover:border-white/20 transition-colors">
@@ -1142,10 +1142,10 @@ function SmartMatchNotification({
         <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/10">
           <div className="flex items-center gap-2">
             <div className="relative">
-              <Bell className="w-4 h-4 text-amber-400" />
+              <Bell className="w-4 h-4 text-[#FF2E9F]" />
               <div className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-red-500 animate-pulse" />
             </div>
-            <span className="text-xs font-bold bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent">
+            <span className="text-xs font-bold bg-gradient-to-r from-[#FF2E9F] to-orange-400 bg-clip-text text-transparent">
               TotalLook.ai
             </span>
           </div>
@@ -1170,7 +1170,7 @@ function SmartMatchNotification({
               onOpenWidget();
               handleDismiss();
             }}
-            className="w-full flex items-center gap-3 p-2.5 rounded-xl bg-white/5 border border-white/10 hover:border-amber-500/30 transition-all group"
+            className="w-full flex items-center gap-3 p-2.5 rounded-xl bg-white/5 border border-white/10 hover:border-[#FF2E9F]/30 transition-all group"
           >
             <div className="w-14 h-16 rounded-lg overflow-hidden flex-shrink-0 bg-white/10">
               <img loading="lazy" src={DEMO_POPUP_PRODUCT.image} alt="" className="w-full h-full object-cover" />
@@ -1185,7 +1185,7 @@ function SmartMatchNotification({
               </div>
             </div>
             <div className="flex-shrink-0 opacity-50 group-hover:opacity-100 transition-opacity">
-              {isHe ? <ChevronLeft className="w-4 h-4 text-amber-400" /> : <ChevronRight className="w-4 h-4 text-amber-400" />}
+              {isHe ? <ChevronLeft className="w-4 h-4 text-[#FF2E9F]" /> : <ChevronRight className="w-4 h-4 text-[#FF2E9F]" />}
             </div>
           </button>
 
@@ -1205,7 +1205,7 @@ function SmartMatchNotification({
               onOpenWidget();
               handleDismiss();
             }}
-            className="w-full mt-3 py-2 rounded-lg text-xs font-semibold text-black bg-gradient-to-r from-amber-400 to-orange-400 hover:from-amber-300 hover:to-orange-300 transition-all"
+            className="w-full mt-3 py-2 rounded-lg text-xs font-semibold text-black bg-gradient-to-r from-[#FF2E9F] to-orange-400 hover:from-[#FF2E9F] hover:to-orange-300 transition-all"
           >
             {isHe ? "ראה למה זה מתאים לך →" : "See why it matches you →"}
           </button>
@@ -1331,7 +1331,7 @@ export default function BrandDemo() {
                     key={s}
                     className={`w-4 h-4 ${
                       s <= Math.floor(selectedProduct.rating)
-                        ? "text-amber-400 fill-amber-400"
+                        ? "text-[#FF2E9F] fill-[#FF2E9F]"
                         : "text-gray-300"
                     }`}
                   />

@@ -6,6 +6,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { LanguageProvider } from "./i18n";
 import Home from "./pages/Home";
+import GlowHome from "./pages/GlowLanding";
 import Upload from "./pages/Upload";
 import ReviewPage from "./pages/ReviewPage";
 import History from "./pages/History";
@@ -31,13 +32,13 @@ import CookieConsent from "./components/CookieConsent";
 import GlobalWhatsAppPopup from "./components/GlobalWhatsAppPopup";
 import WhatsAppReview from "./pages/WhatsAppReview";
 import About from "./pages/About";
-import GlowLanding from "./pages/GlowLanding";
+// GlowLanding imported above as GlowHome
 import WhatsAppFloatingButton from "./components/WhatsAppFloatingButton";
 
 function Router() {
   return (
     <Switch>
-      <Route path={"/"} component={Home} />
+      <Route path={"/"} component={GlowHome} />
       <Route path={"/upload"} component={Upload} />
       <Route path={"/review/:id"} component={ReviewPage} />
       <Route path={"/history"} component={History} />
@@ -59,7 +60,8 @@ function Router() {
       <Route path="/brand-demo" component={BrandDemo} />
       <Route path="/style-diary" component={StyleDiary} />
       <Route path="/about" component={About} />
-      <Route path="/glow" component={GlowLanding} />
+      <Route path="/glow" component={GlowHome} />
+      <Route path="/old-home" component={Home} />
       <Route path="/r/:token" component={WhatsAppReview} />
       <Route path="/wardrobe/shared/:token">
         {(params) => <SharedWardrobe token={params.token} />}
