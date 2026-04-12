@@ -1274,3 +1274,16 @@
 - [x] 117g: Design language — TikTok+Zara+Apple applied
 - [x] 117h: Noise removed — no navbar, minimal text, short scroll, sticky mobile CTA
 - [x] 117i: Upload flow — CTA navigates to /try (path chooser), no login required
+
+## Stage 118 — Landing Page Final Refinements (DOM Structure + Design System)
+
+- [x] 118a: Hero — media covers full screen (absolute, object-fit cover), overlay 0.45
+- [x] 118b: Score — HUGE clamp(72px, 12vw, 140px), font-weight 900, dominant element
+- [x] 118c: GameHook added — "Most outfits score 60-75" + "Top 10% get 90+"
+- [x] 118d: LiveFeed added — rotating messages every 3s with green pulsing dot + LIVE
+- [x] 118e: StyleGrid added — 2-column grid with 4 before/after cards + scores
+- [x] 118f: Sticky CTA — fixed on ALL screens, pulse animation, max-w-md centered
+- [x] 118g: Design system — BG #0B0B0F, Primary #FF2E9F, Secondary #7B2EFF, Space Grotesk
+- [x] 118h: Mobile UX — thumb-friendly CTA, no hover deps, CTA visible in hero
+- [x] 118i: Performance — WebP images, lazy loading on grid, eager on hero, minimal JS
+- [x] 118j: Tracking events — page_view, cta_click, upload_start, upload_complete, drop_off
