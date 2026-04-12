@@ -1181,3 +1181,9 @@
 - [x] 110.3: Non-personalized guest influencer language — added tentative language to Stage 2 prompt + disclaimer in GuestReview UI for Path A guests
 - [x] 110.4: Store recommendations personalized — added luxury/premium detection from brands, materials, and score in Stage 1 analysis. Luxury guests get Farfetch/Mr Porter/SSENSE, premium get COS/Massimo Dutti level stores
 - [x] 110.5: Occasion context now inferred from Stage 1 analysis — detects evening/sport/work/date/party from summary text and garment types, passes to catalog matching so upgrades match the detected context
+
+## Stage 111: Fix Non-Personalized Influencer Section — Gender + Tentative Language
+- [x] 111.1: Stage 2 prompt enforces SAME GENDER with explicit examples and ⚠️ CRITICAL warnings
+- [x] 111.2: Stage 2 prompt now limits to 2-3 short sentences max with hedging language
+- [x] 111.3: Server-side guestProfileGender now always has a value (fallback to guestGender) so filtering never skips
+- [x] 111.4: Prompt instructs max 2-3 short sentences, name + one reason only

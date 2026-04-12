@@ -2082,12 +2082,12 @@ export function buildRecommendationsPromptFromCore(
   const normalizedGender = (userGender || "").toLowerCase();
   const genderLine = normalizedGender === "male"
     ? (isHebrew
-      ? "המשתמש הוא גבר: ההמלצות (ביגוד, לוקים ומשפיענים) חייבות להיות גבריות או יוניסקס בלבד. אין להמליץ על פריטי נשים."
-      : "User gender is male: recommendations (items, looks, influencers) must be male or unisex only. Do not recommend female-only items.")
+      ? "⚠️ קריטי — המשתמש הוא גבר! כל המשפיענים חייבים להיות גברים בלבד (דוגמאות: David Beckham, Harry Styles, Timothée Chalamet). אסור בשום מצב להציע משפיענות נשים (כמו Bella Hadid, Cate Blanchett, Zendaya). כל ההמלצות (ביגוד, לוקים, משפיענים) חייבות להיות גבריות או יוניסקס בלבד."
+      : "⚠️ CRITICAL — User is MALE! ALL influencers MUST be male only (e.g. David Beckham, Harry Styles, Timothée Chalamet). NEVER suggest female influencers (e.g. Bella Hadid, Cate Blanchett, Zendaya). All recommendations (items, looks, influencers) must be male or unisex only.")
     : normalizedGender === "female"
       ? (isHebrew
-        ? "המשתמשת היא אישה: ההמלצות (ביגוד, לוקים ומשפיענים) חייבות להיות נשיות או יוניסקס בלבד."
-        : "User gender is female: recommendations (items, looks, influencers) must be female or unisex only.")
+        ? "⚠️ קריטי — המשתמשת היא אישה! כל המשפיענים חייבים להיות נשים בלבד (דוגמאות: Bella Hadid, Zendaya, Hailey Bieber). אסור בשום מצב להציע משפיענים גברים (כמו David Beckham, Harry Styles). כל ההמלצות (ביגוד, לוקים, משפיענים) חייבות להיות נשיות או יוניסקס בלבד."
+        : "⚠️ CRITICAL — User is FEMALE! ALL influencers MUST be female only (e.g. Bella Hadid, Zendaya, Hailey Bieber). NEVER suggest male influencers (e.g. David Beckham, Harry Styles). All recommendations (items, looks, influencers) must be female or unisex only.")
       : (isHebrew
         ? "אין מגבלת מגדר קשיחה: העדף/י התאמה כללית/יוניסקס."
         : "No strict gender lock: prefer broadly compatible/unisex recommendations.");
@@ -2096,8 +2096,8 @@ export function buildRecommendationsPromptFromCore(
       ? `משפיענים מועדפים שהמשתמש ציין: ${preferredInfluencers}.`
       : `User preferred influencers: ${preferredInfluencers}.`)
     : (isHebrew
-      ? "אין משפיענים מפורשים. הצע 2-3 משפיענים רלוונטיים בשפה מסויגת/זהירה — השתמש בניסוחים כמו 'יכול/ה להתאים לך', 'אולי תמצא/י השראה אצל', 'הסגנון שלך מזכיר את'. אל תקבע בוודאות שהמשפיען מתאים — השתמש בשפה של 'אולי' ו'יכול'."
-      : "No explicit influencers provided. Suggest 2-3 relevant influencers using TENTATIVE/HEDGING language — use phrases like 'might suit your style', 'you could find inspiration from', 'your vibe reminds us of'. Do NOT state definitively that the influencer matches — use 'perhaps' and 'could' language.");
+      ? "אין משפיענים מפורשים. הצע 2-3 משפיענים רלוונטיים בשפה מסויגת וקצרה מאוד. כללים: (1) כתוב מקסימום 2-3 משפטים קצרים בלבד, לא יותר. (2) השתמש בניסוחים כמו 'אולי תמצא/י השראה אצל' או 'הסגנון מזכיר קצת את'. (3) אל תכתוב פסקה שלמה — רק שם המשפיען + משפט קצר אחד למה. (4) חובה: כל המשפיענים חייבים להיות מאותו מגדר כמו המשתמש!"
+      : "No explicit influencers provided. Suggest 2-3 relevant influencers — KEEP IT VERY SHORT (2-3 sentences max, not a paragraph). Rules: (1) Max 2-3 short sentences total. (2) Use hedging: 'might suit', 'could find inspiration from', 'reminds us of'. (3) Do NOT write a full paragraph — just name + one short reason. (4) MANDATORY: ALL influencers must be SAME GENDER as the user!");
 
   // Budget context
   const budgetMap: Record<string, string> = {
@@ -6377,7 +6377,8 @@ Return ONLY a JSON object with these exact fields:
           analysis = normalizeImprovementsForWearableCore(analysis, guestGender);
 
           // Gender-filter influencer mentions (same as registered user path)
-          const guestProfileGender = resolvedGender;
+          // Stage 111: Always use guestGender (with fallback) so filtering never skips
+          const guestProfileGender: string = guestGender;
           for (const inf of POPULAR_INFLUENCERS) {
             if (guestProfileGender && inf.gender !== "unisex" && inf.gender !== guestProfileGender) continue;
             const mentioned = analysis.influencerInsight?.includes(inf.name) ||
@@ -6578,7 +6579,7 @@ Return ONLY a JSON object with these exact fields:
 
 
           // Stage 43: Stage 2 background — save full analysis with recommendations
-          const guestGenderBg: GenderCategory = (resolvedGender as GenderCategory) || "male";
+          const guestGenderBg: GenderCategory = (resolvedGender as GenderCategory) || "female";
           analysis = fixShoppingLinkUrls(analysis, guestGenderBg, guestProfile?.preferredStores || null);
           analysis = normalizeOutfitSuggestionsForWearableCore(analysis, guestGenderBg);
           analysis = normalizeImprovementsForWearableCore(analysis, guestGenderBg);
