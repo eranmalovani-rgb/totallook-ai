@@ -1314,3 +1314,10 @@
 
 - [x] 121a: Changed proof line to "Most outfits aren't styled right. Let's fix yours."
 - [x] 121b: Logged-in user → /upload, guest → /try
+
+## Stage 122 — Tinder Swipe Cards Visual Drag
+
+- [x] 122a: Card follows finger with translateX + rotate (up to 12° tilt)
+- [x] 122b: Card rotates during drag (12° max) and 15° on fly-out
+- [x] 122c: Threshold 25% or velocity 0.4 → fly out with rotation; below → snap back
+- [x] 122d: Direction arrows appear during drag with color-coded borders

@@ -724,11 +724,13 @@ function StoryCardsContainer({
     const dy = e.touches[0].clientY - touchStartRef.current.y;
     if (!isDraggingRef.current && Math.abs(dy) > Math.abs(dx)) return;
     isDraggingRef.current = true;
-    // Follow finger with NO clamp — card goes as far as the finger goes
+    // Follow finger — card translates + rotates like Tinder
     if (cardContainerRef.current) {
-      cardContainerRef.current.style.transform = `translateX(${dx}px)`;
       const w = wrapperRef.current?.offsetWidth || 350;
-      cardContainerRef.current.style.opacity = `${Math.max(0, 1 - Math.abs(dx) / w)}`;
+      const rotation = (dx / w) * 12; // max ~12deg tilt
+      const opacity = Math.max(0.15, 1 - Math.abs(dx) / (w * 1.2));
+      cardContainerRef.current.style.transform = `translateX(${dx}px) rotate(${rotation}deg)`;
+      cardContainerRef.current.style.opacity = `${opacity}`;
       setDragProgress(Math.max(-1, Math.min(1, dx / w)));
     }
   }, [isAnimating]);
@@ -774,8 +776,9 @@ function StoryCardsContainer({
     const remaining = Math.abs(exitX) - Math.abs(dx);
     const exitDuration = Math.max(0.1, Math.min(0.25, remaining / (w * 3)));
 
+    const exitRotation = dx > 0 ? 15 : -15;
     el.style.transition = `transform ${exitDuration}s cubic-bezier(0.4, 0, 1, 1), opacity ${exitDuration}s ease-out`;
-    el.style.transform = `translateX(${exitX}px)`;
+    el.style.transform = `translateX(${exitX}px) rotate(${exitRotation}deg)`;
     el.style.opacity = "0";
 
     setTimeout(() => {
@@ -891,16 +894,46 @@ function StoryCardsContainer({
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
+        {/* Swipe direction indicator */}
+        {isDraggingRef.current && Math.abs(dragProgress) > 0.08 && (
+          <div className="absolute inset-0 z-20 pointer-events-none flex items-start justify-between px-6 pt-6">
+            <div
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border-2 font-bold text-sm"
+              style={{
+                borderColor: dragProgress > 0 ? (isRTL ? "#FF2E9F" : "#22c55e") : "transparent",
+                color: dragProgress > 0 ? (isRTL ? "#FF2E9F" : "#22c55e") : "transparent",
+                opacity: dragProgress > 0 ? Math.min(1, Math.abs(dragProgress) * 3) : 0,
+                transform: `scale(${dragProgress > 0 ? Math.min(1.1, 0.8 + Math.abs(dragProgress)) : 0.8})`,
+                transition: "opacity 0.1s, transform 0.1s",
+              }}
+            >
+              {isRTL ? "←" : "→"}
+            </div>
+            <div
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border-2 font-bold text-sm"
+              style={{
+                borderColor: dragProgress < 0 ? (isRTL ? "#22c55e" : "#FF2E9F") : "transparent",
+                color: dragProgress < 0 ? (isRTL ? "#22c55e" : "#FF2E9F") : "transparent",
+                opacity: dragProgress < 0 ? Math.min(1, Math.abs(dragProgress) * 3) : 0,
+                transform: `scale(${dragProgress < 0 ? Math.min(1.1, 0.8 + Math.abs(dragProgress)) : 0.8})`,
+                transition: "opacity 0.1s, transform 0.1s",
+              }}
+            >
+              {isRTL ? "→" : "←"}
+            </div>
+          </div>
+        )}
+
         {/* Peek: show edge of next/prev card during drag */}
         {peekIndex !== null && Math.abs(dragProgress) > 0.05 && (
           <div
             className="absolute top-0 bottom-0 w-[60%] pointer-events-none z-0"
             style={{
               [dragProgress > 0 ? (isRTL ? "left" : "right") : (isRTL ? "right" : "left")]: "-50%",
-              opacity: peekOpacity * 0.3,
-              transform: `translateX(${dragProgress > 0 ? (isRTL ? "-" : "") : (isRTL ? "" : "-")}${Math.max(0, 50 - Math.abs(dragProgress) * 50)}%)`,
-              transition: "opacity 0.1s ease-out",
-              filter: "blur(2px)",
+              opacity: peekOpacity * 0.4,
+              transform: `translateX(${dragProgress > 0 ? (isRTL ? "-" : "") : (isRTL ? "" : "-")}${Math.max(0, 50 - Math.abs(dragProgress) * 50)}%) scale(0.95)`,
+              transition: "opacity 0.1s ease-out, transform 0.15s ease-out",
+              filter: "blur(1px)",
             }}
           >
             <div className="scale-95 origin-center">
