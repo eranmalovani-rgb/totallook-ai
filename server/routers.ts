@@ -1104,7 +1104,7 @@ ${genderConstraint}`;
 
   // Occasion context
   const occasionMap: Record<string, string> = {
-    general: "GENERAL REVIEW \u2014 Give a comprehensive fashion review of this outfit. CRITICAL: Since no specific occasion was chosen, you MUST DETECT THE LIKELY OCCASION/CONTEXT FROM THE PHOTO.\n\nOCCASION DETECTION RULES (MANDATORY):\n1. Analyze the CLOTHING first: sportswear/sneakers/leggings/tank-top = WORKOUT/GYM. Suit/tie/blazer = FORMAL/WORK. Dress/heels = EVENING/DATE. Casual jeans+tee = EVERYDAY.\n2. Then analyze ENVIRONMENT: gym/park/outdoor trail = SPORT. Office/meeting room = WORK. Restaurant/bar = EVENING OUT. Home/mirror selfie = check clothing for context.\n3. The detected occasion MUST drive ALL recommendations. Examples:\n   - Person in workout clothes (leggings, sneakers, sports bra, tank top) -> recommend ONLY sport/athletic upgrades (better running shoes, moisture-wicking fabrics, matching athletic sets). NEVER suggest jeans, dresses, or formal items.\n   - Person in elegant outfit in dark setting -> recommend evening/formal upgrades. NEVER suggest casual cafe items.\n   - Person in office attire -> recommend professional upgrades only.\n4. State your detected context EXPLICITLY in the summary (e.g., 'Detected context: pre-workout / gym session').\n5. EVERY recommendation and shopping link MUST match the detected context. If the person is dressed for the gym, ALL suggestions must be athletic/sportswear.\n\nEvaluate: style coherence, color harmony, fit, quality of items, and personal expression. Be encouraging and constructive.",
+    general: "GENERAL REVIEW \u2014 Give a comprehensive fashion review of this outfit. CRITICAL: Since no specific occasion was chosen, you MUST DETECT THE LIKELY OCCASION/CONTEXT FROM THE PHOTO.\n\nOCCASION DETECTION RULES (MANDATORY \u2014 THIS IS THE MOST IMPORTANT RULE):\n1. Analyze the CLOTHING first: sportswear/sneakers/leggings/tank-top = WORKOUT/GYM. Suit/tie/blazer = FORMAL/WORK. Dress/heels = EVENING/DATE. Casual jeans+tee = EVERYDAY. Running shoes + shorts = RUNNING/EXERCISE.\n2. Then analyze ENVIRONMENT: gym/park/outdoor trail = SPORT. Office/meeting room = WORK. Restaurant/bar = EVENING OUT. Home/mirror selfie = check clothing for context. Beach/pool = VACATION/LEISURE.\n3. The detected occasion MUST drive ALL recommendations, upgrades, inspiration, and shopping links. ZERO EXCEPTIONS.\n4. CONTEXT-MATCHING EXAMPLES (STRICT):\n   - Person in workout clothes (leggings, sneakers, sports bra, tank top, running shoes) -> recommend ONLY sport/athletic upgrades (better running shoes, moisture-wicking fabrics, matching athletic sets, sport watches, fitness accessories). NEVER suggest jeans, dresses, blazers, or formal items.\n   - Person in elegant outfit in dark setting -> recommend evening/formal upgrades ONLY. NEVER suggest casual/sporty items.\n   - Person in office attire -> recommend professional upgrades ONLY. NEVER suggest streetwear or gym clothes.\n   - Person in casual streetwear -> recommend streetwear/casual upgrades. NEVER suggest formal suits.\n   - Person at the beach/pool -> recommend resort/swim/vacation upgrades ONLY.\n5. State your detected context EXPLICITLY in the summary (e.g., 'Detected context: pre-workout / gym session').\n6. EVERY recommendation, shopping link, influencer suggestion, and outfit suggestion MUST match the detected context. If the person is dressed for the gym, ALL suggestions must be athletic/sportswear. VIOLATING THIS RULE IS THE WORST POSSIBLE ERROR.\n7. CROSS-CONTEXT CONTAMINATION IS FORBIDDEN: If someone is in sporty clothes, suggesting a blazer or dress shoes is a CRITICAL FAILURE. If someone is in formal wear, suggesting sneakers or hoodies is a CRITICAL FAILURE.\n\nEvaluate: style coherence, color harmony, fit, quality of items, and personal expression. Be encouraging and constructive.",
     casual: "CASUAL / EVERYDAY — Everyday activities, errands, regular day. Comfort and effortless style are key. A clean, put-together casual look scores high. Overdressing (suits, heels) would be inappropriate.",
     work: "WORK / OFFICE — Professional work environment. Polished, office-appropriate looks. Consider dress codes from smart casual to business formal. Too casual (flip-flops, ripped jeans, crop tops) would score low.",
     date: "DATE NIGHT — Romantic outing. Attractive, well-put-together looks that show personality and effort. Should look intentional and appealing. Too casual or sloppy scores low.",
@@ -1377,7 +1377,17 @@ RULES:
 KEY BRAND MARKERS (HIGH confidence when visible):
 "H" on footwear/belt/bag → Hermès (NOT Hugo Boss/Valentino). CC → Chanel. LV/Damier → Louis Vuitton. GG/red-green → Gucci. FF → Fendi. CD/Oblique → Dior. Medusa → Versace. Swoosh → Nike. 3 stripes → Adidas. Polo horse → Ralph Lauren. Crocodile → Lacoste. YSL → Saint Laurent. TB → Burberry. Rockstud → Valentino. Red sole → Louboutin. Intrecciato → Bottega Veneta. Compass patch → Stone Island. Rooster patch → Moncler.
 
-Identify brands via: logos, patterns, silhouette, fabric quality, hardware, and construction. For premium users, prefer luxury brand guesses over fast fashion. NEVER leave brand empty — always guess with appropriate confidence level (HIGH/MEDIUM/LOW/NONE).
+Identify brands via: logos, patterns, silhouette, fabric quality, hardware, and construction.
+
+CRITICAL BRAND TIER RULE — ALWAYS PREFER FASHION HOUSES:
+- ALWAYS prefer identifying items as fashion house / designer / premium brands over local stores or budget brands.
+- When guessing a brand (LOW/MEDIUM confidence), ALWAYS lean toward well-known fashion houses: Zara, COS, Massimo Dutti, AllSaints, Reiss, Sandro, Maje, Theory, Club Monaco, Ted Baker, Hugo Boss, Ralph Lauren, Tommy Hilfiger, Calvin Klein, Michael Kors, Coach — these are the MINIMUM tier.
+- For higher-quality items, guess luxury: Gucci, Prada, Saint Laurent, Balenciaga, Burberry, Valentino, Bottega Veneta, Loewe, Celine, The Row, Totême, Acne Studios, AMI Paris, Jacquemus.
+- NEVER identify or guess local/budget stores (Fox, Castro, Renuar, Golf, Honigman, Terminal X, Shein, Temu, Primark, etc.) as brands. These are NOT fashion brands — they are retailers.
+- If an item looks like it could be from a local store, STILL guess a recognized fashion brand that makes similar items (e.g., a basic tee → Cos or Uniqlo, not Fox or Castro).
+- The goal is to make users feel their wardrobe is elevated. Brand identification should ALWAYS skew aspirational.
+
+NEVER leave brand empty — always guess with appropriate confidence level (HIGH/MEDIUM/LOW/NONE).
 
 BRAND NAME PLACEMENT: Brand goes ONLY in "brand" field. NEVER mention brand names in "name", "description", or "analysis" fields — the UI shows brand as a separate badge. Focus description/analysis on materials, colors, construction, trends.
 
@@ -1397,7 +1407,9 @@ BRAND SCORING FOR ALL USERS:
 - Score 7-8: Most items identified, some LOW confidence guesses
 - Score 5-6: Few items identified — this means YOU failed at identification
 - ALWAYS guess a brand. Users WANT to know what you think they're wearing.
-- Even basic items have brands: a plain white tee is still probably Uniqlo, H&M, Zara, or COS
+- Even basic items have brands: a plain white tee → COS, Uniqlo, or Zara (NEVER local stores like Fox, Castro, etc.)
+- ALWAYS prefer fashion houses and recognized international brands over local/budget retailers
+- When in doubt between a local store and a fashion brand → ALWAYS choose the fashion brand
 `}
 
 CONTEXT-AWARE SCORING:
@@ -6063,6 +6075,35 @@ Return ONLY a JSON object with these exact fields:
           for (const cat of analysisCore.scores || []) {
             if (cat.score !== null && cat.score < 7) cat.score = 7;
           }
+          // ── Stage 119: A→B Personalization Bonus ──
+          // If user completed onboarding (Path B) and has a previous analysis (Path A),
+          // ensure the personalized score is at least +0.3 higher than their best previous score.
+          // This reflects that the machine learned the user and provides more accurate results.
+          if (guestProfile?.onboardingCompleted && session.fingerprint) {
+            try {
+              const prevSessionIds = await getGuestSessionIdsByFingerprint(session.fingerprint);
+              // Find previous completed sessions (exclude current one)
+              const prevScores: number[] = [];
+              for (const prevId of prevSessionIds) {
+                if (prevId === input.sessionId) continue;
+                const prevSession = await getGuestSessionById(prevId);
+                if (prevSession?.status === 'completed' && prevSession.overallScore) {
+                  prevScores.push(prevSession.overallScore);
+                }
+              }
+              if (prevScores.length > 0) {
+                const bestPrevScore = Math.max(...prevScores);
+                const minPersonalizedScore = Math.round((bestPrevScore + 0.3) * 10) / 10;
+                if (analysisCore.overallScore < minPersonalizedScore) {
+                  console.log(`[Stage 119] A→B bonus: previous best=${bestPrevScore}, current=${analysisCore.overallScore}, boosting to ${minPersonalizedScore}`);
+                  analysisCore.overallScore = minPersonalizedScore;
+                }
+              }
+            } catch (bonusErr) {
+              console.warn('[Stage 119] A→B bonus check failed:', bonusErr);
+            }
+          }
+
           // Material quality validation
           const isGuestPremiumEarly = profileForPrompt?.budgetLevel === 'premium' || profileForPrompt?.budgetLevel === 'luxury';
           const cheapMaterialTermsGuestEarly = [

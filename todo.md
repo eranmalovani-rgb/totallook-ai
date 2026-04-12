@@ -1287,3 +1287,20 @@
 - [x] 118h: Mobile UX — thumb-friendly CTA, no hover deps, CTA visible in hero
 - [x] 118i: Performance — WebP images, lazy loading on grid, eager on hero, minimal JS
 - [x] 118j: Tracking events — page_view, cta_click, upload_start, upload_complete, drop_off
+
+## Stage 119 — Path A Context-Aware Inspiration + Path B Score Bonus
+
+- [x] 119a: Path A (GuestReview) — Removed influencer swap/add buttons from inspiration section
+- [x] 119b: Path A — Context detection strengthened in buildFashionPrompt occasion map
+- [x] 119c: Path A — Context-matching rules added: sporty→sporty, formal→formal, cross-context contamination forbidden
+- [x] 119d: Server-side — Occasion detection already in prompt, strengthened with explicit context-matching examples
+- [x] 119e: Server-side — Context stored via 'Detected context:' in summary field
+- [x] 119f: A→B transition — +0.3 minimum bonus implemented in guest analyze procedure
+- [x] 119g: Server-side — Checks previous sessions via fingerprint, ensures new score ≥ bestPrevScore + 0.3
+
+- [x] 119h: Brand recognition — CRITICAL BRAND TIER RULE added to prompt: always prefer fashion houses
+- [x] 119i: Brand recognition — BUDGET_STORE_MAP upgraded: removed Shein/Primark/Forever21, all tiers use recognized brands
+- [x] 119j: Brand recognition — Explicit blacklist in prompt: Fox, Castro, Renuar, Golf, Honigman, Terminal X, Shein, Temu, Primark
+- [x] 119k: Prompt update — Added 'CRITICAL BRAND TIER RULE' section with minimum tier + luxury tier examples
+
+- [x] 119-CRITICAL: Landing page mobile responsive — fixed scores, hero, grid, sections, sticky CTA for mobile

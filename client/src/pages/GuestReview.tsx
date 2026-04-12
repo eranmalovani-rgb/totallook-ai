@@ -1438,7 +1438,8 @@ export default function GuestReview() {
       </div>
     );
   } else if (hasInfluencerInsight) {
-    // Non-personalized guest (Path A) — text-only inspiration with tentative language
+    // Non-personalized guest (Path A) — text-only inspiration, NO swap/add buttons
+    // Path A shows context-aware inspiration based on image analysis only
     storyCards.push(
       <div key="inspiration" className="space-y-4">
         <div className="p-5 rounded-2xl border border-[#FF2E9F]/10 bg-gradient-to-b from-white/[0.03] to-transparent shadow-lg shadow-black/20">
@@ -1446,7 +1447,7 @@ export default function GuestReview() {
             <div className="flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-[#FF2E9F]" />
               <h3 className="text-base font-bold text-foreground/90">
-                {lang === "he" ? "השראה אפשרית" : "Possible Inspiration"}
+                {lang === "he" ? "השראה מותאמת" : "Matched Inspiration"}
               </h3>
             </div>
             <div className="flex items-center gap-1.5">
@@ -1455,15 +1456,23 @@ export default function GuestReview() {
               <InspirationPinterestIcon size={22} />
             </div>
           </div>
-          {/* Tentative disclaimer for non-personalized guests */}
-          <p className="text-[11px] text-muted-foreground/60 mb-2 italic">
-            {lang === "he"
-              ? "⚠️ ההשראות להלן מבוססות על ניתוח התמונה בלבד. להשראות מדויקות יותר — נסי את המסלול המדויק עם פרסונליזציה"
-              : "⚠️ These suggestions are based on image analysis only. For more accurate inspiration — try the personalized path"}
-          </p>
           <p className="text-sm text-muted-foreground leading-relaxed">
             <LinkedText text={analysis.influencerInsight!} mentions={mentions} onInfluencerClick={handleInfluencerClick} />
           </p>
+          {/* Upsell to personalized path */}
+          <div className="mt-4 p-3 rounded-xl bg-gradient-to-r from-[#FF2E9F]/10 to-[#7B2EFF]/10 border border-[#FF2E9F]/20">
+            <p className="text-xs text-muted-foreground/80 mb-2">
+              {lang === "he"
+                ? "✨ רוצה השראה מדויקת יותר? עברי למסלול הפרסונלי — המכונה תלמד את הסגנון שלך"
+                : "✨ Want more accurate inspiration? Try the personalized path — the AI will learn your style"}
+            </p>
+            <button
+              onClick={() => navigate("/try/quick")}
+              className="text-xs font-medium text-[#FF2E9F] hover:text-[#FF2E9F]/80 transition-colors flex items-center gap-1"
+            >
+              {lang === "he" ? "נסי את המסלול המדויק →" : "Try the precise path →"}
+            </button>
+          </div>
         </div>
       </div>
     );

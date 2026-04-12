@@ -282,7 +282,7 @@ export default function GlowLanding() {
       <section
         ref={heroRef.ref}
         className="relative flex flex-col items-center justify-center overflow-hidden"
-        style={{ height: "100vh", minHeight: 600 }}
+        style={{ height: "100svh", minHeight: 500 }}
       >
         {/* Hero media — 70-80% of screen, absolute cover */}
         <div className="absolute inset-0 z-[1]">
@@ -298,12 +298,12 @@ export default function GlowLanding() {
         </div>
 
         {/* Hero content — on top */}
-        <div className={`relative z-[2] text-center w-full max-w-2xl mx-auto px-5 transition-all duration-1000 ease-out ${heroReady ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}`}>
+        <div className={`relative z-[2] text-center w-full max-w-2xl mx-auto px-4 sm:px-5 transition-all duration-1000 ease-out ${heroReady ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}`}>
 
           {/* Headline */}
           <h1
-            className="font-extrabold mb-3 leading-[1.1] tracking-tight"
-            style={{ fontFamily: FONT, color: "#fff", fontSize: "clamp(28px, 6vw, 48px)" }}
+            className="font-extrabold mb-2 sm:mb-3 leading-[1.05] tracking-tight"
+            style={{ fontFamily: FONT, color: "#fff", fontSize: "clamp(26px, 7vw, 48px)" }}
           >
             What's your{" "}
             <span style={{ background: `linear-gradient(135deg, ${PINK}, ${PURPLE})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
@@ -312,22 +312,22 @@ export default function GlowLanding() {
           </h1>
 
           {/* Sub-headline */}
-          <p className="text-white/50 mb-6 max-w-md mx-auto leading-relaxed" style={{ fontSize: "clamp(14px, 2.5vw, 18px)" }}>
+          <p className="text-white/50 mb-4 sm:mb-6 max-w-md mx-auto leading-relaxed" style={{ fontSize: "clamp(13px, 3.5vw, 18px)" }}>
             Upload your look. Get your score. Fix it in seconds.
           </p>
 
           {/* ── SCORE — THE MOST IMPORTANT ELEMENT ── */}
-          <div className="flex items-center justify-center gap-4 mb-6 score-pop">
+          <div className="flex items-center justify-center gap-2 sm:gap-4 mb-4 sm:mb-6 score-pop">
             <span
               className="font-black"
-              style={{ fontSize: "clamp(72px, 12vw, 140px)", color: SCORE_LOW, fontFamily: FONT, textShadow: `0 0 40px ${SCORE_LOW}50`, lineHeight: 1 }}
+              style={{ fontSize: "clamp(56px, 15vw, 140px)", color: SCORE_LOW, fontFamily: FONT, textShadow: `0 0 40px ${SCORE_LOW}50`, lineHeight: 1 }}
             >
               <ScoreCounter from={0} to={62} duration={1500} trigger={heroRef.inView} />
             </span>
-            <span className="text-white/30 font-light" style={{ fontSize: "clamp(32px, 5vw, 60px)" }}>→</span>
+            <span className="text-white/30 font-light" style={{ fontSize: "clamp(24px, 6vw, 60px)" }}>→</span>
             <span
               className="font-black"
-              style={{ fontSize: "clamp(72px, 12vw, 140px)", color: NEON, fontFamily: FONT, textShadow: `0 0 40px ${NEON}50`, lineHeight: 1 }}
+              style={{ fontSize: "clamp(56px, 15vw, 140px)", color: NEON, fontFamily: FONT, textShadow: `0 0 40px ${NEON}50`, lineHeight: 1 }}
             >
               <ScoreCounter from={62} to={92} duration={2000} trigger={heroRef.inView} />
             </span>
@@ -336,7 +336,7 @@ export default function GlowLanding() {
           {/* Primary CTA */}
           <button
             onClick={openUpload}
-            className="cta-main relative font-bold rounded-2xl text-lg px-12 py-4 text-white transition-transform duration-200 hover:scale-[1.03] active:scale-[0.98]"
+            className="cta-main relative font-bold rounded-2xl text-base sm:text-lg px-8 sm:px-12 py-3.5 sm:py-4 text-white transition-transform duration-200 hover:scale-[1.03] active:scale-[0.98]"
             style={{ fontFamily: FONT, background: `linear-gradient(90deg, ${PINK}, ${PURPLE})` }}
           >
             See your score
@@ -352,12 +352,12 @@ export default function GlowLanding() {
       {/* ═══════════════════════════════════════════════════════
           SECTION 2 — GAME HOOK
           ═══════════════════════════════════════════════════════ */}
-      <section ref={gameRef.ref} className="py-16 px-5" style={{ background: BG_CARD }}>
+      <section ref={gameRef.ref} className="py-10 sm:py-16 px-4 sm:px-5" style={{ background: BG_CARD }}>
         <div className={`max-w-lg mx-auto text-center transition-all duration-700 ${gameRef.inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-white mb-3" style={{ fontFamily: FONT }}>
+          <h2 className="text-xl sm:text-3xl font-extrabold text-white mb-2 sm:mb-3" style={{ fontFamily: FONT }}>
             Most outfits score 60–75
           </h2>
-          <p className="text-lg sm:text-xl font-medium" style={{ color: NEON, fontFamily: FONT }}>
+          <p className="text-base sm:text-xl font-medium" style={{ color: NEON, fontFamily: FONT }}>
             Top 10% get 90+
           </p>
         </div>
@@ -373,19 +373,19 @@ export default function GlowLanding() {
       {/* ═══════════════════════════════════════════════════════
           SECTION 4 — INSTANT VALUE
           ═══════════════════════════════════════════════════════ */}
-      <section ref={valueRef.ref} className="py-20 px-5">
+      <section ref={valueRef.ref} className="py-12 sm:py-20 px-4 sm:px-5">
         <div className={`max-w-lg mx-auto transition-all duration-700 ${valueRef.inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
-          <h2 className="text-2xl sm:text-4xl font-extrabold text-center mb-10 text-white leading-tight" style={{ fontFamily: FONT }}>
+          <h2 className="text-xl sm:text-4xl font-extrabold text-center mb-6 sm:mb-10 text-white leading-tight" style={{ fontFamily: FONT }}>
             Your outfit.{" "}
             <span style={{ color: NEON }}>Analyzed in seconds.</span>
           </h2>
           <div className="flex flex-col gap-4">
             {["Get your outfit score", "See what's not working", "Get exact fixes and better looks"].map((text, i) => (
-              <div key={i} className="flex items-center gap-4 p-5 rounded-2xl" style={{ background: BG_CARD, border: `1px solid ${BORDER}` }}>
-                <div className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${PINK}15, ${PURPLE}15)` }}>
-                  <Check className="w-5 h-5" style={{ color: NEON }} />
+              <div key={i} className="flex items-center gap-3 sm:gap-4 p-4 sm:p-5 rounded-2xl" style={{ background: BG_CARD, border: `1px solid ${BORDER}` }}>
+                <div className="flex-shrink-0 w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${PINK}15, ${PURPLE}15)` }}>
+                  <Check className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: NEON }} />
                 </div>
-                <span className="text-white/90 text-base font-medium" style={{ fontFamily: FONT }}>{text}</span>
+                <span className="text-white/90 text-sm sm:text-base font-medium" style={{ fontFamily: FONT }}>{text}</span>
               </div>
             ))}
           </div>
@@ -395,15 +395,15 @@ export default function GlowLanding() {
       {/* ═══════════════════════════════════════════════════════
           SECTION 5 — RESULT PREVIEW
           ═══════════════════════════════════════════════════════ */}
-      <section ref={resultRef.ref} className="py-20 px-5" style={{ background: `linear-gradient(180deg, transparent, ${BG_CARD}40, transparent)` }}>
+      <section ref={resultRef.ref} className="py-12 sm:py-20 px-4 sm:px-5" style={{ background: `linear-gradient(180deg, transparent, ${BG_CARD}40, transparent)` }}>
         <div className={`max-w-lg mx-auto transition-all duration-700 ${resultRef.inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
-          <h2 className="text-2xl sm:text-4xl font-extrabold text-center mb-10 text-white" style={{ fontFamily: FONT }}>
+          <h2 className="text-xl sm:text-4xl font-extrabold text-center mb-6 sm:mb-10 text-white" style={{ fontFamily: FONT }}>
             This is what you get
           </h2>
 
           <div className="rounded-3xl overflow-hidden" style={{ background: BG_CARD, border: `1px solid ${BORDER}`, boxShadow: `0 0 60px ${PINK}08` }}>
             {/* Score header */}
-            <div className="p-6 pb-4 flex items-center justify-between" style={{ borderBottom: `1px solid ${BORDER}` }}>
+            <div className="p-4 sm:p-6 pb-3 sm:pb-4 flex items-center justify-between" style={{ borderBottom: `1px solid ${BORDER}` }}>
               <div>
                 <p className="text-white/40 text-xs uppercase tracking-wider mb-1" style={{ fontFamily: FONT }}>Score</p>
                 <div className="flex items-center gap-3">
@@ -417,7 +417,7 @@ export default function GlowLanding() {
               </div>
             </div>
 
-            <div className="p-6 flex flex-col gap-5">
+            <div className="p-4 sm:p-6 flex flex-col gap-4 sm:gap-5">
               <div>
                 <p className="text-white/40 text-xs uppercase tracking-wider mb-2" style={{ fontFamily: FONT }}>What's off</p>
                 <div className="flex flex-wrap gap-2">
@@ -458,9 +458,9 @@ export default function GlowLanding() {
       {/* ═══════════════════════════════════════════════════════
           SECTION 6 — STYLE GRID (2-column before/after)
           ═══════════════════════════════════════════════════════ */}
-      <section ref={gridRef.ref} className="py-20 px-4">
+      <section ref={gridRef.ref} className="py-12 sm:py-20 px-3 sm:px-4">
         <div className={`max-w-2xl mx-auto transition-all duration-700 ${gridRef.inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2 sm:gap-3">
             {STYLE_CARDS.map((card, i) => (
               <div
                 key={i}
@@ -468,13 +468,13 @@ export default function GlowLanding() {
                 style={{ background: BG_CARD, border: `1px solid ${BORDER}` }}
               >
                 <div className="grid grid-cols-2">
-                  <img src={card.before} alt="Before" className="w-full h-32 sm:h-44 object-cover" loading="lazy" />
-                  <img src={card.after} alt="After" className="w-full h-32 sm:h-44 object-cover" loading="lazy" />
+                  <img src={card.before} alt="Before" className="w-full h-28 sm:h-44 object-cover" loading="lazy" />
+                  <img src={card.after} alt="After" className="w-full h-28 sm:h-44 object-cover" loading="lazy" />
                 </div>
-                <div className="flex items-center justify-center gap-2 py-2.5 px-3">
-                  <span className="text-sm font-bold" style={{ color: SCORE_LOW, fontFamily: FONT }}>{card.scoreBefore}</span>
-                  <span className="text-white/30 text-xs">→</span>
-                  <span className="text-sm font-bold" style={{ color: NEON, fontFamily: FONT }}>{card.scoreAfter}</span>
+                <div className="flex items-center justify-center gap-1.5 sm:gap-2 py-2 sm:py-2.5 px-2 sm:px-3">
+                  <span className="text-xs sm:text-sm font-bold" style={{ color: SCORE_LOW, fontFamily: FONT }}>{card.scoreBefore}</span>
+                  <span className="text-white/30 text-[10px] sm:text-xs">→</span>
+                  <span className="text-xs sm:text-sm font-bold" style={{ color: NEON, fontFamily: FONT }}>{card.scoreAfter}</span>
                 </div>
               </div>
             ))}
@@ -485,9 +485,9 @@ export default function GlowLanding() {
       {/* ═══════════════════════════════════════════════════════
           SECTION 7 — SOCIAL PROOF (max 3, max 8 words each)
           ═══════════════════════════════════════════════════════ */}
-      <section ref={socialRef.ref} className="py-20 px-5">
+      <section ref={socialRef.ref} className="py-12 sm:py-20 px-4 sm:px-5">
         <div className={`max-w-lg mx-auto transition-all duration-700 ${socialRef.inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-center mb-10 text-white" style={{ fontFamily: FONT }}>
+          <h2 className="text-xl sm:text-3xl font-extrabold text-center mb-6 sm:mb-10 text-white" style={{ fontFamily: FONT }}>
             Why girls keep using it
           </h2>
           <div className="flex flex-col gap-4">
@@ -496,9 +496,9 @@ export default function GlowLanding() {
               { quote: "It literally fixed my outfit in seconds.", name: "Maya" },
               { quote: "I'm obsessed with checking my score.", name: "Dana" },
             ].map((item, i) => (
-              <div key={i} className="p-5 rounded-2xl" style={{ background: BG_CARD, border: `1px solid ${BORDER}` }}>
-                <p className="text-white/80 text-base leading-relaxed mb-2">"{item.quote}"</p>
-                <p className="text-white/25 text-sm">— {item.name}</p>
+              <div key={i} className="p-4 sm:p-5 rounded-2xl" style={{ background: BG_CARD, border: `1px solid ${BORDER}` }}>
+                <p className="text-white/80 text-sm sm:text-base leading-relaxed mb-1.5 sm:mb-2">"{item.quote}"</p>
+                <p className="text-white/25 text-xs sm:text-sm">— {item.name}</p>
               </div>
             ))}
           </div>
@@ -508,12 +508,12 @@ export default function GlowLanding() {
       {/* ═══════════════════════════════════════════════════════
           SECTION 8 — FOMO
           ═══════════════════════════════════════════════════════ */}
-      <section ref={fomoRef.ref} className="py-24 px-5" style={{ background: BG_CARD }}>
+      <section ref={fomoRef.ref} className="py-14 sm:py-24 px-4 sm:px-5" style={{ background: BG_CARD }}>
         <div className={`max-w-lg mx-auto text-center transition-all duration-700 ${fomoRef.inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
-          <h2 className="text-3xl sm:text-5xl font-extrabold mb-4 leading-tight text-white" style={{ fontFamily: FONT }}>
+          <h2 className="text-2xl sm:text-5xl font-extrabold mb-3 sm:mb-4 leading-tight text-white" style={{ fontFamily: FONT }}>
             Everyone is upgrading their look.
           </h2>
-          <p className="text-xl sm:text-2xl font-medium" style={{ color: "rgba(255,255,255,0.3)" }}>
+          <p className="text-lg sm:text-2xl font-medium" style={{ color: "rgba(255,255,255,0.3)" }}>
             You're still guessing.
           </p>
         </div>
@@ -522,18 +522,18 @@ export default function GlowLanding() {
       {/* ═══════════════════════════════════════════════════════
           SECTION 9 — FINAL CTA
           ═══════════════════════════════════════════════════════ */}
-      <section ref={finalRef.ref} className="py-24 px-5 relative">
+      <section ref={finalRef.ref} className="py-14 sm:py-24 px-4 sm:px-5 relative">
         <div className="absolute inset-0 pointer-events-none opacity-20">
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full blur-[120px]" style={{ background: `radial-gradient(circle, ${PINK}, transparent 70%)` }} />
         </div>
         <div className={`relative z-10 max-w-lg mx-auto text-center transition-all duration-700 ${finalRef.inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
-          <h2 className="text-3xl sm:text-5xl font-extrabold mb-3 text-white leading-tight" style={{ fontFamily: FONT }}>
+          <h2 className="text-2xl sm:text-5xl font-extrabold mb-2 sm:mb-3 text-white leading-tight" style={{ fontFamily: FONT }}>
             Try it on your outfit
           </h2>
-          <p className="text-white/35 text-lg mb-10">Takes 5 seconds.</p>
+          <p className="text-white/35 text-base sm:text-lg mb-6 sm:mb-10">Takes 5 seconds.</p>
           <button
             onClick={openUpload}
-            className="cta-main font-bold rounded-2xl text-lg px-14 py-4 text-white transition-transform duration-200 hover:scale-[1.03] active:scale-[0.98]"
+            className="cta-main font-bold rounded-2xl text-base sm:text-lg px-10 sm:px-14 py-3.5 sm:py-4 text-white transition-transform duration-200 hover:scale-[1.03] active:scale-[0.98]"
             style={{ fontFamily: FONT, background: `linear-gradient(90deg, ${PINK}, ${PURPLE})` }}
           >
             See your score
@@ -553,8 +553,8 @@ export default function GlowLanding() {
       >
         <button
           onClick={openUpload}
-          className="sticky-cta w-full max-w-md mx-auto block py-4 rounded-2xl font-bold text-base text-white"
-          style={{ fontFamily: FONT, background: `linear-gradient(90deg, ${PINK}, ${PURPLE})`, height: 56, borderRadius: 16 }}
+          className="sticky-cta w-full max-w-md mx-auto block py-3.5 sm:py-4 rounded-2xl font-bold text-sm sm:text-base text-white"
+          style={{ fontFamily: FONT, background: `linear-gradient(90deg, ${PINK}, ${PURPLE})`, minHeight: 48, borderRadius: 16 }}
         >
           See your score
         </button>

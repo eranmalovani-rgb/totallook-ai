@@ -1015,11 +1015,13 @@ export const STORE_OPTIONS = [
   { id: "nordstrom", label: "Nordstrom", budget: "luxury", icon: "👑" },
 ] as const;
 
-/** Maps budget level to recommended store names for AI prompt injection */
+/** Maps budget level to recommended store names for AI prompt injection.
+ *  Stage 119: NEVER include local/budget stores (Fox, Castro, Shein, Temu, Primark).
+ *  Even the lowest tier uses recognized international fashion brands. */
 export const BUDGET_STORE_MAP: Record<string, string[]> = {
-  budget: ["Shein", "H&M", "Primark", "Pull & Bear", "Bershka", "Forever 21", "ASOS (sale section)"],
-  "mid-range": ["Zara", "Mango", "ASOS", "Massimo Dutti", "COS", "Uniqlo", "Urban Outfitters"],
-  premium: ["AllSaints", "Reiss", "Ted Baker", "& Other Stories", "Arket", "Sandro", "Maje", "COS"],
+  budget: ["H&M", "Zara", "Pull & Bear", "Bershka", "ASOS", "Mango", "Uniqlo"],
+  "mid-range": ["Zara", "Mango", "ASOS", "Massimo Dutti", "COS", "Uniqlo", "& Other Stories"],
+  premium: ["AllSaints", "Reiss", "Ted Baker", "Sandro", "Maje", "COS", "Arket", "Theory"],
   luxury: ["NET-A-PORTER", "Farfetch", "SSENSE", "Mr Porter", "MatchesFashion", "Nordstrom"],
 };
 
