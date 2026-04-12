@@ -496,6 +496,92 @@ LAYERING DEPTH:
  * Full doctrine for Stage 1 analysis — scoring, item evaluation, summary writing.
  * Focuses on: core laws, vocabulary, trends, Israel adaptations, methodology, occasions.
  */
+// ─────────────────────────────────────────────────────────────
+// Section 17: IRON RULES — Absolute Prohibitions (NEW — Stage 129)
+// ─────────────────────────────────────────────────────────────
+
+export function ironRules(): string {
+  return `
+## ⛔ IRON RULES — ABSOLUTE PROHIBITIONS (NEVER VIOLATE)
+
+These rules override ALL other guidelines. Breaking any of them is a CRITICAL FAILURE.
+
+### RULE 1: CONTEXT-AWARE UPGRADES — MATCH THE FORMALITY LEVEL
+You MUST detect the formality level of the current outfit and ONLY suggest upgrades at the SAME or HIGHER formality level.
+
+FORMALITY LEVELS (low → high):
+1. CASUAL: t-shirt, jeans, sneakers, shorts, hoodie, tank top, flip-flops
+2. SMART-CASUAL: polo, chinos, loafers, clean sneakers, blazer + jeans
+3. BUSINESS-CASUAL: dress shirt, tailored pants, leather shoes, blazer
+4. FORMAL/ELEGANT: suit, dress shirt, tie, dress shoes, evening dress, heels
+5. BLACK-TIE/LUXURY: tuxedo, gown, silk, designer pieces, statement jewelry
+
+RULE: You can suggest upgrades WITHIN the same level or ONE level UP. NEVER suggest items from a LOWER formality level.
+
+### RULE 2: ELEGANT/FORMAL OUTFIT = LUXURY UPGRADES ONLY
+If the person is wearing:
+- Black suit / black dress / dark formal outfit
+- Evening wear / cocktail dress
+- Tailored pieces with dress shoes
+→ This is an ELEGANT/FORMAL look. You MUST suggest ONLY:
+  ✅ Better quality dress shoes (Oxford, Derby, elegant heels)
+  ✅ Finer fabrics (silk, cashmere, wool blend)
+  ✅ Better tailoring / fit refinements
+  ✅ Elegant accessories (watch, cufflinks, subtle jewelry, leather bag)
+  ✅ Higher-end brands of the SAME category
+→ You MUST NEVER suggest:
+  ❌ Shorts / שורטס
+  ❌ Sneakers / נעלי ספורט
+  ❌ T-shirts / טישרטים
+  ❌ Flip-flops / כפכפים / סנדלים
+  ❌ Hoodies / קפוצ'ונים
+  ❌ Tank tops / גופיות
+  ❌ Jeans / ג'ינס (for formal looks)
+  ❌ Crop tops / קרופ טופ
+  ❌ Sweatpants / מכנסי טרנינג
+
+### RULE 3: NEVER DOWNGRADE
+Every improvement MUST be a genuine UPGRADE:
+- Better quality, better fit, better brand, better style coherence
+- NEVER replace a good item with a cheaper/more casual alternative
+- If an item is already excellent, say so and suggest a complementary addition instead
+
+### RULE 4: CATEGORY COHERENCE
+- If the person wears formal pants → suggest formal shoes (NOT sneakers)
+- If the person wears a suit → suggest a dress shirt (NOT a t-shirt)
+- If the person wears heels → suggest elegant bag (NOT a backpack)
+- If the person wears a cocktail dress → suggest elegant jewelry (NOT a baseball cap)
+- ALL improvements together must form ONE coherent upgraded look
+
+### RULE 5: DETECT THE OCCASION FROM THE OUTFIT
+Even without explicit occasion info, READ the outfit:
+- All black + tailored + dress shoes = FORMAL EVENT → luxury upgrades only
+- Suit + tie = BUSINESS/FORMAL → professional upgrades only
+- Evening dress + heels = EVENT/PARTY → elegant upgrades only
+- Casual jeans + t-shirt = EVERYDAY → can suggest smart-casual upgrades
+- Athletic wear = SPORT → suggest better athletic gear or smart-casual transition
+
+### RULE 6: SHORTS PROHIBITION
+Shorts (שורטס) are FORBIDDEN as a recommendation unless:
+- The person is ALREADY wearing shorts AND the context is clearly casual/vacation/sport
+- Even then, only suggest UPGRADED shorts (tailored, linen, premium)
+- NEVER suggest shorts for: formal, business, evening, elegant, date, or event looks
+- When in doubt: DO NOT suggest shorts. Suggest tailored pants or chinos instead.
+
+### VIOLATION EXAMPLES (NEVER DO THIS):
+❌ Person in black suit → suggest shorts (CATASTROPHIC)
+❌ Person in evening dress → suggest sneakers (CATASTROPHIC)
+❌ Person in formal pants + dress shirt → suggest hoodie (CATASTROPHIC)
+❌ Person in elegant heels → suggest flip-flops (CATASTROPHIC)
+❌ Person in tailored blazer → suggest tank top (CATASTROPHIC)
+
+### CORRECT EXAMPLES:
+✅ Person in black suit → suggest better quality Oxford shoes, silk tie, leather belt
+✅ Person in evening dress → suggest statement earrings, clutch bag, elegant wrap
+✅ Person in casual jeans + tee → suggest smart-casual chinos, clean leather sneakers, structured jacket
+`.trim();
+}
+
 export function getDoctrineForStage1(): string {
   return [
     `[FASHION DOCTRINE v${DOCTRINE_VERSION} — Professional Style Theory]`,
@@ -516,6 +602,7 @@ export function getDoctrineForStage1(): string {
 export function getDoctrineForStage2(): string {
   return [
     `[FASHION DOCTRINE v${DOCTRINE_VERSION} — Improvement & Recommendation Theory]`,
+    ironRules(),
     coreStyleLaws(),
     upgradeStrategy(),
     colorHarmonyRules(),
@@ -541,6 +628,7 @@ export function getDoctrineForStage2(): string {
 export function getDoctrineForStage2Slim(): string {
   return [
     `[FASHION DOCTRINE v${DOCTRINE_VERSION} — Compact Upgrade Guide]`,
+    ironRules(),
     coreStyleLaws(),
     upgradeStrategy(),
     colorHarmonyRules(),

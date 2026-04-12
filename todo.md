@@ -1342,3 +1342,15 @@
 - [x] 127a: Add secret URL param (?owner=SECRET) that gives unlimited guest analyses from any device without login
 - [x] 127b: Bypass both checkLimit and upload rate limit when owner param is present
 - [x] 127c: Store owner param in localStorage so it persists across sessions
+
+## Stage 128 — Auto-populate Profile from Guest/Onboarding Data on Conversion
+- [x] 128a: Investigate migrateGuestToUser flow — found in db.ts, called from oauth.ts callback
+- [x] 128b: Fixed: now copies ALL fields (gender, ageRange, occupation, budgetLevel, styles, influencers, stores, country, favoriteBrands) + fills empty fields on existing profiles
+- [x] 128c: Test that profile page shows populated data after guest→user conversion (vitest covers migration logic)
+
+## Stage 129 — Iron-Clad Fashion Rules (No Shorts for Elegant Events)
+- [x] 129a: Add FASHION_IRON_RULES to fashionDoctrine — absolute prohibitions (no shorts/flip-flops/tank-tops for elegant/formal looks)
+- [x] 129b: Add context-aware upgrade rules: black elegant outfit = luxury event → only luxury upgrades allowed
+- [x] 129c: Add server-side sanitization: detect and reject inappropriate recommendations (shorts for formal, casual for elegant)
+- [x] 129d: Inject iron rules into Stage 2 LLM prompt (both HE and EN)
+- [x] 129e: Add vitest tests for iron rules validation

@@ -2201,6 +2201,12 @@ export function buildRecommendationsPromptFromCore(
 ❗ קטגוריות: כל improvement חייב להתייחס לקטגוריה אחת בלבד (חלק עליון, חלק תחתון, נעליים, אקססורי). אסור לערבב קטגוריות! אם הכותרת אומרת "ז'קט", ה-afterGarmentType חייב להיות סוג של ז'קט (לא מכנס!). אם הכותרת אומרת "נעליים", ה-afterGarmentType חייב להיות סוג של נעליים (לא חולצה!).
 ❗ נעליים: אסור להמליץ על "sneakers" גנריות. תמיד המלץ על חלופה משודרגת: "minimalist leather sneakers", "suede loafers", "leather derby shoes", "clean white leather sneakers".
 
+⛔⛔⛔ כללי ברזל — איסורים מוחלטים (הפרה = כישלון קריטי):
+❗ זהה את רמת הפורמליות של הלוק הנוכחי והמלץ רק שדרוגים באותה רמה או גבוהה!
+❗ אם הלוק אלגנטי/פורמלי (חליפה שחורה, נעלי אלגנטיות, שמלה ערב) — אסור להמליץ על: שורטס, כפכפים, טישרטים, סנדלים, גופיות, קפוצ'ונים, נעלי ספורט, מכנסי טרנינג, קרופ טופ.
+❗ שורטס אסור להמליץ אלא אם האדם כבר לובש שורטס וההקשר ברור קז'ואל/חופשה/ספורט.
+❗ כל שדרוג חייב להיות שדרוג אמיתי — איכות טובה יותר, גיזרה טובה יותר, מותג טוב יותר. לעולם לא להוריד רמה!
+
 ${doctrineStage2}
 
 כללים:
@@ -2274,6 +2280,12 @@ Address ${normalizedGender === "female" ? "her" : "him"} accordingly in all text
 ❗ FORBIDDEN PATTERN: Do NOT always recommend the same items (e.g., navy sweater, brown loafers, khaki chinos). These are "safe" defaults. Instead, analyze what the person is ACTUALLY wearing and suggest a precise, targeted upgrade for EACH specific item.
 ❗ CATEGORIES: Each improvement MUST address ONE category only (top, bottom, shoes, accessory). Do NOT mix categories! If the title says "jacket", the afterGarmentType MUST be a type of jacket (not pants!). If the title says "shoes", the afterGarmentType MUST be a type of shoes (not a shirt!).
 ❗ SHOES: NEVER recommend generic "sneakers". Always suggest an upgraded alternative: "minimalist leather sneakers", "suede loafers", "leather derby shoes", "clean white leather sneakers".
+
+⛔⛔⛔ IRON RULES — ABSOLUTE PROHIBITIONS (violation = CRITICAL FAILURE):
+❗ DETECT the formality level of the current outfit and ONLY suggest upgrades at the SAME or HIGHER formality level!
+❗ If the look is ELEGANT/FORMAL (black suit, dress shoes, evening dress, tailored outfit) — FORBIDDEN to suggest: shorts, flip-flops, t-shirts, sandals, tank tops, hoodies, sneakers, sweatpants, crop tops.
+❗ SHORTS are FORBIDDEN as a recommendation UNLESS the person is ALREADY wearing shorts AND the context is clearly casual/vacation/sport.
+❗ Every improvement MUST be a genuine UPGRADE — better quality, better fit, better brand. NEVER downgrade!
 
 ${doctrineStage2}
 
@@ -2758,6 +2770,49 @@ function validateAndFixProductSearchQuery(
   return parts.join(" ");
 }
 
+/**
+ * Detect the formality level of the outfit from Stage 1 core analysis.
+ * Returns: 1=casual, 2=smart-casual, 3=business-casual, 4=formal/elegant, 5=black-tie/luxury
+ */
+function detectFormalityLevel(core: FashionAnalysisCorePayload): number {
+  const items = core.items || [];
+  const summary = (core.summary || "").toLowerCase();
+  
+  // Collect all garment types and descriptions
+  const allTypes = items.map(i => (i.garmentType || "").toLowerCase());
+  const allDescs = items.map(i => `${(i.name || "").toLowerCase()} ${(i.description || "").toLowerCase()}`);
+  const allText = [...allTypes, ...allDescs, summary].join(" ");
+  
+  // BLACK-TIE / LUXURY indicators
+  const blackTieKeywords = ["tuxedo", "טקסידו", "gown", "גאון", "evening gown", "black tie"];
+  if (blackTieKeywords.some(k => allText.includes(k))) return 5;
+  
+  // FORMAL / ELEGANT indicators
+  const formalKeywords = [
+    "suit", "חליפה", "dress shirt", "חולצת כפתורים", "tie", "עניבה",
+    "dress shoes", "נעלי אלגנטיות", "oxford", "derby", "heels", "עקבים",
+    "evening dress", "שמלת ערב", "cocktail dress", "שמלת קוקטייל",
+    "formal", "פורמלי", "elegant", "אלגנטי", "tailored", "מחויט",
+    "blazer", "בלייזר", "cufflinks", "חפתים",
+  ];
+  const formalCount = formalKeywords.filter(k => allText.includes(k)).length;
+  // Also check: all-black outfit with tailored items is a strong formal signal
+  const hasBlackDominant = allText.includes("black") || allText.includes("שחור");
+  const hasTailored = allText.includes("tailored") || allText.includes("מחויט") || allText.includes("suit") || allText.includes("חליפה");
+  if (formalCount >= 2 || (hasBlackDominant && hasTailored)) return 4;
+  
+  // BUSINESS-CASUAL indicators
+  const bizCasualKeywords = ["blazer", "בלייזר", "chinos", "צ'ינוס", "leather shoes", "loafers", "לואפרס"];
+  if (bizCasualKeywords.filter(k => allText.includes(k)).length >= 2) return 3;
+  
+  // SMART-CASUAL indicators
+  const smartCasualKeywords = ["polo", "פולו", "clean sneakers", "structured", "smart"];
+  if (smartCasualKeywords.filter(k => allText.includes(k)).length >= 2) return 2;
+  
+  // Default: CASUAL
+  return 1;
+}
+
 function sanitizeRecommendationsPayload(
   rec: FashionRecommendationsPayload,
   core: FashionAnalysisCorePayload,
@@ -2780,6 +2835,28 @@ function sanitizeRecommendationsPayload(
     ...imp,
     productSearchQuery: validateAndFixProductSearchQuery(imp, userGender),
   }));
+
+  // ⛔ IRON RULES: Server-side formality guard — detect formality from Stage 1 and filter violations
+  const formalityLevel = detectFormalityLevel(core);
+  if (formalityLevel >= 3) { // FORMAL or higher
+    improvements = improvements.filter((imp) => {
+      const afterType = (imp.afterGarmentType || "").toLowerCase();
+      const afterLabel = (imp.afterLabel || "").toLowerCase();
+      const title = (imp.title || "").toLowerCase();
+      const combined = `${afterType} ${afterLabel} ${title}`;
+      const FORBIDDEN_FOR_FORMAL = [
+        "shorts", "short", "שורטס", "flip-flop", "flip flop", "כפכפ",
+        "tank top", "גופיה", "גופיות", "hoodie", "הודי", "קפוצ'ון",
+        "sweatpants", "טרנינג", "jogger", "ג'וגר", "crop top", "קרופ",
+        "sandal", "סנדל", "crocs", "קרוקס",
+      ];
+      const isForbidden = FORBIDDEN_FOR_FORMAL.some(f => combined.includes(f));
+      if (isForbidden) {
+        console.warn(`[IronRules] Filtered out inappropriate recommendation for formal look: "${imp.title}" (afterGarmentType: ${afterType})`);
+      }
+      return !isForbidden;
+    });
+  }
 
   // Cross-category validation: ensure title matches afterGarmentType
   const GARMENT_CATEGORIES: Record<string, string[]> = {

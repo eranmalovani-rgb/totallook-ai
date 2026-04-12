@@ -1560,22 +1560,46 @@ export async function migrateGuestToUser(fingerprint: string, userId: number) {
     guestSessionId: null,
   }).where(inArray(wardrobeItems.guestSessionId, sessionIds));
   
-  // 2. Get guest profile and create user profile if doesn't exist
+  // 2. Get guest profile and populate user profile (create or fill empty fields)
   const guestProfile = await getGuestProfile(fingerprint);
   if (guestProfile && guestProfile.onboardingCompleted) {
+    const guestData: Record<string, string | number | undefined> = {
+      ageRange: guestProfile.ageRange || undefined,
+      gender: guestProfile.gender || undefined,
+      occupation: guestProfile.occupation || undefined,
+      budgetLevel: guestProfile.budgetLevel || undefined,
+      stylePreference: guestProfile.stylePreference || undefined,
+      favoriteBrands: guestProfile.favoriteBrands || undefined,
+      favoriteInfluencers: guestProfile.favoriteInfluencers || undefined,
+      preferredStores: guestProfile.preferredStores || undefined,
+      country: guestProfile.country || undefined,
+      onboardingCompleted: 1,
+    };
     const existingProfile = await getUserProfile(userId);
     if (!existingProfile) {
-      await upsertUserProfile({
-        userId,
-        ageRange: guestProfile.ageRange || undefined,
-        gender: guestProfile.gender || undefined,
-        occupation: guestProfile.occupation || undefined,
-        budgetLevel: guestProfile.budgetLevel || undefined,
-        stylePreference: guestProfile.stylePreference || undefined,
-        favoriteInfluencers: guestProfile.favoriteInfluencers || undefined,
-        preferredStores: guestProfile.preferredStores || undefined,
-        onboardingCompleted: 1,
-      });
+      // No profile yet — create from guest data
+      await upsertUserProfile({ userId, ...guestData });
+    } else {
+      // Profile exists — fill in any empty fields from guest data
+      const fieldsToFill: Record<string, unknown> = {};
+      const fillableFields = [
+        "ageRange", "gender", "occupation", "budgetLevel", "stylePreference",
+        "favoriteBrands", "favoriteInfluencers", "preferredStores", "country"
+      ] as const;
+      for (const field of fillableFields) {
+        const existingVal = (existingProfile as any)[field];
+        const guestVal = guestData[field];
+        if ((!existingVal || existingVal === "" || existingVal === "לא הוגדר") && guestVal) {
+          fieldsToFill[field] = guestVal;
+        }
+      }
+      // Also ensure onboardingCompleted is set
+      if (!(existingProfile as any).onboardingCompleted) {
+        fieldsToFill.onboardingCompleted = 1;
+      }
+      if (Object.keys(fieldsToFill).length > 0) {
+        await upsertUserProfile({ userId, ...fieldsToFill });
+      }
     }
   }
   
