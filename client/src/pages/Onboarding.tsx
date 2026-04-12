@@ -4,14 +4,14 @@ import { Button } from "@/components/ui/button";
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import WhatsAppOnboardingModal from "@/components/WhatsAppOnboardingModal";
 import { useLocation } from "wouter";
-import { Sparkles, ChevronLeft, ChevronRight, Heart, X, Camera, Upload, MapPin, Globe, Store as StoreIcon, Check, LogIn, UserPlus } from "lucide-react";
+import { Sparkles, ChevronLeft, ChevronRight, Heart, X, Camera, Upload, MapPin, Globe, Store as StoreIcon, Check, LogIn, UserPlus, ArrowUpCircle } from "lucide-react";
 import { getLoginUrl } from "@/const";
 import FashionSpinner, { FashionButtonSpinner } from "@/components/FashionSpinner";
 import StylingStudioAnimation from "@/components/StylingStudioAnimation";
 import StoreLogo from "@/components/StoreLogo";
 import { toast } from "sonner";
 import {
-  STORE_OPTIONS, COUNTRY_STORE_MAP,
+  STORE_OPTIONS, COUNTRY_STORE_MAP, getNextBudgetTier, getBudgetTierLabel, BUDGET_STORE_MAP,
 } from "../../../shared/fashionTypes";
 import InfluencerPicker from "@/components/InfluencerPicker";
 import { useLanguage } from "@/i18n";
@@ -1056,11 +1056,33 @@ export default function Onboarding() {
                   {lang === "he" ? "איפה אוהב/ת לקנות? לחץ/י על החנויות שלך" : "Where do you shop? Tap your favorite stores"}
                 </p>
                 {photoAnalysis && (
-                  <p className="text-xs text-primary/60 mt-1">
-                    {lang === "he"
-                      ? `מותאם לתקציב ${photoAnalysis.budgetLevel === "budget" ? "חסכוני" : photoAnalysis.budgetLevel === "mid-range" ? "ביניים" : photoAnalysis.budgetLevel === "premium" ? "פרימיום" : "יוקרה"}`
-                      : `Tailored to ${photoAnalysis.budgetLevel} budget`}
-                  </p>
+                  <div className="mt-2 space-y-1.5">
+                    <p className="text-xs text-primary/60">
+                      {lang === "he"
+                        ? `מותאם לתקציב ${photoAnalysis.budgetLevel === "budget" ? "חסכוני" : photoAnalysis.budgetLevel === "mid-range" ? "ביניים" : photoAnalysis.budgetLevel === "premium" ? "פרימיום" : "יוקרה"}`
+                        : `Tailored to ${photoAnalysis.budgetLevel} budget`}
+                    </p>
+                    {/* Stage 114d: Upgrade tier button */}
+                    {photoAnalysis.budgetLevel !== "luxury" && (() => {
+                      const nextTier = getNextBudgetTier(photoAnalysis.budgetLevel);
+                      const nextTierLabel = getBudgetTierLabel(nextTier, lang);
+                      return (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="gap-1.5 text-xs border-primary/30 text-primary hover:bg-primary/10 hover:border-primary/50"
+                          onClick={() => {
+                            // Update the photoAnalysis budgetLevel to next tier
+                            setPhotoAnalysis(prev => prev ? { ...prev, budgetLevel: nextTier } : prev);
+                            toast.success(lang === "he" ? `החנויות עודכנו לרמת ${nextTierLabel}` : `Stores updated to ${nextTierLabel} tier`);
+                          }}
+                        >
+                          <ArrowUpCircle className="w-3.5 h-3.5" />
+                          {lang === "he" ? `שדרג ל${nextTierLabel}` : `Upgrade to ${nextTierLabel}`}
+                        </Button>
+                      );
+                    })()}
+                  </div>
                 )}
               </div>
 

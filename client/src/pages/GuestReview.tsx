@@ -1145,7 +1145,29 @@ export default function GuestReview() {
   // WhatsApp phone reminder for guests
   const [showPhoneReminder, setShowPhoneReminder] = useState(false);
   const [showInfluencerSwap, setShowInfluencerSwap] = useState(false);
+  const [customInfluencers, setCustomInfluencers] = useState<string[]>([]);
+  const [swapSelection, setSwapSelection] = useState<string[]>([]);
   const phoneReminderShownRef = useRef(false);
+
+  // Stage 114c: Floating CTA bubbles
+  const [showPreciseBubble, setShowPreciseBubble] = useState(false);
+  const [showUnlimitedBubble, setShowUnlimitedBubble] = useState(false);
+  const [dismissedPrecise, setDismissedPrecise] = useState(false);
+  const [dismissedUnlimited, setDismissedUnlimited] = useState(false);
+
+  useEffect(() => {
+    if (!result || result.status !== "completed" || !analysis) return;
+    // Path A: show "precise" bubble after 5s, "unlimited" after 15s
+    // Path B: show only "unlimited" bubble after 8s
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    if (!fromOnboarding) {
+      timers.push(setTimeout(() => setShowPreciseBubble(true), 5000));
+      timers.push(setTimeout(() => setShowUnlimitedBubble(true), 15000));
+    } else {
+      timers.push(setTimeout(() => setShowUnlimitedBubble(true), 8000));
+    }
+    return () => timers.forEach(clearTimeout);
+  }, [result?.status, analysis, fromOnboarding]);
 
   useEffect(() => {
     if (
@@ -1323,6 +1345,11 @@ export default function GuestReview() {
     }
     const autoInfluencers = autoMatchInfluencers(matchProfile, 3, detectedCountry);
 
+    // Use custom influencers if user has swapped, otherwise use auto-matched
+    const displayInfluencers = customInfluencers.length > 0
+      ? customInfluencers.map(name => POPULAR_INFLUENCERS.find(i => i.name === name)).filter(Boolean) as typeof autoInfluencers
+      : autoInfluencers;
+
     storyCards.push(
       <div key="inspiration" className="space-y-4">
         <div className="p-5 rounded-2xl border border-[#FF2E9F]/10 bg-gradient-to-b from-white/[0.03] to-transparent shadow-lg shadow-black/20">
@@ -1345,38 +1372,54 @@ export default function GuestReview() {
             </p>
           )}
           <div className="space-y-3">
-            {autoInfluencers.map((inf, i) => (
-              <button
-                key={inf.name}
-                onClick={() => handleInfluencerClick(inf.name, inf.handle, inf.igUrl)}
-                className="w-full flex items-center gap-3 p-3 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.06] hover:border-primary/20 transition-all duration-200 group text-start"
-              >
-                <div className="relative flex-shrink-0">
-                  <InfluencerAvatar name={inf.name} imageUrl={inf.imageUrl} size="md" className="ring-1 ring-white/10 group-hover:ring-primary/30 transition-all" />
-                  {i === 0 && (
-                    <span className="absolute -top-1 -end-1 text-[8px] px-1.5 py-0.5 rounded-full bg-gradient-to-r from-rose-500 to-[#7B2EFF] text-white font-bold shadow-lg">
-                      #1
-                    </span>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold truncate group-hover:text-primary transition-colors">{inf.name}</p>
-                  <p className="text-[11px] text-muted-foreground truncate">{inf.style}</p>
-                </div>
-                <div className="flex items-center gap-1.5 flex-shrink-0">
-                  <Instagram className="w-3.5 h-3.5 text-rose-400/60 group-hover:text-rose-400 transition-colors" />
-                  <ArrowRight className="w-3.5 h-3.5 text-muted-foreground/40 group-hover:text-primary transition-colors" />
-                </div>
-              </button>
+            {displayInfluencers.map((inf, i) => (
+              <div key={inf.name} className="flex items-center gap-2">
+                <button
+                  onClick={() => handleInfluencerClick(inf.name, inf.handle, inf.igUrl)}
+                  className="flex-1 flex items-center gap-3 p-3 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.06] hover:border-primary/20 transition-all duration-200 group text-start"
+                >
+                  <div className="relative flex-shrink-0">
+                    <InfluencerAvatar name={inf.name} imageUrl={inf.imageUrl} size="md" className="ring-1 ring-white/10 group-hover:ring-primary/30 transition-all" />
+                    {i === 0 && (
+                      <span className="absolute -top-1 -end-1 text-[8px] px-1.5 py-0.5 rounded-full bg-gradient-to-r from-rose-500 to-[#7B2EFF] text-white font-bold shadow-lg">
+                        #1
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold truncate group-hover:text-primary transition-colors">{inf.name}</p>
+                    <p className="text-[11px] text-muted-foreground truncate">{inf.style}</p>
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <Instagram className="w-3.5 h-3.5 text-rose-400/60 group-hover:text-rose-400 transition-colors" />
+                    <ArrowRight className="w-3.5 h-3.5 text-muted-foreground/40 group-hover:text-primary transition-colors" />
+                  </div>
+                </button>
+              </div>
             ))}
           </div>
-          <button
-            onClick={() => setShowInfluencerSwap(true)}
-            className="mt-3 w-full flex items-center justify-center gap-2 py-2 text-xs text-muted-foreground hover:text-primary transition-colors border border-dashed border-white/10 hover:border-primary/30 rounded-xl"
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-            {lang === "he" ? "לא מתחבר? החלף משפיענים" : "Not feeling it? Swap influencers"}
-          </button>
+          <div className="mt-3 flex gap-2">
+            <button
+              onClick={() => {
+                setSwapSelection(displayInfluencers.map(inf => inf.name));
+                setShowInfluencerSwap(true);
+              }}
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-medium text-muted-foreground hover:text-primary transition-colors border border-dashed border-white/10 hover:border-primary/30 rounded-xl"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              {lang === "he" ? "החלף משפיענים" : "Swap influencers"}
+            </button>
+            <button
+              onClick={() => {
+                setSwapSelection(displayInfluencers.map(inf => inf.name));
+                setShowInfluencerSwap(true);
+              }}
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-medium text-muted-foreground hover:text-[#FF2E9F] transition-colors border border-dashed border-white/10 hover:border-[#FF2E9F]/30 rounded-xl"
+            >
+              <UserPlus className="w-3.5 h-3.5" />
+              {lang === "he" ? "הוסף משפיענים" : "Add influencers"}
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -1471,7 +1514,8 @@ export default function GuestReview() {
             </span>
           </div>
         )}
-        <Accordion type="multiple" className="space-y-2">
+        {/* Stage 114b: All accordions open by default */}
+        <Accordion type="multiple" defaultValue={analysis.improvements.map((_, i) => `imp-${i}`)} className="space-y-2">
           {analysis.improvements.map((imp, i) => (
             <GuestImprovementAccordionCard
               key={i}
@@ -1486,41 +1530,7 @@ export default function GuestReview() {
           ))}
         </Accordion>
 
-        {/* Stage 113b: Upgrade Stores Button */}
-        {(() => {
-          const currentTier = guestProfile?.budgetLevel || "mid-range";
-          const nextTier = getNextBudgetTier(currentTier);
-          const isMaxTier = currentTier === "luxury";
-          if (isMaxTier) return null;
-          const nextTierLabel = getBudgetTierLabel(nextTier, lang);
-          return (
-            <div className="mt-4 p-4 rounded-xl border border-primary/20 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5">
-              <p className="text-xs text-muted-foreground mb-2 text-center">
-                {lang === "he"
-                  ? `\u05e8\u05d5\u05e6\u05d4 \u05dc\u05e8\u05d0\u05d5\u05ea \u05d7\u05e0\u05d5\u05d9\u05d5\u05ea \u05d1\u05e8\u05de\u05d4 \u05d2\u05d1\u05d5\u05d4\u05d4 \u05d9\u05d5\u05ea\u05e8?`
-                  : `Want to see higher-tier stores?`}
-              </p>
-              <Button
-                variant="outline"
-                className="w-full gap-2 h-11 text-sm font-semibold border-primary/40 text-primary bg-primary/5 hover:bg-primary/15 hover:border-primary/60 transition-all shadow-sm"
-                disabled={upgradeStoresMutation.isPending}
-                onClick={() => {
-                  if (!fingerprint) return;
-                  upgradeStoresMutation.mutate({ sessionId, fingerprint });
-                }}
-              >
-                {upgradeStoresMutation.isPending ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <ArrowUpCircle className="w-4 h-4" />
-                )}
-                {lang === "he"
-                  ? `\u05e2\u05d3\u05db\u05df \u05d7\u05e0\u05d5\u05d9\u05d5\u05ea \u05dc\u05e8\u05de\u05ea ${nextTierLabel}`
-                  : `Upgrade stores to ${nextTierLabel}`}
-              </Button>
-            </div>
-          );
-        })()}
+        {/* Stage 114d: Upgrade stores button moved to onboarding */}
 
         {/* Fix My Look CTA — attractive card inside Upgrades */}
         <div className="mt-5">
@@ -1657,23 +1667,50 @@ export default function GuestReview() {
         defaultCountry={detectedCountry || "IL"}
       />
 
-      {/* Influencer Swap Dialog */}
+      {/* Influencer Swap Dialog — multi-select with confirm */}
       <Dialog open={showInfluencerSwap} onOpenChange={setShowInfluencerSwap}>
-        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto" dir={dir}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto" dir={dir}>
           <DialogHeader>
             <DialogTitle>{lang === "he" ? "בחר/י משפיעני סטייל" : "Choose Style Influencers"}</DialogTitle>
+            <p className="text-xs text-muted-foreground">
+              {lang === "he" ? `נבחרו: ${swapSelection.length} משפיענים` : `Selected: ${swapSelection.length} influencers`}
+            </p>
           </DialogHeader>
           <InfluencerPicker
-            gender={undefined}
-            selectedInfluencers={[]}
+            gender={guestProfile?.gender || undefined}
+            selectedInfluencers={swapSelection}
             onToggle={(name) => {
-              const inf = POPULAR_INFLUENCERS.find(i => i.name === name);
-              if (inf) {
-                handleInfluencerClick(inf.name, inf.handle, inf.igUrl);
-                setShowInfluencerSwap(false);
-              }
+              setSwapSelection(prev =>
+                prev.includes(name) ? prev.filter(n => n !== name) : [...prev, name]
+              );
             }}
+            userProfile={guestProfile ? {
+              ageRange: guestProfile.ageRange,
+              budgetLevel: guestProfile.budgetLevel,
+              stylePreference: guestProfile.stylePreference,
+            } : undefined}
           />
+          <div className="flex gap-2 mt-3 sticky bottom-0 bg-background pt-2 border-t border-white/10">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => setShowInfluencerSwap(false)}
+            >
+              {lang === "he" ? "ביטול" : "Cancel"}
+            </Button>
+            <Button
+              className="flex-1 gap-2"
+              disabled={swapSelection.length === 0}
+              onClick={() => {
+                setCustomInfluencers(swapSelection);
+                setShowInfluencerSwap(false);
+                toast.success(lang === "he" ? `${swapSelection.length} משפיענים נבחרו` : `${swapSelection.length} influencers selected`);
+              }}
+            >
+              <Check className="w-4 h-4" />
+              {lang === "he" ? "אישור" : "Confirm"}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -1843,6 +1880,81 @@ export default function GuestReview() {
           </div>
         </section>
       </div>
+
+      {/* ═══════════════════════════════════════════
+          Stage 114c: Floating CTA Bubbles
+          ═══════════════════════════════════════════ */}
+
+      {/* Bubble 1: "רוצה תוצאה מדויקת?" — Path A only */}
+      {showPreciseBubble && !dismissedPrecise && !fromOnboarding && (
+        <div className="fixed bottom-24 start-4 end-4 sm:start-auto sm:end-6 sm:max-w-sm z-50 animate-in slide-in-from-bottom-4 fade-in duration-500">
+          <div className="relative rounded-2xl border border-[#FF2E9F]/30 bg-gradient-to-br from-[#FF2E9F]/95 via-[#D0258A]/90 to-rose-600/90 p-4 shadow-2xl shadow-[#FF2E9F]/20 backdrop-blur-sm">
+            <button
+              onClick={() => setDismissedPrecise(true)}
+              className="absolute top-2 end-2 w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-white/80 hover:bg-white/30 transition-colors text-xs"
+            >✕</button>
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0 text-lg">🎯</div>
+              <div className="flex-1">
+                <h4 className="text-white font-bold text-sm">
+                  {lang === "he" ? "רוצה תוצאה מדויקת יותר?" : "Want more accurate results?"}
+                </h4>
+                <p className="text-white/80 text-xs mt-1">
+                  {lang === "he"
+                    ? "ניתוח מותאם אישית • המלצות לפי הסגנון שלך • חנויות שמתאימות לך"
+                    : "Personalized analysis • Recommendations for your style • Stores that fit you"}
+                </p>
+                <Button
+                  size="sm"
+                  className="mt-2 bg-white text-[#FF2E9F] hover:bg-white/90 font-bold gap-1.5 text-xs"
+                  onClick={() => {
+                    setDismissedPrecise(true);
+                    const params = result?.imageUrl ? `?photo=${encodeURIComponent(result.imageUrl)}` : "";
+                    navigate(`/try/precise${params}`);
+                  }}
+                >
+                  {lang === "he" ? "בואי נכיר →" : "Let's get personal →"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bubble 2: "רוצה ניתוחים ללא הגבלה?" — Both paths */}
+      {showUnlimitedBubble && !dismissedUnlimited && (
+        <div className={`fixed ${showPreciseBubble && !dismissedPrecise && !fromOnboarding ? "bottom-52 sm:bottom-48" : "bottom-24"} start-4 end-4 sm:start-auto sm:end-6 sm:max-w-sm z-50 animate-in slide-in-from-bottom-4 fade-in duration-500`}>
+          <div className="relative rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/95 via-indigo-600/90 to-violet-600/90 p-4 shadow-2xl shadow-primary/20 backdrop-blur-sm">
+            <button
+              onClick={() => setDismissedUnlimited(true)}
+              className="absolute top-2 end-2 w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-white/80 hover:bg-white/30 transition-colors text-xs"
+            >✕</button>
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0 text-lg">✨</div>
+              <div className="flex-1">
+                <h4 className="text-white font-bold text-sm">
+                  {lang === "he" ? "רוצה ניתוחים ללא הגבלה?" : "Want unlimited analyses?"}
+                </h4>
+                <p className="text-white/80 text-xs mt-1">
+                  {lang === "he"
+                    ? "ניתוחים ללא הגבלה • מלתחה וירטואלית • Fix My Look • יומן סגנון • שיתוף בפיד"
+                    : "Unlimited analyses • Virtual wardrobe • Fix My Look • Style diary • Feed sharing"}
+                </p>
+                <Button
+                  size="sm"
+                  className="mt-2 bg-white text-primary hover:bg-white/90 font-bold gap-1.5 text-xs"
+                  asChild
+                >
+                  <a href={getLoginUrl(fromOnboarding ? "/upload" : undefined)}>
+                    <UserPlus className="w-3.5 h-3.5" />
+                    {lang === "he" ? "הירשם חינם" : "Sign up free"}
+                  </a>
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

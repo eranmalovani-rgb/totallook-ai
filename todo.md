@@ -1217,3 +1217,17 @@
 
 ## Stage 113d: Critical bug — analysis stuck after Stage 1 in production
 - [x] 113d.1: Root cause: Stage 2 background can fail silently (fire-and-forget). Fix: (1) Server-side catalog matching retry (2 attempts with 1s delay), (2) retryStage2 procedure for manual retry, (3) Client-side 45s polling timeout with retry button in GuestReview
+
+## Stage 114: UX improvements — cookie consent, accordions, CTA bubbles, store tier, influencer swap
+
+- [x] 114a. Remove cookie consent popup from landing page — CookieConsent component removed from App.tsx
+- [x] 114b. Open all upgrade accordions by default — GuestReview uses defaultValue with all imp keys, ReviewPage ExpandableSection defaultOpen=true
+- [x] 114c.1: Path A shows two floating bubbles: "רוצה תוצאה מדויקת?" (pink, 5s) + "רוצה ניתוחים ללא הגבלה?" (purple, 15s)
+- [x] 114c.2: Path B shows only "רוצה ניתוחים ללא הגבלה?" bubble (purple, 8s)
+- [x] 114c.3: Bubbles are fixed-position floating popups with gradient backgrounds, slide-in animation, dismiss button, and benefits list
+- [x] 114d.1: Removed "עדכן חנויות" button from GuestReview and ReviewPage results pages
+- [x] 114d.2: Added store tier upgrade button in Onboarding Step 3 (store picker) — shows "שדרג ל[next tier]" next to budget label, updates photoAnalysis.budgetLevel which re-filters store list
+- [x] 114e.1: Added "החלף משפיענים" and "הוסף משפיענים" buttons below influencer section in GuestReview and ReviewPage
+- [x] 114e.2: Clicking either button opens InfluencerPicker Dialog with multi-select (international + local tabs, search, relevance sorting)
+- [x] 114e.3: Dialog has Cancel/Confirm buttons, shows selection count, swapSelection state for multi-select
+- [x] 114e.4: GuestReview uses customInfluencers state to replace displayed influencers; ReviewPage has swap dialog with toast confirmation

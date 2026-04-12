@@ -27,6 +27,7 @@ import FixMyLookModal from "@/components/FixMyLookModal";
 import StoreLogo, { extractStoreFromUrl, extractStoreFromLabel } from "@/components/StoreLogo";
 import InfluencerPostModal from "@/components/InfluencerPostModal";
 import InfluencerAvatar from "@/components/InfluencerAvatar";
+import InfluencerPicker from "@/components/InfluencerPicker";
 import WhatsAppPhoneReminder, { HIDE_WHATSAPP_PHONE_MODAL_KEY } from "@/components/WhatsAppPhoneReminder";
 import { useLanguage } from "@/i18n";
 import confetti from "canvas-confetti";
@@ -1233,6 +1234,8 @@ export default function ReviewPage() {
 
   const { data: userProfile } = trpc.profile.get.useQuery();
   const [showPhoneReminder, setShowPhoneReminder] = useState(false);
+  const [showInfluencerSwap, setShowInfluencerSwap] = useState(false);
+  const [swapSelection, setSwapSelection] = useState<string[]>([]);
   const phoneReminderShownRef = useRef(false);
 
   const { data: review, isLoading, error } = trpc.review.get.useQuery(
@@ -1475,6 +1478,52 @@ export default function ReviewPage() {
         context={analysis.influencerInsight}
       />
 
+      {/* Influencer Swap Dialog — multi-select with confirm */}
+      <Dialog open={showInfluencerSwap} onOpenChange={setShowInfluencerSwap}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto" dir={dir}>
+          <DialogHeader>
+            <DialogTitle>{lang === "he" ? "בחר/י משפיעני סטייל" : "Choose Style Influencers"}</DialogTitle>
+            <p className="text-xs text-muted-foreground">
+              {lang === "he" ? `נבחרו: ${swapSelection.length} משפיענים` : `Selected: ${swapSelection.length} influencers`}
+            </p>
+          </DialogHeader>
+          <InfluencerPicker
+            gender={userProfile?.gender || undefined}
+            selectedInfluencers={swapSelection}
+            onToggle={(name) => {
+              setSwapSelection(prev =>
+                prev.includes(name) ? prev.filter(n => n !== name) : [...prev, name]
+              );
+            }}
+            userProfile={userProfile ? {
+              ageRange: userProfile.ageRange,
+              budgetLevel: userProfile.budgetLevel,
+              stylePreference: userProfile.stylePreference,
+            } : undefined}
+          />
+          <div className="flex gap-2 mt-3 sticky bottom-0 bg-background pt-2 border-t border-white/10">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => setShowInfluencerSwap(false)}
+            >
+              {lang === "he" ? "ביטול" : "Cancel"}
+            </Button>
+            <Button
+              className="flex-1 gap-2"
+              disabled={swapSelection.length === 0}
+              onClick={() => {
+                setShowInfluencerSwap(false);
+                toast.success(lang === "he" ? `${swapSelection.length} משפיענים נבחרו` : `${swapSelection.length} influencers selected`);
+              }}
+            >
+              <Check className="w-4 h-4" />
+              {lang === "he" ? "אישור" : "Confirm"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <div className="pt-16 pb-12">
         {/* ═══════════════════════════════════════════════
             HERO CARD — Always visible
@@ -1688,7 +1737,31 @@ export default function ReviewPage() {
                   <LinkedText text={analysis.influencerInsight!} mentions={mentions} onInfluencerClick={handleInfluencerClick} />
                 </p>
 
-
+                {/* Swap / Add influencers buttons */}
+                <div className="flex gap-2 mt-2">
+                  <button
+                    onClick={() => {
+                      const currentNames = mentions.filter(m => m.type === "influencer").map(m => m.text);
+                      setSwapSelection(currentNames);
+                      setShowInfluencerSwap(true);
+                    }}
+                    className="flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-medium text-muted-foreground hover:text-primary transition-colors border border-dashed border-white/10 hover:border-primary/30 rounded-xl"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    {lang === "he" ? "החלף משפיענים" : "Swap influencers"}
+                  </button>
+                  <button
+                    onClick={() => {
+                      const currentNames = mentions.filter(m => m.type === "influencer").map(m => m.text);
+                      setSwapSelection(currentNames);
+                      setShowInfluencerSwap(true);
+                    }}
+                    className="flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-medium text-muted-foreground hover:text-[#FF2E9F] transition-colors border border-dashed border-white/10 hover:border-[#FF2E9F]/30 rounded-xl"
+                  >
+                    <Users className="w-3.5 h-3.5" />
+                    {lang === "he" ? "הוסף משפיענים" : "Add influencers"}
+                  </button>
+                </div>
               </div>
             )}
 
@@ -1729,7 +1802,7 @@ export default function ReviewPage() {
                     <ExpandableSection
                       key={i}
                       title={imp.title}
-                      defaultOpen={false}
+                      defaultOpen={true}
                     >
                       <ImprovementCard
                         imp={imp}
@@ -1744,38 +1817,7 @@ export default function ReviewPage() {
                 )}
               </div>
 
-              {/* Stage 113b: Upgrade Stores Button */}
-              {isOwner && (() => {
-                const currentTier = userProfile?.budgetLevel || "mid-range";
-                const nextTier = getNextBudgetTier(currentTier);
-                const isMaxTier = currentTier === "luxury";
-                if (isMaxTier) return null;
-                const nextTierLabel = getBudgetTierLabel(nextTier, lang);
-                return (
-                  <div className="mt-4 p-4 rounded-xl border border-primary/20 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5">
-                    <p className="text-xs text-muted-foreground mb-2 text-center">
-                      {lang === "he"
-                        ? `\u05e8\u05d5\u05e6\u05d4 \u05dc\u05e8\u05d0\u05d5\u05ea \u05d7\u05e0\u05d5\u05d9\u05d5\u05ea \u05d1\u05e8\u05de\u05d4 \u05d2\u05d1\u05d5\u05d4\u05d4 \u05d9\u05d5\u05ea\u05e8?`
-                        : `Want to see higher-tier stores?`}
-                    </p>
-                    <Button
-                      variant="outline"
-                      className="w-full gap-2 h-11 text-sm font-semibold border-primary/40 text-primary bg-primary/5 hover:bg-primary/15 hover:border-primary/60 transition-all shadow-sm"
-                      disabled={upgradeStoresMutation.isPending}
-                      onClick={() => upgradeStoresMutation.mutate({ reviewId })}
-                    >
-                      {upgradeStoresMutation.isPending ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <ArrowUpCircle className="w-4 h-4" />
-                      )}
-                      {lang === "he"
-                        ? `\u05e2\u05d3\u05db\u05df \u05d7\u05e0\u05d5\u05d9\u05d5\u05ea \u05dc\u05e8\u05de\u05ea ${nextTierLabel}`
-                        : `Upgrade stores to ${nextTierLabel}`}
-                    </Button>
-                  </div>
-                );
-              })()}
+              {/* Stage 114d: Upgrade stores button moved to onboarding */}
 
               {/* Fix My Look CTA — attractive card inside Upgrades */}
               {isOwner && (

@@ -91,7 +91,7 @@ function App() {
             <Router />
             <LandingPageFloatingButton />
             <GlobalWhatsAppPopup />
-            <CookieConsent />
+            {/* Stage 114a: Cookie consent removed — assume user already agreed */}
           </TooltipProvider>
         </ThemeProvider>
       </LanguageProvider>
