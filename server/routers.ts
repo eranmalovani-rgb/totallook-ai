@@ -403,6 +403,7 @@ function buildFallbackImprovement(
   category: Exclude<ClothingCategory, "accessory" | "other">,
   isHebrew: boolean,
   stageOneItems?: Array<{ name?: string; garmentType?: string; preciseColor?: string; color?: string; material?: string; fit?: string; pattern?: string; texture?: string; neckline?: string; sleeveLength?: string; bodyZone?: string; score?: number }>,
+  occasion?: string | null,
 ): Improvement {
   // Stage 30 GAP 5: Try to build a CONTEXTUAL fallback from Stage 1 item data
   const bodyZoneMap: Record<string, string> = { top: "upper", bottom: "lower", outerwear: "outer", shoes: "feet", dress: "full", onepiece: "full" };
@@ -426,8 +427,42 @@ function buildFallbackImprovement(
     const currentFit = matchingItem.fit || "";
     const currentPattern = matchingItem.pattern || "";
 
-    // Generate upgrade suggestions based on current item — multiple options per type for variety
-    const upgradeOptions: Record<string, Array<{ type: string; color: string; material: string; fit: string; style: string }>> = {
+    // Generate upgrade suggestions based on current item — occasion-aware options
+    const occ = (occasion || "").toLowerCase();
+    const isEvening = /evening|formal|party|bar|date|ערב|מסיבה|דייט|יציאה|אירוע/.test(occ);
+    const isSport = /sport|gym|workout|ספורט|אימון|כושר/.test(occ);
+    const isWork = /work|office|business|עבודה|משרד|פגישה/.test(occ);
+
+    // Occasion-specific upgrade maps
+    const eveningUpgrades: Record<string, Array<{ type: string; color: string; material: string; fit: string; style: string }>> = {
+      "t-shirt": [{ type: "silk blouse", color: "black", material: "silk", fit: "relaxed", style: "formal" }, { type: "satin camisole", color: "champagne", material: "satin", fit: "slim", style: "formal" }],
+      "polo": [{ type: "silk shirt", color: "ivory", material: "silk", fit: "tailored", style: "formal" }],
+      "hoodie": [{ type: "velvet blazer", color: "burgundy", material: "velvet", fit: "tailored", style: "formal" }],
+      "sweatshirt": [{ type: "structured blazer", color: "black", material: "wool blend", fit: "tailored", style: "formal" }],
+      "jeans": [{ type: "tailored trousers", color: "black", material: "wool blend", fit: "tailored", style: "formal" }, { type: "satin wide-leg pants", color: "navy", material: "satin", fit: "wide", style: "formal" }],
+      "shorts": [{ type: "tailored trousers", color: "charcoal", material: "wool blend", fit: "slim", style: "formal" }],
+      "sneakers": [{ type: "heeled sandals", color: "black", material: "leather", fit: "n/a", style: "formal" }, { type: "pointed-toe pumps", color: "nude", material: "leather", fit: "n/a", style: "formal" }],
+      "sandals": [{ type: "strappy heels", color: "gold", material: "metallic leather", fit: "n/a", style: "formal" }],
+    };
+    const sportUpgrades: Record<string, Array<{ type: string; color: string; material: string; fit: string; style: string }>> = {
+      "t-shirt": [{ type: "performance tank", color: "black", material: "moisture-wicking", fit: "athletic", style: "sporty" }, { type: "compression top", color: "navy", material: "technical fabric", fit: "fitted", style: "sporty" }],
+      "hoodie": [{ type: "zip-up track jacket", color: "black", material: "technical fabric", fit: "athletic", style: "sporty" }],
+      "sweatshirt": [{ type: "performance hoodie", color: "charcoal", material: "moisture-wicking", fit: "athletic", style: "sporty" }],
+      "jeans": [{ type: "performance joggers", color: "black", material: "technical fabric", fit: "tapered", style: "sporty" }],
+      "shorts": [{ type: "performance shorts", color: "black", material: "moisture-wicking", fit: "athletic", style: "sporty" }],
+      "sneakers": [{ type: "running shoes", color: "black/white", material: "mesh", fit: "n/a", style: "sporty" }],
+    };
+    const workUpgrades: Record<string, Array<{ type: string; color: string; material: string; fit: string; style: string }>> = {
+      "t-shirt": [{ type: "dress shirt", color: "white", material: "cotton poplin", fit: "tailored", style: "formal" }, { type: "silk blouse", color: "light blue", material: "silk", fit: "relaxed", style: "smart-casual" }],
+      "hoodie": [{ type: "structured blazer", color: "navy", material: "wool blend", fit: "tailored", style: "formal" }],
+      "jeans": [{ type: "tailored trousers", color: "charcoal", material: "wool blend", fit: "tailored", style: "formal" }],
+      "sneakers": [{ type: "leather loafers", color: "brown", material: "leather", fit: "n/a", style: "classic" }, { type: "pointed-toe flats", color: "black", material: "leather", fit: "n/a", style: "formal" }],
+    };
+
+    // Select the right upgrade map based on occasion
+    const occasionUpgrades = isEvening ? eveningUpgrades : isSport ? sportUpgrades : isWork ? workUpgrades : null;
+
+    const defaultUpgradeOptions: Record<string, Array<{ type: string; color: string; material: string; fit: string; style: string }>> = {
       "t-shirt": [
         { type: "dress shirt", color: "navy blue", material: "cotton", fit: "tailored", style: "smart-casual" },
         { type: "linen shirt", color: "white", material: "linen", fit: "relaxed", style: "casual" },
@@ -464,6 +499,8 @@ function buildFallbackImprovement(
         { type: "espadrilles", color: "navy", material: "canvas", fit: "n/a", style: "casual" },
       ],
     };
+    // Use occasion-specific upgrades if available, otherwise default
+    const upgradeOptions = occasionUpgrades || defaultUpgradeOptions;
     const options = upgradeOptions[currentType.toLowerCase()];
     const upgrade = options ? options[Math.floor(Math.random() * options.length)] : null;
 
@@ -669,7 +706,7 @@ function normalizeImprovementsForWearableCore(
     const nextCat =
       preferredOrder.find((cat) => !currentClothingCats.has(cat)) ||
       preferredOrder[normalized.length % preferredOrder.length];
-    normalized.push(buildFallbackImprovement(nextCat, isHebrew, analysis.items));
+    normalized.push(buildFallbackImprovement(nextCat, isHebrew, analysis.items, null));
     currentClothingCats.add(nextCat);
   }
 
@@ -697,7 +734,7 @@ function normalizeImprovementsForWearableCore(
     const missingCat =
       preferredOrder.find((cat) => !keep.some((imp) => detectImprovementCategory(imp) === cat)) ||
       preferredOrder[keep.length % preferredOrder.length];
-    keep.push(buildFallbackImprovement(missingCat, isHebrew, analysis.items));
+    keep.push(buildFallbackImprovement(missingCat, isHebrew, analysis.items, null));
   }
 
   analysis.improvements = keep;
@@ -1249,7 +1286,10 @@ Before analyzing items, scan the image for person/body information:
 - Brief pose description (e.g. "standing facing camera, hands in pockets")
 This data is CRITICAL for downstream features — if feet are not visible, we know shoe analysis may be limited.
 
-GENDER DETECTION (REQUIRED): You MUST detect the person's gender (male/female) from the photo and explicitly mention it in the summary (e.g. "הגבר לובש..." or "האישה לובשת..." / "The man is wearing..." / "She is wearing..."). This is critical for matching influencers and recommendations to the correct gender.
+GENDER DETECTION (REQUIRED — HIGHEST PRIORITY): You MUST detect the person's gender (male/female) from the photo and EXPLICITLY state it in the FIRST SENTENCE of the summary. Use gendered language throughout:
+- For females: Start with "האישה לובשת..." / "She is wearing..." / "הבחורה נראית..." and use feminine verb forms (לובשת, נראית, מרשימה) throughout ALL text.
+- For males: Start with "הגבר לובש..." / "He is wearing..." / "הבחור נראה..." and use masculine verb forms (לובש, נראה, מרשים) throughout ALL text.
+This is CRITICAL for matching influencers and recommendations to the correct gender. NEVER use gender-neutral language when the gender is detectable.
 
 ENRICHED ITEM METADATA (REQUIRED FOR EACH ITEM):
 For EVERY item, you MUST provide structured metadata beyond just name/description:
@@ -2056,8 +2096,8 @@ export function buildRecommendationsPromptFromCore(
       ? `משפיענים מועדפים שהמשתמש ציין: ${preferredInfluencers}.`
       : `User preferred influencers: ${preferredInfluencers}.`)
     : (isHebrew
-      ? "אם אין משפיענים מפורשים, הצע 2-3 משפיענים רלוונטיים."
-      : "If no explicit influencers are provided, suggest 2-3 relevant influencers.");
+      ? "אין משפיענים מפורשים. הצע 2-3 משפיענים רלוונטיים בשפה מסויגת/זהירה — השתמש בניסוחים כמו 'יכול/ה להתאים לך', 'אולי תמצא/י השראה אצל', 'הסגנון שלך מזכיר את'. אל תקבע בוודאות שהמשפיען מתאים — השתמש בשפה של 'אולי' ו'יכול'."
+      : "No explicit influencers provided. Suggest 2-3 relevant influencers using TENTATIVE/HEDGING language — use phrases like 'might suit your style', 'you could find inspiration from', 'your vibe reminds us of'. Do NOT state definitively that the influencer matches — use 'perhaps' and 'could' language.");
 
   // Budget context
   const budgetMap: Record<string, string> = {
@@ -3559,10 +3599,10 @@ function buildFallbackRecommendationsFromCore(
   const isHebrew = lang === "he";
   const stageOneItems = core.items || [];
   const improvements: Improvement[] = [
-    buildFallbackImprovement("top", isHebrew, stageOneItems),
-    buildFallbackImprovement("bottom", isHebrew, stageOneItems),
-    buildFallbackImprovement("shoes", isHebrew, stageOneItems),
-    buildFallbackImprovement("outerwear", isHebrew, stageOneItems),
+    buildFallbackImprovement("top", isHebrew, stageOneItems, occasion),
+    buildFallbackImprovement("bottom", isHebrew, stageOneItems, occasion),
+    buildFallbackImprovement("shoes", isHebrew, stageOneItems, occasion),
+    buildFallbackImprovement("outerwear", isHebrew, stageOneItems, occasion),
   ];
 
   const coreItems = (core.items || []).map((it) => it.name).filter(Boolean);
@@ -6021,17 +6061,29 @@ Return ONLY a JSON object with these exact fields:
           if (!resolvedGender && analysisCore.summary) {
             const summaryLower = analysisCore.summary.toLowerCase();
             let detectedGender: string | null = null;
-            // Hebrew gender detection
-            if (summaryLower.includes("גבר") || summaryLower.includes("גברי") || summaryLower.includes("גברית")) detectedGender = "male";
-            else if (summaryLower.includes("אישה") || summaryLower.includes("נשית") || summaryLower.includes("נשי") || summaryLower.includes("אישה ")) detectedGender = "female";
-            // English gender detection
-            else if (/\bhe\b|\bhis\b|\bmale\b|\bman\b|\bgentleman\b/.test(summaryLower)) detectedGender = "male";
-            else if (/\bshe\b|\bher\b|\bfemale\b|\bwoman\b/.test(summaryLower)) detectedGender = "female";
-            // Fallback: check items for gendered garment types
+            // Hebrew gender detection — expanded patterns
+            const hebrewFemalePatterns = ["אישה", "נשית", "נשי", "בחורה", "צעירה", "גברת", "נערה", "היא לובשת", "היא נראית", "עליה", "שלה", "לובשת", "נראית", "מרשימה", "אלגנטית", "מדהימה"];
+            const hebrewMalePatterns = ["גבר", "גברי", "גברית", "בחור", "צעיר", "אדון", "נער", "הוא לובש", "הוא נראה", "עליו", "שלו", "לובש", "נראה מרשים"];
+            const femaleHits = hebrewFemalePatterns.filter(p => summaryLower.includes(p)).length;
+            const maleHits = hebrewMalePatterns.filter(p => summaryLower.includes(p)).length;
+            if (femaleHits > maleHits && femaleHits >= 1) detectedGender = "female";
+            else if (maleHits > femaleHits && maleHits >= 1) detectedGender = "male";
+            // English gender detection — expanded patterns
             if (!detectedGender) {
-              const allItemText = analysisCore.items.map(i => `${i.name} ${i.description || ""} ${i.analysis || ""}`).join(" ").toLowerCase();
-              if (allItemText.includes("שמלה") || allItemText.includes("חצאית") || allItemText.includes("dress") || allItemText.includes("skirt") || allItemText.includes("heels") || allItemText.includes("blouse")) detectedGender = "female";
-              else if (allItemText.includes("men's") || allItemText.includes("גברי")) detectedGender = "male";
+              const enFemaleHits = (summaryLower.match(/\bshe\b|\bher\b|\bfemale\b|\bwoman\b|\blady\b|\bfeminine\b|\bgirl\b/g) || []).length;
+              const enMaleHits = (summaryLower.match(/\bhe\b|\bhis\b|\bmale\b|\bman\b|\bgentleman\b|\bmasculine\b|\bguy\b/g) || []).length;
+              if (enFemaleHits > enMaleHits && enFemaleHits >= 1) detectedGender = "female";
+              else if (enMaleHits > enFemaleHits && enMaleHits >= 1) detectedGender = "male";
+            }
+            // Fallback: check items for gendered garment types — expanded
+            if (!detectedGender) {
+              const allItemText = analysisCore.items.map(i => `${i.name} ${i.garmentType || ""} ${i.description || ""} ${i.analysis || ""}`).join(" ").toLowerCase();
+              const femaleGarments = ["שמלה", "חצאית", "dress", "skirt", "heels", "blouse", "bra", "crop top", "bodysuit", "leggings", "טייץ", "גרביון", "עקבים", "סנדלים", "women's", "נשים"];
+              const maleGarments = ["men's", "גברי", "גברים", "tie", "עניבה", "חליפה", "suit"];
+              const fGarmentHits = femaleGarments.filter(g => allItemText.includes(g)).length;
+              const mGarmentHits = maleGarments.filter(g => allItemText.includes(g)).length;
+              if (fGarmentHits > mGarmentHits) detectedGender = "female";
+              else if (mGarmentHits > fGarmentHits) detectedGender = "male";
             }
             if (detectedGender) {
               console.log(`[Stage 101] Auto-detected gender from analysis: ${detectedGender}`);
@@ -6089,17 +6141,66 @@ Return ONLY a JSON object with these exact fields:
             console.warn("[Stage 33] Failed to build guest taste profile for Stage 2:", tpErr);
           }
 
+          // ── Stage 110: Detect luxury level + occasion from Stage 1 analysis ──
+          let inferredBudgetLevel = guestProfile?.budgetLevel || null;
+          let inferredOccasion = input.occasion || null;
+          if (analysisCore) {
+            // Luxury detection from brands, materials, and overall score
+            if (!inferredBudgetLevel) {
+              const allText = (analysisCore.summary || "") + " " + analysisCore.items.map(i => `${i.name} ${i.brand || ""} ${i.material || ""} ${i.description || ""}`).join(" ");
+              const luxuryBrands = ["gucci", "prada", "louis vuitton", "chanel", "dior", "balenciaga", "versace", "fendi", "valentino", "saint laurent", "ysl", "burberry", "givenchy", "bottega veneta", "hermes", "celine", "loewe", "alexander mcqueen", "tom ford", "jimmy choo", "manolo blahnik"];
+              const premiumBrands = ["cos", "arket", "massimo dutti", "reiss", "sandro", "maje", "allsaints", "theory", "club monaco", "ted baker", "boss", "hugo boss", "ralph lauren", "tommy hilfiger", "calvin klein", "michael kors", "coach", "kate spade", "tory burch"];
+              const luxuryMaterials = ["silk", "משי", "cashmere", "קשמיר", "leather", "עור", "suede", "זמש", "satin", "סטן", "velvet", "קטיפה"];
+              const textLower = allText.toLowerCase();
+              const hasLuxuryBrand = luxuryBrands.some(b => textLower.includes(b));
+              const hasPremiumBrand = premiumBrands.some(b => textLower.includes(b));
+              const hasLuxuryMaterial = luxuryMaterials.some(m => textLower.includes(m));
+              const highScore = analysisCore.overallScore >= 82;
+              if (hasLuxuryBrand || (hasPremiumBrand && hasLuxuryMaterial && highScore)) {
+                inferredBudgetLevel = "luxury";
+                console.log(`[Stage 110] Detected luxury level from image analysis (luxuryBrand=${hasLuxuryBrand}, premiumBrand=${hasPremiumBrand}, luxuryMaterial=${hasLuxuryMaterial}, score=${analysisCore.overallScore})`);
+              } else if (hasPremiumBrand || (hasLuxuryMaterial && highScore)) {
+                inferredBudgetLevel = "premium";
+                console.log(`[Stage 110] Detected premium level from image analysis`);
+              } else if (highScore && hasLuxuryMaterial) {
+                inferredBudgetLevel = "premium";
+                console.log(`[Stage 110] Detected premium level from high score + luxury materials`);
+              }
+            }
+            // Occasion inference from Stage 1 summary when no explicit occasion
+            if (!inferredOccasion || inferredOccasion === "general") {
+              const summaryLower = (analysisCore.summary || "").toLowerCase();
+              const itemsText = analysisCore.items.map(i => `${i.garmentType || ""} ${i.name || ""}`).join(" ").toLowerCase();
+              const combinedText = summaryLower + " " + itemsText;
+              // Evening/formal detection
+              if (combinedText.match(/evening|formal|gala|wedding|ערב|אירוע|חתונה|פורמלי|אלגנטי/) || (combinedText.includes("dress") && combinedText.includes("heels"))) {
+                inferredOccasion = "evening";
+              } else if (combinedText.match(/sport|gym|workout|athletic|running|ספורט|אימון|כושר/) || (combinedText.includes("leggings") && combinedText.includes("sneakers"))) {
+                inferredOccasion = "sport";
+              } else if (combinedText.match(/office|work|business|meeting|professional|משרד|עבודה|פגישה/) || (combinedText.includes("blazer") && combinedText.includes("dress pants"))) {
+                inferredOccasion = "work";
+              } else if (combinedText.match(/date|romantic|דייט|רומנטי/)) {
+                inferredOccasion = "date";
+              } else if (combinedText.match(/party|club|night out|מסיבה|מועדון|יציאה/)) {
+                inferredOccasion = "bar";
+              }
+              if (inferredOccasion && inferredOccasion !== "general") {
+                console.log(`[Stage 110] Inferred occasion from Stage 1 analysis: ${inferredOccasion}`);
+              }
+            }
+          }
+
           // ── Stage 51: Catalog-based recommendations for guest (replaces LLM call) ──
           let recommendations: FashionRecommendationsPayload | null = null;
           try {
             recommendations = await buildCatalogRecommendations(
               analysisCore,
               input.lang,
-              input.occasion,
+              inferredOccasion,
               resolvedGender,
               guestProfile?.favoriteInfluencers || null,
               guestProfile?.preferredStores || null,
-              guestProfile?.budgetLevel || null,
+              inferredBudgetLevel,
             );
             console.log(`[Stage 51 Guest] Catalog recommendations built: ${recommendations.improvements?.length || 0} improvements, ${recommendations.outfitSuggestions?.length || 0} outfits`);
           } catch (catalogErr: any) {
@@ -6111,7 +6212,7 @@ Return ONLY a JSON object with these exact fields:
             recommendations = buildFallbackRecommendationsFromCore(
               analysisCore,
               input.lang,
-              input.occasion,
+              inferredOccasion,
               resolvedGender,
               guestProfile?.favoriteInfluencers || null,
               guestProfile?.preferredStores || null,
@@ -6121,11 +6222,11 @@ Return ONLY a JSON object with these exact fields:
             recommendations,
             analysisCore,
             input.lang,
-            input.occasion,
+            inferredOccasion,
             resolvedGender,
             guestProfile?.favoriteInfluencers || null,
             guestProfile?.preferredStores || null,
-            guestProfile?.budgetLevel || null,
+            inferredBudgetLevel,
           );
           let analysis: FashionAnalysis = {
             ...analysisCore,
@@ -6269,7 +6370,8 @@ Return ONLY a JSON object with these exact fields:
           }
 
           // Fix shopping URLs with gender from profile
-          const guestGender: GenderCategory = (resolvedGender as GenderCategory) || "male";
+          // Stage 110: Default to detected gender, NOT hardcoded "male"
+          const guestGender: GenderCategory = (resolvedGender as GenderCategory) || "female";
           analysis = fixShoppingLinkUrls(analysis, guestGender, guestProfile?.preferredStores || null);
           analysis = normalizeOutfitSuggestionsForWearableCore(analysis, guestGender);
           analysis = normalizeImprovementsForWearableCore(analysis, guestGender);

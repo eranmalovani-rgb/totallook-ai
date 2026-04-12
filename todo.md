@@ -1174,3 +1174,10 @@
 
 ## Stage 109: Fix GlowLanding CTA Buttons Navigation
 - [x] 109.1: CTA buttons on /glow landing page now navigate to /try (path chooser)
+
+## Stage 110: Critical Bug Fixes — Guest Flow, Gender, Stores, Occasion Context
+- [x] 110.1: Personalized guest retry — fromOnboarding guests now navigate to /try/quick (direct upload) instead of /try (path chooser)
+- [x] 110.2: Female guests gender filtering fixed — expanded Hebrew/English detection patterns, garment-based fallback, changed default from 'male' to 'female', strengthened LLM prompt for gender detection
+- [x] 110.3: Non-personalized guest influencer language — added tentative language to Stage 2 prompt + disclaimer in GuestReview UI for Path A guests
+- [x] 110.4: Store recommendations personalized — added luxury/premium detection from brands, materials, and score in Stage 1 analysis. Luxury guests get Farfetch/Mr Porter/SSENSE, premium get COS/Massimo Dutti level stores
+- [x] 110.5: Occasion context now inferred from Stage 1 analysis — detects evening/sport/work/date/party from summary text and garment types, passes to catalog matching so upgrades match the detected context

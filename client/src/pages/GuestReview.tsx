@@ -1019,7 +1019,7 @@ export default function GuestReview() {
   const deleteGuestMutation = trpc.guest.deleteAnalysis.useMutation({
     onSuccess: () => {
       toast.success(lang === "he" ? "הניתוח נמחק בהצלחה" : "Analysis deleted successfully");
-      navigate("/try");
+      navigate(fromOnboarding ? "/try/quick" : "/try");
     },
     onError: (err: any) => {
       toast.error((lang === "he" ? "שגיאה במחיקה: " : "Delete error: ") + err.message);
@@ -1134,7 +1134,7 @@ export default function GuestReview() {
         <Navbar />
         <div className="pt-32 text-center">
           <p className="text-muted-foreground">{t("common", "error")}</p>
-          <Button className="mt-4" onClick={() => navigate("/try")}>{t("common", "tryAgain")}</Button>
+          <Button className="mt-4" onClick={() => navigate(fromOnboarding ? "/try/quick" : "/try")}>{t("common", "tryAgain")}</Button>
         </div>
       </div>
     );
@@ -1160,7 +1160,7 @@ export default function GuestReview() {
         <Navbar />
         <div className="pt-32 text-center space-y-4">
           <p className="text-destructive">{t("upload", "genericError")}</p>
-          <Button onClick={() => navigate("/try")}>{t("common", "tryAgain")}</Button>
+          <Button onClick={() => navigate(fromOnboarding ? "/try/quick" : "/try")}>{t("common", "tryAgain")}</Button>
         </div>
       </div>
     );
@@ -1329,7 +1329,7 @@ export default function GuestReview() {
       </div>
     );
   } else if (hasInfluencerInsight) {
-    // Non-personalized guest (Path A) — text-only inspiration, no avatar list or swap
+    // Non-personalized guest (Path A) — text-only inspiration with tentative language
     storyCards.push(
       <div key="inspiration" className="space-y-4">
         <div className="p-5 rounded-2xl border border-[#FF2E9F]/10 bg-gradient-to-b from-white/[0.03] to-transparent shadow-lg shadow-black/20">
@@ -1337,7 +1337,7 @@ export default function GuestReview() {
             <div className="flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-[#FF2E9F]" />
               <h3 className="text-base font-bold text-foreground/90">
-                {lang === "he" ? "השראה" : "Inspiration"}
+                {lang === "he" ? "השראה אפשרית" : "Possible Inspiration"}
               </h3>
             </div>
             <div className="flex items-center gap-1.5">
@@ -1346,6 +1346,12 @@ export default function GuestReview() {
               <InspirationPinterestIcon size={22} />
             </div>
           </div>
+          {/* Tentative disclaimer for non-personalized guests */}
+          <p className="text-[11px] text-muted-foreground/60 mb-2 italic">
+            {lang === "he"
+              ? "⚠️ ההשראות להלן מבוססות על ניתוח התמונה בלבד. להשראות מדויקות יותר — נסי את המסלול המדויק עם פרסונליזציה"
+              : "⚠️ These suggestions are based on image analysis only. For more accurate inspiration — try the personalized path"}
+          </p>
           <p className="text-sm text-muted-foreground leading-relaxed">
             <LinkedText text={analysis.influencerInsight!} mentions={mentions} onInfluencerClick={handleInfluencerClick} />
           </p>
@@ -1715,7 +1721,7 @@ export default function GuestReview() {
                   <UserPlus className="w-4 h-4" />{fromOnboarding ? (lang === "he" ? "שמור את הפרופיל שלי" : "Save my profile") : t("guest", "signupButton")}
                 </a>
               </Button>
-              <Button variant="outline" size="lg" className="gap-2" onClick={() => navigate("/try")}>
+              <Button variant="outline" size="lg" className="gap-2" onClick={() => navigate(fromOnboarding ? "/try/quick" : "/try")}>
                 <Upload className="w-5 h-5" />{lang === "he" ? "ניתוח נוסף" : "Another Analysis"}
               </Button>
             </div>
