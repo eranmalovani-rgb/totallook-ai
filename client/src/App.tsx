@@ -28,7 +28,6 @@ import TasteProfile from "./pages/TasteProfile";
 import BrandDemo from "./pages/BrandDemo";
 import StyleDiary from "./pages/StyleDiary";
 import BackgroundWatermark from "./components/BackgroundWatermark";
-import CookieConsent from "./components/CookieConsent";
 import GlobalWhatsAppPopup from "./components/GlobalWhatsAppPopup";
 import WhatsAppReview from "./pages/WhatsAppReview";
 import About from "./pages/About";

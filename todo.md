@@ -1231,3 +1231,21 @@
 - [x] 114e.2: Clicking either button opens InfluencerPicker Dialog with multi-select (international + local tabs, search, relevance sorting)
 - [x] 114e.3: Dialog has Cancel/Confirm buttons, shows selection count, swapSelection state for multi-select
 - [x] 114e.4: GuestReview uses customInfluencers state to replace displayed influencers; ReviewPage has swap dialog with toast confirmation
+
+## Stage 115: Critical fixes — influencer swap, background tab, cookie consent
+
+- [x] 115a. Fix influencer swap/add not working in GuestReview and ReviewPage (fromOnboarding now also checks guestProfile.onboardingCompleted)
+- [x] 115b. Fix background tab throttling — added visibilitychange listener to refetch on tab return
+- [x] 115b.1: Add visibilitychange event listener to detect when user returns to tab
+- [x] 115b.2: On tab return, re-trigger polling/refetch for any pending operations
+- [x] 115b.3: Server operations already continue regardless of client tab state (server-side processing)
+- [x] 115c. Cookie consent popup fully removed — unused import cleaned from App.tsx
+
+## Stage 115 — Landing Page Marketing Copy + Bug Fixes
+
+- [x] 115a: PathChooser - Updated: "בדיקה מדויקת יותר עבורך", "המכונה לומדת את הסגנון שלך ומשתפרת", "נלמד אותך לאורך הדרך"
+- [x] 115b: StylingStudioAnimation - Changed to "זמן משוער: עד 30 שניות"
+- [x] 115c: GlowLanding - Updated: "AI שלומד את הסגנון שלך", "עד 30 שניות", "המכונה לומדת ומשתפרת"
+- [x] 115d: Fix influencer swap/add — fromOnboarding now checks guestProfile.onboardingCompleted too
+- [x] 115e: Fix background tab throttling - added visibilitychange listener in GuestReview
+- [x] 115f: Cookie consent import removed from App.tsx

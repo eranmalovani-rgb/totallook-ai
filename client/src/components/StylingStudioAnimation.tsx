@@ -643,7 +643,7 @@ export default function StylingStudioAnimation({
 
       {/* Time estimate */}
       <p className="text-center text-xs text-muted-foreground">
-        {lang === "he" ? "זמן משוער: 30-60 שניות" : "Estimated time: 30-60 seconds"}
+        {lang === "he" ? "זמן משוער: עד 30 שניות" : "Estimated time: up to 30 seconds"}
       </p>
     </div>
   );

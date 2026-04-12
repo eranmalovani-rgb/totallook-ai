@@ -240,7 +240,7 @@ export default function PathChooser() {
 
             {/* Subtitle */}
             <p className="text-sm text-muted-foreground mb-5">
-              {isHe ? "ציון תוך 10 שניות" : "Score in 10 seconds"}
+              {isHe ? "ציון תוך שניות" : "Score in seconds"}
             </p>
 
             {/* CTA — opens native file picker (camera + gallery combined) */}
@@ -267,12 +267,15 @@ export default function PathChooser() {
 
             {/* Title */}
             <h2 className="text-xl sm:text-2xl font-bold mb-2">
-              {isHe ? "בדיקה מדויקת יותר" : "Precise Check"} 🎯
+              {isHe ? "בדיקה מדויקת יותר עבורך" : "More Accurate — For You"} 🎯
             </h2>
 
             {/* Subtitle */}
-            <p className="text-sm text-muted-foreground mb-6">
-              {isHe ? "עוד כמה בחירות → תוצאה מדויקת יותר" : "A few more choices → more accurate results"}
+            <p className="text-sm text-muted-foreground mb-2">
+              {isHe ? "המכונה לומדת את הסגנון שלך ומשתפרת" : "Our AI learns your style and improves"}
+            </p>
+            <p className="text-xs text-[#FF2E9F]/60 mb-4">
+              {isHe ? "נלמד אותך לאורך הדרך → תוצאות מותאמות אישית" : "We learn as we go → personalized results"}
             </p>
 
             {/* CTA */}

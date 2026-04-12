@@ -327,7 +327,7 @@ export default function GlowLanding() {
           </h1>
 
           <p className="text-white/50 text-sm sm:text-base mb-6 max-w-md mx-auto" style={{ fontFamily: "'Inter', sans-serif" }}>
-            AI שמנתח את הלוק שלך, נותן ציון, ומראה בדיוק מה לשפר
+            AI שלומד את הסגנון שלך, נותן ציון, ומראה בדיוק מה לשפר
           </p>
 
           {/* ── Hero Before/After Image ── */}
@@ -359,7 +359,7 @@ export default function GlowLanding() {
 
           <GlowCTA text="נסי את הלוק שלך עכשיו" size="lg" />
 
-          <p className="text-white/30 text-xs mt-3">לוקח 5 שניות · בחינם · בלי הרשמה</p>
+          <p className="text-white/30 text-xs mt-3">עד 30 שניות · בחינם · בלי הרשמה</p>
         </div>
       </section>
 
@@ -628,7 +628,7 @@ export default function GlowLanding() {
           >
             נסי את זה על הלוק שלך
           </h2>
-          <p className="text-white/40 text-lg mb-8">לוקח 5 שניות.</p>
+          <p className="text-white/40 text-lg mb-8">עד 30 שניות. המכונה לומדת ומשתפרת.</p>
           <GlowCTA text="✨ בואי נתחיל" size="lg" />
           <p className="text-white/20 text-xs mt-6">חינם לגמרי · בלי הרשמה · בלי כרטיס אשראי</p>
         </div>

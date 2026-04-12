@@ -994,11 +994,11 @@ export default function GuestReview() {
   const guestCountryFlag = getCountryFlag(detectedCountry ?? "");
   const fingerprint = useFingerprint();
 
-  // Detect if user came from personalized onboarding path
-  const [fromOnboarding] = useState(() => {
+  // Detect if user came from personalized onboarding path (URL param)
+  const fromOnboardingParam = useMemo(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get("from") === "onboarding";
-  });
+  }, []);
 
   const [influencerModal, setInfluencerModal] = useState<{
     open: boolean; name: string; handle?: string; igUrl?: string;
@@ -1101,6 +1101,18 @@ export default function GuestReview() {
     }
   }, [result, pollingStartTime]);
 
+  // Stage 115e: Refetch when tab becomes visible again (fixes background tab throttling)
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        // Tab is visible again — refetch result immediately
+        utils.guest.getResult.invalidate({ sessionId });
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, [sessionId, utils]);
+
   // Limit check removed — no more 5-tries limit
 
   const { data: wardrobeData } = trpc.guest.getWardrobe.useQuery(
@@ -1114,6 +1126,8 @@ export default function GuestReview() {
     { enabled: !!fingerprint }
   );
 
+  // Combine URL param + profile data to determine if this is a personalized (Path B) session
+  const fromOnboarding = fromOnboardingParam || !!(guestProfile?.onboardingCompleted);
 
   const closetItems = wardrobeData ?? [];
 

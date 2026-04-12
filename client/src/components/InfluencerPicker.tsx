@@ -304,7 +304,17 @@ export default function InfluencerPicker({ gender, selectedInfluencers, onToggle
           })
         )}
       </div>
-      {/* Show more removed — keep it focused with 6 visible influencers */}
+      {/* Show more / less toggle */}
+      {!searchQuery.trim() && filteredInfluencers.length > MAX_VISIBLE && (
+        <button
+          onClick={() => setShowAll(prev => !prev)}
+          className="w-full py-2 text-xs text-primary hover:text-primary/80 font-medium transition-colors"
+        >
+          {showAll
+            ? (isHe ? "הצג פחות" : "Show less")
+            : (isHe ? `הצג עוד ${filteredInfluencers.length - MAX_VISIBLE} משפיענים` : `Show ${filteredInfluencers.length - MAX_VISIBLE} more`)}
+        </button>
+      )}
     </div>
   );
 }
