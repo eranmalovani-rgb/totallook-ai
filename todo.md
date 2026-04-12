@@ -1156,3 +1156,6 @@
 
 ## Stage 106: /glow Hero Section — Fix Empty Space on Mobile
 - [x] 106.1: Reduce hero section height on mobile — changed to min-h-[80vh] with pt-12 on mobile
+
+## Stage 107: /glow Hero — Add Visual Element to Hero Section
+- [x] 107.1: Move before/after hero image INTO the hero section — now shows title + image + scores + CTA all in one compact hero

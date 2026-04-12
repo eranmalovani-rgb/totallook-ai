@@ -289,7 +289,7 @@ export default function GlowLanding() {
       {/* ─── HERO SECTION ─── */}
       <section
         ref={heroRef.ref}
-        className="relative min-h-[80vh] sm:min-h-screen flex flex-col items-center justify-center px-4 pt-12 sm:pt-0 overflow-hidden"
+        className="relative flex flex-col items-center px-4 pt-10 sm:pt-16 pb-10 overflow-hidden"
       >
         {/* Animated gradient background */}
         <div className="absolute inset-0">
@@ -310,56 +310,60 @@ export default function GlowLanding() {
         </div>
 
         {/* Content */}
-        <div className={`relative z-10 text-center max-w-lg mx-auto transition-all duration-1000 ${heroRef.inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
-          {/* Score animation */}
-          <div className="mb-6">
-            <div className="inline-flex items-center gap-3 text-white/50 text-sm mb-4">
+        <div className={`relative z-10 text-center max-w-2xl mx-auto transition-all duration-1000 ${heroRef.inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
+          {/* Label */}
+          <div className="mb-4">
+            <div className="inline-flex items-center gap-3 text-white/50 text-sm">
               <span className="w-8 h-[1px]" style={{ background: `${PINK}60` }} />
               <span style={{ fontFamily: "'Space Grotesk', sans-serif" }}>GLOW-UP MACHINE</span>
               <span className="w-8 h-[1px]" style={{ background: `${PINK}60` }} />
             </div>
           </div>
 
+          <h1
+            className="text-2xl sm:text-4xl font-bold mb-3 leading-tight"
+            style={{ fontFamily: "'Space Grotesk', sans-serif", color: "#fff" }}
+          >
+            הלוק שלך שווה{" "}
+            <span style={{ background: `linear-gradient(135deg, ${PINK}, ${PURPLE})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+              יותר ממה שחשבת
+            </span>
+          </h1>
+
+          <p className="text-white/50 text-sm sm:text-base mb-6 max-w-md mx-auto" style={{ fontFamily: "'Inter', sans-serif" }}>
+            AI שמנתח את הלוק שלך, נותן ציון, ומראה בדיוק מה לשפר
+          </p>
+
+          {/* ── Hero Before/After Image ── */}
+          <div className="rounded-2xl overflow-hidden mb-6 shadow-2xl" style={{ boxShadow: `0 0 60px ${PINK}15, 0 0 120px ${PURPLE}10` }}>
+            <img
+              src={IMG_HERO}
+              alt="לפני ואחרי — שדרוג לוק עם AI"
+              className="w-full h-auto"
+              loading="eager"
+            />
+          </div>
+
           {/* Score: LTR so numbers read 62 → 92 naturally */}
-          <div className="flex items-center justify-center gap-4 mb-6" dir="ltr">
+          <div className="flex items-center justify-center gap-4 mb-5" dir="ltr">
             <div className="text-center">
-              <div className="text-5xl sm:text-7xl font-bold" style={{ color: "rgba(255,255,255,0.3)", fontFamily: "'Space Grotesk', sans-serif" }}>
+              <div className="text-4xl sm:text-6xl font-bold" style={{ color: "rgba(255,255,255,0.3)", fontFamily: "'Space Grotesk', sans-serif" }}>
                 <ScoreCounter from={0} to={62} duration={1500} trigger={heroRef.inView} />
               </div>
               <span className="text-xs text-white/30">לפני</span>
             </div>
-            <TrendingUp className="w-8 h-8 sm:w-10 sm:h-10" style={{ color: PINK }} />
+            <TrendingUp className="w-7 h-7 sm:w-9 sm:h-9" style={{ color: PINK }} />
             <div className="text-center">
-              <div className="text-5xl sm:text-7xl font-bold" style={{ color: PINK, fontFamily: "'Space Grotesk', sans-serif" }}>
+              <div className="text-4xl sm:text-6xl font-bold" style={{ color: PINK, fontFamily: "'Space Grotesk', sans-serif" }}>
                 <ScoreCounter from={62} to={92} duration={2000} trigger={heroRef.inView} />
               </div>
               <span className="text-xs" style={{ color: `${PINK}80` }}>אחרי</span>
             </div>
           </div>
 
-          <h1
-            className="text-3xl sm:text-5xl font-bold mb-4 leading-tight"
-            style={{ fontFamily: "'Space Grotesk', sans-serif", color: "#fff" }}
-          >
-            הלוק שלך שווה
-            <br />
-            <span style={{ background: `linear-gradient(135deg, ${PINK}, ${PURPLE})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-              יותר ממה שחשבת
-            </span>
-          </h1>
-
-          <p className="text-white/50 text-base sm:text-lg mb-8 max-w-md mx-auto" style={{ fontFamily: "'Inter', sans-serif" }}>
-            AI שמנתח את הלוק שלך, נותן ציון, ומראה בדיוק מה לשפר
-          </p>
-
           <GlowCTA text="נסי את הלוק שלך עכשיו" size="lg" />
 
-          <p className="text-white/30 text-xs mt-4">לוקח 5 שניות · בחינם · בלי הרשמה</p>
-        </div>
-
-        {/* Scroll indicator */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
-          <ChevronDown className="w-6 h-6 text-white/20" />
+          <p className="text-white/30 text-xs mt-3">לוקח 5 שניות · בחינם · בלי הרשמה</p>
         </div>
       </section>
 
@@ -383,23 +387,12 @@ export default function GlowLanding() {
         </div>
       </div>
 
-      {/* ─── HERO IMAGE — Before/After Demo ─── */}
+      {/* ─── MORE EXAMPLES ─── */}
       <section
         ref={demoRef.ref}
-        className="py-12 px-4"
+        className="py-8 px-4"
       >
         <div className={`max-w-4xl mx-auto transition-all duration-700 ${demoRef.inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
-          {/* Main hero before/after image */}
-          <div className="rounded-2xl overflow-hidden mb-8 shadow-2xl" style={{ boxShadow: `0 0 60px ${PINK}15, 0 0 120px ${PURPLE}10` }}>
-            <img
-              src={IMG_HERO}
-              alt="לפני ואחרי — שדרוג לוק עם AI"
-              className="w-full h-auto"
-              loading="eager"
-            />
-          </div>
-
-          {/* Two smaller before/after examples */}
           <div className="grid grid-cols-2 gap-4">
             {BEFORE_AFTER_EXAMPLES.map((ex, i) => (
               <div key={i} className="rounded-xl overflow-hidden relative group" style={{ boxShadow: `0 0 30px ${PINK}10` }}>
