@@ -261,10 +261,16 @@ export async function deleteUserAccount(userId: number) {
   // 10. Delete privacy consents
   await db.delete(privacyConsents).where(eq(privacyConsents.userId, userId));
 
-  // 11. Delete wardrobe items, reviews, profile, user
+  // 11. Delete wardrobe items, reviews, profile
   await db.delete(wardrobeItems).where(eq(wardrobeItems.userId, userId));
   await db.delete(reviews).where(eq(reviews.userId, userId));
   await db.delete(userProfiles).where(eq(userProfiles.userId, userId));
+
+  // 12. Clean up all guest sessions linked to this user (by convertedUserId)
+  // This ensures that if the user re-enters as a guest, they start completely fresh
+  await db.delete(guestSessions).where(eq(guestSessions.convertedUserId, userId));
+
+  // 13. Finally delete the user record
   await db.delete(users).where(eq(users.id, userId));
 }
 

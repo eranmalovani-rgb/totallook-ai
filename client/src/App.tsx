@@ -31,6 +31,7 @@ import CookieConsent from "./components/CookieConsent";
 import GlobalWhatsAppPopup from "./components/GlobalWhatsAppPopup";
 import WhatsAppReview from "./pages/WhatsAppReview";
 import About from "./pages/About";
+import GlowLanding from "./pages/GlowLanding";
 import WhatsAppFloatingButton from "./components/WhatsAppFloatingButton";
 
 function Router() {
@@ -58,6 +59,7 @@ function Router() {
       <Route path="/brand-demo" component={BrandDemo} />
       <Route path="/style-diary" component={StyleDiary} />
       <Route path="/about" component={About} />
+      <Route path="/glow" component={GlowLanding} />
       <Route path="/r/:token" component={WhatsAppReview} />
       <Route path="/wardrobe/shared/:token">
         {(params) => <SharedWardrobe token={params.token} />}

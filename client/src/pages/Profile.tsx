@@ -580,9 +580,22 @@ function PrivacyDataSection({ lang, dir }: { lang: string; dir: string }) {
     try {
       await deleteAccountMutation.mutateAsync();
       toast.success(lang === "he" ? "החשבון נמחק בהצלחה" : "Account deleted successfully");
+      // Clear ALL local data so user appears as completely new guest
+      localStorage.removeItem("manus-runtime-user-info");
+      localStorage.removeItem("tl_guest_fp"); // fingerprint — forces new identity
+      localStorage.removeItem("totallook-user-country");
+      localStorage.removeItem("totallook_cookie_consent");
+      localStorage.removeItem("hideWhatsAppPhoneModal");
+      localStorage.removeItem("theme");
+      localStorage.removeItem("totallook-lang");
+      localStorage.removeItem("sidebar-width");
+      // Clear all cookies
+      document.cookie.split(";").forEach((c) => {
+        document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+      });
       setTimeout(() => {
         window.location.href = "/";
-      }, 1500);
+      }, 500);
     } catch {
       toast.error(lang === "he" ? "שגיאה במחיקת החשבון" : "Failed to delete account");
       setDeleting(false);

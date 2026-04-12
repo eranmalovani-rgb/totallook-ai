@@ -83,7 +83,19 @@ export default function Navbar() {
     try {
       await deleteAccountMutation.mutateAsync();
       toast.success(t("nav", "accountDeleted"));
+      // Clear ALL local data so user appears as completely new guest
       localStorage.removeItem("manus-runtime-user-info");
+      localStorage.removeItem("tl_guest_fp"); // fingerprint — forces new identity
+      localStorage.removeItem("totallook-user-country"); // country cache
+      localStorage.removeItem("totallook_cookie_consent"); // cookie consent
+      localStorage.removeItem("hideWhatsAppPhoneModal"); // whatsapp popup
+      localStorage.removeItem("theme"); // theme preference
+      localStorage.removeItem("totallook-lang"); // language preference
+      localStorage.removeItem("sidebar-width"); // sidebar width
+      // Clear all cookies
+      document.cookie.split(";").forEach((c) => {
+        document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+      });
       setTimeout(() => {
         window.location.href = "/";
       }, 500);

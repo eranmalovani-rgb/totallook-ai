@@ -1123,3 +1123,25 @@
 - [x] 103.4: Strengthen AI occasion detection — Stage 1 + Stage 2 prompts now have explicit rules: analyze CLOTHING first (sportswear=gym, suit=work, etc.), then ENVIRONMENT. Workout outfits get ONLY athletic recommendations.
 - [x] 103.5: Verify TypeScript compiles (0 errors), 889 tests pass (5 external API tests fail as expected)
 - [x] 103.6: Push to GitHub
+
+## Stage 104: Glow-Up Machine Landing Page (/glow) — Women-focused, Hebrew
+- [ ] 104.1: Create GlowLanding.tsx page component and register /glow route in App.tsx
+- [ ] 104.2: Set up design system — dark bg (#0B0B0F), primary pink (#FF2E9F), secondary purple (#7B2EFF), Inter/Space Grotesk fonts, glow effects
+- [ ] 104.3: Hero section — full-screen CSS animation showing before/after score transformation (62→92), text overlay, glow CTA button with pulse animation
+- [ ] 104.4: Game Hook section — "מה הציון של הלוק שלך?", score distribution (רוב הבנות: 60-75, Top 10%: 90+), CTA: "העלי ותגלי"
+- [ ] 104.5: Live Feed — dynamic ticker showing fake real-time updates ("מישהי שיפרה 58 → 88"), auto-refresh every 3-5 seconds
+- [ ] 104.6: Style Feed — grid of mock before/after outfit cards with score improvements, 2x2 mobile / 3x3 desktop
+- [ ] 104.7: Result Preview — score counter animation 62→92, Problems + Fixes UI cards, CTA: "ראי את התוצאה שלך"
+- [ ] 104.8: Social Proof — short quotes in TikTok-story style ("אני מכורה", "זה תיקן לי את הלוק בשניות")
+- [ ] 104.9: FOMO section — "כולן כבר משדרגות את הלוק. את עדיין מנחשת."
+- [ ] 104.10: Final CTA — "נסי את זה על הלוק שלך. לוקח 5 שניות." Large centered glow button
+- [ ] 104.11: Upload Flow — modal with take photo / upload from gallery, connect to existing guest upload flow, loading with progress bar
+- [ ] 104.12: Sticky CTA button that follows scroll
+- [ ] 104.13: Micro-interactions — CTA pulse, score counter animation, smooth scroll, fade-in on scroll
+- [ ] 104.14: Mobile-first responsive design
+- [ ] 104.15: Verify TypeScript, push to GitHub
+
+## Stage 104b: Critical bug — user deletion must fully clean guest data
+- [x] 104b.1: Server-side: deleteUserAccount now deletes guestSessions where convertedUserId = userId
+- [x] 104b.2: Client-side: handleDeleteAccount clears all localStorage keys (fingerprint, country, consent, whatsapp, theme, lang, sidebar) + all cookies
+- [x] 104b.3: Deleted user gets new fingerprint (localStorage cleared) + old guestSessions deleted from DB = completely fresh guest
