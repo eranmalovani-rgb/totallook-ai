@@ -6016,8 +6016,9 @@ Return ONLY a JSON object with these exact fields:
             console.warn(`[Guest Analysis] Failed to auto-save wardrobe items:`, wardrobeErr?.message);
           }
 
-          // ── Stage 100: Auto-detect gender from Stage 1 summary for non-profiled guests ──
-          if (!profileForPrompt?.gender && analysisCore.summary) {
+          // ── Stage 100/101: Auto-detect gender from Stage 1 summary for non-profiled guests ──
+          let resolvedGender: string | null = profileForPrompt?.gender || null;
+          if (!resolvedGender && analysisCore.summary) {
             const summaryLower = analysisCore.summary.toLowerCase();
             let detectedGender: string | null = null;
             // Hebrew gender detection
@@ -6033,7 +6034,8 @@ Return ONLY a JSON object with these exact fields:
               else if (allItemText.includes("men's") || allItemText.includes("גברי")) detectedGender = "male";
             }
             if (detectedGender) {
-              console.log(`[Stage 100] Auto-detected gender from analysis: ${detectedGender}`);
+              console.log(`[Stage 101] Auto-detected gender from analysis: ${detectedGender}`);
+              resolvedGender = detectedGender;
               if (profileForPrompt) {
                 (profileForPrompt as any).gender = detectedGender;
               }
@@ -6042,7 +6044,7 @@ Return ONLY a JSON object with these exact fields:
                 try {
                   await saveGuestProfile(session.fingerprint, { gender: detectedGender });
                 } catch (e) {
-                  console.warn("[Stage 100] Failed to save auto-detected gender:", e);
+                  console.warn("[Stage 101] Failed to save auto-detected gender:", e);
                 }
               }
             }
@@ -6094,7 +6096,7 @@ Return ONLY a JSON object with these exact fields:
               analysisCore,
               input.lang,
               input.occasion,
-              profileForPrompt?.gender || null,
+              resolvedGender,
               guestProfile?.favoriteInfluencers || null,
               guestProfile?.preferredStores || null,
               guestProfile?.budgetLevel || null,
@@ -6110,7 +6112,7 @@ Return ONLY a JSON object with these exact fields:
               analysisCore,
               input.lang,
               input.occasion,
-              profileForPrompt?.gender || null,
+              resolvedGender,
               guestProfile?.favoriteInfluencers || null,
               guestProfile?.preferredStores || null,
             );
@@ -6120,7 +6122,7 @@ Return ONLY a JSON object with these exact fields:
             analysisCore,
             input.lang,
             input.occasion,
-            profileForPrompt?.gender || null,
+            resolvedGender,
             guestProfile?.favoriteInfluencers || null,
             guestProfile?.preferredStores || null,
             guestProfile?.budgetLevel || null,
@@ -6267,13 +6269,13 @@ Return ONLY a JSON object with these exact fields:
           }
 
           // Fix shopping URLs with gender from profile
-          const guestGender: GenderCategory = (profileForPrompt?.gender as GenderCategory) || "male";
+          const guestGender: GenderCategory = (resolvedGender as GenderCategory) || "male";
           analysis = fixShoppingLinkUrls(analysis, guestGender, guestProfile?.preferredStores || null);
           analysis = normalizeOutfitSuggestionsForWearableCore(analysis, guestGender);
           analysis = normalizeImprovementsForWearableCore(analysis, guestGender);
 
           // Gender-filter influencer mentions (same as registered user path)
-          const guestProfileGender = profileForPrompt?.gender;
+          const guestProfileGender = resolvedGender;
           for (const inf of POPULAR_INFLUENCERS) {
             if (guestProfileGender && inf.gender !== "unisex" && inf.gender !== guestProfileGender) continue;
             const mentioned = analysis.influencerInsight?.includes(inf.name) ||
@@ -6474,7 +6476,7 @@ Return ONLY a JSON object with these exact fields:
 
 
           // Stage 43: Stage 2 background — save full analysis with recommendations
-          const guestGenderBg: GenderCategory = (profileForPrompt?.gender as GenderCategory) || "male";
+          const guestGenderBg: GenderCategory = (resolvedGender as GenderCategory) || "male";
           analysis = fixShoppingLinkUrls(analysis, guestGenderBg, guestProfile?.preferredStores || null);
           analysis = normalizeOutfitSuggestionsForWearableCore(analysis, guestGenderBg);
           analysis = normalizeImprovementsForWearableCore(analysis, guestGenderBg);

@@ -1102,3 +1102,10 @@
 - [x] 100.4: Fix Tinder swipe buttons — green V on right, red X on left (fixed RTL flip with dir=ltr)
 - [x] 100.5: Verify TypeScript compiles, tests pass (888 pass, 5 external API tests fail as expected)
 - [x] 100.6: Push to GitHub
+
+## Stage 101: Fix influencer inspiration section (still broken)
+- [x] 101.1: Root cause found — resolvedGender was null for Path A guests because profileForPrompt was null. Gender detected from summary but never applied to Stage 2 calls.
+- [x] 101.2: Fix: introduced `resolvedGender` variable that persists outside the if-block and is used in ALL Stage 2 calls (buildCatalogRecommendations, buildFallbackRecommendationsFromCore, sanitizeRecommendationsPayload, fixShoppingLinkUrls, stripWrongGenderInfluencers)
+- [x] 101.3: Verified personalized guest frontend — autoMatchInfluencers already disqualifies wrong gender with -100 score, guestProfile.gender comes from DB (saved by Stage 101 server fix)
+- [x] 101.4: TypeScript 0 errors, 889 tests pass (5 external API tests fail as expected)
+- [ ] 101.5: Push to GitHub
