@@ -1210,3 +1210,7 @@
 - [x] 113b.3: Replace shopping links with stores from the next tier up (via profile update + cache invalidation)
 - [x] 113b.4: Server-side: added guest.upgradeStores and review.upgradeStores mutations with cache clearing
 - [x] 113b.5: Button shows next tier label; hidden when already at luxury tier
+
+## Stage 113c: Bug fixes — upgrade button not visible + personalized redirect broken
+- [x] 113c.1: Fix "עדכן חנויות" button made more prominent with gradient background, subtitle text, and larger size in both GuestReview and ReviewPage
+- [x] 113c.2: Fix authenticated onboarding with incomingPhoto — now creates review from existing photo URL and navigates to /review/:id instead of /upload. Added review.createFromUrl server procedure.

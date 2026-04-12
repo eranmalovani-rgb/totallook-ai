@@ -336,6 +336,8 @@ export default function Onboarding() {
   const guestUploadFromUrlMutation = trpc.guest.uploadFromUrl.useMutation();
   const guestAnalyzeMutation = trpc.guest.analyze.useMutation();
   const guestSaveProfileMutation = trpc.guest.saveProfile.useMutation();
+  const reviewCreateFromUrlMutation = trpc.review.createFromUrl.useMutation();
+  const reviewAnalyzeMutation = trpc.review.analyze.useMutation();
   const fingerprint = useFingerprint();
 
   /* ── Derived: which R1 deck to use ── */
@@ -571,7 +573,24 @@ export default function Onboarding() {
           onboardingCompleted: true,
           country: detectedCountry || undefined,
         });
-        window.location.href = "/upload";
+
+        // If we have an incoming photo from Path A, create a review from it and navigate to results
+        if (incomingPhoto && photoAnalysis?.imageUrl) {
+          const { reviewId } = await reviewCreateFromUrlMutation.mutateAsync({
+            imageUrl: photoAnalysis.imageUrl,
+            imageKey: photoAnalysis.imageKey || undefined,
+          });
+          // Show analysis animation
+          setShowAnalysisAnimation(true);
+          // Trigger analysis
+          reviewAnalyzeMutation.mutate({ reviewId, lang });
+          // Navigate to review page after animation
+          setTimeout(() => {
+            navigate(`/review/${reviewId}?from=onboarding`);
+          }, 4000);
+        } else {
+          window.location.href = "/upload";
+        }
       } else {
         // Non-authenticated: save guest profile, create session from existing photo, run analysis, navigate to review
         if (!fingerprint || !photoAnalysis?.imageUrl) {

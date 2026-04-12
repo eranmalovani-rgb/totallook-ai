@@ -3943,6 +3943,28 @@ IMPORTANT: Return ONLY the JSON array, no markdown.`;
         return { reviewId, imageUrl: url };
       }),
 
+    /** Create review from an already-uploaded image URL (used by onboarding → personalized analysis) */
+    createFromUrl: protectedProcedure
+      .input(z.object({
+        imageUrl: z.string().url(),
+        imageKey: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const userId = ctx.user.id;
+        const reviewId = await createReview({
+          userId,
+          imageUrl: input.imageUrl,
+          imageKey: input.imageKey || "",
+          status: "pending",
+          influencers: null,
+          styleNotes: null,
+          occasion: null,
+          secondImageUrl: null,
+          secondImageKey: null,
+        });
+        return { reviewId, imageUrl: input.imageUrl };
+      }),
+
     analyze: protectedProcedure
       .input(z.object({ reviewId: z.number(), lang: z.enum(["he", "en"]).optional().default("he") }))
       .mutation(async ({ ctx, input }) => {

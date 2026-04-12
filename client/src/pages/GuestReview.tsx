@@ -1430,11 +1430,15 @@ export default function GuestReview() {
           if (isMaxTier) return null;
           const nextTierLabel = getBudgetTierLabel(nextTier, lang);
           return (
-            <div className="mt-3">
+            <div className="mt-4 p-4 rounded-xl border border-primary/20 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5">
+              <p className="text-xs text-muted-foreground mb-2 text-center">
+                {lang === "he"
+                  ? `\u05e8\u05d5\u05e6\u05d4 \u05dc\u05e8\u05d0\u05d5\u05ea \u05d7\u05e0\u05d5\u05d9\u05d5\u05ea \u05d1\u05e8\u05de\u05d4 \u05d2\u05d1\u05d5\u05d4\u05d4 \u05d9\u05d5\u05ea\u05e8?`
+                  : `Want to see higher-tier stores?`}
+              </p>
               <Button
                 variant="outline"
-                size="sm"
-                className="w-full gap-2 border-primary/30 text-primary hover:bg-primary/10 hover:border-primary/50 transition-all"
+                className="w-full gap-2 h-11 text-sm font-semibold border-primary/40 text-primary bg-primary/5 hover:bg-primary/15 hover:border-primary/60 transition-all shadow-sm"
                 disabled={upgradeStoresMutation.isPending}
                 onClick={() => {
                   if (!fingerprint) return;
