@@ -232,8 +232,17 @@ function StoryCardsContainer({
     if (!touchStartRef.current || isAnimating) return;
     const dx = e.touches[0].clientX - touchStartRef.current.x;
     const dy = e.touches[0].clientY - touchStartRef.current.y;
-    if (!isDraggingRef.current && Math.abs(dy) > Math.abs(dx)) return;
-    isDraggingRef.current = true;
+    // If vertical scroll dominates and we haven't started dragging, let browser scroll
+    if (!isDraggingRef.current) {
+      if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 10) return;
+      if (Math.abs(dx) > 10) {
+        isDraggingRef.current = true;
+      } else {
+        return;
+      }
+    }
+    // Prevent browser scroll while we're dragging the card horizontally
+    e.preventDefault();
     // Follow finger — card translates + rotates like Tinder
     if (cardContainerRef.current) {
       const w = wrapperRef.current?.offsetWidth || 350;
@@ -253,7 +262,7 @@ function StoryCardsContainer({
 
     const velocity = Math.abs(dx) / Math.max(elapsed, 1);
     const w = wrapperRef.current?.offsetWidth || 350;
-    const shouldCommit = isDraggingRef.current && (Math.abs(dx) >= w * 0.25 || velocity >= 0.4);
+    const shouldCommit = isDraggingRef.current && (Math.abs(dx) >= w * 0.25 || (velocity >= 0.6 && Math.abs(dx) > 30));
     isDraggingRef.current = false;
 
     const el = cardContainerRef.current;
@@ -396,10 +405,11 @@ function StoryCardsContainer({
         )}
       </div>
 
-      {/* Active card — Instagram-style slide animation + swipe */}
+      {/* Active card — Tinder-style drag + swipe */}
       <div
         ref={wrapperRef}
-        className="overflow-hidden px-2 relative"
+        className="px-2 relative"
+        style={{ touchAction: "pan-y" }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}

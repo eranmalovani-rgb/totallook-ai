@@ -1321,3 +1321,7 @@
 - [x] 122b: Card rotates during drag (12° max) and 15° on fly-out
 - [x] 122c: Threshold 25% or velocity 0.4 → fly out with rotation; below → snap back
 - [x] 122d: Direction arrows appear during drag with color-coded borders
+
+## Stage 123 — Fix Tinder Swipe Not Following Finger
+
+- [x] 123a: Fixed: removed overflow-hidden (was clipping card), added touch-action:pan-y, added e.preventDefault() during horizontal drag, increased velocity threshold, added 10px dead zone before drag starts
