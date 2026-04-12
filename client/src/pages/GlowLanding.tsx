@@ -281,24 +281,22 @@ export default function GlowLanding() {
           ═══════════════════════════════════════════════════════ */}
       <section
         ref={heroRef.ref}
-        className="relative flex flex-col items-center justify-center overflow-hidden"
-        style={{ height: "100svh", minHeight: 500 }}
+        className="relative flex flex-col items-center justify-center"
+        style={{ minHeight: "100svh" }}
       >
-        {/* Hero media — 70-80% of screen, absolute cover */}
-        <div className="absolute inset-0 z-[1]">
+        {/* Hero media — visible Before/After image */}
+        <div className="relative w-full px-3 sm:px-6 pt-6 sm:pt-10 mb-4 sm:mb-6">
           <img
             src={IMG_HERO}
             alt="Before and After — AI outfit upgrade"
-            className="w-full h-full object-cover"
+            className="w-full max-w-3xl mx-auto rounded-2xl"
             loading="eager"
-            style={{ opacity: 0.55 }}
+            style={{ maxHeight: "55vh", objectFit: "contain" }}
           />
-          {/* Dark overlay */}
-          <div className="absolute inset-0" style={{ background: "rgba(0,0,0,0.45)" }} />
         </div>
 
-        {/* Hero content — on top */}
-        <div className={`relative z-[2] text-center w-full max-w-2xl mx-auto px-4 sm:px-5 transition-all duration-1000 ease-out ${heroReady ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}`}>
+        {/* Hero content — below image */}
+        <div className={`text-center w-full max-w-2xl mx-auto px-4 sm:px-5 pb-8 transition-all duration-1000 ease-out ${heroReady ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}`}>
 
           {/* Headline */}
           <h1
@@ -312,22 +310,22 @@ export default function GlowLanding() {
           </h1>
 
           {/* Sub-headline */}
-          <p className="text-white/50 mb-4 sm:mb-6 max-w-md mx-auto leading-relaxed" style={{ fontSize: "clamp(13px, 3.5vw, 18px)" }}>
+          <p className="text-white/50 mb-3 sm:mb-5 max-w-md mx-auto leading-relaxed" style={{ fontSize: "clamp(13px, 3.5vw, 18px)" }}>
             Upload your look. Get your score. Fix it in seconds.
           </p>
 
           {/* ── SCORE — THE MOST IMPORTANT ELEMENT ── */}
-          <div className="flex items-center justify-center gap-2 sm:gap-4 mb-4 sm:mb-6 score-pop">
+          <div className="flex items-center justify-center gap-2 sm:gap-4 mb-3 sm:mb-5 score-pop">
             <span
               className="font-black"
-              style={{ fontSize: "clamp(56px, 15vw, 140px)", color: SCORE_LOW, fontFamily: FONT, textShadow: `0 0 40px ${SCORE_LOW}50`, lineHeight: 1 }}
+              style={{ fontSize: "clamp(48px, 13vw, 140px)", color: SCORE_LOW, fontFamily: FONT, textShadow: `0 0 40px ${SCORE_LOW}50`, lineHeight: 1 }}
             >
               <ScoreCounter from={0} to={62} duration={1500} trigger={heroRef.inView} />
             </span>
-            <span className="text-white/30 font-light" style={{ fontSize: "clamp(24px, 6vw, 60px)" }}>→</span>
+            <span className="text-white/30 font-light" style={{ fontSize: "clamp(20px, 5vw, 60px)" }}>→</span>
             <span
               className="font-black"
-              style={{ fontSize: "clamp(56px, 15vw, 140px)", color: NEON, fontFamily: FONT, textShadow: `0 0 40px ${NEON}50`, lineHeight: 1 }}
+              style={{ fontSize: "clamp(48px, 13vw, 140px)", color: NEON, fontFamily: FONT, textShadow: `0 0 40px ${NEON}50`, lineHeight: 1 }}
             >
               <ScoreCounter from={62} to={92} duration={2000} trigger={heroRef.inView} />
             </span>
@@ -343,7 +341,7 @@ export default function GlowLanding() {
           </button>
 
           {/* Secondary proof line */}
-          <p className="text-white/30 text-xs sm:text-sm mt-4" style={{ fontFamily: FONT }}>
+          <p className="text-white/30 text-xs sm:text-sm mt-3" style={{ fontFamily: FONT }}>
             Most looks score 60–75. Top 10% get 90+.
           </p>
         </div>

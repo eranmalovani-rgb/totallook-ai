@@ -1304,3 +1304,8 @@
 - [x] 119k: Prompt update — Added 'CRITICAL BRAND TIER RULE' section with minimum tier + luxury tier examples
 
 - [x] 119-CRITICAL: Landing page mobile responsive — fixed scores, hero, grid, sections, sticky CTA for mobile
+
+## Stage 120 — Critical Mobile Fixes
+
+- [x] 120a: Hero images fixed — changed from absolute bg to visible content with object-fit:contain + max-height:55vh
+- [x] 120b: Scroll fixed — removed overflow-hidden from hero, changed height:100svh to minHeight:100svh
