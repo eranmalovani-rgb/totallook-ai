@@ -1187,3 +1187,11 @@
 - [x] 111.2: Stage 2 prompt now limits to 2-3 short sentences max with hedging language
 - [x] 111.3: Server-side guestProfileGender now always has a value (fallback to guestGender) so filtering never skips
 - [x] 111.4: Prompt instructs max 2-3 short sentences, name + one reason only
+
+## Stage 112: Critical — Stage 2 Ignores Detected Male Gender
+- [x] 112.1: Stage 2 prompt now has explicit FORBIDDEN items list for males + ONLY male influencers rule
+- [x] 112.2: Fixed substring false positives in Hebrew gender detection (לובש/לובשת), added [gender: X] tag to Stage 1 prompt
+- [x] 112.3: buildFallbackImprovement now gender-aware with male/female upgrade maps, pickInfluencersForProfile defaults to same-gender only
+
+## Stage 112b: No influencers when gender unknown
+- [x] 112b.1: When gender not detected: Stage 2 prompt says set influencerInsight to empty string; post-processing clears influencerInsight + linkedMentions + inspirationNotes in both foreground and background paths

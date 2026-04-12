@@ -404,7 +404,9 @@ function buildFallbackImprovement(
   isHebrew: boolean,
   stageOneItems?: Array<{ name?: string; garmentType?: string; preciseColor?: string; color?: string; material?: string; fit?: string; pattern?: string; texture?: string; neckline?: string; sleeveLength?: string; bodyZone?: string; score?: number }>,
   occasion?: string | null,
+  userGender?: string | null,
 ): Improvement {
+  const isMale = (userGender || "").toLowerCase() === "male";
   // Stage 30 GAP 5: Try to build a CONTEXTUAL fallback from Stage 1 item data
   const bodyZoneMap: Record<string, string> = { top: "upper", bottom: "lower", outerwear: "outer", shoes: "feet", dress: "full", onepiece: "full" };
   const matchingItem = (stageOneItems || []).find((it) => {
@@ -433,8 +435,18 @@ function buildFallbackImprovement(
     const isSport = /sport|gym|workout|ספורט|אימון|כושר/.test(occ);
     const isWork = /work|office|business|עבודה|משרד|פגישה/.test(occ);
 
-    // Occasion-specific upgrade maps
-    const eveningUpgrades: Record<string, Array<{ type: string; color: string; material: string; fit: string; style: string }>> = {
+    // Occasion-specific upgrade maps — GENDER-AWARE
+    const eveningUpgradesMale: Record<string, Array<{ type: string; color: string; material: string; fit: string; style: string }>> = {
+      "t-shirt": [{ type: "dress shirt", color: "white", material: "cotton poplin", fit: "tailored", style: "formal" }, { type: "silk dress shirt", color: "black", material: "silk", fit: "slim", style: "formal" }],
+      "polo": [{ type: "dress shirt", color: "white", material: "cotton poplin", fit: "tailored", style: "formal" }],
+      "hoodie": [{ type: "velvet blazer", color: "burgundy", material: "velvet", fit: "tailored", style: "formal" }],
+      "sweatshirt": [{ type: "structured blazer", color: "black", material: "wool blend", fit: "tailored", style: "formal" }],
+      "jeans": [{ type: "tailored trousers", color: "black", material: "wool blend", fit: "tailored", style: "formal" }, { type: "dress pants", color: "charcoal", material: "wool blend", fit: "slim", style: "formal" }],
+      "shorts": [{ type: "tailored trousers", color: "charcoal", material: "wool blend", fit: "slim", style: "formal" }],
+      "sneakers": [{ type: "leather oxford shoes", color: "black", material: "leather", fit: "n/a", style: "formal" }, { type: "suede loafers", color: "dark brown", material: "suede", fit: "n/a", style: "formal" }],
+      "sandals": [{ type: "leather derby shoes", color: "brown", material: "leather", fit: "n/a", style: "formal" }],
+    };
+    const eveningUpgradesFemale: Record<string, Array<{ type: string; color: string; material: string; fit: string; style: string }>> = {
       "t-shirt": [{ type: "silk blouse", color: "black", material: "silk", fit: "relaxed", style: "formal" }, { type: "satin camisole", color: "champagne", material: "satin", fit: "slim", style: "formal" }],
       "polo": [{ type: "silk shirt", color: "ivory", material: "silk", fit: "tailored", style: "formal" }],
       "hoodie": [{ type: "velvet blazer", color: "burgundy", material: "velvet", fit: "tailored", style: "formal" }],
@@ -444,6 +456,7 @@ function buildFallbackImprovement(
       "sneakers": [{ type: "heeled sandals", color: "black", material: "leather", fit: "n/a", style: "formal" }, { type: "pointed-toe pumps", color: "nude", material: "leather", fit: "n/a", style: "formal" }],
       "sandals": [{ type: "strappy heels", color: "gold", material: "metallic leather", fit: "n/a", style: "formal" }],
     };
+    const eveningUpgrades = isMale ? eveningUpgradesMale : eveningUpgradesFemale;
     const sportUpgrades: Record<string, Array<{ type: string; color: string; material: string; fit: string; style: string }>> = {
       "t-shirt": [{ type: "performance tank", color: "black", material: "moisture-wicking", fit: "athletic", style: "sporty" }, { type: "compression top", color: "navy", material: "technical fabric", fit: "fitted", style: "sporty" }],
       "hoodie": [{ type: "zip-up track jacket", color: "black", material: "technical fabric", fit: "athletic", style: "sporty" }],
@@ -452,12 +465,19 @@ function buildFallbackImprovement(
       "shorts": [{ type: "performance shorts", color: "black", material: "moisture-wicking", fit: "athletic", style: "sporty" }],
       "sneakers": [{ type: "running shoes", color: "black/white", material: "mesh", fit: "n/a", style: "sporty" }],
     };
-    const workUpgrades: Record<string, Array<{ type: string; color: string; material: string; fit: string; style: string }>> = {
+    const workUpgradesMale: Record<string, Array<{ type: string; color: string; material: string; fit: string; style: string }>> = {
+      "t-shirt": [{ type: "dress shirt", color: "white", material: "cotton poplin", fit: "tailored", style: "formal" }, { type: "oxford shirt", color: "light blue", material: "oxford cotton", fit: "slim", style: "smart-casual" }],
+      "hoodie": [{ type: "structured blazer", color: "navy", material: "wool blend", fit: "tailored", style: "formal" }],
+      "jeans": [{ type: "tailored trousers", color: "charcoal", material: "wool blend", fit: "tailored", style: "formal" }],
+      "sneakers": [{ type: "leather loafers", color: "brown", material: "leather", fit: "n/a", style: "classic" }, { type: "leather derby shoes", color: "black", material: "leather", fit: "n/a", style: "formal" }],
+    };
+    const workUpgradesFemale: Record<string, Array<{ type: string; color: string; material: string; fit: string; style: string }>> = {
       "t-shirt": [{ type: "dress shirt", color: "white", material: "cotton poplin", fit: "tailored", style: "formal" }, { type: "silk blouse", color: "light blue", material: "silk", fit: "relaxed", style: "smart-casual" }],
       "hoodie": [{ type: "structured blazer", color: "navy", material: "wool blend", fit: "tailored", style: "formal" }],
       "jeans": [{ type: "tailored trousers", color: "charcoal", material: "wool blend", fit: "tailored", style: "formal" }],
       "sneakers": [{ type: "leather loafers", color: "brown", material: "leather", fit: "n/a", style: "classic" }, { type: "pointed-toe flats", color: "black", material: "leather", fit: "n/a", style: "formal" }],
     };
+    const workUpgrades = isMale ? workUpgradesMale : workUpgradesFemale;
 
     // Select the right upgrade map based on occasion
     const occasionUpgrades = isEvening ? eveningUpgrades : isSport ? sportUpgrades : isWork ? workUpgrades : null;
@@ -706,7 +726,7 @@ function normalizeImprovementsForWearableCore(
     const nextCat =
       preferredOrder.find((cat) => !currentClothingCats.has(cat)) ||
       preferredOrder[normalized.length % preferredOrder.length];
-    normalized.push(buildFallbackImprovement(nextCat, isHebrew, analysis.items, null));
+    normalized.push(buildFallbackImprovement(nextCat, isHebrew, analysis.items, null, userGender));
     currentClothingCats.add(nextCat);
   }
 
@@ -734,7 +754,7 @@ function normalizeImprovementsForWearableCore(
     const missingCat =
       preferredOrder.find((cat) => !keep.some((imp) => detectImprovementCategory(imp) === cat)) ||
       preferredOrder[keep.length % preferredOrder.length];
-    keep.push(buildFallbackImprovement(missingCat, isHebrew, analysis.items, null));
+    keep.push(buildFallbackImprovement(missingCat, isHebrew, analysis.items, null, userGender));
   }
 
   analysis.improvements = keep;
@@ -1286,9 +1306,12 @@ Before analyzing items, scan the image for person/body information:
 - Brief pose description (e.g. "standing facing camera, hands in pockets")
 This data is CRITICAL for downstream features — if feet are not visible, we know shoe analysis may be limited.
 
-GENDER DETECTION (REQUIRED — HIGHEST PRIORITY): You MUST detect the person's gender (male/female) from the photo and EXPLICITLY state it in the FIRST SENTENCE of the summary. Use gendered language throughout:
-- For females: Start with "האישה לובשת..." / "She is wearing..." / "הבחורה נראית..." and use feminine verb forms (לובשת, נראית, מרשימה) throughout ALL text.
-- For males: Start with "הגבר לובש..." / "He is wearing..." / "הבחור נראה..." and use masculine verb forms (לובש, נראה, מרשים) throughout ALL text.
+GENDER DETECTION (REQUIRED — HIGHEST PRIORITY): You MUST detect the person's gender (male/female) from the photo.
+⚠️ MANDATORY: The summary field MUST begin with a gender tag: "[מגדר: גבר]" or "[מגדר: אישה]" (Hebrew) / "[gender: male]" or "[gender: female]" (English) as the VERY FIRST characters.
+Then use gendered language throughout:
+- For females: After the tag, continue with "האישה לובשת..." / "She is wearing..." and use ONLY feminine verb forms (לובשת, נראית, מרשימה) throughout ALL text.
+- For males: After the tag, continue with "הגבר לובש..." / "He is wearing..." and use ONLY masculine verb forms (לובש, נראה, מרשים) throughout ALL text.
+⚠️ CRITICAL: ALL recommendations, improvements, outfit suggestions, and influencer matches MUST be for the SAME gender as detected. A male MUST NEVER receive female items (silk blouse, heels, pumps, camisole) or female influencers. A female MUST NEVER receive male items (tie, suit) or male influencers.
 This is CRITICAL for matching influencers and recommendations to the correct gender. NEVER use gender-neutral language when the gender is detectable.
 
 ENRICHED ITEM METADATA (REQUIRED FOR EACH ITEM):
@@ -2221,7 +2244,11 @@ Task: return JSON with fields only:
 - trendSources
 - influencerInsight
 
-❗ CRITICAL: The user is ${normalizedGender === "female" ? "a woman" : normalizedGender === "male" ? "a man" : "gender unspecified"}. Address ${normalizedGender === "female" ? "her" : "him"} accordingly in all text!
+❗ CRITICAL GENDER RULE: The user is ${normalizedGender === "female" ? "a WOMAN" : normalizedGender === "male" ? "a MAN" : "gender unspecified"}.
+⚠️ ALL improvements, outfit suggestions, and influencer matches MUST be for ${normalizedGender === "female" ? "WOMEN ONLY" : normalizedGender === "male" ? "MEN ONLY" : "the detected gender"}.
+${normalizedGender === "male" ? `⚠️ FORBIDDEN FOR MALE USERS: silk blouse, satin camisole, heeled sandals, pointed-toe pumps, strappy heels, crop top, bodysuit, skirt, dress (unless it's a suit/blazer). ONLY suggest masculine items: dress shirt, oxford shirt, blazer, trousers, loafers, derby shoes, oxford shoes, boots, sneakers.
+⚠️ INFLUENCERS FOR MALE USERS: ONLY male influencers (David Beckham, Ryan Gosling, Harry Styles, etc.). NEVER suggest female influencers (Bella Hadid, Cate Blanchett, Zendaya, etc.).` : normalizedGender === "female" ? `⚠️ INFLUENCERS FOR FEMALE USERS: ONLY female influencers (Bella Hadid, Zendaya, Hailey Bieber, etc.). NEVER suggest male influencers (David Beckham, Ryan Gosling, etc.).` : `⚠️ GENDER NOT DETECTED: Do NOT include any influencer references in the influencerInsight field. Set influencerInsight to an empty string "". Do NOT mention any celebrity or influencer names.`}
+Address ${normalizedGender === "female" ? "her" : "him"} accordingly in all text!
 
 ❗ WRITING STYLE: Write like a REAL fashion stylist, not a robot. Every recommendation MUST include:
   - A fashion explanation of WHY this change upgrades the look (how the color complements, how the material elevates, how the fit improves the silhouette)
@@ -2342,9 +2369,12 @@ export function pickInfluencersForProfile(
   const matches = POPULAR_INFLUENCERS.filter((inf) => {
     if (normalizedGender === "male") return inf.gender === "male" || inf.gender === "unisex";
     if (normalizedGender === "female") return inf.gender === "female" || inf.gender === "unisex";
-    return true;
+    // Unknown gender: only return unisex influencers to avoid mismatches
+    return inf.gender === "unisex";
   });
-  return matches.slice(0, Math.max(1, max)).map((inf) => ({ name: inf.name, igUrl: inf.igUrl }));
+  // Shuffle for variety so users don't always see the same influencers
+  const shuffled = [...matches].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, Math.max(1, max)).map((inf) => ({ name: inf.name, igUrl: inf.igUrl }));
 }
 
 function resolvePreferredInfluencers(
@@ -3599,10 +3629,10 @@ function buildFallbackRecommendationsFromCore(
   const isHebrew = lang === "he";
   const stageOneItems = core.items || [];
   const improvements: Improvement[] = [
-    buildFallbackImprovement("top", isHebrew, stageOneItems, occasion),
-    buildFallbackImprovement("bottom", isHebrew, stageOneItems, occasion),
-    buildFallbackImprovement("shoes", isHebrew, stageOneItems, occasion),
-    buildFallbackImprovement("outerwear", isHebrew, stageOneItems, occasion),
+    buildFallbackImprovement("top", isHebrew, stageOneItems, occasion, userGender),
+    buildFallbackImprovement("bottom", isHebrew, stageOneItems, occasion, userGender),
+    buildFallbackImprovement("shoes", isHebrew, stageOneItems, occasion, userGender),
+    buildFallbackImprovement("outerwear", isHebrew, stageOneItems, occasion, userGender),
   ];
 
   const coreItems = (core.items || []).map((it) => it.name).filter(Boolean);
@@ -6061,17 +6091,40 @@ Return ONLY a JSON object with these exact fields:
           if (!resolvedGender && analysisCore.summary) {
             const summaryLower = analysisCore.summary.toLowerCase();
             let detectedGender: string | null = null;
-            // Hebrew gender detection — expanded patterns
-            const hebrewFemalePatterns = ["אישה", "נשית", "נשי", "בחורה", "צעירה", "גברת", "נערה", "היא לובשת", "היא נראית", "עליה", "שלה", "לובשת", "נראית", "מרשימה", "אלגנטית", "מדהימה"];
-            const hebrewMalePatterns = ["גבר", "גברי", "גברית", "בחור", "צעיר", "אדון", "נער", "הוא לובש", "הוא נראה", "עליו", "שלו", "לובש", "נראה מרשים"];
-            const femaleHits = hebrewFemalePatterns.filter(p => summaryLower.includes(p)).length;
-            const maleHits = hebrewMalePatterns.filter(p => summaryLower.includes(p)).length;
+            // Hebrew gender detection — use EXCLUSIVE patterns to avoid substring false positives
+            // IMPORTANT: "לובש" is a substring of "לובשת" — must check female-specific FIRST
+            // and use phrase-level matching, not substring matching
+            const hebrewFemaleExclusive = ["אישה", "נשית", "בחורה", "צעירה", "גברת", "נערה", "היא לובשת", "היא נראית", "עליה", "שלה", "לובשת", "נראית", "מרשימה", "אלגנטית", "מדהימה", "שמלה", "חצאית", "עקבים"];
+            const hebrewMaleExclusive = ["גבר ", " גבר", "גברי", "בחור", "צעיר ", "אדון", "נער ", "הוא לובש", "הוא נראה", "עליו", "שלו", "נראה מרשים", "חליפה", "עניבה"];
+            // Count female hits — use exact matching to avoid "לובש" matching inside "לובשת"
+            let femaleHits = 0;
+            let maleHits = 0;
+            for (const p of hebrewFemaleExclusive) {
+              if (summaryLower.includes(p.trim())) femaleHits++;
+            }
+            for (const p of hebrewMaleExclusive) {
+              if (summaryLower.includes(p.trim())) {
+                // Avoid counting "לובש" if "לובשת" is present (substring issue)
+                if (p.trim() === "הוא לובש" && summaryLower.includes("היא לובשת")) continue;
+                if (p.trim() === "הוא נראה" && summaryLower.includes("היא נראית")) continue;
+                maleHits++;
+              }
+            }
+            // Also check for explicit GENDER MARKER from LLM prompt (Stage 101 instruction)
+            if (summaryLower.includes("[gender: male]") || summaryLower.includes("מגדר: גבר") || summaryLower.includes("gender: male")) {
+              maleHits += 10; // Strong signal
+            }
+            if (summaryLower.includes("[gender: female]") || summaryLower.includes("מגדר: אישה") || summaryLower.includes("gender: female")) {
+              femaleHits += 10; // Strong signal
+            }
+            console.log(`[Stage 101 Gender] Hebrew detection: femaleHits=${femaleHits}, maleHits=${maleHits}`);
             if (femaleHits > maleHits && femaleHits >= 1) detectedGender = "female";
             else if (maleHits > femaleHits && maleHits >= 1) detectedGender = "male";
             // English gender detection — expanded patterns
             if (!detectedGender) {
               const enFemaleHits = (summaryLower.match(/\bshe\b|\bher\b|\bfemale\b|\bwoman\b|\blady\b|\bfeminine\b|\bgirl\b/g) || []).length;
               const enMaleHits = (summaryLower.match(/\bhe\b|\bhis\b|\bmale\b|\bman\b|\bgentleman\b|\bmasculine\b|\bguy\b/g) || []).length;
+              console.log(`[Stage 101 Gender] English detection: femaleHits=${enFemaleHits}, maleHits=${enMaleHits}`);
               if (enFemaleHits > enMaleHits && enFemaleHits >= 1) detectedGender = "female";
               else if (enMaleHits > enFemaleHits && enMaleHits >= 1) detectedGender = "male";
             }
@@ -6082,6 +6135,7 @@ Return ONLY a JSON object with these exact fields:
               const maleGarments = ["men's", "גברי", "גברים", "tie", "עניבה", "חליפה", "suit"];
               const fGarmentHits = femaleGarments.filter(g => allItemText.includes(g)).length;
               const mGarmentHits = maleGarments.filter(g => allItemText.includes(g)).length;
+              console.log(`[Stage 101 Gender] Garment detection: femaleHits=${fGarmentHits}, maleHits=${mGarmentHits}`);
               if (fGarmentHits > mGarmentHits) detectedGender = "female";
               else if (mGarmentHits > fGarmentHits) detectedGender = "male";
             }
@@ -6376,6 +6430,19 @@ Return ONLY a JSON object with these exact fields:
           analysis = normalizeOutfitSuggestionsForWearableCore(analysis, guestGender);
           analysis = normalizeImprovementsForWearableCore(analysis, guestGender);
 
+          // Stage 112b: If gender was NOT detected from the image (resolvedGender was null),
+          // clear influencer section entirely — we can't guarantee correct gender matching
+          if (!resolvedGender) {
+            console.log(`[Stage 112b] Gender not detected — clearing influencer section`);
+            analysis.influencerInsight = "";
+            analysis.linkedMentions = (analysis.linkedMentions || []).filter(m => m.type !== "influencer");
+            if (analysis.outfitSuggestions) {
+              analysis.outfitSuggestions = analysis.outfitSuggestions.map(o => ({
+                ...o,
+                inspirationNote: "",
+              }));
+            }
+          }
           // Gender-filter influencer mentions (same as registered user path)
           // Stage 111: Always use guestGender (with fallback) so filtering never skips
           const guestProfileGender: string = guestGender;
@@ -6583,6 +6650,19 @@ Return ONLY a JSON object with these exact fields:
           analysis = fixShoppingLinkUrls(analysis, guestGenderBg, guestProfile?.preferredStores || null);
           analysis = normalizeOutfitSuggestionsForWearableCore(analysis, guestGenderBg);
           analysis = normalizeImprovementsForWearableCore(analysis, guestGenderBg);
+
+          // Stage 112b: If gender was NOT detected, clear influencer section
+          if (!resolvedGender) {
+            console.log(`[Stage 112b BG] Gender not detected — clearing influencer section`);
+            analysis.influencerInsight = "";
+            analysis.linkedMentions = (analysis.linkedMentions || []).filter(m => m.type !== "influencer");
+            if (analysis.outfitSuggestions) {
+              analysis.outfitSuggestions = analysis.outfitSuggestions.map(o => ({
+                ...o,
+                inspirationNote: "",
+              }));
+            }
+          }
 
           // Closet matching already ran above
 
