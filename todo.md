@@ -1262,3 +1262,15 @@
 - [x] 116h: Remove noise → removed Phone Mockup, Problems/Fixes, Result Preview sections
 - [x] 116i: Copy → "נסי את הלוק שלך עכשיו", "ראי את הציון שלך", "תקני את הלוק שלך ב-30 שניות"
 - [x] 116j: Dark mode confirmed (#0B0B0F background)
+
+## Stage 117 — Landing Page Complete Rewrite (Final Spec)
+
+- [x] 117a: Hero — full screen, exact copy, Before/After visual with 62→92 scores, CTA + proof line
+- [x] 117b: Section 2 — Instant Value with 3 bullets
+- [x] 117c: Section 3 — Result Preview card with score, what's off, how to improve, new score
+- [x] 117d: Section 4 — Social Proof with 3 quotes (Noa, Maya, Dana)
+- [x] 117e: Section 5 — FOMO section
+- [x] 117f: Section 6 — Final CTA
+- [x] 117g: Design language — TikTok+Zara+Apple applied
+- [x] 117h: Noise removed — no navbar, minimal text, short scroll, sticky mobile CTA
+- [x] 117i: Upload flow — CTA navigates to /try (path chooser), no login required
