@@ -1249,3 +1249,16 @@
 - [x] 115d: Fix influencer swap/add — fromOnboarding now checks guestProfile.onboardingCompleted too
 - [x] 115e: Fix background tab throttling - added visibilitychange listener in GuestReview
 - [x] 115f: Cookie consent import removed from App.tsx
+
+## Stage 116 — Landing Page Full Redesign (per spec)
+
+- [x] 116a: Hero → full screen 100vh, visual dominant, dark overlay
+- [x] 116b: Before/After → much bigger, central element ~70% of hero
+- [x] 116c: Score (62→92) → huge font (7xl), animated pop, red→green colors
+- [x] 116d: CTA → sticky fixed bottom with pulse animation, gradient pink-purple
+- [x] 116e: Game Hook → "איפה את בסקאלה?" + stats bars
+- [x] 116f: Live Feed → enhanced with green pulsing dot + LIVE label + 🔥
+- [x] 116g: Style Grid → 2-column before/after cards + full grid image
+- [x] 116h: Remove noise → removed Phone Mockup, Problems/Fixes, Result Preview sections
+- [x] 116i: Copy → "נסי את הלוק שלך עכשיו", "ראי את הציון שלך", "תקני את הלוק שלך ב-30 שניות"
+- [x] 116j: Dark mode confirmed (#0B0B0F background)
