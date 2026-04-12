@@ -289,7 +289,7 @@ export default function GlowLanding() {
       {/* ─── HERO SECTION ─── */}
       <section
         ref={heroRef.ref}
-        className="relative min-h-screen flex flex-col items-center justify-center px-4 overflow-hidden"
+        className="relative min-h-[80vh] sm:min-h-screen flex flex-col items-center justify-center px-4 pt-12 sm:pt-0 overflow-hidden"
       >
         {/* Animated gradient background */}
         <div className="absolute inset-0">

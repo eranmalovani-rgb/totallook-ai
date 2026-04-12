@@ -1153,3 +1153,6 @@
 - [x] 105.4: Style Feed section replaced with full-width grid image of 6 styled outfits
 - [x] 105.5: Result Preview section now has phone mockup image + score animation + problem/fix cards
 - [x] 105.6: Verify all changes, save checkpoint, push to GitHub
+
+## Stage 106: /glow Hero Section — Fix Empty Space on Mobile
+- [x] 106.1: Reduce hero section height on mobile — changed to min-h-[80vh] with pt-12 on mobile
