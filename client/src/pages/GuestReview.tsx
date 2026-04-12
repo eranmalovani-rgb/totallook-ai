@@ -1041,6 +1041,27 @@ export default function GuestReview() {
     },
   });
 
+  // Stage 113d: Retry Stage 2 mutation
+  const retryStage2Mutation = trpc.guest.retryStage2.useMutation({
+    onSuccess: (data) => {
+      if (data.alreadyComplete) {
+        toast.info(lang === "he" ? "ההמלצות כבר נטענו" : "Recommendations already loaded");
+      } else {
+        toast.success(lang === "he" ? "ההמלצות נטענו בהצלחה!" : "Recommendations loaded successfully!");
+      }
+      utils.guest.getResult.invalidate({ sessionId });
+      setStage2TimedOut(false);
+    },
+    onError: (err: any) => {
+      toast.error((lang === "he" ? "שגיאה בטעינת המלצות: " : "Error loading recommendations: ") + err.message);
+    },
+  });
+
+  // Stage 113d: Track when Stage 2 times out
+  const [stage2TimedOut, setStage2TimedOut] = useState(false);
+  const [pollingStartTime] = useState(() => Date.now());
+  const STAGE2_TIMEOUT_MS = 45_000; // 45 seconds
+
   const { data: result, isLoading } = trpc.guest.getResult.useQuery(
     { sessionId },
     {
@@ -1053,7 +1074,13 @@ export default function GuestReview() {
           const a = d.analysisJson as any;
           // Stage 43: Keep polling if Stage 2 hasn't delivered recommendations yet
           const improvementsEmpty = !a?.improvements || a.improvements.length === 0;
-          if (improvementsEmpty) return 3000;
+          if (improvementsEmpty) {
+            // Stage 113d: Stop polling after timeout
+            if (Date.now() - pollingStartTime > STAGE2_TIMEOUT_MS) {
+              return false; // Stop polling — will show retry button
+            }
+            return 3000;
+          }
           const hasEmptyImages = a?.improvements?.some((imp: any) =>
             imp.shoppingLinks?.some((link: any) => !link.imageUrl || link.imageUrl.length < 5)
           );
@@ -1063,6 +1090,16 @@ export default function GuestReview() {
       },
     }
   );
+
+  // Stage 113d: Detect Stage 2 timeout and set flag
+  useEffect(() => {
+    if (!result || result.status !== "completed") return;
+    const a = result.analysisJson as any;
+    const improvementsEmpty = !a?.improvements || a.improvements.length === 0;
+    if (improvementsEmpty && Date.now() - pollingStartTime > STAGE2_TIMEOUT_MS) {
+      setStage2TimedOut(true);
+    }
+  }, [result, pollingStartTime]);
 
   // Limit check removed — no more 5-tries limit
 
@@ -1377,24 +1414,51 @@ export default function GuestReview() {
 
   // Card 3: Upgrades (or loading skeleton while Stage 2 runs)
   if (analysis.improvements.length === 0 && result?.status === "completed") {
-    // Stage 2 still running in background — show loading skeleton
+    // Stage 2 still running in background — show loading skeleton or retry button
     storyCards.push(
       <div key="upgrades-loading" className="space-y-3">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full" />
-          <span>{lang === "he" ? "מכין המלצות שידרוג מותאמות אישית..." : "Preparing personalized upgrade recommendations..."}</span>
-        </div>
-        {[1, 2, 3].map(i => (
-          <div key={i} className="rounded-xl border border-border/50 bg-card/50 p-4 space-y-3 animate-pulse">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-muted" />
-              <div className="flex-1 space-y-2">
-                <div className="h-4 bg-muted rounded w-3/4" />
-                <div className="h-3 bg-muted rounded w-1/2" />
-              </div>
+        {stage2TimedOut ? (
+          // Stage 113d: Stage 2 timed out — show retry button
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-5 text-center space-y-3">
+            <div className="text-amber-600 dark:text-amber-400 text-sm font-medium">
+              {lang === "he" ? "ההמלצות לא הספיקו להיטען. נסה שוב?" : "Recommendations didn't load in time. Try again?"}
             </div>
+            <Button
+              onClick={() => {
+                if (fingerprint) {
+                  retryStage2Mutation.mutate({ sessionId, fingerprint });
+                }
+              }}
+              disabled={retryStage2Mutation.isPending || !fingerprint}
+              className="gap-2"
+            >
+              {retryStage2Mutation.isPending ? (
+                <><Loader2 className="h-4 w-4 animate-spin" />{lang === "he" ? "טוען המלצות..." : "Loading recommendations..."}</>
+              ) : (
+                <><RefreshCw className="h-4 w-4" />{lang === "he" ? "נסה לטעון המלצות" : "Retry loading recommendations"}</>
+              )}
+            </Button>
           </div>
-        ))}
+        ) : (
+          // Still loading — show skeleton
+          <>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full" />
+              <span>{lang === "he" ? "מכין המלצות שידרוג מותאמות אישית..." : "Preparing personalized upgrade recommendations..."}</span>
+            </div>
+            {[1, 2, 3].map(i => (
+              <div key={i} className="rounded-xl border border-border/50 bg-card/50 p-4 space-y-3 animate-pulse">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-muted" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 bg-muted rounded w-3/4" />
+                    <div className="h-3 bg-muted rounded w-1/2" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </>
+        )}
       </div>
     );
   } else if (analysis.improvements.length > 0) {

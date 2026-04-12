@@ -1214,3 +1214,6 @@
 ## Stage 113c: Bug fixes — upgrade button not visible + personalized redirect broken
 - [x] 113c.1: Fix "עדכן חנויות" button made more prominent with gradient background, subtitle text, and larger size in both GuestReview and ReviewPage
 - [x] 113c.2: Fix authenticated onboarding with incomingPhoto — now creates review from existing photo URL and navigates to /review/:id instead of /upload. Added review.createFromUrl server procedure.
+
+## Stage 113d: Critical bug — analysis stuck after Stage 1 in production
+- [x] 113d.1: Root cause: Stage 2 background can fail silently (fire-and-forget). Fix: (1) Server-side catalog matching retry (2 attempts with 1s delay), (2) retryStage2 procedure for manual retry, (3) Client-side 45s polling timeout with retry button in GuestReview

@@ -1479,6 +1479,10 @@ function setCachedNormalizedImprovements(key: string, improvements: Improvement[
   }
 }
 
+function clearCachedNormalizedImprovements(key: string): void {
+  normalizedImprovementsCache.delete(key);
+}
+
 // Color name → hex code map for absolute precision in Fix My Look prompts
 const COLOR_HEX_MAP: Record<string, string> = {
   BLACK: "#000000", WHITE: "#FFFFFF", NAVY: "#001F3F", "NAVY BLUE": "#001F3F",
@@ -6302,20 +6306,27 @@ Return ONLY a JSON object with these exact fields:
           }
 
           // ── Stage 51: Catalog-based recommendations for guest (replaces LLM call) ──
+          // Stage 113d: Added retry logic — try catalog matching up to 2 times before falling back
           let recommendations: FashionRecommendationsPayload | null = null;
-          try {
-            recommendations = await buildCatalogRecommendations(
-              analysisCore,
-              input.lang,
-              inferredOccasion,
-              resolvedGender,
-              guestProfile?.favoriteInfluencers || null,
-              guestProfile?.preferredStores || null,
-              inferredBudgetLevel,
-            );
-            console.log(`[Stage 51 Guest] Catalog recommendations built: ${recommendations.improvements?.length || 0} improvements, ${recommendations.outfitSuggestions?.length || 0} outfits`);
-          } catch (catalogErr: any) {
-            console.warn(`[Stage 51 Guest] Catalog matching failed, using fallback: ${catalogErr?.message}`);
+          for (let catalogAttempt = 0; catalogAttempt < 2; catalogAttempt++) {
+            try {
+              recommendations = await buildCatalogRecommendations(
+                analysisCore,
+                input.lang,
+                inferredOccasion,
+                resolvedGender,
+                guestProfile?.favoriteInfluencers || null,
+                guestProfile?.preferredStores || null,
+                inferredBudgetLevel,
+              );
+              console.log(`[Stage 51 Guest] Catalog recommendations built (attempt ${catalogAttempt + 1}): ${recommendations.improvements?.length || 0} improvements, ${recommendations.outfitSuggestions?.length || 0} outfits`);
+              break; // Success
+            } catch (catalogErr: any) {
+              console.warn(`[Stage 51 Guest] Catalog matching attempt ${catalogAttempt + 1} failed: ${catalogErr?.message}`);
+              if (catalogAttempt === 0) {
+                await new Promise(r => setTimeout(r, 1000)); // Wait 1s before retry
+              }
+            }
           }
           const guestCatalogEndMs = Date.now() - stage2Start;
           console.log(`[Stage 51 Timing Guest] Catalog matching completed in ${guestCatalogEndMs}ms`);
@@ -6937,6 +6948,120 @@ Return ONLY a JSON object with these exact fields:
           newTier: nextBudget,
           newStores: newPreferredStores,
         };
+      }),
+
+    /** Stage 113d: Retry Stage 2 recommendations if they failed/are empty */
+    retryStage2: publicProcedure
+      .input(z.object({
+        sessionId: z.number(),
+        fingerprint: z.string().min(8).max(128),
+      }))
+      .mutation(async ({ input }) => {
+        const session = await getGuestSessionById(input.sessionId);
+        if (!session) throw new Error("Session not found");
+        if (session.fingerprint !== input.fingerprint) throw new Error("Fingerprint mismatch");
+        if (session.status !== "completed") throw new Error("Session not completed");
+        const existingAnalysis = session.analysisJson as FashionAnalysis;
+        if (!existingAnalysis || !existingAnalysis.items || existingAnalysis.items.length === 0) {
+          throw new Error("No Stage 1 analysis found");
+        }
+        // If improvements already exist, no need to retry
+        if (existingAnalysis.improvements && existingAnalysis.improvements.length > 0) {
+          return { success: true, alreadyComplete: true };
+        }
+        console.log(`[Stage 113d] Retrying Stage 2 for guest session ${input.sessionId}`);
+
+        // Extract Stage 1 core data
+        const analysisCore: FashionAnalysisCorePayload = {
+          overallScore: existingAnalysis.overallScore,
+          summary: existingAnalysis.summary,
+          items: existingAnalysis.items,
+          scores: existingAnalysis.scores,
+          linkedMentions: existingAnalysis.linkedMentions || [],
+          personDetection: existingAnalysis.personDetection,
+          lookStructure: existingAnalysis.lookStructure,
+        };
+
+        // Get guest profile for preferences
+        const guestProfile = session.fingerprint ? await getGuestProfile(session.fingerprint) : null;
+        const lang: "he" | "en" = /[\u0590-\u05FF]/.test(existingAnalysis.summary || "") ? "he" : "en";
+
+        // Detect gender from items
+        let resolvedGender: string | null = guestProfile?.gender || null;
+        if (!resolvedGender) {
+          // Try to detect from items
+          const itemsText = existingAnalysis.items.map(i => `${i.name} ${i.analysis || ""}`).join(" ").toLowerCase();
+          if (itemsText.match(/לובשת|שמלה|חצאית|נשית|dress|skirt|feminine|women/)) resolvedGender = "female";
+          else if (itemsText.match(/(?<!לו)לובש(?!ת)|גברי|masculine|men's/)) resolvedGender = "male";
+        }
+
+        // Infer budget level
+        let inferredBudgetLevel = guestProfile?.budgetLevel || null;
+        // Infer occasion
+        let inferredOccasion: string | null = null;
+
+        // Build catalog recommendations
+        let recommendations: FashionRecommendationsPayload | null = null;
+        try {
+          recommendations = await buildCatalogRecommendations(
+            analysisCore,
+            lang,
+            inferredOccasion,
+            resolvedGender,
+            guestProfile?.favoriteInfluencers || null,
+            guestProfile?.preferredStores || null,
+            inferredBudgetLevel,
+          );
+          console.log(`[Stage 113d Retry] Catalog recommendations built: ${recommendations.improvements?.length || 0} improvements`);
+        } catch (catalogErr: any) {
+          console.warn(`[Stage 113d Retry] Catalog matching failed: ${catalogErr?.message}`);
+        }
+        if (!recommendations) {
+          recommendations = buildFallbackRecommendationsFromCore(
+            analysisCore,
+            lang,
+            inferredOccasion,
+            resolvedGender,
+            guestProfile?.favoriteInfluencers || null,
+            guestProfile?.preferredStores || null,
+          );
+        }
+        recommendations = sanitizeRecommendationsPayload(
+          recommendations,
+          analysisCore,
+          lang,
+          inferredOccasion,
+          resolvedGender,
+          guestProfile?.favoriteInfluencers || null,
+          guestProfile?.preferredStores || null,
+          inferredBudgetLevel,
+        );
+
+        // Merge with existing analysis
+        let analysis: FashionAnalysis = {
+          ...existingAnalysis,
+          ...recommendations,
+        };
+
+        // Fix shopping URLs with gender
+        const guestGender: GenderCategory = (resolvedGender as GenderCategory) || "female";
+        analysis = fixShoppingLinkUrls(analysis, guestGender, guestProfile?.preferredStores || null);
+        analysis = normalizeOutfitSuggestionsForWearableCore(analysis, guestGender);
+        analysis = normalizeImprovementsForWearableCore(analysis, guestGender);
+
+        // If gender was NOT detected, clear influencer section
+        if (!resolvedGender) {
+          analysis.influencerInsight = "";
+          analysis.linkedMentions = (analysis.linkedMentions || []).filter(m => m.type !== "influencer");
+        }
+
+        // Save updated analysis
+        await updateGuestSessionAnalysis(input.sessionId, analysis.overallScore, analysis);
+        // Clear normalization cache
+        clearCachedNormalizedImprovements(`guest-${input.sessionId}`);
+        console.log(`[Stage 113d Retry] Stage 2 retry complete, saved ${analysis.improvements?.length || 0} improvements`);
+
+        return { success: true, alreadyComplete: false };
       }),
 
     /** Delete a guest analysis/session by ID and fingerprint */
