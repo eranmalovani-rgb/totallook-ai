@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation } from "wouter";
-import { Upload, Camera, Sparkles, ChevronDown, ArrowRight, Eye, Shirt, Footprints, Watch, Brain, Heart, Zap, Star, TrendingUp } from "lucide-react";
+import { Upload, Camera, Sparkles, ChevronDown, ArrowRight, Eye, Brain, Heart, Zap, Star } from "lucide-react";
 import { useFingerprint } from "@/hooks/useFingerprint";
 import { useOwnerBypass } from "@/hooks/useOwnerBypass";
 import { trpc } from "@/lib/trpc";
@@ -71,7 +71,12 @@ function ScoreCounter({ from, to, duration = 2000, className = "", trigger = tru
 }
 
 /* ─── Before/After Slider ─── */
-function BeforeAfterSlider({ beforeImage, afterImage, sliderKey }: { beforeImage: string; afterImage: string; sliderKey: string }) {
+function BeforeAfterSlider({ beforeImage, afterImage, onPositionChange, isHe }: {
+  beforeImage: string;
+  afterImage: string;
+  onPositionChange?: (pct: number) => void;
+  isHe: boolean;
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState(50);
   const isDraggingRef = useRef(false);
@@ -84,9 +89,10 @@ function BeforeAfterSlider({ beforeImage, afterImage, sliderKey }: { beforeImage
     const x = clientX - rect.left;
     const pct = Math.max(2, Math.min(98, (x / rect.width) * 100));
     setPosition(pct);
-  }, []);
+    onPositionChange?.(pct);
+  }, [onPositionChange]);
 
-  // Pointer events — attach to window for smooth dragging
+  // Pointer events
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -120,40 +126,37 @@ function BeforeAfterSlider({ beforeImage, afterImage, sliderKey }: { beforeImage
     };
   }, [updatePos]);
 
-  // Auto-slide demo on mount / upgrade switch
+  // Auto-slide demo on mount
   useEffect(() => {
     setPosition(50);
+    onPositionChange?.(50);
     cancelAnimationFrame(animFrameRef.current);
     const timer = setTimeout(() => {
       let start: number | null = null;
       const animate = (ts: number) => {
         if (!start) start = ts;
-        if (isDraggingRef.current) return; // user took over
+        if (isDraggingRef.current) return;
         const elapsed = ts - start;
+        let newPos = 50;
         if (elapsed < 800) {
-          setPosition(50 - 25 * (elapsed / 800));
-          animFrameRef.current = requestAnimationFrame(animate);
+          newPos = 50 - 25 * (elapsed / 800);
         } else if (elapsed < 1800) {
-          setPosition(25 + 50 * ((elapsed - 800) / 1000));
-          animFrameRef.current = requestAnimationFrame(animate);
+          newPos = 25 + 50 * ((elapsed - 800) / 1000);
         } else if (elapsed < 2500) {
-          setPosition(75 - 25 * ((elapsed - 1800) / 700));
+          newPos = 75 - 25 * ((elapsed - 1800) / 700);
+        }
+        setPosition(newPos);
+        onPositionChange?.(newPos);
+        if (elapsed < 2500) {
           animFrameRef.current = requestAnimationFrame(animate);
-        } else {
-          setPosition(50);
         }
       };
       animFrameRef.current = requestAnimationFrame(animate);
-    }, 300);
+    }, 600);
     return () => { clearTimeout(timer); cancelAnimationFrame(animFrameRef.current); };
-  }, [sliderKey]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  /*
-   * KEY TECHNIQUE: Both images are position:absolute, inset:0, object-fit:cover
-   * so they are IDENTICAL in size and alignment.
-   * The "Before" overlay uses clip-path: inset(0 <right-clip> 0 0) to reveal
-   * only the left portion — no width manipulation, no squeezing.
-   */
   const clipRight = `${100 - position}%`;
 
   return (
@@ -162,9 +165,8 @@ function BeforeAfterSlider({ beforeImage, afterImage, sliderKey }: { beforeImage
       className="relative w-full overflow-hidden rounded-2xl sm:rounded-3xl select-none"
       style={{ aspectRatio: "3/4", touchAction: "none", cursor: "ew-resize", background: "#111" }}
     >
-      {/* AFTER — full background layer */}
+      {/* AFTER — full background */}
       <img
-        key={`after-${sliderKey}`}
         src={afterImage}
         className="absolute inset-0 w-full h-full object-cover"
         alt="After"
@@ -173,7 +175,7 @@ function BeforeAfterSlider({ beforeImage, afterImage, sliderKey }: { beforeImage
         style={{ pointerEvents: "none" }}
       />
 
-      {/* BEFORE — clipped overlay (same size, just clipped) */}
+      {/* BEFORE — clipped overlay */}
       <div
         className="absolute inset-0"
         style={{ clipPath: `inset(0 ${clipRight} 0 0)`, zIndex: 2 }}
@@ -200,25 +202,25 @@ function BeforeAfterSlider({ beforeImage, afterImage, sliderKey }: { beforeImage
         style={{
           left: `${position}%`,
           top: "50%",
-          width: 44,
-          height: 44,
+          width: 48,
+          height: 48,
           borderRadius: "50%",
           transform: "translate(-50%, -50%)",
           zIndex: 4,
           background: `linear-gradient(135deg, ${PINK}, ${PURPLE})`,
-          boxShadow: "0 8px 24px rgba(0,0,0,0.3)",
+          boxShadow: "0 8px 24px rgba(0,0,0,0.35)",
           cursor: "ew-resize",
         }}
       >
-        <span className="text-white text-base font-bold select-none" style={{ pointerEvents: "none" }}>↔</span>
+        <span className="text-white text-lg font-bold select-none" style={{ pointerEvents: "none" }}>↔</span>
       </div>
 
       {/* Labels */}
-      <div className="absolute top-3 sm:top-4 left-3 sm:left-4 px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-bold" style={{ background: "rgba(0,0,0,0.45)", color: "#fff", zIndex: 5 }}>
-        לפני
+      <div className="absolute top-3 sm:top-4 left-3 sm:left-4 px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-bold" style={{ background: "rgba(0,0,0,0.5)", color: "#fff", zIndex: 5 }}>
+        {isHe ? "לפני" : "Before"}
       </div>
-      <div className="absolute top-3 sm:top-4 right-3 sm:right-4 px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-bold" style={{ background: "rgba(0,0,0,0.45)", color: "#fff", zIndex: 5 }}>
-        אחרי
+      <div className="absolute top-3 sm:top-4 right-3 sm:right-4 px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-bold" style={{ background: "rgba(0,0,0,0.5)", color: "#fff", zIndex: 5 }}>
+        {isHe ? "אחרי" : "After"}
       </div>
     </div>
   );
@@ -242,8 +244,16 @@ export default function NewLanding() {
   const emotionRef = useInView(0.2);
   const finalRef = useInView(0.2);
 
-  /* ─── Killer Feature State ─── */
-  const [selectedUpgrade, setSelectedUpgrade] = useState<"top" | "shoes" | "accessories">("top");
+  /* ─── Slider dynamic score ─── */
+  const SCORE_BEFORE = 62;
+  const SCORE_AFTER = 92;
+  const [sliderScore, setSliderScore] = useState(77); // midpoint at 50%
+  const handleSliderPos = useCallback((pct: number) => {
+    // pct=0 means full Before visible (score=62), pct=100 means full After (score=92)
+    const afterRatio = (100 - pct) / 100; // how much After is showing
+    const score = Math.round(SCORE_BEFORE + (SCORE_AFTER - SCORE_BEFORE) * afterRatio);
+    setSliderScore(score);
+  }, []);
 
   /* ─── Track page view ─── */
   useEffect(() => { track("page_view"); }, []);
@@ -401,7 +411,7 @@ export default function NewLanding() {
       </section>
 
       {/* ═══════════════════════════════════════════════════════
-          SECTION 2 — KILLER FEATURE (Before/After Slider + Upgrade Buttons)
+          SECTION 2 — KILLER FEATURE (Simple Before/After + Dynamic Score)
           ═══════════════════════════════════════════════════════ */}
       <section
         ref={killerRef.ref}
@@ -415,52 +425,42 @@ export default function NewLanding() {
               {isHe ? "הפיצ׳ר המרכזי" : "The killer feature"}
             </p>
             <h2 className="text-xl sm:text-3xl font-extrabold text-white leading-tight" style={{ fontFamily: FONT }}>
-              {isHe ? "תבחר שדרוג — תראה את השינוי" : "Choose an upgrade — see the change"}
+              {isHe ? "תזיז את הסליידר — תראה את השינוי" : "Slide to see the upgrade"}
             </h2>
           </div>
 
-          {/* Upgrade Buttons */}
-          <div className="flex justify-center gap-2 sm:gap-3 mb-5 sm:mb-6">
-            {([
-              { key: "top" as const, icon: Shirt, label: isHe ? "חולצה" : "Top" },
-              { key: "shoes" as const, icon: Footprints, label: isHe ? "נעליים" : "Shoes" },
-              { key: "accessories" as const, icon: Watch, label: isHe ? "אקססוריז" : "Accessories" },
-            ]).map(({ key, icon: Icon, label }) => (
-              <button
-                key={key}
-                onClick={() => { setSelectedUpgrade(key); track(`click_upgrade_${key}`); }}
-                className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-semibold transition-all duration-300"
+          {/* Dynamic Score */}
+          <div className="flex items-center justify-center gap-3 mb-5 sm:mb-6">
+            <div className="text-center">
+              <span
+                className="text-4xl sm:text-5xl font-black tabular-nums transition-colors duration-200"
                 style={{
                   fontFamily: FONT,
-                  background: selectedUpgrade === key ? `linear-gradient(135deg, ${PINK}, ${PURPLE})` : BG_CARD,
-                  color: selectedUpgrade === key ? "#fff" : "rgba(255,255,255,0.5)",
-                  border: `1px solid ${selectedUpgrade === key ? "transparent" : BORDER}`,
-                  boxShadow: selectedUpgrade === key ? `0 0 20px ${PINK}30` : "none",
+                  color: sliderScore < 75 ? SCORE_LOW : sliderScore < 85 ? "#f59e0b" : NEON,
                 }}
               >
-                <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                {label}
-              </button>
-            ))}
+                {sliderScore}
+              </span>
+              <p className="text-[10px] sm:text-xs mt-1" style={{ color: "rgba(255,255,255,0.4)" }}>
+                {isHe ? "ציון הלוק" : "Look score"}
+              </p>
+            </div>
           </div>
 
           {/* Slider */}
           <div className="rounded-2xl sm:rounded-3xl overflow-hidden" style={{ border: `1px solid ${BORDER}`, boxShadow: `0 0 60px ${PINK}08` }}>
             <BeforeAfterSlider
-              key={selectedUpgrade}
-              sliderKey={selectedUpgrade}
               beforeImage={BEFORE_IMG}
-              afterImage={AFTER_IMGS[selectedUpgrade]}
+              afterImage={HERO_AFTER}
+              onPositionChange={handleSliderPos}
+              isHe={isHe}
             />
           </div>
 
-          {/* Score badge */}
-          <div className="flex items-center justify-center gap-2 mt-4 sm:mt-5">
-            <TrendingUp className="w-4 h-4" style={{ color: NEON }} />
-            <span className="text-sm sm:text-base font-bold" style={{ color: NEON, fontFamily: FONT }}>
-              {isHe ? "+30 נקודות שדרוג" : "+30 upgrade points"}
-            </span>
-          </div>
+          {/* Hint text */}
+          <p className="text-center text-[11px] sm:text-xs mt-3 sm:mt-4" style={{ color: "rgba(255,255,255,0.35)" }}>
+            {isHe ? "← תזיז שמאלה לראות את השדרוג →" : "← Drag to see the upgrade →"}
+          </p>
 
           {/* CTA */}
           <div className="text-center mt-5 sm:mt-6">

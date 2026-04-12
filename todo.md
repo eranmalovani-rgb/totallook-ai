@@ -1383,3 +1383,9 @@
 ## Stage 132 — Rewrite Before/After Slider
 - [x] 132a: Rewrite BeforeAfterSlider using clip-path/inset overlay approach — Before image stays full-width but clipped, not squeezed
 - [x] 132b: Ensure upgrade button switching works correctly with new slider (key-based remount + auto-slide animation)
+
+## Stage 133 — Simplified Killer Feature Slider
+- [x] 133a: Remove upgrade buttons — just one Before/After pair with clip-path slider
+- [x] 133b: Simple two-image slider: one girl Before (casual) → After (upgraded)
+- [x] 133c: Dynamic score display that changes with slider position (62→92)
+- [x] 133d: Score color transitions: red (<75) → amber (75-85) → green (>85)
