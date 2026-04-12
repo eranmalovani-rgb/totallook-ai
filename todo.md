@@ -1379,3 +1379,7 @@
 - [x] 131b: Change Process B CTA to transparent/black style (border only, no gradient)
 - [x] 131c: Redirect logged-in users directly to /upload — useEffect redirect on mount
 - [x] 131d: CTAs now go directly to /try/precise (A) and /try/quick (B) — PathChooser bypassed
+
+## Stage 132 — Rewrite Before/After Slider
+- [x] 132a: Rewrite BeforeAfterSlider using clip-path/inset overlay approach — Before image stays full-width but clipped, not squeezed
+- [x] 132b: Ensure upgrade button switching works correctly with new slider (key-based remount + auto-slide animation)

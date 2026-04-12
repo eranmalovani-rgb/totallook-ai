@@ -74,18 +74,8 @@ function ScoreCounter({ from, to, duration = 2000, className = "", trigger = tru
 function BeforeAfterSlider({ beforeImage, afterImage, sliderKey }: { beforeImage: string; afterImage: string; sliderKey: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState(50);
-  const [isDragging, setIsDragging] = useState(false);
-  const posRef = useRef(50);
-  const [containerWidth, setContainerWidth] = useState(0);
-
-  // Track container width
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    const ro = new ResizeObserver(([entry]) => setContainerWidth(entry.contentRect.width));
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
+  const isDraggingRef = useRef(false);
+  const animFrameRef = useRef(0);
 
   const updatePos = useCallback((clientX: number) => {
     const el = containerRef.current;
@@ -93,98 +83,142 @@ function BeforeAfterSlider({ beforeImage, afterImage, sliderKey }: { beforeImage
     const rect = el.getBoundingClientRect();
     const x = clientX - rect.left;
     const pct = Math.max(2, Math.min(98, (x / rect.width) * 100));
-    posRef.current = pct;
     setPosition(pct);
   }, []);
 
+  // Pointer events — attach to window for smooth dragging
   useEffect(() => {
-    if (!isDragging) return;
-    const onMove = (e: MouseEvent | TouchEvent) => {
-      e.preventDefault();
-      const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
-      updatePos(clientX);
-    };
-    const onEnd = () => setIsDragging(false);
-    window.addEventListener("mousemove", onMove, { passive: false });
-    window.addEventListener("touchmove", onMove, { passive: false });
-    window.addEventListener("mouseup", onEnd);
-    window.addEventListener("touchend", onEnd);
-    return () => {
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("touchmove", onMove);
-      window.removeEventListener("mouseup", onEnd);
-      window.removeEventListener("touchend", onEnd);
-    };
-  }, [isDragging, updatePos]);
+    const el = containerRef.current;
+    if (!el) return;
 
-  // Auto-slide on mount / when key changes
+    const onPointerDown = (e: PointerEvent) => {
+      e.preventDefault();
+      isDraggingRef.current = true;
+      el.setPointerCapture(e.pointerId);
+      updatePos(e.clientX);
+      track("drag_slider");
+    };
+    const onPointerMove = (e: PointerEvent) => {
+      if (!isDraggingRef.current) return;
+      e.preventDefault();
+      updatePos(e.clientX);
+    };
+    const onPointerUp = () => {
+      isDraggingRef.current = false;
+    };
+
+    el.addEventListener("pointerdown", onPointerDown, { passive: false });
+    el.addEventListener("pointermove", onPointerMove, { passive: false });
+    el.addEventListener("pointerup", onPointerUp);
+    el.addEventListener("pointercancel", onPointerUp);
+
+    return () => {
+      el.removeEventListener("pointerdown", onPointerDown);
+      el.removeEventListener("pointermove", onPointerMove);
+      el.removeEventListener("pointerup", onPointerUp);
+      el.removeEventListener("pointercancel", onPointerUp);
+    };
+  }, [updatePos]);
+
+  // Auto-slide demo on mount / upgrade switch
   useEffect(() => {
     setPosition(50);
+    cancelAnimationFrame(animFrameRef.current);
     const timer = setTimeout(() => {
       let start: number | null = null;
       const animate = (ts: number) => {
         if (!start) start = ts;
+        if (isDraggingRef.current) return; // user took over
         const elapsed = ts - start;
         if (elapsed < 800) {
           setPosition(50 - 25 * (elapsed / 800));
-          requestAnimationFrame(animate);
+          animFrameRef.current = requestAnimationFrame(animate);
         } else if (elapsed < 1800) {
           setPosition(25 + 50 * ((elapsed - 800) / 1000));
-          requestAnimationFrame(animate);
+          animFrameRef.current = requestAnimationFrame(animate);
         } else if (elapsed < 2500) {
           setPosition(75 - 25 * ((elapsed - 1800) / 700));
-          requestAnimationFrame(animate);
+          animFrameRef.current = requestAnimationFrame(animate);
         } else {
           setPosition(50);
         }
       };
-      requestAnimationFrame(animate);
+      animFrameRef.current = requestAnimationFrame(animate);
     }, 300);
-    return () => clearTimeout(timer);
+    return () => { clearTimeout(timer); cancelAnimationFrame(animFrameRef.current); };
   }, [sliderKey]);
+
+  /*
+   * KEY TECHNIQUE: Both images are position:absolute, inset:0, object-fit:cover
+   * so they are IDENTICAL in size and alignment.
+   * The "Before" overlay uses clip-path: inset(0 <right-clip> 0 0) to reveal
+   * only the left portion — no width manipulation, no squeezing.
+   */
+  const clipRight = `${100 - position}%`;
 
   return (
     <div
       ref={containerRef}
-      className="relative w-full aspect-[3/4] sm:aspect-[4/5] overflow-hidden rounded-2xl sm:rounded-3xl cursor-ew-resize select-none"
-      onMouseDown={(e) => { setIsDragging(true); updatePos(e.clientX); track("drag_slider"); }}
-      onTouchStart={(e) => { setIsDragging(true); updatePos(e.touches[0].clientX); track("drag_slider"); }}
+      className="relative w-full overflow-hidden rounded-2xl sm:rounded-3xl select-none"
+      style={{ aspectRatio: "3/4", touchAction: "none", cursor: "ew-resize", background: "#111" }}
     >
-      {/* AFTER (full background) */}
-      <img key={`after-${sliderKey}`} src={afterImage} className="absolute inset-0 w-full h-full object-cover" alt="After" loading="eager" draggable={false} />
+      {/* AFTER — full background layer */}
+      <img
+        key={`after-${sliderKey}`}
+        src={afterImage}
+        className="absolute inset-0 w-full h-full object-cover"
+        alt="After"
+        loading="eager"
+        draggable={false}
+        style={{ pointerEvents: "none" }}
+      />
 
-      {/* BEFORE (clipped from left) */}
-      <div className="absolute inset-0 overflow-hidden" style={{ width: `${position}%` }}>
+      {/* BEFORE — clipped overlay (same size, just clipped) */}
+      <div
+        className="absolute inset-0"
+        style={{ clipPath: `inset(0 ${clipRight} 0 0)`, zIndex: 2 }}
+      >
         <img
           src={beforeImage}
-          className="absolute top-0 left-0 h-full object-cover"
-          style={{ width: containerWidth > 0 ? `${containerWidth}px` : "100%", maxWidth: "none" }}
+          className="absolute inset-0 w-full h-full object-cover"
           alt="Before"
           loading="eager"
           draggable={false}
+          style={{ pointerEvents: "none" }}
         />
       </div>
 
+      {/* Divider line */}
+      <div
+        className="absolute top-0 bottom-0"
+        style={{ left: `${position}%`, width: 2, background: "rgba(255,255,255,0.85)", transform: "translateX(-50%)", zIndex: 3 }}
+      />
+
+      {/* Drag handle */}
+      <div
+        className="absolute flex items-center justify-center"
+        style={{
+          left: `${position}%`,
+          top: "50%",
+          width: 44,
+          height: 44,
+          borderRadius: "50%",
+          transform: "translate(-50%, -50%)",
+          zIndex: 4,
+          background: `linear-gradient(135deg, ${PINK}, ${PURPLE})`,
+          boxShadow: "0 8px 24px rgba(0,0,0,0.3)",
+          cursor: "ew-resize",
+        }}
+      >
+        <span className="text-white text-base font-bold select-none" style={{ pointerEvents: "none" }}>↔</span>
+      </div>
+
       {/* Labels */}
-      <div className="absolute top-3 sm:top-4 left-3 sm:left-4 px-2.5 py-1 rounded-lg text-[10px] sm:text-xs font-bold uppercase tracking-wider" style={{ background: `${SCORE_LOW}cc`, color: "#fff" }}>
+      <div className="absolute top-3 sm:top-4 left-3 sm:left-4 px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-bold" style={{ background: "rgba(0,0,0,0.45)", color: "#fff", zIndex: 5 }}>
         לפני
       </div>
-      <div className="absolute top-3 sm:top-4 right-3 sm:right-4 px-2.5 py-1 rounded-lg text-[10px] sm:text-xs font-bold uppercase tracking-wider" style={{ background: `${NEON}cc`, color: "#000" }}>
+      <div className="absolute top-3 sm:top-4 right-3 sm:right-4 px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-bold" style={{ background: "rgba(0,0,0,0.45)", color: "#fff", zIndex: 5 }}>
         אחרי
-      </div>
-
-      {/* Divider line */}
-      <div className="absolute top-0 bottom-0 w-[2px]" style={{ left: `${position}%`, background: "rgba(255,255,255,0.8)" }} />
-
-      {/* Handle */}
-      <div
-        className="absolute top-1/2 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white shadow-lg flex items-center justify-center"
-        style={{ left: `${position}%`, transform: "translate(-50%, -50%)", boxShadow: "0 0 20px rgba(0,0,0,0.4)" }}
-      >
-        <div className="flex items-center gap-0.5">
-          <div className="w-0 h-0 border-t-[5px] border-t-transparent border-b-[5px] border-b-transparent border-r-[5px] border-r-gray-500" />
-          <div className="w-0 h-0 border-t-[5px] border-t-transparent border-b-[5px] border-b-transparent border-l-[5px] border-l-gray-500" />
-        </div>
       </div>
     </div>
   );
