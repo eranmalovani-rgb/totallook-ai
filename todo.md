@@ -1309,3 +1309,8 @@
 
 - [x] 120a: Hero images fixed — changed from absolute bg to visible content with object-fit:contain + max-height:55vh
 - [x] 120b: Scroll fixed — removed overflow-hidden from hero, changed height:100svh to minHeight:100svh
+
+## Stage 121 — Landing Copy + Logged-in CTA Routing
+
+- [x] 121a: Changed proof line to "Most outfits aren't styled right. Let's fix yours."
+- [x] 121b: Logged-in user → /upload, guest → /try

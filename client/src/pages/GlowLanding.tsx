@@ -4,6 +4,7 @@ import { Upload, Camera, Sparkles, Check, TrendingUp } from "lucide-react";
 import { useFingerprint } from "@/hooks/useFingerprint";
 import { trpc } from "@/lib/trpc";
 import { useLanguage } from "@/i18n";
+import { useAuth } from "@/_core/hooks/useAuth";
 
 /* ─── Design System — TikTok + Zara + Apple ─── */
 const PINK = "#FF2E9F";
@@ -238,9 +239,15 @@ export default function GlowLanding() {
     }
   }, [fingerprint, lang, uploadMutation, analyzeMutation, navigate]);
 
+  const { user } = useAuth();
+
   const openUpload = () => {
     track("cta_click");
-    navigate("/try");
+    if (user) {
+      navigate("/upload");
+    } else {
+      navigate("/try");
+    }
   };
 
   /* ─── Loading overlay ─── */
@@ -342,7 +349,7 @@ export default function GlowLanding() {
 
           {/* Secondary proof line */}
           <p className="text-white/30 text-xs sm:text-sm mt-3" style={{ fontFamily: FONT }}>
-            Most looks score 60–75. Top 10% get 90+.
+            Most outfits aren't styled right. Let's fix yours.
           </p>
         </div>
       </section>
