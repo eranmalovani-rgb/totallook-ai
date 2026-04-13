@@ -571,14 +571,18 @@ export default function Onboarding() {
             imageUrl: photoAnalysis.imageUrl,
             imageKey: photoAnalysis.imageKey || undefined,
           });
-          // Show analysis animation
+          // Stop saving spinner and show analysis animation
+          setSaving(false);
           setShowAnalysisAnimation(true);
-          // Trigger analysis
-          reviewAnalyzeMutation.mutate({ reviewId, lang });
-          // Navigate to review page after animation
-          setTimeout(() => {
+          // Trigger analysis and wait for it, then navigate
+          try {
+            await reviewAnalyzeMutation.mutateAsync({ reviewId, lang });
+            // Analysis completed — navigate to review page
             navigate(`/review/${reviewId}?from=onboarding`);
-          }, 4000);
+          } catch {
+            // Even if analysis fails, navigate to review page (it has its own error handling)
+            navigate(`/review/${reviewId}?from=onboarding`);
+          }
         } else {
           // No photo at all — just go to upload
           window.location.href = "/upload";

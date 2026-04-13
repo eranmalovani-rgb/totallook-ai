@@ -1398,3 +1398,7 @@
 ## Stage 135 — Bug: Logged-in user onboarding flow ends at /upload instead of running analysis
 - [x] 135a: Found bug: condition checked `incomingPhoto` (URL param only) instead of `photoAnalysis` (any uploaded photo)
 - [x] 135b: Fixed: now checks `photoAnalysis?.imageUrl` — any photo from step 1 or Path A triggers analysis
+
+## Stage 136 — Bug: Analysis not running in studio GUI and after onboarding
+- [x] 136a: Fix: setSaving(false) before setShowAnalysisAnimation(true) so animation replaces spinner
+- [x] 136b: Use mutateAsync to wait for analysis completion before navigating (instead of 4s timeout)
