@@ -565,8 +565,8 @@ export default function Onboarding() {
           country: detectedCountry || undefined,
         });
 
-        // If we have an incoming photo from Path A, create a review from it and navigate to results
-        if (incomingPhoto && photoAnalysis?.imageUrl) {
+        // If we have a photo (from Path A incoming OR uploaded in step 1), create a review and run analysis
+        if (photoAnalysis?.imageUrl) {
           const { reviewId } = await reviewCreateFromUrlMutation.mutateAsync({
             imageUrl: photoAnalysis.imageUrl,
             imageKey: photoAnalysis.imageKey || undefined,
@@ -580,6 +580,7 @@ export default function Onboarding() {
             navigate(`/review/${reviewId}?from=onboarding`);
           }, 4000);
         } else {
+          // No photo at all — just go to upload
           window.location.href = "/upload";
         }
       } else {

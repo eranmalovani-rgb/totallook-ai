@@ -1394,3 +1394,7 @@
 - [x] 134a: Add login/sign-in button ("התחבר") next to "התחל עכשיו" in landing page header
 - [x] 134b: Login button links to Manus OAuth (existing auth system)
 - [x] 134c: After login, user redirects to /upload
+
+## Stage 135 — Bug: Logged-in user onboarding flow ends at /upload instead of running analysis
+- [x] 135a: Found bug: condition checked `incomingPhoto` (URL param only) instead of `photoAnalysis` (any uploaded photo)
+- [x] 135b: Fixed: now checks `photoAnalysis?.imageUrl` — any photo from step 1 or Path A triggers analysis
