@@ -1417,3 +1417,7 @@
 - [x] 139a: Each improvement card in Fix My Look shows only 1 product (upgradeImageUrl) but ReviewPage shows 3 product options per improvement (shoppingLinks with images)
 - [x] 139b: Add product thumbnail gallery within each improvement card so user can pick which product to use for the AI edit (grid-cols-3 with Top Pick label)
 - [x] 139c: Wire selected product image to the fixMyLook mutation payload (both FixMyLookModal and GuestFixMyLookModal)
+
+## Stage 140 — Bug: Fix My Look output image is nearly black
+- [x] 140a: Investigate input_fidelity:medium causing broken AI edit output (image nearly black) — confirmed OPENAI_EDIT_FIDELITY was set to "medium"
+- [x] 140b: Reverted OPENAI_EDIT_FIDELITY to "high" in server/_core/imageGeneration.ts

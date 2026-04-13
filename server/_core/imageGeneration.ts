@@ -27,7 +27,7 @@ const OPENAI_IMAGE_QUALITY = "low";
 // Use the full gpt-image-1 model for editing (Fix My Look) — mini is unreliable for color/style accuracy
 const OPENAI_EDIT_MODEL = "gpt-image-1";
 const OPENAI_EDIT_QUALITY = "medium";
-const OPENAI_EDIT_FIDELITY = "medium";
+const OPENAI_EDIT_FIDELITY = "high";
 
 async function fetchWithRetry(
   url: string,
