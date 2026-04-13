@@ -91,6 +91,46 @@ function findMatchingItem(imp: Improvement, items: FashionItem[]): { item: Fashi
   return bestItem;
 }
 
+/* ──────────────────────── Visibility blocking ──────────────────────── */
+
+/** Determine which body zones are NOT visible in the source photo */
+function getBlockedZones(analysis: FashionAnalysis): Set<string> {
+  const blocked = new Set<string>();
+  const pd = analysis.personDetection;
+  if (!pd) return blocked; // No detection data — allow everything
+  // If feet/shoes are not visible, block footwear improvements
+  if (pd.feetVisible === false) {
+    blocked.add("footwear");
+  }
+  // If full body is not visible AND feet are not visible, block lower body too
+  if (pd.fullBodyVisible === false && pd.feetVisible === false) {
+    blocked.add("lower");
+  }
+  return blocked;
+}
+
+/** Check if an improvement card is blocked due to visibility */
+function isImprovementBlocked(
+  imp: Improvement,
+  matchedItem: FashionItem | null,
+  blockedZones: Set<string>
+): boolean {
+  if (blockedZones.size === 0) return false;
+  // Check matched item's bodyZone
+  if (matchedItem?.bodyZone && blockedZones.has(matchedItem.bodyZone)) return true;
+  // Fallback: check by category keywords
+  const impText = `${imp.title} ${imp.beforeLabel} ${imp.productSearchQuery || ""}`.toLowerCase();
+  if (blockedZones.has("footwear")) {
+    const shoeKeywords = ["נעל", "shoe", "sneaker", "סניקרס", "boot", "מגף", "sandal", "סנדל", "heel", "עקב", "loafer"];
+    if (shoeKeywords.some(kw => impText.includes(kw))) return true;
+  }
+  if (blockedZones.has("lower")) {
+    const lowerKeywords = ["מכנס", "pants", "jeans", "ג'ינס", "trousers", "shorts", "שורט", "skirt", "חצאית"];
+    if (lowerKeywords.some(kw => impText.includes(kw))) return true;
+  }
+  return false;
+}
+
 /* ──────────────────────── Main component ──────────────────────── */
 
 export default function FixMyLookModal({ reviewId, analysis, trigger }: FixMyLookModalProps) {
@@ -100,6 +140,8 @@ export default function FixMyLookModal({ reviewId, analysis, trigger }: FixMyLoo
   const [step, setStep] = useState<"select" | "loading" | "result">("select");
   const [hasSavedResult, setHasSavedResult] = useState(false);
   const [skipRestore, setSkipRestore] = useState(false);
+
+  const blockedZones = useMemo(() => getBlockedZones(analysis), [analysis]);
 
   // Per-improvement: true = included in fix, false/undefined = excluded
   // -1 = closet item selected, 0 = buy new (use upgradeImageUrl)
@@ -346,18 +388,28 @@ export default function FixMyLookModal({ reviewId, analysis, trigger }: FixMyLoo
                 const isSelected = selectedPerImp[impIdx] !== undefined;
                 const isCloset = selectedPerImp[impIdx] === -1;
                 const hasClosetItem = !!closetMatch;
+                const isBlocked = isImprovementBlocked(imp, matchedItem, blockedZones);
 
                 return (
                   <div
                     key={impIdx}
                     className={`rounded-xl border transition-all overflow-hidden ${
-                      isSelected
-                        ? isCloset ? "border-emerald-500/40 bg-emerald-500/5" : "border-[#FF2E9F]/30 bg-[#FF2E9F]/5"
-                        : "border-[#FF2E9F]/5 bg-background/50 opacity-60"
+                      isBlocked
+                        ? "border-zinc-700/30 bg-zinc-900/30 opacity-40 cursor-not-allowed"
+                        : isSelected
+                          ? isCloset ? "border-emerald-500/40 bg-emerald-500/5" : "border-[#FF2E9F]/30 bg-[#FF2E9F]/5"
+                          : "border-[#FF2E9F]/5 bg-background/50 opacity-60"
                     }`}
                   >
+                    {/* Blocked banner */}
+                    {isBlocked && (
+                      <div className="px-3 py-1.5 bg-zinc-800/50 text-[10px] text-zinc-400 flex items-center gap-1.5">
+                        <Eye className="w-3 h-3" />
+                        {isHe ? "לא ניתן לשדרג — הפריט לא נראה בתמונה" : "Can't upgrade — item not visible in photo"}
+                      </div>
+                    )}
                     {/* Header with toggle */}
-                    <div className="flex items-center gap-3 p-3 cursor-pointer" onClick={() => toggleImp(impIdx)}>
+                    <div className={`flex items-center gap-3 p-3 ${isBlocked ? "pointer-events-none" : "cursor-pointer"}`} onClick={() => !isBlocked && toggleImp(impIdx)}>
                       <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-all ${
                         isSelected ? "border-[#FF2E9F] bg-[#FF2E9F]" : "border-[#FF2E9F]/20"
                       }`}>

@@ -1405,3 +1405,10 @@
 
 ## Stage 137 — Fix My Look Speed: quality medium
 - [x] 137a: Change OPENAI_EDIT_QUALITY from "high" to "medium" in imageGeneration.ts
+
+## Stage 138 — Fix My Look: block invisible items + visibility guard
+- [ ] 138a: Change OPENAI_EDIT_FIDELITY from "high" to "medium" for additional speed boost
+- [x] 138b: Identify how Stage 1 analysis detects which body parts are visible in the photo (personDetection.feetVisible, personDetection.fullBodyVisible)
+- [x] 138c: Block Fix My Look button for items whose body area is not visible in the source photo (footwear blocked when feetVisible=false, lower blocked when fullBodyVisible=false AND feetVisible=false)
+- [x] 138d: Show disabled state with "Can't upgrade — item not visible in photo" banner on blocked improvement cards
+- [x] 138e: Server-side visibility guard on both protected and guest fixMyLook endpoints — throws error if blocked item is requested

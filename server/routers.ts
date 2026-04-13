@@ -4773,6 +4773,33 @@ Style: High-end ${genderLabel} fashion editorial flat lay, items arranged aesthe
         const analysis = review.analysisJson as FashionAnalysis;
         if (!analysis) throw new Error("No analysis available");
 
+        // ── Visibility guard: block items not visible in photo ──
+        const pd = analysis.personDetection;
+        if (pd) {
+          const blockedZones = new Set<string>();
+          if (pd.feetVisible === false) blockedZones.add("footwear");
+          if (pd.fullBodyVisible === false && pd.feetVisible === false) blockedZones.add("lower");
+          if (blockedZones.size > 0) {
+            // Check selected improvements for blocked zones
+            const impIndices = input.selectedImprovementIndices || [];
+            for (const impIdx of impIndices) {
+              const imp = (analysis.improvements || [])[impIdx];
+              if (!imp) continue;
+              // Find matched item for this improvement
+              const matchedItem = input.itemIndices
+                .filter(i => i >= 0 && i < (analysis.items || []).length)
+                .map(i => analysis.items[i])
+                .find(item => {
+                  if (!item.bodyZone) return false;
+                  return blockedZones.has(item.bodyZone);
+                });
+              if (matchedItem) {
+                throw new Error(`Cannot fix item "${matchedItem.name}" — it is not visible in the photo`);
+              }
+            }
+          }
+        }
+
         // Get the items to fix
         const itemsToFix = input.itemIndices
           .filter(i => i >= 0 && i < (analysis.items || []).length)
@@ -7220,6 +7247,28 @@ Return ONLY a JSON object with these exact fields:
         if (session.status !== "completed") throw new Error("Analysis not completed");
         const analysis = session.analysisJson as FashionAnalysis;
         if (!analysis) throw new Error("No analysis available");
+
+        // ── Visibility guard: block items not visible in photo ──
+        const pd = analysis.personDetection;
+        if (pd) {
+          const blockedZones = new Set<string>();
+          if (pd.feetVisible === false) blockedZones.add("footwear");
+          if (pd.fullBodyVisible === false && pd.feetVisible === false) blockedZones.add("lower");
+          if (blockedZones.size > 0) {
+            const impIndices = input.selectedImprovementIndices || [];
+            for (const impIdx of impIndices) {
+              const imp = (analysis.improvements || [])[impIdx];
+              if (!imp) continue;
+              const matchedItem = input.itemIndices
+                .filter(i => i >= 0 && i < (analysis.items || []).length)
+                .map(i => analysis.items[i])
+                .find(item => item.bodyZone && blockedZones.has(item.bodyZone));
+              if (matchedItem) {
+                throw new Error(`Cannot fix item "${matchedItem.name}" — it is not visible in the photo`);
+              }
+            }
+          }
+        }
 
         const itemsToFix = input.itemIndices
           .filter(i => i >= 0 && i < (analysis.items || []).length)
