@@ -408,34 +408,26 @@ export default function FixMyLookModal({ reviewId, analysis, trigger }: FixMyLoo
             </p>
 
             <div className="space-y-3">
-              {improvementCards.map(({ imp, impIdx, matchedItem, icon, closetMatch, allOptions, hasAlternatives }) => {
+              {improvementCards
+                .filter(({ imp, matchedItem }) => !isImprovementBlocked(imp, matchedItem, blockedZones))
+                .map(({ imp, impIdx, matchedItem, icon, closetMatch, allOptions, hasAlternatives }) => {
                 const activeOptionIdx = selectedOptionPerImp[impIdx] || 0;
                 const activeOption = allOptions[activeOptionIdx] || allOptions[0];
                 const isSelected = selectedPerImp[impIdx] !== undefined;
                 const isCloset = selectedPerImp[impIdx] === -1;
                 const hasClosetItem = !!closetMatch;
-                const isBlocked = isImprovementBlocked(imp, matchedItem, blockedZones);
 
                 return (
                   <div
                     key={impIdx}
                     className={`rounded-xl border transition-all overflow-hidden ${
-                      isBlocked
-                        ? "border-zinc-700/30 bg-zinc-900/30 opacity-40 cursor-not-allowed"
-                        : isSelected
-                          ? isCloset ? "border-emerald-500/40 bg-emerald-500/5" : "border-[#FF2E9F]/30 bg-[#FF2E9F]/5"
-                          : "border-[#FF2E9F]/5 bg-background/50 opacity-60"
+                      isSelected
+                        ? isCloset ? "border-emerald-500/40 bg-emerald-500/5" : "border-[#FF2E9F]/30 bg-[#FF2E9F]/5"
+                        : "border-[#FF2E9F]/5 bg-background/50 opacity-60"
                     }`}
                   >
-                    {/* Blocked banner */}
-                    {isBlocked && (
-                      <div className="px-3 py-1.5 bg-zinc-800/50 text-[10px] text-zinc-400 flex items-center gap-1.5">
-                        <Eye className="w-3 h-3" />
-                        {isHe ? "לא ניתן לשדרג — הפריט לא נראה בתמונה" : "Can't upgrade — item not visible in photo"}
-                      </div>
-                    )}
                     {/* Header with toggle */}
-                    <div className={`flex items-center gap-3 p-3 ${isBlocked ? "pointer-events-none" : "cursor-pointer"}`} onClick={() => !isBlocked && toggleImp(impIdx)}>
+                    <div className="flex items-center gap-3 p-3 cursor-pointer" onClick={() => toggleImp(impIdx)}>
                       <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-all ${
                         isSelected ? "border-[#FF2E9F] bg-[#FF2E9F]" : "border-[#FF2E9F]/20"
                       }`}>
@@ -636,8 +628,8 @@ export default function FixMyLookModal({ reviewId, analysis, trigger }: FixMyLoo
             <div className="flex items-center justify-between pt-2 sticky bottom-0 bg-card/95 backdrop-blur-sm pb-1 -mx-1 px-1">
               <span className="text-xs text-muted-foreground">
                 {isHe
-                  ? `${selectedCount} מתוך ${improvementCards.length} שידרוגים נבחרו`
-                  : `${selectedCount} of ${improvementCards.length} upgrades selected`}
+                  ? `${selectedCount} מתוך ${improvementCards.filter(c => !isImprovementBlocked(c.imp, c.matchedItem, blockedZones)).length} שידרוגים נבחרו`
+                  : `${selectedCount} of ${improvementCards.filter(c => !isImprovementBlocked(c.imp, c.matchedItem, blockedZones)).length} upgrades selected`}
               </span>
               <Button
                 onClick={handleFix}

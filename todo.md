@@ -1421,3 +1421,7 @@
 ## Stage 140 — Bug: Fix My Look output image is nearly black
 - [x] 140a: Investigate input_fidelity:medium causing broken AI edit output (image nearly black) — confirmed OPENAI_EDIT_FIDELITY was set to "medium"
 - [x] 140b: Reverted OPENAI_EDIT_FIDELITY to "high" in server/_core/imageGeneration.ts
+
+## Stage 141 — Remove blocked items from Fix My Look instead of showing disabled
+- [x] 141a: Filter out blocked improvements (not visible in photo) from the list entirely instead of showing them as disabled/darkened
+- [x] 141b: Applied to FixMyLookModal (GuestFixMyLookModal has no blockedZones logic so no change needed)
