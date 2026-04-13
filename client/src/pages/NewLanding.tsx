@@ -6,6 +6,7 @@ import { useOwnerBypass } from "@/hooks/useOwnerBypass";
 import { trpc } from "@/lib/trpc";
 import { useLanguage } from "@/i18n";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { getLoginUrl } from "@/const";
 
 /* ─── Design Tokens ─── */
 const PINK = "#FF2E9F";
@@ -312,14 +313,23 @@ export default function NewLanding() {
           <span className="text-lg sm:text-xl font-bold tracking-tight" style={{ fontFamily: FONT }}>
             <span style={{ color: PINK }}>TotalLook</span><span className="text-white/40">.ai</span>
           </span>
-          <button
-            onClick={() => openUpload("hero-nav")}
-            className="text-xs sm:text-sm font-medium flex items-center gap-1.5 transition-colors"
-            style={{ color: `${PINK}cc` }}
-          >
-            {isHe ? "התחל עכשיו" : "Start now"}
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
+          <div className="flex items-center gap-3 sm:gap-4">
+            <a
+              href={getLoginUrl("/upload")}
+              className="text-xs sm:text-sm font-medium px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl transition-all hover:bg-white/5"
+              style={{ color: "rgba(255,255,255,0.6)", border: `1px solid rgba(255,255,255,0.12)`, fontFamily: FONT }}
+            >
+              {isHe ? "התחבר" : "Log in"}
+            </a>
+            <button
+              onClick={() => openUpload("hero-nav")}
+              className="text-xs sm:text-sm font-medium flex items-center gap-1.5 transition-colors"
+              style={{ color: `${PINK}cc` }}
+            >
+              {isHe ? "התחל עכשיו" : "Start now"}
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
 
         {/* Hero content */}

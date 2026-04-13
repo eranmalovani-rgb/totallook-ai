@@ -1389,3 +1389,8 @@
 - [x] 133b: Simple two-image slider: one girl Before (casual) → After (upgraded)
 - [x] 133c: Dynamic score display that changes with slider position (62→92)
 - [x] 133d: Score color transitions: red (<75) → amber (75-85) → green (>85)
+
+## Stage 134 — Login Button on Landing Page
+- [x] 134a: Add login/sign-in button ("התחבר") next to "התחל עכשיו" in landing page header
+- [x] 134b: Login button links to Manus OAuth (existing auth system)
+- [x] 134c: After login, user redirects to /upload
