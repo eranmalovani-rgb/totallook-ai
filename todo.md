@@ -1402,3 +1402,6 @@
 ## Stage 136 — Bug: Analysis not running in studio GUI and after onboarding
 - [x] 136a: Fix: setSaving(false) before setShowAnalysisAnimation(true) so animation replaces spinner
 - [x] 136b: Use mutateAsync to wait for analysis completion before navigating (instead of 4s timeout)
+
+## Stage 137 — Fix My Look Speed: quality medium
+- [x] 137a: Change OPENAI_EDIT_QUALITY from "high" to "medium" in imageGeneration.ts
