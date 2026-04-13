@@ -1412,3 +1412,8 @@
 - [x] 138c: Block Fix My Look button for items whose body area is not visible in the source photo (footwear blocked when feetVisible=false, lower blocked when fullBodyVisible=false AND feetVisible=false)
 - [x] 138d: Show disabled state with "Can't upgrade — item not visible in photo" banner on blocked improvement cards
 - [x] 138e: Server-side visibility guard on both protected and guest fixMyLook endpoints — throws error if blocked item is requested
+
+## Stage 139 — Bug: Fix My Look not showing all product options per improvement
+- [x] 139a: Each improvement card in Fix My Look shows only 1 product (upgradeImageUrl) but ReviewPage shows 3 product options per improvement (shoppingLinks with images)
+- [x] 139b: Add product thumbnail gallery within each improvement card so user can pick which product to use for the AI edit (grid-cols-3 with Top Pick label)
+- [x] 139c: Wire selected product image to the fixMyLook mutation payload (both FixMyLookModal and GuestFixMyLookModal)

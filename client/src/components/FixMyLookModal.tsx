@@ -13,7 +13,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import type { FashionAnalysis, FashionItem, ShoppingLink, Improvement, ClosetMatch } from "../../../shared/fashionTypes";
+import type { FashionAnalysis, FashionItem, ShoppingLink, Improvement, ClosetMatch, ImprovementAlternative } from "../../../shared/fashionTypes";
 import { useLanguage } from "@/i18n";
 
 interface FixMyLookModalProps {
@@ -147,6 +147,9 @@ export default function FixMyLookModal({ reviewId, analysis, trigger }: FixMyLoo
   // -1 = closet item selected, 0 = buy new (use upgradeImageUrl)
   const [selectedPerImp, setSelectedPerImp] = useState<Record<number, number>>({});
 
+  // Stage 139: Track which product option is selected per improvement (0 = primary, 1+ = alternative)
+  const [selectedOptionPerImp, setSelectedOptionPerImp] = useState<Record<number, number>>({});
+
   // Closet switch confirmation and preview
   const [closetSwitchConfirm, setClosetSwitchConfirm] = useState<{ impIdx: number; closetName: string } | null>(null);
   const [closetPreviewItem, setClosetPreviewItem] = useState<{ closetMatch: ClosetMatch; impIdx: number } | null>(null);
@@ -175,6 +178,23 @@ export default function FixMyLookModal({ reviewId, analysis, trigger }: FixMyLoo
         }
       }
 
+      // Stage 139: Build all product options (primary + alternatives)
+      const alternatives: ImprovementAlternative[] = imp.alternatives || [];
+      const primary = {
+        title: imp.title,
+        afterLabel: imp.afterLabel,
+        afterColor: imp.afterColor,
+        afterGarmentType: imp.afterGarmentType,
+        afterStyle: imp.afterStyle,
+        afterFit: imp.afterFit,
+        afterMaterial: imp.afterMaterial,
+        afterPattern: imp.afterPattern,
+        productSearchQuery: imp.productSearchQuery,
+        shoppingLinks: imp.shoppingLinks || [],
+        upgradeImageUrl: imp.upgradeImageUrl,
+      };
+      const allOptions = [primary, ...alternatives];
+
       return {
         imp,
         impIdx,
@@ -183,6 +203,8 @@ export default function FixMyLookModal({ reviewId, analysis, trigger }: FixMyLoo
         icon,
         category: impCategory,
         closetMatch: validClosetMatch,
+        allOptions,
+        hasAlternatives: alternatives.length > 0,
       };
     });
   }, [allImprovements, allItems]);
@@ -304,19 +326,20 @@ export default function FixMyLookModal({ reviewId, analysis, trigger }: FixMyLoo
           productImageUrl: cm.itemImageUrl || cm.sourceImageUrl || "",
         });
       } else {
-        const imp = allImprovements[impIdx];
-        // Stage 57: Enrich productLabel with full catalog metadata for precise prompt
+        // Stage 139: Use the selected product option (primary or alternative)
+        const optionIdx = selectedOptionPerImp[impIdx] || 0;
+        const activeOption = card?.allOptions?.[optionIdx] || card?.allOptions?.[0];
         const metaParts: string[] = [];
-        if (imp?.afterColor) metaParts.push(imp.afterColor);
-        if (imp?.afterMaterial) metaParts.push(imp.afterMaterial);
-        if (imp?.afterPattern && imp.afterPattern !== 'solid') metaParts.push(`${imp.afterPattern} pattern`);
-        if (imp?.afterFit && imp.afterFit !== 'regular') metaParts.push(`${imp.afterFit} fit`);
-        const baseName = imp?.afterLabel || imp?.title || "";
+        if (activeOption?.afterColor) metaParts.push(activeOption.afterColor);
+        if (activeOption?.afterMaterial) metaParts.push(activeOption.afterMaterial);
+        if (activeOption?.afterPattern && activeOption.afterPattern !== 'solid') metaParts.push(`${activeOption.afterPattern} pattern`);
+        if (activeOption?.afterFit && activeOption.afterFit !== 'regular') metaParts.push(`${activeOption.afterFit} fit`);
+        const baseName = activeOption?.afterLabel || activeOption?.title || allImprovements[impIdx]?.afterLabel || "";
         const enrichedLabel = metaParts.length > 0 ? `${baseName} (${metaParts.join(', ')})` : baseName;
         selectedProductDetails.push({
           improvementIndex: impIdx,
           productLabel: enrichedLabel,
-          productImageUrl: imp?.upgradeImageUrl || "",
+          productImageUrl: activeOption?.upgradeImageUrl || allImprovements[impIdx]?.upgradeImageUrl || "",
         });
       }
     }
@@ -335,6 +358,7 @@ export default function FixMyLookModal({ reviewId, analysis, trigger }: FixMyLoo
     setHasSavedResult(false);
     setSkipRestore(true);
     setSelectedPerImp({});
+    setSelectedOptionPerImp({});
   };
 
   const handleDownload = async () => {
@@ -384,7 +408,9 @@ export default function FixMyLookModal({ reviewId, analysis, trigger }: FixMyLoo
             </p>
 
             <div className="space-y-3">
-              {improvementCards.map(({ imp, impIdx, matchedItem, icon, closetMatch }) => {
+              {improvementCards.map(({ imp, impIdx, matchedItem, icon, closetMatch, allOptions, hasAlternatives }) => {
+                const activeOptionIdx = selectedOptionPerImp[impIdx] || 0;
+                const activeOption = allOptions[activeOptionIdx] || allOptions[0];
                 const isSelected = selectedPerImp[impIdx] !== undefined;
                 const isCloset = selectedPerImp[impIdx] === -1;
                 const hasClosetItem = !!closetMatch;
@@ -436,35 +462,88 @@ export default function FixMyLookModal({ reviewId, analysis, trigger }: FixMyLoo
                       )}
                     </div>
 
-                    {/* Before → After with inline product thumbnail */}
-                    <div className="px-3 pb-2">
-                      <div className="flex items-center gap-3">
-                        {/* Product thumbnail — always visible */}
-                        {imp.upgradeImageUrl && (
-                          <img
-                            loading="lazy"
-                            src={imp.upgradeImageUrl}
-                            alt={imp.afterLabel}
-                            className={`w-16 h-16 rounded-lg object-cover border-2 shrink-0 transition-all ${
-                              isSelected ? "border-[#FF2E9F]/40 shadow-md shadow-[#FF2E9F]/10" : "border-[#FF2E9F]/5 opacity-60"
-                            }`}
-                          />
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 text-[11px] flex-wrap">
-                            <span className="px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-400 line-through">{imp.beforeLabel}</span>
-                            <span className="text-muted-foreground">→</span>
-                            <span className="px-2 py-0.5 rounded-full bg-[#FF2E9F]/10 text-[#FF2E9F] font-medium">{imp.afterLabel}</span>
+                    {/* Stage 139: Product options gallery — show all alternatives */}
+                    {hasAlternatives && !isCloset ? (
+                      <div className="px-3 pb-2">
+                        <div className="grid grid-cols-3 gap-1.5 mb-2">
+                          {allOptions.map((opt, optIdx) => {
+                            const isActiveOpt = activeOptionIdx === optIdx;
+                            return (
+                              <button
+                                key={optIdx}
+                                onClick={(e) => { e.stopPropagation(); setSelectedOptionPerImp(prev => ({ ...prev, [impIdx]: optIdx })); if (!isSelected) toggleImp(impIdx); }}
+                                className={`relative rounded-lg overflow-hidden border-2 transition-all duration-200 ${
+                                  isActiveOpt
+                                    ? 'border-[#FF2E9F]/60 ring-1 ring-[#FF2E9F]/20 scale-[1.02]'
+                                    : 'border-white/5 hover:border-white/20 opacity-70 hover:opacity-100'
+                                }`}
+                              >
+                                {opt.upgradeImageUrl ? (
+                                  <img loading="lazy" src={opt.upgradeImageUrl} alt={opt.afterLabel}
+                                    className="w-full aspect-square object-cover" />
+                                ) : (
+                                  <div className="w-full aspect-square bg-gradient-to-br from-primary/5 via-rose-500/5 to-transparent flex items-center justify-center">
+                                    <Sparkles className="w-4 h-4 text-primary/40 animate-pulse" />
+                                  </div>
+                                )}
+                                <div className={`absolute bottom-0 inset-x-0 px-1 py-0.5 text-[8px] font-medium text-center truncate ${
+                                  isActiveOpt ? 'bg-gradient-to-r from-[#FF2E9F]/90 to-[#7B2EFF]/90 text-white' : 'bg-black/60 text-white/80'
+                                }`}>
+                                  {optIdx === 0 ? (isHe ? "⭐ מומלץ" : "⭐ Top Pick") : opt.afterLabel?.split(' ').slice(0, 3).join(' ') || (isHe ? `אפשרות ${optIdx + 1}` : `Option ${optIdx + 1}`)}
+                                </div>
+                                {isActiveOpt && (
+                                  <div className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-[#FF2E9F] flex items-center justify-center shadow-lg">
+                                    <Check className="w-2.5 h-2.5 text-white" />
+                                  </div>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        {/* Before → After labels for selected option */}
+                        <div className="flex items-center gap-2 text-[11px] flex-wrap">
+                          <span className="px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-400 line-through">{imp.beforeLabel}</span>
+                          <span className="text-muted-foreground">→</span>
+                          <span className="px-2 py-0.5 rounded-full bg-[#FF2E9F]/10 text-[#FF2E9F] font-medium">{activeOption.afterLabel}</span>
+                        </div>
+                        {activeOption.afterColor && (
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary/80">{activeOption.afterColor}</span>
+                            {activeOption.afterMaterial && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[#FF2E9F]/10 text-[#FF2E9F]/80">{activeOption.afterMaterial}</span>}
+                            {activeOption.afterPattern && activeOption.afterPattern !== 'solid' && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-rose-500/10 text-rose-500/80">{activeOption.afterPattern}</span>}
                           </div>
-                          {imp.afterColor && (
-                            <span className="text-[10px] text-muted-foreground mt-1 block">
-                              {imp.afterMaterial ? `${imp.afterColor} ${imp.afterMaterial}` : imp.afterColor}
-                              {imp.afterPattern && imp.afterPattern !== "solid" ? ` • ${imp.afterPattern}` : ""}
-                            </span>
+                        )}
+                      </div>
+                    ) : (
+                      /* Single option — original layout */
+                      <div className="px-3 pb-2">
+                        <div className="flex items-center gap-3">
+                          {activeOption.upgradeImageUrl && (
+                            <img
+                              loading="lazy"
+                              src={activeOption.upgradeImageUrl}
+                              alt={activeOption.afterLabel}
+                              className={`w-16 h-16 rounded-lg object-cover border-2 shrink-0 transition-all ${
+                                isSelected ? "border-[#FF2E9F]/40 shadow-md shadow-[#FF2E9F]/10" : "border-[#FF2E9F]/5 opacity-60"
+                              }`}
+                            />
                           )}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 text-[11px] flex-wrap">
+                              <span className="px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-400 line-through">{imp.beforeLabel}</span>
+                              <span className="text-muted-foreground">→</span>
+                              <span className="px-2 py-0.5 rounded-full bg-[#FF2E9F]/10 text-[#FF2E9F] font-medium">{activeOption.afterLabel}</span>
+                            </div>
+                            {activeOption.afterColor && (
+                              <span className="text-[10px] text-muted-foreground mt-1 block">
+                                {activeOption.afterMaterial ? `${activeOption.afterColor} ${activeOption.afterMaterial}` : activeOption.afterColor}
+                                {activeOption.afterPattern && activeOption.afterPattern !== "solid" ? ` • ${activeOption.afterPattern}` : ""}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    )}
 
                     {/* Closet match option */}
                     {isSelected && hasClosetItem && (
@@ -519,12 +598,12 @@ export default function FixMyLookModal({ reviewId, analysis, trigger }: FixMyLoo
                       </div>
                     )}
 
-                    {/* Shopping links as store buttons (when buy new is selected) */}
-                    {isSelected && !isCloset && imp.shoppingLinks && imp.shoppingLinks.length > 0 && (
+                    {/* Shopping links as store buttons (when buy new is selected) — Stage 139: use activeOption */}
+                    {isSelected && !isCloset && activeOption.shoppingLinks && activeOption.shoppingLinks.length > 0 && (
                       <div className="px-3 pb-3">
                         <p className="text-[10px] text-muted-foreground mb-1.5">{isHe ? "חפש בחנויות:" : "Search in stores:"}</p>
                         <div className="flex flex-wrap gap-1.5">
-                          {imp.shoppingLinks.map((link, j) => {
+                          {activeOption.shoppingLinks.map((link, j) => {
                             const storeName = extractStoreFromUrl(link.url) || extractStoreFromLabel(link.label);
                             return (
                               <a
